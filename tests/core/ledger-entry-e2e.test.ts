@@ -130,4 +130,49 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(mapping[4]).toBe("inspection_due");
         expect(mapping[5]).toBe("insurance_due");
     });
+
+    it("SchemaLedgerProvider 对非标准日期（如斜杠或无 isNotEmpty）能正常派生提醒", async () => {
+        const { SchemaLedgerProvider } = await import("@/core/hub/providers");
+        const schema: any = {
+            columns: [
+                { key: "name", type: "text" },
+                { key: "expiry", type: "date" },
+            ],
+            reminders: [
+                { key: "exp", field: "expiry", leadDays: 30, kind: "oneoff" },
+            ],
+        };
+        const p = new SchemaLedgerProvider("custom", schema, {
+            settings: { ...defaultSettings(), enabledModules: ["custom"] },
+            getDbRef: () => ({
+                avId: "av-custom",
+                columns: { name: "k-name", expiry: "k-exp" },
+            }),
+        });
+        (p as any).readLedger = async () => ({
+            ref: { avId: "av-custom", columns: { name: "k-name", expiry: "k-exp" } },
+            rows: [
+                {
+                    itemID: "row-slash",
+                    cells: {
+                        "k-name": { text: { content: "老数据斜杠" } },
+                        // 斜杠格式且无 isNotEmpty
+                        "k-exp": { date: { content: "2026/11/01" } },
+                    },
+                },
+                {
+                    itemID: "row-ts-no-isnotempty",
+                    cells: {
+                        "k-name": { text: { content: "无 isNotEmpty 时间戳" } },
+                        "k-exp": { date: { content: new Date(2026, 10, 5).getTime() } },
+                    },
+                },
+            ],
+        });
+
+        const reminders = await p.collect(new Date(2026, 9, 25));
+        expect(reminders).toHaveLength(2);
+        expect(reminders[0].dueDate).toBe("2026-11-01");
+        expect(reminders[1].dueDate).toBe("2026-11-05");
+    });
 });

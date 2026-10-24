@@ -70,9 +70,36 @@ const CYCLE_MONTHS: Record<string, number> = {
     day: 0, week: 0, month: 1, quarter: 3, year: 12,
 };
 
-export function parseDate(v?: string): Date | undefined {
-    if (!v) return undefined;
-    const d = v.length === 10 ? parseISO(`${v}T00:00:00`) : parseISO(v);
+export function parseDate(v?: string | number): Date | undefined {
+    if (v === undefined || v === null || v === "") return undefined;
+    if (typeof v === "number") {
+        const d = new Date(v);
+        return isValid(d) ? d : undefined;
+    }
+    const raw = String(v).trim();
+    // 1. 纯数字毫秒时间戳字符串（如 "1761350400000"）
+    const num = Number(raw);
+    if (!isNaN(num) && num > 100000000) {
+        const d = new Date(num);
+        if (isValid(d)) return d;
+    }
+    // 2. 常见日期分隔符归一化（将斜杠 / 点号 / 中文年月日替换为 -）
+    const normalized = raw
+        .replace(/年|\/|\./g, "-")
+        .replace(/月/g, "-")
+        .replace(/日/g, "")
+        .trim();
+    // 3. yyyy-M-d 格式正则匹配并构建本地日期
+    const m = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) {
+        const year = Number(m[1]);
+        const month = Number(m[2]);
+        const day = Number(m[3]);
+        const d = new Date(year, month - 1, day);
+        return isValid(d) ? d : undefined;
+    }
+    // 4. 标准 ISO 或 RFC 日期解析回退
+    const d = normalized.length === 10 ? parseISO(`${normalized}T00:00:00`) : parseISO(normalized);
     return isValid(d) ? d : undefined;
 }
 

@@ -39,22 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.56
+## 🆕 What's new in v0.5.57
 
-This release fully aligns with the **Ecosystem Integration Directive**: replacing all remaining `iconEmoji` with the `iconLvHome` ruby-spark SVG mark and perfecting standalone federation:
+This release resolves the core issue where newly created ledger rows (e.g. vehicles) appeared blank: dual-mode cell unwrapping (`c.value ?? c`), decoupling from the fragile `isNotEmpty` kernel flag, full vehicle column alias self-healing, and end-to-end automated testing:
 
-- **Complete Brand SVG Closure**: Cleaned up the last 2 instances of `iconEmoji`, standardizing block icon menus and database row menus to `iconLvHome`;
-- **Directive Compliance 100%**: Retained `"小驴"`, `"小驴管家"`, `"xiaolv"` keywords and `"settingsWindow": true`; protected the masterpiece `icon.png` without overwrite; verified federation SDK graceful fallback.
-- **Validation**: 90 test suites, **791 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.56)
+- **Fixed (Eliminate Blank Data After Entry)**: Supports both wrapped (`c.value`) and flat (`c`) cells across SiYuan serialization variants, and eliminates reliance on the unstable `isNotEmpty` property for number and date extraction;
+- **Improved (Vehicle & General Column Alias Self-Healing)**: Added aliases for `plate`, `brand_model`, `energy_type`, `mileage`, `inspection_due`, and `insurance_due`, with dynamic column probing and primary block fallback for vehicle cards;
+- **Tested (E2E Verification)**: Added `tests/core/ledger-entry-e2e.test.ts` to ensure data integrity across serialization formats.
+- **Validation**: 91 test suites, **794 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.57)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.56 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.56 package is the current GitHub release; local quality checks report 791 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.57 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.57 package is the current GitHub release; local quality checks report 794 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.56 (current) | Ecosystem Integration Directive 100% compliance, iconLvHome mark closure |
+| ✅ v0.5.57 (current) | Eliminate blank data after entry, dual-mode cell unwrapping, vehicle column aliases |
+| v0.5.56 | Ecosystem Integration Directive 100% compliance, iconLvHome mark closure |
 | v0.5.55 | Native block focus & highlight on locate, toolbar interaction feedback closures |
 | v0.5.54 | Network timeout recovery, detail drawer cell null-safety |
 | v0.5.53 | Virtual scrolling jitter prevention, defensive cell access null-safety |

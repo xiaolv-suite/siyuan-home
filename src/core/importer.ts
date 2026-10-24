@@ -106,7 +106,7 @@ export function planImport(
 }
 
 const IMPORTER_ALIASES: Record<string, string[]> = {
-    name: ["名称", "姓名", "标题", "物品名称", "证件名称", "合同名称", "药名", "药品名称", "书名", "name", "title"],
+    name: ["名称", "姓名", "标题", "物品名称", "证件名称", "合同名称", "药名", "药品名称", "书名", "车辆名称", "车名", "name", "title"],
     qty: ["数量", "库存", "库存量", "现存数量", "件数", "qty", "stock_qty"],
     stock_qty: ["数量", "库存", "库存量", "现存数量", "qty", "stock_qty"],
     expiry: ["到期日", "有效期", "过期时间", "到期时间", "截止日期", "保质期至", "有效期至", "expiry", "due"],
@@ -120,6 +120,22 @@ const IMPORTER_ALIASES: Record<string, string[]> = {
     member: ["家庭成员", "成员", "归属人", "所属人", "联系人", "member", "owner"],
     person: ["联系人", "姓名", "往来对象", "对象", "person"],
     status: ["状态", "当前状态", "status"],
+    plate: ["车牌", "车牌号", "号牌", "车牌号码", "plate", "license_plate"],
+    brand_model: ["品牌型号", "品牌", "车型", "车辆型号", "车辆品牌", "型号", "brand_model", "model"],
+    energy_type: ["能源类型", "能源", "动力类型", "燃油类型", "动力", "energy_type"],
+    mileage: ["里程", "当前里程", "公里数", "总里程", "行驶里程", "mileage"],
+    inspection_due: ["车检到期", "年检到期", "年审到期", "车检", "年检", "inspection_due"],
+    insurance_due: ["车险到期", "保险到期", "车险", "insurance_due"],
+    vehicle_tax_due: ["车船税到期", "车船税", "vehicle_tax_due"],
+    battery_due: ["电池更换", "电池到期", "下次更换", "battery_due"],
+    battery_capacity: ["电池容量", "容量", "battery_capacity"],
+    purchase_date: ["购买日期", "购车日期", "购入日期", "买入日期", "purchase_date"],
+    purchase_price: ["购买价格", "购车价格", "车价", "买入价", "purchase_price"],
+    current_value: ["当前估值", "估值", "残值", "当前价值", "current_value"],
+    insurance_company: ["保险公司", "承保公司", "投保公司", "insurance_company"],
+    violations: ["违章记录", "违章", "违章处罚", "violations"],
+    vin: ["车架号", "车辆识别代码", "vin"],
+    color: ["颜色", "车身颜色", "外观颜色", "color"],
 };
 
 /** 从 CSV 首列表头猜测映射：支持精确列键、本地化标签以及全景常用中文别名模糊对齐 */

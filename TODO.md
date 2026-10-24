@@ -1,5 +1,5 @@
 # 小驴管家（Lv Home）· 项目待办总清单
-> **当前事实（2026-10-23）**：本地 `main` 为 v0.5.56，90 个测试文件 / 791 项单测、类型/Svelte/i18n/meta/audit/build/smoke/loader 全绿；全面对齐《小驴生态中枢统领指令》、彻底换装iconLvHome矢量火种标；i18n 1950 键对齐。真实 Android WebView、独立窗口、兄弟插件、双端冲突和用户工作区验证待完成；`pnpm test:live` 缺少 `SIYUAN_TOKEN` 时阻断；集市发布继续暂缓。
+> **当前事实（2026-10-24）**：本地 `main` 为 v0.5.57，91 个测试文件 / 794 项单测、类型/Svelte/i18n/meta/audit/build/smoke/loader 全绿；攻克台账录入数据为空缺陷、单元格解构双模兼容、全景别名自愈；i18n 1950 键对齐。真实 Android WebView、独立窗口、兄弟插件、双端冲突和用户工作区验证待完成；`pnpm test:live` 缺少 `SIYUAN_TOKEN` 时阻断；集市发布继续暂缓。
 
 ## 第 224 波复审行动清单（当前唯一入口）
 

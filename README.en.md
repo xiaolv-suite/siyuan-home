@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.57
+## 🆕 What's new in v0.5.58
 
-This release resolves the core issue where newly created ledger rows (e.g. vehicles) appeared blank: dual-mode cell unwrapping (`c.value ?? c`), decoupling from the fragile `isNotEmpty` kernel flag, full vehicle column alias self-healing, and end-to-end automated testing:
+This release expands the E2E verification matrix for legacy user data compatibility: flexible date parsing (`parseDate`) across non-standard formats (slashes, dots, Chinese characters, timestamps) and auto-alignment for legacy CSV imports:
 
-- **Fixed (Eliminate Blank Data After Entry)**: Supports both wrapped (`c.value`) and flat (`c`) cells across SiYuan serialization variants, and eliminates reliance on the unstable `isNotEmpty` property for number and date extraction;
-- **Improved (Vehicle & General Column Alias Self-Healing)**: Added aliases for `plate`, `brand_model`, `energy_type`, `mileage`, `inspection_due`, and `insurance_due`, with dynamic column probing and primary block fallback for vehicle cards;
-- **Tested (E2E Verification)**: Added `tests/core/ledger-entry-e2e.test.ts` to ensure data integrity across serialization formats.
-- **Validation**: 91 test suites, **794 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.57)
+- **Improved (Legacy Date Format Tolerance parseDate)**: Deep support for `2026/10/25`, `2026.10.25`, `2026年10月25日`, non-padded `2026-1-5`, and timestamp numbers/strings, eliminating silent reminder omissions for existing user records;
+- **Improved (Legacy CSV Header Auto-Alignment guessMapping)**: Recognizes popular legacy headers like "车牌号", "车型", "公里数", "燃油类型", "年检到期", and "保险到期" for 100% zero-configuration import;
+- **Tested (Expanded E2E Matrix)**: Suite expanded to 796 tests, ensuring flawless upgrades for long-time users.
+- **Validation**: 91 test suites, **796 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.58)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.57 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.57 package is the current GitHub release; local quality checks report 794 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.58 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.58 package is the current GitHub release; local quality checks report 796 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.57 (current) | Eliminate blank data after entry, dual-mode cell unwrapping, vehicle column aliases |
+| ✅ v0.5.58 (current) | E2E matrix expansion, legacy non-standard date healing, CSV header alignment |
+| v0.5.57 | Eliminate blank data after entry, dual-mode cell unwrapping, vehicle column aliases |
 | v0.5.56 | Ecosystem Integration Directive 100% compliance, iconLvHome mark closure |
 | v0.5.55 | Native block focus & highlight on locate, toolbar interaction feedback closures |
 | v0.5.54 | Network timeout recovery, detail drawer cell null-safety |

@@ -155,10 +155,16 @@ describe("工具函数", async () => {
         expect(localDateKey(new Date(2026, 9, 1))).toBe("2026-10-01");
         expect(localDateKey(new Date(2026, 11, 31))).toBe("2026-12-31");
     });
-    it("parseDate 拒绝无效", async () => {
+    it("parseDate 拒绝无效并兼容各类历史格式", async () => {
         expect(parseDate("not-a-date")).toBeUndefined();
         expect(parseDate(undefined)).toBeUndefined();
         expect(parseDate("2026-10-01")?.getFullYear()).toBe(2026);
+        // 老用户历史格式兼容
+        expect(parseDate("2026/10/25")?.getDate()).toBe(25);
+        expect(parseDate("2026.10.25")?.getDate()).toBe(25);
+        expect(parseDate("2026年10月25日")?.getDate()).toBe(25);
+        expect(parseDate("2026-1-5")?.getMonth()).toBe(0);
+        expect(parseDate(new Date(2026, 9, 25).getTime())?.getDate()).toBe(25);
     });
 });
 

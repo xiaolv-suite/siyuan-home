@@ -101,4 +101,33 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         // 字符串日期
         expect(cellContentText({ type: "date", date: { content: "2026-10-24" as any } })).toBe("2026-10-24");
     });
+
+    it("老用户历史数据日期格式解析全覆盖 (Slash/Dot/中文/时间戳)", async () => {
+        const { parseDate } = await import("@/core/hub/rule");
+        // 斜杠格式
+        expect(parseDate("2026/10/25")?.getDate()).toBe(25);
+        expect(parseDate("2026/5/9")?.getMonth()).toBe(4);
+        // 点号格式
+        expect(parseDate("2026.10.25")?.getDate()).toBe(25);
+        expect(parseDate("2026.03.12")?.getMonth()).toBe(2);
+        // 中文年月日格式
+        expect(parseDate("2026年10月25日")?.getDate()).toBe(25);
+        // 毫秒时间戳数字与字符串
+        const ms = new Date(2026, 9, 25).getTime();
+        expect(parseDate(ms)?.getDate()).toBe(25);
+        expect(parseDate(String(ms))?.getDate()).toBe(25);
+    });
+
+    it("CSV导入智能映射 (guessMapping) 覆盖全部模块常用历史表头", async () => {
+        const { guessMapping } = await import("@/core/importer");
+        const headers = ["车牌号", "车型", "公里数", "燃油类型", "年检到期", "保险到期"];
+        const mapping = guessMapping(headers, VEHICLES_SCHEMA.columns, (k) => k);
+
+        expect(mapping[0]).toBe("plate");
+        expect(mapping[1]).toBe("brand_model");
+        expect(mapping[2]).toBe("mileage");
+        expect(mapping[3]).toBe("energy_type");
+        expect(mapping[4]).toBe("inspection_due");
+        expect(mapping[5]).toBe("insurance_due");
+    });
 });

@@ -7,7 +7,7 @@
     import { planImport, guessMapping } from "@/core/importer";
     import { buildCsv } from "@/core/csv";
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
-    import { selectCellValue, selectCellContent } from "@/core/avcell";
+    import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
     import { renderRecordCardPng, copyPngToClipboard, downloadPng } from "@/core/sharecard";
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage, Dialog, confirm } from "siyuan";
@@ -16,6 +16,7 @@
     import { saveSettings } from "@/core/settings";
     import { ensurePinyin, pinyinReady, searchMatch } from "@/core/pinyin";
     import { openContactPicker, getContactsBridge } from "@/libs/contact-picker";
+    import { COMMON_COLUMN_ALIASES } from "@/core/provisioner";
     import { getCertificateProfile, getCertificateReminderField } from "@/core/schema";
     import type { ColumnDef } from "@/core/schema";
     import { getCaptureFields, getFormFields, validateCaptureInput, type CaptureInputError } from "@/core/capture";
@@ -2539,26 +2540,31 @@
                 return content;
             }
             case "date": {
-                if (!v.date?.isNotEmpty || v.date.content === undefined || v.date.content === null) return "—";
-                const d = new Date(v.date.content);
+                if (v.date?.content === undefined || v.date.content === null) return "—";
+                const raw = v.date.content;
+                const num = Number(raw);
+                const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
                 return isNaN(d.getTime()) ? "—" : localDateKey(d);
             }
             case "select": {
                 // Select values can be stored as either scalar or mSelect cells.
                 const s = selectCellContent(v) ?? "—";
-                return colKey ? optLabel(t, colKey, s) : s;
+                return colKey && s !== "—" ? optLabel(t, colKey, s) : s;
             }
             case "mSelect": {
-                const list = v.mSelect?.length ? v.mSelect.map((o: any) => o.content).join(", ") : "—";
+                const list = v.mSelect?.length ? v.mSelect.map((o: any) => o?.content).filter(Boolean).join(", ") : "—";
                 return colKey && list !== "—" ? optLabelText(t, colKey, list) : list;
             }
-            case "number": return v.number?.isNotEmpty && typeof v.number.content === "number" && !isNaN(v.number.content) ? String(v.number.content) : "—";
+            case "number": return typeof v.number?.content === "number" && !isNaN(v.number.content) ? String(v.number.content) : (v.number?.content !== undefined && !isNaN(Number(v.number.content)) ? String(Number(v.number.content)) : "—");
             case "url": return v.url?.content ?? "—";
             case "checkbox": return v.checkbox?.checked ? "是" : "—";
             case "block": return v.block?.content ?? "—";
             case "relation": return (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").join(", ") || "—";
             case "mAsset": return (v.mAsset ?? []).map((asset: any) => asset?.name ?? asset?.content ?? "").filter(Boolean).join(", ") || "—";
-            default: return "—";
+            default: {
+                const fallback = cellContentText(v);
+                return fallback || "—";
+            }
         }
     }
 
@@ -5644,7 +5650,30 @@
 
     function vehicleText(row: any, key: string): string {
         const id = ref?.columns?.[key];
-        return id ? cellText(row.cells?.[id], key) : "—";
+        let val = id ? cellText(row.cells?.[id], key) : "—";
+        // 动态自愈：若映射 ID 未取到值，从当前视图已知列（avCols）中通过别名匹配
+        if ((!id || val === "—") && avCols.length > 0) {
+            const aliases = ["name", "plate", "brand_model", "energy_type", "mileage"].includes(key)
+                ? (COMMON_COLUMN_ALIASES[key] ?? [key])
+                : [key];
+            const matchedCol = avCols.find((c) => aliases.includes(c?.name) || aliases.includes(c?.keyName));
+            if (matchedCol?.id && row.cells?.[matchedCol.id]) {
+                const probed = cellText(row.cells[matchedCol.id], key);
+                if (probed && probed !== "—") val = probed;
+            }
+        }
+        // 车名双重兜底：若仍为空，回退到行主键块或首个文本单元格
+        if (key === "name" && (val === "—" || !val)) {
+            if (row?.cells) {
+                for (const cell of Object.values(row.cells) as any[]) {
+                    if (cell?.block?.content) return String(cell.block.content).trim();
+                }
+                for (const cell of Object.values(row.cells) as any[]) {
+                    if (cell?.text?.content) return String(cell.text.content).trim();
+                }
+            }
+        }
+        return val || "—";
     }
 </script>
 

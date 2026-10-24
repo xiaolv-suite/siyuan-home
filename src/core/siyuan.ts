@@ -902,8 +902,8 @@ export async function renderLedger(avID: string, pageSize?: number, page?: numbe
         const cells: Record<string, any> = {};
         rawCells.forEach((c: any, i: number) => {
             if (!c || typeof c !== "object") malformed("row.cells[]");
-            const v = c.value ?? {};
-            const key = v.keyID ?? cols[i]?.id;
+            const v = (c.value && typeof c.value === "object" && Object.keys(c.value).length > 0) ? c.value : c;
+            const key = v.keyID ?? c.keyID ?? cols[i]?.id;
             if (key) cells[key] = v;
         });
         // Count unique identities on the first page as well as later pages;

@@ -3,7 +3,7 @@
  * 每个 provider 声明自己的规则与行读取方式；扫描器只认接口，不写死模块。
  */
 import type { Reminder, ReminderRuleSpec } from "@/types";
-import { buildReminder, localDateKey, type LedgerRowDates } from "./rule";
+import { buildReminder, localDateKey, parseDate, type LedgerRowDates } from "./rule";
 import { renderLedgerAll, type AvRow } from "../siyuan";
 import { CERTS_SCHEMA, MEMBERS_SCHEMA, type ModuleSchema, type NumericRuleSpec } from "../schema";
 import type { DbRef, HomeSettings } from "@/types";
@@ -38,18 +38,21 @@ export function rowLeadDays(v: AvCellLike | null | undefined): number | undefine
     return n === undefined ? undefined : Math.min(3650, Math.max(0, n));
 }
 
-/** 从 av 行 value 提取日期（date 列 content 为 ms 时间戳） */
+/** 从 av 行 value 提取日期（date 列 content 为 ms 时间戳，亦兼容字符串日期与时间戳） */
 function dateFromValue(v: AvCellLike | null | undefined): string | undefined {
-    const d = v?.date;
-    if (!d || !d.isNotEmpty || !d.content) return undefined;
-    const dt = new Date(d.content);
-    if (isNaN(dt.getTime())) return undefined;
+    if (!v) return undefined;
+    const raw = v.date?.content ?? v.text?.content;
+    if (raw === undefined || raw === null || raw === "") return undefined;
+    const dt = parseDate(raw as any);
+    if (!dt || isNaN(dt.getTime())) return undefined;
     return localDateKey(dt);
 }
 
 function textFromValue(v: AvCellLike | null | undefined): string | undefined {
-    const t = v?.text?.content;
-    return typeof t === "string" && t.trim() ? t.trim() : undefined;
+    if (!v) return undefined;
+    if (typeof v.text?.content === "string" && v.text.content.trim()) return v.text.content.trim();
+    if (typeof v.block?.content === "string" && v.block.content.trim()) return v.block.content.trim();
+    return undefined;
 }
 
 /** select 单选值（certs status 过滤用） */
@@ -57,11 +60,17 @@ function selectFromValue(v: AvCellLike | null | undefined): string | undefined {
     return v?.select?.content ?? v?.mSelect?.[0]?.content ?? undefined;
 }
 
-/** number 列值（H15）：0 算有值；缺列/缺值（isNotEmpty false）返回 undefined */
+/** number 列值（H15）：0 算有值；兼容字符串数值与缺省值 */
 function numberFromValue(v: AvCellLike | null | undefined): number | undefined {
-    const n = v?.number;
-    if (!n || !n.isNotEmpty || typeof n.content !== "number" || isNaN(n.content)) return undefined;
-    return n.content;
+    if (!v) return undefined;
+    if (typeof v.number?.content === "number" && !isNaN(v.number.content)) {
+        return v.number.content;
+    }
+    if (v.text?.content !== undefined && v.text?.content !== null) {
+        const parsed = Number(v.text.content);
+        if (!isNaN(parsed)) return parsed;
+    }
+    return undefined;
 }
 
 export interface ProviderDeps {
@@ -131,7 +140,7 @@ export class CertsProvider implements DataProvider {
             for (const rule of schema.reminders ?? []) {
                 if (!ref.columns[rule.field]) continue;
                 const v = cell(rule.field);
-                const fieldValue = v?.type === "date" ? dateFromValue(v) : textFromValue(v);
+                const fieldValue = dateFromValue(v) ?? textFromValue(v);
                 if (!fieldValue) continue;
                 const r = await buildReminder(rule, this.moduleId, { ...rowDates, fieldValue }, {
                     today,
@@ -187,7 +196,7 @@ export class SchemaLedgerProvider implements DataProvider {
                     if (actual !== rule.onlyIf.equals) continue;
                 }
                 const v = cell(rule.field);
-                const fieldValue = v?.type === "date" ? dateFromValue(v) : textFromValue(v);
+                const fieldValue = dateFromValue(v) ?? textFromValue(v);
                 if (!fieldValue) continue;
                 const cycleKey = rule.cycleField ?? "cycle";
                 const r = await buildReminder(rule, this.moduleId, {

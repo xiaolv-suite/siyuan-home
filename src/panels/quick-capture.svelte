@@ -312,7 +312,6 @@
     let saving = $state(false);
     let saveError = $state("");
     let fieldErrors: Record<string, string> = $state({});
-    let identityChecked = $state(false);
     let nameEl: HTMLInputElement | undefined = $state();
 
     // 301波：智能速记与思源块文本结构化预填
@@ -656,7 +655,6 @@
             showMessage(t("capture.ledgerUnavailable").replace("${module}", modLabel(targetModule)), 5000, "error");
             return;
         }
-        identityChecked = true;
         close();
         plugin.showTabDocs(docId);
     }
@@ -664,7 +662,7 @@
     let showDiscardConfirm = $state(false);
 
     function discardUncertainDraft() {
-        if (!identityChecked || saving) return;
+        if (saving) return;
         showDiscardConfirm = true;
     }
 
@@ -674,7 +672,6 @@
         pendingModuleId = undefined;
         saveOperationKey = undefined;
         identityPending = false;
-        identityChecked = false;
         saveError = "";
         showDiscardConfirm = false;
         showMessage(t("capture.uncertainDraftDiscarded"), 6000, "info");
@@ -761,15 +758,15 @@
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-amount">{t("capture.amountCny")} *</label>
-                                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：300 或 250.5" bind:value={fuelingAmount} disabled={saving} />
+                                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：300 或 250.5" bind:value={fuelingAmount} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-mileage">{t("capture.currentMileage")}</label>
-                                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" placeholder="例如：15800（公里）" bind:value={fuelingMileage} disabled={saving} />
+                                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" placeholder="例如：15800（公里）" bind:value={fuelingMileage} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-liters">{t("capture.fuelLiters")}</label>
-                                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：42.5（升）或 50（度）" bind:value={fuelingLiters} disabled={saving} />
+                                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：42.5（升）或 50（度）" bind:value={fuelingLiters} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-date">{t("field.date")}</label>
@@ -795,20 +792,20 @@
                         {#if vitalMetricType === "bp"}
                             <div class="lv-frow">
                                 <label for="lv-vital-sys">{t("capture.systolic")}</label>
-                                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder="收缩压高压，例如：120" bind:value={vitalSys} disabled={saving} />
+                                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder="收缩压高压，例如：120" bind:value={vitalSys} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-dia">{t("capture.diastolic")}</label>
-                                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder="舒张压低压，例如：80" bind:value={vitalDia} disabled={saving} />
+                                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder="舒张压低压，例如：80" bind:value={vitalDia} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-pulse">{t("capture.pulse")}</label>
-                                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder="静息心率，例如：72" bind:value={vitalPulse} disabled={saving} />
+                                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder="静息心率，例如：72" bind:value={vitalPulse} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
                             </div>
                         {:else}
                             <div class="lv-frow">
                                 <label for="lv-vital-glu">{t("capture.glucoseVal")}</label>
-                                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder="空腹/餐后血糖，例如：5.6" bind:value={vitalGlucose} disabled={saving} />
+                                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder="空腹/餐后血糖，例如：5.6" bind:value={vitalGlucose} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-tim">测量时段</label>
@@ -821,16 +818,16 @@
                     {:else if eventSub === "shopping"}
                         <div class="lv-frow">
                             <label for="lv-shop-name">{t("field.name")} *</label>
-                            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder="例如：维达无芯卷纸 / 纯牛奶 / 抽纸" bind:value={quickShopName} disabled={saving} />
+                            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder="例如：维达无芯卷纸 / 纯牛奶 / 抽纸" bind:value={quickShopName} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
                         </div>
                         <div class="lv-frow">
                             <label for="lv-shop-qty">{t("field.qty")}</label>
-                            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder="数量，默认 1" bind:value={quickShopQty} disabled={saving} />
+                            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder="数量，默认 1" bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
                         </div>
                     {:else if eventSub === "snippet"}
                         <div class="lv-frow" style="display:flex;flex-direction:column;align-items:stretch">
                             <label for="lv-snip-text">{t("capture.actSnippet")}</label>
-                            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期..." bind:value={quickSnippetText} disabled={saving}></textarea>
+                            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期 (Ctrl+Enter快速保存)..." bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
                         </div>
                     {/if}
                 </div>

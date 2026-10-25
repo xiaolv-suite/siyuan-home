@@ -2345,7 +2345,6 @@
     let saveError = $state("");
     let validationAttempted = $state(false);
     let identityPending = $state(false); // 行已提交但身份未确认（D02）：禁止自动重试，防重复建行
-    let identityChecked = $state(false);
     let savedModule = $state(""); // Brief save confirmation state.
     let pendingItemID = $state<string | null>(null);
     /** Stable key for one new-row submission. Retries after a timeout reuse it
@@ -2459,14 +2458,12 @@
 
     function openPendingLedger() {
         if (!ref?.docId) return;
-        identityChecked = true;
         closeNewRecord();
         plugin.showTabDocs(ref.docId);
     }
 
     function discardUncertainDraft() {
         resetForm();
-        identityChecked = false;
         showMessage(t("ledger.uncertainDraftDiscarded"), 6000, "error");
     }
 
@@ -2502,6 +2499,8 @@
     }
 
     function saveNewRecord(continueAfter: boolean) {
+        if (saving) return;
+        identityPending = false;
         closeAfterSave = !continueAfter;
         void createRow();
     }
@@ -2536,7 +2535,7 @@
         lastCertificateCategory = "";
         certificateFiles = {};
         uploadedCertificateFiles = {};
-        saveError = ""; validationAttempted = false; identityPending = false; identityChecked = false; pendingItemID = null; recordOperationKey = null;
+        saveError = ""; validationAttempted = false; identityPending = false; pendingItemID = null; recordOperationKey = null;
     }
 
     /** Format a cell for both the table and the detail drawer. */
@@ -5558,7 +5557,8 @@
     }
 
     async function doCreateRow() {
-        if (!ref?.avId || saving || identityPending) return;
+        if (!ref?.avId || saving) return;
+        identityPending = false;
         saving = true;
         saveError = "";
         if (!recordOperationKey) {
@@ -6068,12 +6068,12 @@
         <div class="lv-sheet-foot lv-record-foot">
             {#if identityPending}
                 <button class="lv-btn ghost" onclick={openPendingLedger}>{t("ledger.checkPending")}</button>
-                {#if identityChecked}<button class="lv-btn ghost" onclick={discardUncertainDraft}>{t("ledger.discardUncertain")}</button>{/if}
+                <button class="lv-btn ghost" onclick={discardUncertainDraft}>{t("ledger.discardUncertain")}</button>
             {/if}
-            <button class="b3-button b3-button--text" onclick={clearNewRecord} disabled={saving || identityPending}>{pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}</button>
+            <button class="b3-button b3-button--text" onclick={clearNewRecord} disabled={saving}>{pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}</button>
             <span class="fn__flex-1"></span>
-            <button class="lv-btn" onclick={() => saveNewRecord(true)} disabled={saving || identityPending || nameMissing || (active === "certs" && !form.category)}>{t("ledger.saveContinue")}</button>
-            <button class="lv-btn primary" onclick={() => saveNewRecord(false)} disabled={saving || identityPending || nameMissing || (active === "certs" && !form.category)}>{saving ? t("ledger.saving") : t("save")}</button>
+            <button class="lv-btn" onclick={() => saveNewRecord(true)} disabled={saving || nameMissing || (active === "certs" && !form.category)}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}</button>
+            <button class="lv-btn primary" onclick={() => saveNewRecord(false)} disabled={saving || nameMissing || (active === "certs" && !form.category)}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}</button>
         </div>
     </div>
 </div>

@@ -13,93 +13,88 @@
   --lv-space-1: 4px; --lv-space-2: 8px; --lv-space-3: 12px; --lv-space-4: 16px;
   --lv-space-5: 20px; --lv-space-6: 24px; --lv-space-7: 32px; --lv-space-8: 40px;
   --lv-font-xs: 11px; --lv-font-sm: 12px; --lv-font-md: 13px;
-  --lv-font-body: 14px; --lv-font-title: 18px; --lv-font-display: 26px;
-  --lv-leading-tight: 1.25; --lv-leading-body: 1.6; --lv-leading-relaxed: 1.75;
+  --lv-font-body: 14px; --lv-font-title: 18px; --lv-font-display: 24px;
+  --lv-leading-tight: 1.25; --lv-leading-body: 1.5; --lv-leading-relaxed: 1.65;
   --lv-weight-regular: 400; --lv-weight-medium: 500; --lv-weight-semibold: 600;
   --lv-control-sm: 32px; --lv-control-md: 36px; --lv-control-lg: 40px;
-  --lv-canvas: #f7f8fc;
-  --lv-surface: #fff;
-  --lv-surface-2: #f3f5fa;
+  --lv-canvas: #f8fafc;
+  --lv-surface: #ffffff;
+  --lv-surface-2: #f1f5f9;
+  --lv-r-1: 6px;
   --lv-r-2: 10px;
-  --lv-r-3: 18px;
-  --lv-r-4: 22px;
-  --lv-line: #e6eaf1;
-  --lv-line-strong: #d5dde8;
-  --lv-inset: rgba(255, 255, 255, .85);
-  --lv-shadow-1: 0 1px 3px rgba(41, 59, 83, .05);
-  --lv-shadow-2: 0 12px 32px rgba(41, 59, 83, .12);
-  --lv-shadow-3: 0 8px 20px rgba(28, 42, 62, .09), 0 24px 56px rgba(28, 42, 62, .13);
-  --lv-accent: #355a7b;
-  --lv-accent-2: #527b98;
-  --lv-accent-soft: #eaf1f9;
-  --lv-accent-glow: rgba(53, 90, 123, .14);
-  --lv-accent-line: rgba(53, 90, 123, .28);
-  --lv-tx: #263548;
-  --lv-tx-2: #536379;
-  --lv-tx-3: #667489;
-  --lv-warn: #9d4f35;
-  --lv-warn-soft: #fbf0eb;
-  --lv-amber: #b46643;
-  --lv-amber-soft: #fcf3ef;
-  // 原生 b3 控件和链接在插件范围内也使用同一品牌色，避免散落亮蓝按钮。
-  --b3-theme-primary: var(--lv-accent);
-  --b3-theme-primary-light: var(--lv-accent-soft);
-  --b3-theme-on-primary: #fff;
+  --lv-r-3: 16px;
+  --lv-r-4: 20px;
+  --lv-line: #e2e8f0;
+  --lv-line-strong: #cbd5e1;
+  --lv-inset: rgba(255, 255, 255, .9);
+  --lv-shadow-1: 0 1px 3px rgba(15, 23, 42, .05), 0 1px 2px rgba(15, 23, 42, .03);
+  --lv-shadow-2: 0 4px 6px -1px rgba(15, 23, 42, .07), 0 2px 4px -2px rgba(15, 23, 42, .05);
+  --lv-shadow-3: 0 20px 25px -5px rgba(15, 23, 42, .08), 0 8px 10px -6px rgba(15, 23, 42, .04);
+  --lv-accent: #d97706;
+  --lv-accent-2: #b45309;
+  --lv-accent-soft: #fef3c7;
+  --lv-accent-glow: rgba(217, 119, 6, .15);
+  --lv-accent-line: rgba(217, 119, 6, .35);
+  --lv-tx: #0f172a;
+  --lv-tx-2: #334155;
+  --lv-tx-3: #64748b;
+  --lv-warn: #ea580c;
+  --lv-warn-soft: #ffedd5;
+  --lv-amber: #d97706;
+  --lv-amber-soft: #fef3c7;
+  --lv-ok: #059669;
+  --lv-ok-soft: #ecfdf5;
+  --lv-danger: #dc2626;
+  --lv-danger-soft: #fef2f2;
 }
 
-.lv-home {
-  // 常驻挂载的 .lv-mask/.lv-modal（267 波）以最近定位祖先为包含块——不设 relative 时
-  // 会锚到更外层元素，关闭态的 480px 弹层把窄容器面板撑出幽灵横向滚动区
-  position: relative;
-  // 思源侧栏/分屏的 viewport 可能仍然很宽，布局断点应依据插件实际容器宽度。
-  container: lv-home / inline-size;
-  // ── 1. Token ────────────────────────────────────────────
-  // 统一令牌：新增页面优先消费这些变量，不再自行发明尺寸、字号和时长。
-  // 间距采用 4px 栅格；字号只保留五档；控件高度对应 sm/md/lg 三种触控密度。
+@mixin dark-surfaces {
   --lv-space-1: 4px; --lv-space-2: 8px; --lv-space-3: 12px; --lv-space-4: 16px;
   --lv-space-5: 20px; --lv-space-6: 24px; --lv-space-7: 32px; --lv-space-8: 40px;
   --lv-font-xs: 11px; --lv-font-sm: 12px; --lv-font-md: 13px;
-  --lv-font-body: 14px; --lv-font-title: 18px; --lv-font-display: 26px;
-  --lv-leading-tight: 1.25; --lv-leading-body: 1.6; --lv-leading-relaxed: 1.75;
+  --lv-font-body: 14px; --lv-font-title: 18px; --lv-font-display: 24px;
+  --lv-leading-tight: 1.25; --lv-leading-body: 1.5; --lv-leading-relaxed: 1.65;
   --lv-weight-regular: 400; --lv-weight-medium: 500; --lv-weight-semibold: 600;
   --lv-control-sm: 32px; --lv-control-md: 36px; --lv-control-lg: 40px;
-  --lv-r-1: 6px; --lv-r-2: 10px; --lv-r-3: 18px; --lv-r-4: 22px;
+  --lv-canvas: #090d16;
+  --lv-surface: #111827;
+  --lv-surface-2: #1f2937;
+  --lv-r-1: 6px;
+  --lv-r-2: 10px;
+  --lv-r-3: 16px;
+  --lv-r-4: 20px;
+  --lv-line: #374151;
+  --lv-line-strong: #4b5563;
+  --lv-inset: rgba(255, 255, 255, .05);
+  --lv-shadow-1: 0 1px 3px rgba(0, 0, 0, .4);
+  --lv-shadow-2: 0 8px 24px rgba(0, 0, 0, .5);
+  --lv-shadow-3: 0 20px 32px rgba(0, 0, 0, .6);
+  --lv-accent: #f59e0b;
+  --lv-accent-2: #d97706;
+  --lv-accent-soft: rgba(245, 158, 11, .16);
+  --lv-accent-glow: rgba(245, 158, 11, .2);
+  --lv-accent-line: rgba(245, 158, 11, .4);
+  --lv-tx: #f8fafc;
+  --lv-tx-2: #cbd5e1;
+  --lv-tx-3: #94a3b8;
+  --lv-warn: #f97316;
+  --lv-warn-soft: rgba(249, 115, 22, .16);
+  --lv-amber: #f59e0b;
+  --lv-amber-soft: rgba(245, 158, 11, .16);
+  --lv-ok: #10b981;
+  --lv-ok-soft: rgba(16, 185, 129, .16);
+  --lv-danger: #ef4444;
+  --lv-danger-soft: rgba(239, 68, 68, .16);
+}
+
+.lv-home {
+  position: relative;
+  container: lv-home / inline-size;
+  @include light-surfaces;
+
   --lv-ease: cubic-bezier(.2, 0, 0, 1);
   --lv-spring: cubic-bezier(.32, .72, 0, 1);
   --lv-t-fast: 120ms; --lv-t-med: 180ms; --lv-t-slow: 240ms; --lv-t-sheet: 320ms;
-
-  --lv-accent: var(--b3-theme-primary);
-  // 品牌辅助色由当前主题主色派生，避免固定紫色与用户主题冲突。
-  --lv-accent-2: color-mix(in srgb, var(--b3-theme-primary) 74%, var(--b3-theme-background));
-  --lv-accent-soft: color-mix(in srgb, var(--b3-theme-primary) 14%, transparent);
-  --lv-accent-glow: var(--lv-accent-soft);
-  --lv-accent-line: color-mix(in srgb, var(--b3-theme-primary) 32%, transparent);
-  // 三级文字从中性灰阶派生（on-background × background 调和）——250 波起不再直接引用
-  // b3-theme-on-surface/light：思源默认暗色主题的这两枚带蓝色相，表头/辅助文字整片偏蓝，
-  // 违反 07 §"三级文字层次之外不允许第四种颜色"的中性要求
-  --lv-tx: var(--b3-theme-on-background);
-  --lv-tx-2: color-mix(in srgb, var(--b3-theme-on-background) 82%, var(--b3-theme-background));
-  --lv-tx-3: color-mix(in srgb, var(--b3-theme-on-background) 64%, var(--b3-theme-background));
-  // 1px 半透明描边承担暗色分层（对齐原型：卡片边框=on-background 10% 弱透线，非实色边）
-  --lv-line: color-mix(in srgb, var(--b3-theme-on-background) 10%, transparent);
-  --lv-line-strong: color-mix(in srgb, var(--b3-theme-on-background) 17%, transparent);
-  --lv-canvas: color-mix(in srgb, var(--b3-theme-background) 94%, var(--b3-theme-on-background) 6%);
-  --lv-surface: var(--b3-theme-surface);
-  --lv-surface-2: var(--b3-theme-surface-light);
-  --lv-danger: var(--b3-theme-error);
-  --lv-danger-soft: var(--b3-card-error-background);
-  --lv-warn: var(--b3-card-warning-color);
-  --lv-warn-soft: var(--b3-card-warning-background);
-  --lv-amber: color-mix(in srgb, var(--lv-warn) 72%, var(--b3-theme-on-background));
-  --lv-amber-soft: color-mix(in srgb, var(--lv-warn) 10%, transparent);
-  --lv-ok: var(--b3-theme-success);
-  --lv-ok-soft: var(--b3-card-success-background);
-  --lv-inset: color-mix(in srgb, var(--b3-theme-on-background) 5%, transparent);
-  --lv-aura: color-mix(in srgb, var(--b3-theme-primary) 4%, transparent);
-  // 阴影使用透明黑，而非反白光晕；暗色主题由表面色差和描边承担分层。
-  --lv-shadow-1: 0 1px 2px rgba(0, 0, 0, .07), 0 4px 14px rgba(0, 0, 0, .05);
-  --lv-shadow-2: 0 3px 10px rgba(0, 0, 0, .10), 0 10px 24px rgba(0, 0, 0, .10);
-  --lv-shadow-3: 0 10px 28px rgba(0, 0, 0, .14), 0 24px 56px rgba(0, 0, 0, .18);
   --lv-z-topbar: 50; --lv-z-mask: 90; --lv-z-drawer: 100; --lv-z-modal: 110;
 
   color: var(--lv-tx);
@@ -1468,7 +1463,10 @@
   .lv-rem:hover::before { box-shadow: none; }
 }
 
-:root[data-theme-mode="dark"] .lv-home {
+:root[data-theme-mode="dark"] .lv-home,
+html.dark .lv-home,
+body.theme--dark .lv-home {
+  @include dark-surfaces;
   color-scheme: dark;
 
   .lv-focus-card--today {

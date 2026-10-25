@@ -472,29 +472,59 @@
 .b3-dialog--lvmobile {
     z-index: 1000 !important;
     --lv-brand: #D97706;
-    --lv-brand-soft: color-mix(in srgb, var(--lv-brand) 12%, transparent);
+    --lv-brand-soft: rgba(217, 119, 6, 0.12);
     --lv-accent-ruby: #E11D48;
-    --lv-surface: var(--b3-theme-surface);
-    --lv-surface-2: var(--b3-theme-surface-light);
-    --lv-line: var(--b3-border-color);
-    --lv-accent: var(--b3-theme-primary);
-    --lv-tx: var(--b3-theme-on-background);
-    --lv-tx-3: color-mix(in srgb, var(--b3-theme-on-background) 64%, var(--b3-theme-background));
+    --lv-surface: #ffffff;
+    --lv-surface-2: #f1f5f9;
+    --lv-line: #e2e8f0;
+    --lv-line-strong: #cbd5e1;
+    --lv-accent: #d97706;
+    --lv-tx: #0f172a;
+    --lv-tx-2: #334155;
+    --lv-tx-3: #64748b;
+    --lv-danger: #dc2626;
+    --lv-warn: #ea580c;
+    --lv-ok: #059669;
 
     .b3-dialog__container {
-        border-radius: 20px;
+        border-radius: 16px;
         background: var(--lv-surface);
         color: var(--lv-tx);
+        box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+        border: 1px solid var(--lv-line);
     }
-    .b3-dialog__header { font-size: 17px; font-weight: 600; }
+    .b3-dialog__header { font-size: 16px; font-weight: 600; color: var(--lv-tx); }
     .b3-dialog__content { color: var(--lv-tx); line-height: 1.6; background: var(--lv-surface); }
     .b3-dialog__action { background: var(--lv-surface); border-top: 1px solid var(--lv-line); }
     :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select) {
         min-height: var(--lv-control-lg);
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 13.5px;
         background-color: var(--lv-surface-2);
+        border: 1px solid var(--lv-line);
+        color: var(--lv-tx);
+        &:focus {
+            background-color: var(--lv-surface);
+            border-color: var(--lv-accent);
+            outline: 2px solid rgba(217, 119, 6, 0.2);
+        }
     }
+}
+
+:root[data-theme-mode="dark"] .b3-dialog:has([id^="lv-"]),
+:root[data-theme-mode="dark"] .b3-dialog:has(.lv-home),
+html.dark .b3-dialog:has([id^="lv-"]),
+html.dark .b3-dialog:has(.lv-home),
+body.theme--dark .b3-dialog:has([id^="lv-"]),
+body.theme--dark .b3-dialog:has(.lv-home) {
+    --lv-surface: #111827;
+    --lv-surface-2: #1f2937;
+    --lv-line: #374151;
+    --lv-line-strong: #4b5563;
+    --lv-accent: #f59e0b;
+    --lv-tx: #f8fafc;
+    --lv-tx-2: #cbd5e1;
+    --lv-tx-3: #94a3b8;
     .b3-button { min-height: 34px; border-radius: 10px; }
     .ft__on-surface { color: var(--lv-tx-3); }
 
@@ -1063,4 +1093,3 @@
         }
     }
 }
-

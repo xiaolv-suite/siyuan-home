@@ -10,7 +10,8 @@
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
     import { renderRecordCardPng, copyPngToClipboard, downloadPng } from "@/core/sharecard";
     import { localDateKey } from "@/core/hub/rule";
-    import { showMessage, Dialog, confirm } from "siyuan";
+    import { showMessage, Dialog } from "siyuan";
+    import { confirm } from "@/libs/dialog";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { saveSettings } from "@/core/settings";

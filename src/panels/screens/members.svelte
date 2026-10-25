@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Reminder, FamilyMember } from "@/types";
-    import { confirm, Menu, showMessage, Dialog } from "siyuan";
+    import { Menu, showMessage, Dialog } from "siyuan";
+    import { confirm } from "@/libs/dialog";
     import { addMember, updateMember, removeMember } from "@/core/members";
     import { newSiYuanId, renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
     import type { HomePluginLike } from "@/types/plugin";

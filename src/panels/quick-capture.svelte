@@ -966,13 +966,22 @@
                 {#if saveError}
                     <span class="lv-caption lv-capture-error-summary" role="alert" aria-live="assertive"><UiIcon name="alert" size={13} /> {saveError}</span>
                 {/if}
+                <div class="lv-keep-context-wrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed var(--lv-line)">
+                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--b3-theme-on-surface);user-select:none" title={t("capture.keepContext")}>
+                        <input type="checkbox" class="b3-switch" style="transform:scale(0.85);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
+                        <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")}</span>
+                    </label>
+                    {#if identityPending}
+                        <button type="button" class="b3-button b3-button--text" style="font-size:11.5px;color:var(--lv-danger)" onclick={discardUncertainDraft}>{t("capture.discardUncertain")}</button>
+                    {/if}
+                </div>
             {/if}
             {/if}
         </div>
         <div class="lv-sheet-foot">
             <button class="b3-button b3-button--text" onclick={close} disabled={saving}>{t("cancel")}</button>
+            <span class="fn__flex-1"></span>
             {#if captureTab === "event"}
-                <span class="fn__flex-1"></span>
                 <button class="lv-btn primary" onclick={() => {
                     if (eventSub === "fuel") void submitQuickFueling();
                     else if (eventSub === "vital") void submitQuickVital();
@@ -982,14 +991,8 @@
                     {saving ? t("ledger.saving") : t("save")}
                 </button>
             {:else}
-                <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--b3-theme-on-surface);margin-left:6px;white-space:nowrap;flex-shrink:0" title={t("capture.keepContext")}>
-                    <input type="checkbox" class="b3-switch" style="transform:scale(0.8);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
-                    <span class="lv-caption" style="user-select:none;white-space:nowrap">{t("capture.keepContext")}</span>
-                </label>
-                <span class="fn__flex-1"></span>
                 {#if identityPending}
                     <button class="lv-btn ghost" onclick={openPendingLedger} disabled={saving}>{t("capture.checkLedger")}</button>
-                    <button class="lv-btn ghost" onclick={discardUncertainDraft} disabled={saving}>{t("capture.discardUncertain")}</button>
                 {/if}
                 <!-- 268 波：连续录入（家庭数据常成批）——保存后清空字段保留弹层，焦点回名称 -->
                 <button class="lv-btn" onclick={() => save(true)} disabled={saving || modules.length === 0 || captureFields.length === 0}>

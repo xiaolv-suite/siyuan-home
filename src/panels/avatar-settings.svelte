@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount, tick } from "svelte";
-    import { confirm } from "siyuan";
+    import { confirm } from "@/libs/dialog";
     import { saveSettings } from "@/core/settings";
     import { AVATAR_IMAGE_LIMIT, AVATAR_PRESETS, DEFAULT_AVATAR, normalizeAvatarImage, normalizeAvatarText } from "@/core/avatar";
     import type { HomeSettings } from "@/types";

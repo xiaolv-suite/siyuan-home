@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Dialog, Menu, showMessage, confirm } from "siyuan";
+    import { Dialog, Menu, showMessage } from "siyuan";
+    import { confirm } from "@/libs/dialog";
     import { onDestroy } from "svelte";
     import { fade } from "svelte/transition";
     import type { HomePluginLike } from "@/types/plugin";

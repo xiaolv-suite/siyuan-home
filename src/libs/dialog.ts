@@ -6,8 +6,29 @@
  *                 confirmDialog/confirmDialogSync 零调用移除——仅保留在用的
  *                 simpleDialog + svelteDialog；确认类交互统一走 siyuan confirm()）
  */
-import { Dialog } from "siyuan";
+import { Dialog, confirm as siyuanConfirm } from "siyuan";
 import { Component, mount, unmount } from "svelte";
+
+/**
+ * 具有最高堆叠层级的确认弹窗，彻底杜绝被前置抽屉或已有模态框遮挡在后面。
+ */
+export const confirm = (
+    title: string,
+    text: string,
+    confirmCallback?: () => void,
+    cancelCallback?: () => void,
+) => {
+    siyuanConfirm(title, text, confirmCallback, cancelCallback);
+    // 立即提升最新弹出的确认对话框至最高层级，杜绝层级倒挂
+    requestAnimationFrame(() => {
+        const dialogs = document.querySelectorAll<HTMLElement>(".b3-dialog");
+        if (dialogs.length > 0) {
+            const top = dialogs[dialogs.length - 1];
+            top.classList.add("lv-top-confirm");
+            top.style.setProperty("z-index", "2000", "important");
+        }
+    });
+};
 
 export const simpleDialog = (args: {
     title: string, ele: HTMLElement | DocumentFragment,

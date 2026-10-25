@@ -35,6 +35,14 @@
     const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
     const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
+    const itemRowCss = "display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
+    const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+    const colLeftCss = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
+    const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+    const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
+    const btnSmCss = "margin-top:8px;font-size:12px";
+    const boxContentCss = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
+    const btnActionSmCss = "padding:0 4px;font-size:11px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { uiIcon } from "@/ui/icons";
@@ -1138,10 +1146,10 @@
 
                 for (const it of report.items) {
                     const itemEl = document.createElement("div");
-                    itemEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
+                    itemEl.style.cssText = itemRowCss;
 
                     const left = document.createElement("div");
-                    left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
+                    left.style.cssText = colLeftCss;
 
                     const titleLine = document.createElement("div");
                     titleLine.style.cssText = "display:flex;align-items:center;gap:6px";
@@ -1188,7 +1196,7 @@
                     if (it.status !== "given") {
                         const recordBtn = document.createElement("button");
                         recordBtn.className = "b3-button b3-button--text";
-                        recordBtn.style.cssText = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
+                        recordBtn.style.cssText = linkBtnCss;
                         recordBtn.textContent = `＋ ${t("ledger.recordVaccineDose")}`;
                         recordBtn.onclick = () => {
                             const rdlg = new Dialog({
@@ -1494,7 +1502,7 @@
                     rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12px";
 
                     const left = document.createElement("div");
-                    left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
+                    left.style.cssText = colLeftCss;
 
                     const titleSpan = document.createElement("span");
                     titleSpan.style.cssText = "font-weight:500;color:var(--lv-tx)";
@@ -1519,7 +1527,7 @@
                     if (item.url && (item.url.startsWith("http://") || item.url.startsWith("https://"))) {
                         const testBtn = document.createElement("button");
                         testBtn.className = "b3-button b3-button--text";
-                        testBtn.style.cssText = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
+                        testBtn.style.cssText = linkBtnCss;
                         testBtn.textContent = t("ledger.bookmarksOpenTest");
                         testBtn.onclick = () => window.open(item.url, "_blank");
                         right.append(testBtn);
@@ -1642,10 +1650,10 @@
 
                 for (const it of report.topValuedItems) {
                     const rowEl = document.createElement("div");
-                    rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
+                    rowEl.style.cssText = itemRowCss;
 
                     const left = document.createElement("div");
-                    left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
+                    left.style.cssText = colLeftCss;
 
                     const nameSpan = document.createElement("b");
                     nameSpan.style.cssText = "color:var(--lv-tx)";
@@ -2848,7 +2856,7 @@
             if (history.length === 0) return;
             const head = document.createElement("div");
             head.className = "ft__on-surface";
-            head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+            head.style.cssText = sectionHeadBorderCss;
             head.textContent = t("ledger.renewHistory");
             body.appendChild(head);
             for (const h of history) {
@@ -2977,7 +2985,7 @@
                 const attKeyID = ref!.columns[attCol.key];
                 const attHead = document.createElement("div");
                 attHead.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-                attHead.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+                attHead.style.cssText = sectionHeadBorderCss;
                 attHead.textContent = colLabel(attCol);
                 body.appendChild(attHead);
                 const existing = (row.cells[attKeyID]?.mAsset ?? []) as { name?: string; content?: string }[];
@@ -3247,7 +3255,7 @@
             if (customCols.length > 0) {
                 const head = document.createElement("div");
                 head.className = "ft__on-surface";
-                head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+                head.style.cssText = sectionHeadBorderCss;
                 head.textContent = t("ledger.customCols");
                 body.appendChild(head);
                 for (const c of customCols) {
@@ -3353,7 +3361,7 @@
             };
             const head = document.createElement("div");
             head.className = "ft__on-surface";
-            head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+            head.style.cssText = sectionHeadBorderCss;
             head.textContent = opts.title;
             body.appendChild(head);
             body.appendChild(section);
@@ -3791,8 +3799,8 @@
                         const type = isFuel ? (entry.fuelGrade ? t(`fuel.option.${entry.fuelGrade}`) : "") : (entry.chargingMode ? t(`fuel.option.${entry.chargingMode}`) : "");
                         const price = typeof entry.totalCost === "number" ? `${formatAmount(entry.totalCost)} ${t("fuel.currency")}` : typeof entry.unitPrice === "number" ? `${compactNumber(entry.unitPrice)} ${t("fuel.unitPrice")}` : t("fuel.costUnknown");
                         desc.textContent = `${entry.date} · ${volume}${type ? ` · ${type}` : ""} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.full ? ` · ${t(isFuel ? "fuel.fullTankShort" : "fuel.fullChargeShort")}` : ""} · ${price}${entry.station ? ` · ${entry.station}` : ""}`;
-                        const del = document.createElement("button"); del.className = "b3-button b3-button--text"; del.textContent = t("delete"); del.style.cssText = "padding:0 4px;font-size:11px";
-                        const edit = document.createElement("button"); edit.className = "b3-button b3-button--text"; edit.textContent = t("members.edit"); edit.style.cssText = "padding:0 4px;font-size:11px";
+                        const del = document.createElement("button"); del.className = "b3-button b3-button--text"; del.textContent = t("delete"); del.style.cssText = btnActionSmCss;
+                        const edit = document.createElement("button"); edit.className = "b3-button b3-button--text"; edit.textContent = t("members.edit"); edit.style.cssText = btnActionSmCss;
                         edit.onclick = () => openEnergyForm(kind, entry);
                         del.onclick = () => confirm(t("fuel.deleteEntry"), t("fuel.deleteEntryConfirm"), async () => {
                             del.disabled = true;
@@ -3974,8 +3982,8 @@
                     line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, "maintenance", entry as unknown as Record<string, unknown>);
                     if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
                     const desc = document.createElement("span"); desc.style.cssText = "flex:1;min-width:180px;overflow-wrap:anywhere"; desc.textContent = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
-                    const edit = document.createElement("button"); edit.className = "b3-button b3-button--text"; edit.style.cssText = "padding:0 4px;font-size:11px"; edit.textContent = t("members.edit"); edit.onclick = () => openForm(entry);
-                    const del = document.createElement("button"); del.className = "b3-button b3-button--text"; del.style.cssText = "padding:0 4px;font-size:11px"; del.textContent = t("delete"); del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => { del.disabled = true; try { const next = await updateRowLogs(plugin as any, (latest) => removeEntry(latest, ref!.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>)); records = getEntries<MaintenanceRecord>(next, ref!.avId!, row.itemID, "maintenance"); render(); try { await plugin.refreshHub(["vehicles"], true); } catch (refreshError) { showMessage(t("ledger.logSavedRefreshFailed").replace("${msg}", refreshError instanceof Error ? refreshError.message : String(refreshError)), 5000, "error"); } } catch (error) { del.disabled = false; showMessage(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error"); } });
+                    const edit = document.createElement("button"); edit.className = "b3-button b3-button--text"; edit.style.cssText = btnActionSmCss; edit.textContent = t("members.edit"); edit.onclick = () => openForm(entry);
+                    const del = document.createElement("button"); del.className = "b3-button b3-button--text"; del.style.cssText = btnActionSmCss; del.textContent = t("delete"); del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => { del.disabled = true; try { const next = await updateRowLogs(plugin as any, (latest) => removeEntry(latest, ref!.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>)); records = getEntries<MaintenanceRecord>(next, ref!.avId!, row.itemID, "maintenance"); render(); try { await plugin.refreshHub(["vehicles"], true); } catch (refreshError) { showMessage(t("ledger.logSavedRefreshFailed").replace("${msg}", refreshError instanceof Error ? refreshError.message : String(refreshError)), 5000, "error"); } } catch (error) { del.disabled = false; showMessage(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error"); } });
                     line.append(desc, edit, del); wrap.appendChild(line);
                 }
             };
@@ -4186,7 +4194,7 @@
                     if (contractsRef.docId) {
                         const openAll = document.createElement("button");
                         openAll.className = "b3-button b3-button--text";
-                        openAll.style.cssText = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
+                        openAll.style.cssText = linkBtnCss;
                         openAll.textContent = t("ledger.houseContractsOpenAll");
                         openAll.onclick = () => plugin.showTabDocs(contractsRef.docId);
                         head.append(openAll);
@@ -4214,7 +4222,7 @@
                             }
                             for (const m of matched) {
                                 const line = document.createElement("div");
-                                line.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+                                line.style.cssText = lineBadgeCss;
                                 const nameSpan = document.createElement("b");
                                 nameSpan.style.cssText = "font-size:12.5px;color:var(--lv-tx)";
                                 nameSpan.textContent = m.title;
@@ -4355,7 +4363,7 @@
                     schoolStageSection.append(head);
 
                     const contentWrap = document.createElement("div");
-                    contentWrap.style.cssText = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
+                    contentWrap.style.cssText = boxContentCss;
                     schoolStageSection.append(contentWrap);
                     body.appendChild(schoolStageSection);
 
@@ -4538,7 +4546,7 @@
                         // 1. 观察期状态条
                         if (obs) {
                             const statusLine = document.createElement("div");
-                            statusLine.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+                            statusLine.style.cssText = lineBadgeCss;
                             const badge = document.createElement("span");
                             if (obs.status === "observing") {
                                 badge.className = "lv-badge orange";
@@ -4657,7 +4665,7 @@
                     socialRetireSection.append(head);
 
                     const contentWrap = document.createElement("div");
-                    contentWrap.style.cssText = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
+                    contentWrap.style.cssText = boxContentCss;
                     socialRetireSection.append(contentWrap);
                     body.appendChild(socialRetireSection);
 
@@ -4701,7 +4709,7 @@
                 const label = t(tp.nameKey) !== tp.nameKey ? t(tp.nameKey) : tp.key;
                 const btn = document.createElement("button");
                 btn.className = "b3-button b3-button--outline";
-                btn.style.cssText = "margin-top:8px;font-size:12px";
+                btn.style.cssText = btnSmCss;
                 btn.textContent = `${t("ledger.genDoc")} · ${label}`;
                 btn.onclick = async () => {
                     try {
@@ -4743,7 +4751,7 @@
             if (!name || name === "—") return;
             const btn = document.createElement("button");
             btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = "margin-top:8px;font-size:12px";
+            btn.style.cssText = btnSmCss;
             btn.textContent = t("ledger.rxToMedicine");
             let pendingMedicineID: string | null = null;
             let medicineOperationKey: string | null = null;
@@ -4794,7 +4802,7 @@
             const qty = qtyRaw !== "—" && qtyRaw !== "" && Number.isFinite(Number(qtyRaw)) && Number(qtyRaw) > 0 ? Number(qtyRaw) : 1;
             const btn = document.createElement("button");
             btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = "margin-top:8px;font-size:12px";
+            btn.style.cssText = btnSmCss;
             btn.textContent = t("ledger.stockIn");
             let pendingStockItemID: string | null = null;
             let stockOperationKey: string | null = null;
@@ -5095,7 +5103,7 @@
             }
             const head = document.createElement("div");
             head.className = "ft__on-surface";
-            head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+            head.style.cssText = sectionHeadBorderCss;
             head.textContent = t("ledger.renewChain");
             body.appendChild(head);
             for (const id of forward) {
@@ -5124,7 +5132,7 @@
             const synced = plugin.runtime?.favorSyncs?.[row.itemID];
             const head = document.createElement("div");
             head.className = "ft__on-surface";
-            head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+            head.style.cssText = sectionHeadBorderCss;
             head.textContent = t("ec15.title");
             body.appendChild(head);
             const btn = document.createElement("button");

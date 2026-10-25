@@ -77,6 +77,7 @@
     let avCols: any[] = $state([]);
     let loading = $state(false);
     let loadError = $state("");
+    let ledgerMoreDetails: HTMLDetailsElement | undefined = $state();
     let loadRequest = 0;
     let loadController: AbortController | undefined;
     let rebuilding = $state(false);
@@ -5787,9 +5788,11 @@
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
         <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>＋ {t("ledger.newRecord")}</button>
-        <details class="lv-ledger-more">
+        <details class="lv-ledger-more" bind:this={ledgerMoreDetails}>
             <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
-            <div class="lv-ledger-more__menu">
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <div class="lv-ledger-more__menu" role="menu" tabindex="-1" onclick={() => { if (ledgerMoreDetails) ledgerMoreDetails.open = false; }}>
                 <button class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
                     disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportCsv}>{exporting ? t("ledger.saving") : t("ledger.exportCsv")}</button>
                 <button class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
@@ -6140,11 +6143,30 @@
         </div>
     {:else if rows.length > 0}
         <!-- Empty state for a search with no matches. -->
-        <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("ledger.searchEmpty")}</b><span>{t("ledger.searchEmptyHint").replace("${q}", searchText.trim())}</span></div></div>
+        <div class="lv-card">
+            <div class="lv-empty" role="status">
+                <div class="eic"><UiIcon name="search" size={22} /></div>
+                <b>{t("ledger.searchEmpty")}</b>
+                <span>{t("ledger.searchEmptyHint").replace("${q}", searchText.trim())}</span>
+                <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => { searchText = ""; panelMemory.ledgerSearch = ""; }}>
+                    {t("clear")} (Esc)
+                </button>
+            </div>
+        </div>
     {:else}
-        <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="folder" size={22} /></div><b>{t("ledger.empty")}</b><span>{t("ledger.emptyHint")}</span>
-            <button class="lv-btn primary" style="margin-top:4px" onclick={openNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
-        </div></div>
+        <div class="lv-card">
+            <div class="lv-empty" role="status">
+                <div class="eic"><UiIcon name="folder" size={22} /></div>
+                <b>{t("ledger.empty")}</b>
+                <span>{t("ledger.emptyHint")}</span>
+                <div style="display:flex;gap:8px;margin-top:6px;align-items:center;justify-content:center;flex-wrap:wrap">
+                    <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
+                    {#if active !== "members" && active !== "adhoc"}
+                        <button class="b3-button b3-button--outline" onclick={openCsvImport} disabled={rebuilding}>📥 {t("ledger.importCsv")}</button>
+                    {/if}
+                </div>
+            </div>
+        </div>
     {/if}
 {:else if active === "vehicles"}
     <div class="lv-vehicle-grid" aria-label={t("module.vehicles")}>

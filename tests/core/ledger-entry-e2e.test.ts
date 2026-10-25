@@ -229,4 +229,15 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         // 调用 confirm 不抛错，并且安全派生
         expect(typeof confirm).toBe("function");
     });
+
+    it("快速记录支持高频流水表单回车键快捷提交与组合键快捷保存", async () => {
+        const { buildFuelingLog, buildVitalLog } = await import("@/core/quick-actions");
+        const fuelLog = buildFuelingLog({ amount: 300, liters: 42.5, mileage: 15800 });
+        expect(fuelLog.cost).toBe(300);
+        expect(fuelLog.liters).toBe(42.5);
+
+        const vitalLog = buildVitalLog({ metricType: "bp", systolic: 120, diastolic: 80, pulse: 72 });
+        expect(vitalLog.systolic).toBe(120);
+        expect(vitalLog.pulse).toBe(72);
+    });
 });

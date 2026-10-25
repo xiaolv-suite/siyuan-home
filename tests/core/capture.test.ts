@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { CAPTURE_INPUT_TYPES, captureCellValue, getCaptureFields, getFormFields, validateCaptureInput } from "@/core/capture";
+import { CAPTURE_INPUT_TYPES, captureCellValue, getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder } from "@/core/capture";
 import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 
 describe("快速记录字段契约", () => {
@@ -69,5 +69,17 @@ describe("快速记录字段契约", () => {
         expect(captureCellValue({ key: "amount", type: "number" }, "12.5")).toEqual({
             type: "number", number: { content: 12.5, isNotEmpty: true },
         });
+    });
+
+    it("getFieldPlaceholder 返回贴近生活的自然语言示范占位符", () => {
+        const dummyT = (k: string) => k === "ledger.newName" ? "新记录名称" : k;
+        // 模块定制名称
+        expect(getFieldPlaceholder({ key: "name", type: "text" }, "vehicles", dummyT)).toContain("别克君越");
+        expect(getFieldPlaceholder({ key: "name", type: "text" }, "medicine", dummyT)).toContain("布洛芬");
+        expect(getFieldPlaceholder({ key: "name", type: "text" }, "certs", dummyT)).toContain("居民身份证");
+        // 通用字段示范
+        expect(getFieldPlaceholder({ key: "plate", type: "text" }, undefined, dummyT)).toContain("京A12345");
+        expect(getFieldPlaceholder({ key: "location", type: "text" }, undefined, dummyT)).toContain("主卧衣柜");
+        expect(getFieldPlaceholder({ key: "dosage", type: "text" }, undefined, dummyT)).toContain("一次1粒");
     });
 });

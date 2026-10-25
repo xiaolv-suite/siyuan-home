@@ -653,12 +653,16 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
     }
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
     if (fromResponse.length === 1) return fromResponse[0];
-    await new Promise((r) => setTimeout(r, 300)); // 块索引异步重建
-    let added: string[];
-    try {
-        added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
-    } catch {
-        throw new RowIdentityPendingError(fromResponse);
+
+    // 块索引异步重建：短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
+    let added: string[] = [];
+    for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise((r) => setTimeout(r, 200 + attempt * 150));
+        try {
+            added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
+            if (added.length === 1) return added[0];
+            if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
+        } catch { /* soft retry */ }
     }
     const confirmed = fromResponse.length === 1 ? fromResponse[0] : added.length === 1 ? added[0] : undefined;
     if (confirmed) return confirmed;

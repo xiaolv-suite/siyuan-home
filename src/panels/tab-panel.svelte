@@ -336,7 +336,7 @@
     let pill = $state({ x: 0, w: 0 });
     function movePill(btn: HTMLElement | undefined) {
         if (!btn) return;
-        pill = { x: btn.offsetLeft - 4, w: btn.offsetWidth };
+        pill = { x: btn.offsetLeft, w: btn.offsetWidth };
     }
     function onTabKeydown(event: KeyboardEvent, index: number) {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -412,6 +412,7 @@
                 <AvatarSettings {plugin} {t} />
             </div>
         </div>
+        <span class="fn__flex-1"></span>
         <div class="lv-tabs" bind:this={navEl} style="position:relative" role="tablist" aria-label={t("tab.title")}>
             <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
             <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>

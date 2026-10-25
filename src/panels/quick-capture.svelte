@@ -498,7 +498,8 @@
     }
 
     async function save(continueAfter = false) {
-        if (saving || identityPending) return;
+        if (saving) return;
+        identityPending = false;
         const title = String(values.name ?? "").trim();
         saveError = "";
         fieldErrors = {};
@@ -989,14 +990,14 @@
                 <span class="fn__flex-1"></span>
                 {#if identityPending}
                     <button class="lv-btn ghost" onclick={openPendingLedger} disabled={saving}>{t("capture.checkLedger")}</button>
-                    {#if identityChecked}<button class="lv-btn ghost" onclick={discardUncertainDraft}>{t("capture.discardUncertain")}</button>{/if}
+                    <button class="lv-btn ghost" onclick={discardUncertainDraft} disabled={saving}>{t("capture.discardUncertain")}</button>
                 {/if}
                 <!-- 268 波：连续录入（家庭数据常成批）——保存后清空字段保留弹层，焦点回名称 -->
-                <button class="lv-btn" onclick={() => save(true)} disabled={saving || identityPending || modules.length === 0 || captureFields.length === 0}>
-                    {saving ? t("ledger.saving") : pendingRowId ? t("capture.retryContinue") : t("capture.saveContinue")}
+                <button class="lv-btn" onclick={() => save(true)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
+                    {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryContinue") : t("capture.saveContinue")}
                 </button>
-                <button class="lv-btn primary" onclick={() => save(false)} disabled={saving || identityPending || modules.length === 0 || captureFields.length === 0}>
-                    {saving ? t("ledger.saving") : pendingRowId ? t("capture.retryClose") : t("capture.saveClose")}
+                <button class="lv-btn primary" onclick={() => save(false)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
+                    {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryClose") : t("capture.saveClose")}
                 </button>
             {/if}
         </div>

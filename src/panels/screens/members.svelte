@@ -178,10 +178,17 @@
             menu.addItem({ label: t("members.assetTimeline"), click: () => void openMemberAssetTimeline(m) });
             // 225 波：头像上传/联系人绑定收入菜单（头行只留编辑，修复 230px 窄卡按钮挤爆姓名排版）
             menu.addItem({ label: t("members.uploadAvatar"), click: () => pickAvatar(m) });
-            menu.addItem({
-                label: contactOf(m) ? t("members.contactUnlink") : t("members.contactLink"),
-                click: () => (contactOf(m) ? void unlinkContact(m) : linkContact(m)),
-            });
+            if (contactOf(m)) {
+                menu.addItem({
+                    label: t("members.contactUnlink"),
+                    click: () => void unlinkContact(m),
+                });
+            } else if (getContactsBridge()) {
+                menu.addItem({
+                    label: t("members.contactLink"),
+                    click: () => linkContact(m),
+                });
+            }
             // 17 组/197 波：上移/下移（拖拽排序的键盘可达替代）
             const idx = members.findIndex((x) => x.id === m.id);
             menu.addItem({ label: t("members.moveUp"), disabled: reorderBusy || idx <= 0, click: () => move(m, -1) });

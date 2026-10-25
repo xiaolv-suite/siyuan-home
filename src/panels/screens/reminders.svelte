@@ -20,6 +20,7 @@
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
     import type { Reminder, ReminderKind } from "@/types";
+    const rowFlexCenterCss = "display:flex;gap:8px;align-items:center";
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
     // 就地展开摘要（§17）：不打开抽屉直接查看派生规则、所属模块与责任成员
@@ -591,13 +592,13 @@
         const dlg = new Dialog({ title: t("memo.edit"), content: `<div id="lv-memoedit" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
         const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
         const row1 = document.createElement("div");
-        row1.style.cssText = "display:flex;gap:8px;align-items:center";
+        row1.style.cssText = rowFlexCenterCss;
         const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.name");
         const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.style.flex = "1"; titleInput.value = r.title;
         titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
         row1.append(l1, titleInput);
         const row2 = document.createElement("div");
-        row2.style.cssText = "display:flex;gap:8px;align-items:center";
+        row2.style.cssText = rowFlexCenterCss;
         const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.due");
         const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
         dateInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
@@ -712,7 +713,7 @@
         const dlg = new Dialog({ title: t("triage.title"), content: `<div id="lv-triage" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
         const box = dlg.element.querySelector("#lv-triage") as HTMLElement;
         const row1 = document.createElement("div");
-        row1.style.cssText = "display:flex;gap:8px;align-items:center";
+        row1.style.cssText = rowFlexCenterCss;
         const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.module");
         const sel = document.createElement("select"); sel.className = "b3-select"; sel.style.flex = "1";
         for (const x of targets) {
@@ -723,7 +724,7 @@
         row1.append(l1, sel);
         // 246 波（收件箱深化）：成员分配（relation 写入同台账快速表单；未分配=不写成员列）
         const rowM = document.createElement("div");
-        rowM.style.cssText = "display:flex;gap:8px;align-items:center";
+        rowM.style.cssText = rowFlexCenterCss;
         const lM = document.createElement("span"); lM.className = "ft__on-surface"; lM.style.minWidth = "72px"; lM.textContent = t("field.member");
         const memberSel = document.createElement("select"); memberSel.className = "b3-select"; memberSel.style.flex = "1";
         const none = document.createElement("option"); none.value = ""; none.textContent = t("members.unassigned");
@@ -737,12 +738,12 @@
         }
         rowM.append(lM, memberSel);
         const row2 = document.createElement("div");
-        row2.style.cssText = "display:flex;gap:8px;align-items:center";
+        row2.style.cssText = rowFlexCenterCss;
         const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.name");
         const nameInput = document.createElement("input"); nameInput.className = "b3-text-field"; nameInput.style.flex = "1"; nameInput.value = r.title;
         row2.append(l2, nameInput);
         const row3 = document.createElement("div");
-        row3.style.cssText = "display:flex;gap:8px;align-items:center";
+        row3.style.cssText = rowFlexCenterCss;
         const l3 = document.createElement("span"); l3.className = "ft__on-surface"; l3.style.minWidth = "72px"; l3.textContent = t("triage.due");
         const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
         row3.append(l3, dateInput);

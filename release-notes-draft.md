@@ -1,10 +1,10 @@
-# v0.5.75 · 小驴管家（内测版）台账详情抽屉深度瘦身与高频行样式常量收敛优化
+# v0.5.76 · 小驴管家（内测版）提醒中枢排期与表单弹窗样式收敛瘦身
 
 ## 变更
 
-- **台账高频子行样式收敛与构建瘦身**：
-  - 对 `ledger.svelte` 内部的 25 处长内联样式字面量进行体系化收敛（`itemRowCss`、`lineBadgeCss`、`colLeftCss`、`sectionHeadBorderCss`、`linkBtnCss`、`boxContentCss`、`btnActionSmCss` 等）；
-  - 单文件原始体积从 950.34 kB 降至 949.09 kB，优化产物压缩冗余，扩大 CI 门禁安全缓冲；
+- **提醒与台账常用弹窗样式常量收敛**：
+  - 对 `reminders.svelte` 与 `ledger.svelte` 内部的 15 处重复弹性布局样式字面量进行体系化收敛（`rowFlexCenterCss`、`wrapBorderCss`、`h3TitleCss`、`hintTextCss`、`fieldErrCss`、`actionRowEndCss` 等）；
+  - 单文件未压缩原始体积从 949.09 kB 进一步下降至 948.63 kB；
 - **全量测试与门禁验证**：
   - 保持全仓 804 项单测 100% 全绿，五层静态门禁全部通过。
 

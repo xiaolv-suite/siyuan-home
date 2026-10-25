@@ -43,6 +43,12 @@
     const btnSmCss = "margin-top:8px;font-size:12px";
     const boxContentCss = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
     const btnActionSmCss = "padding:0 4px;font-size:11px";
+    const wrapBorderCss = "margin-top:12px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+    const h3TitleCss = "font-size:14px;margin:0 0 8px";
+    const hintTextCss = "font-size:12px;line-height:1.6;margin:0 0 10px";
+    const fieldErrCss = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
+    const actionRowEndCss = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
+    const btnSm6Css = "margin-top:6px;font-size:12px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { uiIcon } from "@/ui/icons";
@@ -3064,7 +3070,7 @@
                 }
                 const uploadBtn = document.createElement("button");
                 uploadBtn.className = `b3-button b3-button--outline${active === "vehicles" ? " lv-detail-wide" : ""}`;
-                uploadBtn.style.cssText = "margin-top:6px;font-size:12px";
+                uploadBtn.style.cssText = btnSm6Css;
                 uploadBtn.textContent = t("ledger.upload");
                 const fileInput = document.createElement("input");
                 fileInput.type = "file";
@@ -3429,7 +3435,7 @@
         async function addVehicleCostSummarySection() {
             if (!ref?.avId) return;
             const wrap = document.createElement("section");
-            wrap.style.cssText = "margin-top:12px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+            wrap.style.cssText = wrapBorderCss;
             body.appendChild(wrap);
             const logs = await loadRowLogs(plugin as any);
             const fuelRecords = getEntries<EnergyRecord>(logs, ref.avId, row.itemID, "fuelings");
@@ -3444,7 +3450,7 @@
                 Number.isFinite(currentOdometer) ? currentOdometer : undefined,
             );
             const title = document.createElement("h3");
-            title.style.cssText = "font-size:14px;margin:0 0 8px";
+            title.style.cssText = h3TitleCss;
             title.textContent = t("vehicle.summary.title");
             wrap.appendChild(title);
             const hint = document.createElement("div");
@@ -3504,11 +3510,11 @@
             if (!ref?.avId) return;
             const energyWrap = document.createElement("section");
             energyWrap.id = "lv-vehicle-energy";
-            energyWrap.style.cssText = "margin-top:12px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+            energyWrap.style.cssText = wrapBorderCss;
             body.appendChild(energyWrap);
             const hint = document.createElement("p");
             hint.className = "ft__on-surface";
-            hint.style.cssText = "font-size:12px;line-height:1.6;margin:0 0 10px";
+            hint.style.cssText = hintTextCss;
             hint.textContent = t("fuel.vehicleHint");
             energyWrap.appendChild(hint);
 
@@ -3569,7 +3575,7 @@
                     error.id = `lv-energy-${key}-error`;
                     error.className = "lv-field-error";
                     error.setAttribute("role", "alert");
-                    error.style.cssText = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
+                    error.style.cssText = fieldErrCss;
                     fieldErrors[key] = error;
                     input.addEventListener("input", () => {
                         input.removeAttribute("aria-invalid");
@@ -3678,7 +3684,7 @@
             function renderEnergy() {
                 energyWrap.replaceChildren(hint);
                 const title = document.createElement("h3");
-                title.style.cssText = "font-size:14px;margin:0 0 8px";
+                title.style.cssText = h3TitleCss;
                 title.textContent = t("fuel.sectionTitle");
                 energyWrap.appendChild(title);
                 const hybridHint = document.createElement("div");
@@ -3830,7 +3836,7 @@
             if (!ref?.avId) return;
             const wrap = document.createElement("section");
             wrap.id = "lv-vehicle-maintenance";
-            wrap.style.cssText = "margin-top:12px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+            wrap.style.cssText = wrapBorderCss;
             body.appendChild(wrap);
             let records = getEntries<MaintenanceRecord>(await loadRowLogs(plugin as any), ref.avId, row.itemID, "maintenance");
             const categories = ["routine", "repair", "tires", "battery", "inspection", "cleaning", "other"];
@@ -3871,7 +3877,7 @@
                     error.id = `lv-maintenance-${key}-error`;
                     error.className = "lv-field-error";
                     error.setAttribute("role", "alert");
-                    error.style.cssText = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
+                    error.style.cssText = fieldErrCss;
                     input.addEventListener("input", () => {
                         input.removeAttribute("aria-invalid");
                         input.removeAttribute("aria-describedby");
@@ -4588,7 +4594,7 @@
                         // 3. 标记过敏并存入健康过敏史动作入口
                         if (healthRef?.avId && healthRef?.columns) {
                             const actionRow = document.createElement("div");
-                            actionRow.style.cssText = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
+                            actionRow.style.cssText = actionRowEndCss;
                             const addAllergyBtn = document.createElement("button");
                             addAllergyBtn.className = "b3-button b3-button--outline";
                             addAllergyBtn.style.cssText = "font-size:12px;padding:3px 8px";
@@ -5051,7 +5057,7 @@
             const linkBtn = () => {
                 const btn = document.createElement("button");
                 btn.className = "b3-button b3-button--outline";
-                btn.style.cssText = "margin-top:6px;font-size:12px";
+                btn.style.cssText = btnSm6Css;
                 btn.textContent = t("ledger.linkNew");
                 btn.onclick = () => {
                     const picker = new Dialog({
@@ -5137,7 +5143,7 @@
             body.appendChild(head);
             const btn = document.createElement("button");
             btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = "margin-top:6px;font-size:12px";
+            btn.style.cssText = btnSm6Css;
             btn.textContent = synced ? t("ec15.again") : t("ec15.record");
 	            btn.onclick = async () => {
 	                const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;

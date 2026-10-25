@@ -1567,6 +1567,14 @@
     .lv-modal .lv-sheet-foot {
       flex-wrap: wrap;
       justify-content: stretch;
+      gap: 8px;
+    }
+    .lv-keep-context-label {
+      width: 100%;
+      margin: 4px 0 6px !important;
+      white-space: nowrap;
+      flex-shrink: 0;
+      .lv-caption { white-space: nowrap; }
     }
     .lv-modal .lv-sheet-foot > :is(.lv-btn, .b3-button) {
       flex: 1 1 calc(50% - 6px);

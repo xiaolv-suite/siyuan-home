@@ -258,7 +258,12 @@
     }
     function fieldPlaceholder(field: ColumnDef): string {
         if (field.placeholderKey) return t(field.placeholderKey);
-        return field.key === "name" ? t("ledger.newName") : fieldLabel(field);
+        if (field.key === "name") return t("ledger.newName");
+        if (field.key === "plate") return "例如：京A12345 / 粤B88888";
+        if (field.key === "brand_model") return "例如：别克君越 / 特斯拉 Model Y";
+        if (field.key === "mileage") return "例如：15000（公里）";
+        if (field.key === "vin") return "17位车辆识别代号（车架号）";
+        return fieldLabel(field);
     }
     function fieldDetail(key: string | undefined): string {
         if (!key) return "";
@@ -983,9 +988,9 @@
                     {saving ? t("ledger.saving") : t("save")}
                 </button>
             {:else}
-                <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--b3-theme-on-surface);margin-left:6px" title={t("capture.keepContext")}>
-                    <input type="checkbox" class="b3-switch" style="transform:scale(0.8);transform-origin:left center" bind:checked={keepContext} />
-                    <span class="lv-caption" style="user-select:none">{t("capture.keepContext")}</span>
+                <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--b3-theme-on-surface);margin-left:6px;white-space:nowrap;flex-shrink:0" title={t("capture.keepContext")}>
+                    <input type="checkbox" class="b3-switch" style="transform:scale(0.8);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
+                    <span class="lv-caption" style="user-select:none;white-space:nowrap">{t("capture.keepContext")}</span>
                 </label>
                 <span class="fn__flex-1"></span>
                 {#if identityPending}

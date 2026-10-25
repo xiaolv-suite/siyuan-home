@@ -115,6 +115,11 @@
 
         const dateInput = dlg.element.querySelector("#lv-plan-date-input") as HTMLInputElement;
         const setDate = (val: string) => { if (dateInput) dateInput.value = val; };
+        if (dateInput) {
+            dateInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-plan-save") as HTMLButtonElement)?.click();
+            });
+        }
 
         (dlg.element.querySelector("#lv-plan-preset-today") as HTMLButtonElement).onclick = () => setDate(todayKey);
         (dlg.element.querySelector("#lv-plan-preset-tomorrow") as HTMLButtonElement).onclick = () => setDate(tomorrowKey);
@@ -188,6 +193,11 @@
             width: "400px",
         });
         const input = dlg.element.querySelector("#lv-named-view-input") as HTMLInputElement;
+        if (input) {
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-named-view-save") as HTMLButtonElement)?.click();
+            });
+        }
         requestAnimationFrame(() => input?.focus());
         (dlg.element.querySelector("#lv-named-view-cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
         (dlg.element.querySelector("#lv-named-view-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {

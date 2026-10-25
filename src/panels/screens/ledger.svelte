@@ -28,6 +28,12 @@
     import { rowLogActivityId, type ActivityTarget } from "@/core/activity";
     /** 312 波：抽屉内子记录行样式（原 4 处重复字面量收敛） */
     const substRowCss = "padding:2px 0;font-size:12.5px";
+    const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+    const sectionHeaderCss = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+    const sectionTitleCss = "font-weight:600;font-size:12px";
+    const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)";
+    const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
+    const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { uiIcon } from "@/ui/icons";
@@ -1088,19 +1094,19 @@
                 metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px";
 
                 const givenCard = document.createElement("div");
-                givenCard.style.cssText = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
+                givenCard.style.cssText = metricCardCss;
                 givenCard.innerHTML = `<span class="lv-caption">${t("ledger.vaccineGiven")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:16px">${report.givenCount}</b>`;
 
                 const overdueCard = document.createElement("div");
-                overdueCard.style.cssText = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
+                overdueCard.style.cssText = metricCardCss;
                 overdueCard.innerHTML = `<span class="lv-caption">${t("ledger.vaccineOverdue")}</span><b class="lv-num" style="color:var(--lv-danger);font-size:16px">${report.overdueCount}</b>`;
 
                 const dueSoonCard = document.createElement("div");
-                dueSoonCard.style.cssText = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
+                dueSoonCard.style.cssText = metricCardCss;
                 dueSoonCard.innerHTML = `<span class="lv-caption">${t("ledger.vaccineDueSoon")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:16px">${report.dueSoonCount}</b>`;
 
                 const upcomingCard = document.createElement("div");
-                upcomingCard.style.cssText = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
+                upcomingCard.style.cssText = metricCardCss;
                 upcomingCard.innerHTML = `<span class="lv-caption">${t("ledger.vaccineUpcoming")}</span><b class="lv-num" style="font-size:16px">${report.upcomingCount}</b>`;
 
                 metrics.append(givenCard, overdueCard, dueSoonCard, upcomingCard);
@@ -3420,13 +3426,13 @@
             grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px";
             const metric = (label: string, value: string) => {
                 const box = document.createElement("div");
-                box.style.cssText = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)";
+                box.style.cssText = subCardBoxCss;
                 const cap = document.createElement("span");
                 cap.className = "ft__on-surface";
                 cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px";
                 cap.textContent = label;
                 const val = document.createElement("b");
-                val.style.cssText = "font-size:14px;overflow-wrap:anywhere";
+                val.style.cssText = subCardValCss;
                 val.textContent = value;
                 box.append(cap, val);
                 grid.appendChild(box);
@@ -3671,9 +3677,9 @@
                     const statsGrid = document.createElement("div");
                     statsGrid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px";
                     const metric = (label: string, value: string) => {
-                        const box = document.createElement("div"); box.style.cssText = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)";
+                        const box = document.createElement("div"); box.style.cssText = subCardBoxCss;
                         const cap = document.createElement("span"); cap.className = "ft__on-surface"; cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px"; cap.textContent = label;
-                        const val = document.createElement("b"); val.style.cssText = "font-size:14px;overflow-wrap:anywhere"; val.textContent = value;
+                        const val = document.createElement("b"); val.style.cssText = subCardValCss; val.textContent = value;
                         box.append(cap, val); statsGrid.appendChild(box);
                     };
                     const unit = isFuel ? "L" : "kWh";
@@ -3925,7 +3931,7 @@
                 registerVehicleAction("maintenance", add);
                 const stats = calculateMaintenanceStats(records, new Date().toISOString().slice(0, 10), Number.isFinite(currentOdometer) ? currentOdometer : undefined);
                 const summary = document.createElement("div"); summary.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px;margin-bottom:8px";
-                const metric = (label: string, value: string) => { const box = document.createElement("div"); box.style.cssText = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)"; const cap = document.createElement("span"); cap.className = "ft__on-surface"; cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px"; cap.textContent = label; const val = document.createElement("b"); val.style.cssText = "font-size:14px;overflow-wrap:anywhere"; val.textContent = value; box.append(cap, val); summary.appendChild(box); };
+                const metric = (label: string, value: string) => { const box = document.createElement("div"); box.style.cssText = subCardBoxCss; const cap = document.createElement("span"); cap.className = "ft__on-surface"; cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px"; cap.textContent = label; const val = document.createElement("b"); val.style.cssText = subCardValCss; val.textContent = value; box.append(cap, val); summary.appendChild(box); };
                 metric(t("vehicle.maintenance.totalRecords"), String(stats.recordCount));
                 metric(t("vehicle.maintenance.totalCost"), stats.costRecordCount ? formatMoney(stats.totalCost) : t("fuel.costUnknown"));
                 metric(t("vehicle.maintenance.nextDate"), stats.nextDate ?? "—");
@@ -4146,13 +4152,13 @@
                 if (contractsRef?.avId && contractsRef?.columns) {
                     const houseWarrantySection = document.createElement("div");
                     houseWarrantySection.className = "lv-detail-section";
-                    houseWarrantySection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                    houseWarrantySection.style.cssText = sectionBorderCss;
 
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const title = document.createElement("span");
                     title.className = "ft__on-surface";
-                    title.style.cssText = "font-weight:600;font-size:12px";
+                    title.style.cssText = sectionTitleCss;
                     title.textContent = t("ledger.houseContractsTitle");
                     head.append(title);
                     if (contractsRef.docId) {
@@ -4228,13 +4234,13 @@
                 if (foodName || (ingredientsRaw && ingredientsRaw !== "—")) {
                     const foodDietarySection = document.createElement("div");
                     foodDietarySection.className = "lv-detail-section";
-                    foodDietarySection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                    foodDietarySection.style.cssText = sectionBorderCss;
 
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const title = document.createElement("span");
                     title.className = "ft__on-surface";
-                    title.style.cssText = "font-weight:600;font-size:12px";
+                    title.style.cssText = sectionTitleCss;
                     title.textContent = t("ledger.foodDietaryTitle");
                     head.append(title);
                     foodDietarySection.append(head);
@@ -4315,13 +4321,13 @@
                 if (catVal && Number.isFinite(enrollYear) && enrollYear >= 1980) {
                     const schoolStageSection = document.createElement("div");
                     schoolStageSection.className = "lv-detail-section";
-                    schoolStageSection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                    schoolStageSection.style.cssText = sectionBorderCss;
 
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const title = document.createElement("span");
                     title.className = "ft__on-surface";
-                    title.style.cssText = "font-weight:600;font-size:12px";
+                    title.style.cssText = sectionTitleCss;
                     title.textContent = t("ledger.schoolingStageTitle");
                     head.append(title);
                     schoolStageSection.append(head);
@@ -4371,13 +4377,13 @@
 
                 const petCareSection = document.createElement("div");
                 petCareSection.className = "lv-detail-section";
-                petCareSection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                petCareSection.style.cssText = sectionBorderCss;
 
                 const head = document.createElement("div");
-                head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                head.style.cssText = sectionHeaderCss;
                 const title = document.createElement("span");
                 title.className = "ft__on-surface";
-                title.style.cssText = "font-weight:600;font-size:12px";
+                title.style.cssText = sectionTitleCss;
                 title.textContent = t("ledger.petCareTitle");
                 head.append(title);
                 petCareSection.append(head);
@@ -4487,13 +4493,13 @@
 
                     const feedingSection = document.createElement("div");
                     feedingSection.className = "lv-detail-section";
-                    feedingSection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                    feedingSection.style.cssText = sectionBorderCss;
 
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const title = document.createElement("span");
                     title.className = "ft__on-surface";
-                    title.style.cssText = "font-weight:600;font-size:12px";
+                    title.style.cssText = sectionTitleCss;
                     title.textContent = t("ledger.feedingObserveTitle");
                     head.append(title);
                     feedingSection.append(head);
@@ -4617,13 +4623,13 @@
                 if (member?.birthday) {
                     const socialRetireSection = document.createElement("div");
                     socialRetireSection.className = "lv-detail-section";
-                    socialRetireSection.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+                    socialRetireSection.style.cssText = sectionBorderCss;
 
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const title = document.createElement("span");
                     title.className = "ft__on-surface";
-                    title.style.cssText = "font-weight:600;font-size:12px";
+                    title.style.cssText = sectionTitleCss;
                     title.textContent = `${t("members.retirementTitle")} · ${member.name}`;
                     head.append(title);
                     socialRetireSection.append(head);

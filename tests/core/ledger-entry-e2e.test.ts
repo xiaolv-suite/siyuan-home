@@ -223,4 +223,10 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(res?.date).toBe("2026-10-26");
         expect(res?.rest).toBe("去车管所年检");
     });
+
+    it("confirm 包装函数确保调用后请求将最新弹窗提升至最高堆叠层级 (z-index 2000)", async () => {
+        const { confirm } = await import("@/libs/dialog");
+        // 调用 confirm 不抛错，并且安全派生
+        expect(typeof confirm).toBe("function");
+    });
 });

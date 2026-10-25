@@ -9,7 +9,7 @@
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
     import { renderRecordCardPng, copyPngToClipboard, downloadPng } from "@/core/sharecard";
-    import { localDateKey } from "@/core/hub/rule";
+    import { localDateKey, parseDate } from "@/core/hub/rule";
     import { showMessage, Dialog } from "siyuan";
     import { confirm } from "@/libs/dialog";
     import type { HomePluginLike } from "@/types/plugin";
@@ -5324,7 +5324,10 @@
             rows: cardRows,
             deepLink: cardDeepLink,
         });
+        const more = dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement | null;
+        const closeMore = () => { if (more) more.open = false; };
         (dlg.element.querySelector("#lv-detail-card-copy") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
+            closeMore();
             this.disabled = true;
             try {
                 const blob = await buildCard();
@@ -5336,6 +5339,7 @@
             } finally { this.disabled = false; }
         };
         (dlg.element.querySelector("#lv-detail-card-png") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
+            closeMore();
             this.disabled = true;
             try {
                 const blob = await buildCard();
@@ -5346,6 +5350,7 @@
         };
         // Copy the detail card as label/value text.
         (dlg.element.querySelector("#lv-detail-card-text") as HTMLButtonElement).onclick = async () => {
+            closeMore();
             const text = cardRows.map((r) => `${r.label}: ${r.value}`).join("\n");
             try {
                 await navigator.clipboard.writeText(`${cardTitle}\n${text}`);
@@ -5356,6 +5361,7 @@
         };
         // Copy the detail card as masked label/value text.
         (dlg.element.querySelector("#lv-detail-card-masked-text") as HTMLButtonElement).onclick = async () => {
+            closeMore();
             const { formatMaskedRecordText } = await import("@/core/format");
             const text = formatMaskedRecordText(cardTitle, cardRows);
             try {
@@ -5369,6 +5375,7 @@
         const copyRefBtn = dlg.element.querySelector("#lv-detail-copy-ref") as HTMLButtonElement | null;
         if (copyRefBtn) {
             copyRefBtn.onclick = async () => {
+                closeMore();
                 const blockRefText = `((${row.itemID} "${cardTitle}"))`;
                 try {
                     await navigator.clipboard.writeText(blockRefText);
@@ -5382,6 +5389,7 @@
         const copyEmbedBtn = dlg.element.querySelector("#lv-detail-copy-embed") as HTMLButtonElement | null;
         if (copyEmbedBtn) {
             copyEmbedBtn.onclick = async () => {
+                closeMore();
                 const blockEmbedText = `{{select * from blocks where id='${row.itemID}'}}`;
                 try {
                     await navigator.clipboard.writeText(blockEmbedText);
@@ -5403,10 +5411,22 @@
                     const v = ref.columns[col.key] ? row.cells?.[ref.columns[col.key]] : undefined;
                     if (v) {
                         if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
-                        else if (col.type === "number") copiedValues[col.key] = v.number?.content;
-                        else if (col.type === "date") copiedValues[col.key] = v.date?.content ? localDateKey(new Date(v.date.content)) : "";
-                        else if (col.type === "checkbox") copiedValues[col.key] = v.checkbox?.checked;
-                        else copiedValues[col.key] = cellText(v, col.key);
+                        else if (col.type === "number") {
+                            const raw = v.number?.content ?? (v as any).content ?? (v as any).value?.number?.content ?? v;
+                            const num = Number(raw);
+                            copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
+                        } else if (col.type === "date") {
+                            const raw = v.date?.content ?? (v as any).content ?? (v as any).value?.date?.content;
+                            if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
+                            else if (typeof raw === "string" && raw.trim()) {
+                                const parsed = parseDate(raw.trim());
+                                copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
+                            }
+                        } else if (col.type === "checkbox") {
+                            copiedValues[col.key] = v.checkbox?.checked ?? (v as any).checked ?? (v as any).value?.checkbox?.checked;
+                        } else {
+                            copiedValues[col.key] = cellText(v, col.key);
+                        }
                     }
                 }
                 dlg.destroy();

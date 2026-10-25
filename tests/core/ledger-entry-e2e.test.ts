@@ -175,4 +175,10 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(reminders[0].dueDate).toBe("2026-11-01");
         expect(reminders[1].dueDate).toBe("2026-11-05");
     });
+
+    it("人脉插件未安装时 getContactsBridge 优雅返回 undefined，不抛错", async () => {
+        const { getContactsBridge } = await import("@/libs/contact-picker");
+        // 当前测试环境无 window.LvContacts
+        expect(getContactsBridge()).toBeUndefined();
+    });
 });

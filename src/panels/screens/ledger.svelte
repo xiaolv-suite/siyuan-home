@@ -267,8 +267,9 @@
         dlg.element.querySelectorAll(".lv-batch-mem-tag").forEach((btn) => {
             (btn as HTMLButtonElement).onclick = async () => {
                 const memId = btn.getAttribute("data-id");
-                if (!memId) return;
+                if (!memId || batchBusy) return;
                 dlg.destroy();
+                batchBusy = true;
                 const count = selectedItemIds.length;
                 try {
                     const { setCell } = await import("@/core/siyuan");
@@ -278,8 +279,11 @@
                     selectedItemIds = [];
                     showMessage(t("ledger.batchMember") + ` (${count})`, 3000, "info");
                     await load();
+                    try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
                 } catch (e) {
                     showMessage(String(e), 5000, "error");
+                } finally {
+                    batchBusy = false;
                 }
             };
         });
@@ -315,8 +319,9 @@
         (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
         (dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
             const locVal = inp.value.trim();
-            if (!locVal) return;
+            if (!locVal || batchBusy) return;
             this.disabled = true;
+            batchBusy = true;
             try {
                 const { setCell } = await import("@/core/siyuan");
                 const count = selectedItemIds.length;
@@ -327,8 +332,11 @@
                 selectedItemIds = [];
                 showMessage(t("ledger.batchLocation") + ` (${count})`, 3000, "info");
                 await load();
+                try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
             } catch (e) {
                 showMessage(String(e), 5000, "error");
+            } finally {
+                batchBusy = false;
             }
         };
     }

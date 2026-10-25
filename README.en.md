@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.68
+## 🆕 What's new in v0.5.69
 
-This release establishes a comprehensive natural-language example placeholder library across all 31 modules and daily life event streams:
+This release completely fixes the confirmation dialog z-index inversion issue where delete confirmations were hidden behind detail drawers, and resolves identity pending stalls and footer cutoffs:
 
-- **Improved (Full-Spectrum Example Placeholders Library)**: Consolidated `EXAMPLE_PLACEHOLDERS` and `MODULE_NAME_PLACEHOLDERS` in `core/capture.ts`, providing realistic, human-friendly input examples for medicine, stock, shopping, certs, contracts, insurance, favors, chores, pets, house, and appliances;
-- **Refined (Daily Life Event Stream Forms)**: Enhanced placeholder ergonomics across fueling/charging, blood pressure/glucose readings, and shopping additions;
-- **Tested (Matrix Expanded to 802 Tests)**: Added unit test coverage for placeholder resolvers, maintaining 100% test pass rate across the codebase.
+- **Fixed (Delete Confirm Dialog Hidden Behind Drawer)**: Wrapped `confirm` from `@/libs/dialog` to dynamically promote confirmation modals to `z-index: 2000 !important`, paired with CSS sibling layer elevation so confirmation dialogs always display cleanly in front of detail drawers;
+- **Fixed (Row Identity Pending False Alarms)**: Enhanced `rowIDsFromAddResponse` with comprehensive support for `blockIDs`, `ids`, and `blocks` payloads, backed by SQLite recent blocks lookup fallback;
+- **Refined (Quick-Capture Responsive Footer)**: Moved the batch-entry context switch into the form body, freeing the footer for action buttons and permanently eliminating the "位置/分类" horizontal cutoff;
 - **Validation**: 91 test suites, **802 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.68)
+## 📦 Install (v0.5.69)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.68 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.68 package is the current GitHub release; local quality checks report 802 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.69 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.69 package is the current GitHub release; local quality checks report 802 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.68 (current) | Comprehensive example placeholders library across 31 modules, 802 tests |
+| ✅ v0.5.69 (current) | Fix confirm dialog z-index inversion, row identity SQLite fallback, footer cutoff fix |
+| v0.5.68 | Comprehensive example placeholders library across 31 modules, 802 tests |
 | v0.5.67 | Quick-capture footer vertical text wrap fix, realistic example placeholders |
 | v0.5.66 | Fix quick-capture vehicle stall, tabbar centering & pill alignment, hero whitespace compacting |
 | v0.5.65 | Batch concurrency locks, cross-module rescan sync, 801 tests |

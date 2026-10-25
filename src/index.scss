@@ -455,7 +455,17 @@
     min-width: 0;
 }
 
-// 原生详情/油耗/购物等弹窗挂在 body，无法继承面板里的表面令牌。
+// 嵌套/子级弹窗与确认框：后插入的弹窗层级永远层叠在前置弹窗之上，彻底消除遮挡
+.b3-dialog ~ .b3-dialog {
+    z-index: 1050 !important;
+}
+.b3-dialog ~ .b3-dialog ~ .b3-dialog {
+    z-index: 1100 !important;
+}
+.b3-dialog.lv-top-confirm {
+    z-index: 2000 !important;
+}
+
 // 只匹配管家专属内容，保持思源和其他插件的弹窗样式独立，绝不全局污染 .b3-dialog。
 .b3-dialog:has([id^="lv-"]),
 .b3-dialog:has(.lv-home),

@@ -609,10 +609,22 @@ export class RowIdentityPendingError extends Error {
 /** 从 addAttributeViewBlocks 响应收集可能的行 ID（响应形态随版本变化，仅认已知键） */
 function rowIDsFromAddResponse(d: any): string[] {
     const out: string[] = [];
-    const push = (v: any) => { if (typeof v === "string" && v) out.push(v); };
+    const push = (v: any) => {
+        if (typeof v === "string" && v) out.push(v);
+        else if (v && typeof v === "object") {
+            if (typeof v.rowID === "string" && v.rowID) out.push(v.rowID);
+            else if (typeof v.blockID === "string" && v.blockID) out.push(v.blockID);
+            else if (typeof v.id === "string" && v.id) out.push(v.id);
+        }
+    };
+    if (typeof d === "string" && d) push(d);
+    if (Array.isArray(d)) d.forEach(push);
     if (Array.isArray(d?.rowIDs)) d.rowIDs.forEach(push);
-    if (Array.isArray(d?.operations)) d.operations.forEach((op: any) => push(op?.rowID));
-    if (Array.isArray(d?.rows)) d.rows.forEach((r: any) => push(r?.id));
+    if (Array.isArray(d?.blockIDs)) d.blockIDs.forEach(push);
+    if (Array.isArray(d?.ids)) d.ids.forEach(push);
+    if (Array.isArray(d?.blocks)) d.blocks.forEach(push);
+    if (Array.isArray(d?.operations)) d.operations.forEach((op: any) => push(op?.rowID ?? op?.blockID ?? op?.id));
+    if (Array.isArray(d?.rows)) d.rows.forEach((r: any) => push(r?.id ?? r?.rowID));
     return out;
 }
 
@@ -656,14 +668,28 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
 
     // 块索引异步重建：短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];
-    for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise((r) => setTimeout(r, 200 + attempt * 150));
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise((r) => setTimeout(r, 100 + attempt * 100));
         try {
             added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
             if (added.length === 1) return added[0];
             if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
         } catch { /* soft retry */ }
     }
+
+    // SQLite 直查兜底：若属性视图缓存延迟刷新，通过近期创建的块内容检索唯一新行
+    if (added.length === 0 && content) {
+        try {
+            const escapedContent = content.replace(/'/g, "''");
+            const sqlRows = await sql<{ id: string }>(
+                `SELECT id FROM blocks WHERE content='${escapedContent}' AND updated > ${Date.now() - 15000} ORDER BY updated DESC LIMIT 2`,
+                options,
+            );
+            const sqlCandidates = sqlRows.map((r) => r.id).filter((id) => !before.has(id));
+            if (sqlCandidates.length === 1) return sqlCandidates[0];
+        } catch { /* soft fallback */ }
+    }
+
     const confirmed = fromResponse.length === 1 ? fromResponse[0] : added.length === 1 ? added[0] : undefined;
     if (confirmed) return confirmed;
     throw new RowIdentityPendingError(added.length ? Array.from(new Set(added)) : fromResponse);

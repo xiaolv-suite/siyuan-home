@@ -181,4 +181,26 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         // 当前测试环境无 window.LvContacts
         expect(getContactsBridge()).toBeUndefined();
     });
+
+    it("新建行使用 addDetachedRow 原生主键块名称，无独立 name 列映射时亦可正常建行", async () => {
+        const { addDetachedRow } = await import("@/core/siyuan");
+        let added = false;
+        handler = (endpoint, payload) => {
+            if (endpoint === "/api/av/addAttributeViewBlocks") {
+                expect(payload.srcs[0].content).toBe("家庭药箱新记录");
+                added = true;
+                return { code: 0, msg: "", data: { operations: [{ rowID: "row-med-1" }] } };
+            }
+            if (endpoint === "/api/av/renderAttributeView") {
+                return {
+                    code: 0,
+                    msg: "",
+                    data: { view: { columns: [], rowCount: added ? 1 : 0, rows: added ? [{ id: "row-med-1", cells: [] }] : [] } },
+                };
+            }
+            return { code: 0, msg: "", data: {} };
+        };
+        const id = await addDetachedRow("av-med", "家庭药箱新记录");
+        expect(id).toBe("row-med-1");
+    });
 });

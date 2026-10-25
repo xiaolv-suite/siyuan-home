@@ -541,7 +541,7 @@
             const missingColumn = captureFields.find((field) => {
                 const value = values[field.key];
                 const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
-                return hasValue && !r!.columns?.[field.key];
+                return field.key !== "name" && hasValue && !r!.columns?.[field.key];
             });
             if (missingColumn) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(missingColumn)));
             // 禁用选项仍可能由旧草稿带入失效关系 ID；建行前做最终校验。
@@ -583,7 +583,9 @@
                     }
                 }
             };
-            await setCellSafe("name", { type: "text", text: { content: title } });
+            if (r!.columns?.["name"]) {
+                await setCellSafe("name", { type: "text", text: { content: title } });
+            }
             for (const f of captureFields) {
                 if (f.key === "name") continue;
                 const v = values[f.key];

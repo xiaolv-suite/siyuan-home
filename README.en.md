@@ -39,22 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.60
+## 🆕 What's new in v0.5.61
 
-This release refines member card context actions and expands the E2E verification suite:
+This release improves quick-capture row instantiation safety and primary block fallbacks:
 
-- **Improved (Member Card Menu Contacts Fallback)**: Automatically probes `getContactsBridge()` in the member card context menu, hiding the link action if `siyuan-contacts` is not installed;
-- **Tested (E2E Suite Expansion to 798 Tests)**: Added test coverage for standalone contact fallback, maintaining 100% test pass rate across the codebase.
-- **Validation**: 91 test suites, **798 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.60)
+- **Fixed (Quick-Capture Primary Block Fallback)**: Decoupled quick-capture row creation from the strict presence of a separate `name` column, using SiYuan's native primary block title to prevent false crashes on legacy templates;
+- **Tested (E2E Suite Expansion to 799 Tests)**: Added test coverage for row creation without discrete name mappings.
+- **Validation**: 91 test suites, **799 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.61)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.60 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.60 package is the current GitHub release; local quality checks report 798 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.61 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.61 package is the current GitHub release; local quality checks report 799 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.60 (current) | Member card menu contacts fallback, E2E suite expanded to 798 tests |
+| ✅ v0.5.61 (current) | Quick-capture primary block fallback, E2E suite expanded to 799 tests |
+| v0.5.60 | Member card menu contacts fallback, E2E suite expanded to 798 tests |
 | v0.5.59 | Reminder value extraction decoupling, legacy storage E2E closure |
 | v0.5.58 | E2E matrix expansion, legacy non-standard date healing, CSV header alignment |
 | v0.5.57 | Eliminate blank data after entry, dual-mode cell unwrapping, vehicle column aliases |

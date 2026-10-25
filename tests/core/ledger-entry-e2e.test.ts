@@ -203,4 +203,15 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         const id = await addDetachedRow("av-med", "家庭药箱新记录");
         expect(id).toBe("row-med-1");
     });
+
+    it("smartExtractFieldsFromTitle 自动析出标题中的日期与金额并完成清洗", async () => {
+        const { smartExtractFieldsFromTitle } = await import("@/core/block-capture");
+        const res1 = smartExtractFieldsFromTitle("租房合同 3500元");
+        expect(res1.cleanTitle).toBe("租房合同");
+        expect(res1.extractedAmount).toBe(3500);
+
+        const res2 = smartExtractFieldsFromTitle("2028-10-15 居民身份证");
+        expect(res2.cleanTitle).toBe("居民身份证");
+        expect(res2.extractedDate).toBe("2028-10-15");
+    });
 });

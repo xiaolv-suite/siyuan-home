@@ -317,6 +317,11 @@
                 inp.value = btn.getAttribute("data-loc") ?? "";
             };
         });
+        if (inp) {
+            inp.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement)?.click();
+            });
+        }
         (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
         (dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
             const locVal = inp.value.trim();
@@ -396,6 +401,12 @@
             width: "480px",
         });
         (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
+        const bindInput = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;
+        if (bindInput) {
+            bindInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-bind-doc-ok") as HTMLButtonElement)?.click();
+            });
+        }
         void (async () => {
             const listEl = dlg.element.querySelector("#lv-bind-candidates") as HTMLElement | null;
             if (!listEl) return;

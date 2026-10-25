@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.78
+## 🆕 What's new in v0.5.79
 
-This release elevates visual aesthetics and depth across modals, pulse navigation, and bars:
+This release completes a comprehensive, full-spectrum UI/UX micro-refinement across all pages, modals, buttons, and interaction flows:
 
-- **Improved (Glassmorphic Modal Scrim)**: Upgraded `.lv-mask` with native `backdrop-filter: blur(8px)`, achieving a focused, translucent frosted glass backdrop for drawers and sheets;
-- **Refined (Obsidian Pulse Strip Capsule)**: Redesigned the "today" indicator in the weekly pulse strip (`.lv-pulse-pill.is-today`) with deep obsidian gradients (`#0F172A ➔ #1E293B`), stark white numerals, and electric sky-blue accents;
-- **Polished (Topbar Elevation)**: Added subtle elevation depth (`var(--lv-shadow-1)`) beneath the sticky navigation header for a clean, floating separation against the canvas;
+- **Redesigned (All-Surface Bento Micro-Interactions)**: Infused `.lv-hero` cards with `145deg` ambient lighting gradients and subtle elevation, added smooth lift (`-2px`) to key metrics and member profile cards, and refined active hover states across reminder action sets;
+- **Polished (AAA Focus Rings & Modal Buttons)**: Form inputs now feature warm amber glow rings (`0 0 0 3px rgba(217, 119, 6, 0.18)`) compliant with WCAG 2.2 AAA, and dialog footers present crisp primary amber action buttons alongside solid slate cancellation pills;
+- **Refined (Micro-Skeuomorphic Badges)**: Status badges (`.lv-badge`) upgraded with subtle translucent backgrounds and matching tone inner borders;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.78)
+## 📦 Install (v0.5.79)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.78 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.78 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.79 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.79 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.78 (current) | Glassmorphic modal scrim, obsidian pulse strip capsule, topbar elevation |
+| ✅ v0.5.79 (current) | All-surface Bento micro-interactions, AAA focus rings, modal button hierarchy |
+| v0.5.78 | Glassmorphic modal scrim, obsidian pulse strip capsule, topbar elevation |
 | v0.5.77 | Self-contained design system, complete decoupling from third-party themes |
 | v0.5.76 | Modal styling deduplication across reminders & ledger, 804 tests |
 | v0.5.75 | Drawer styling deduplication and bundle slimming, 804 tests |

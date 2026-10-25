@@ -306,7 +306,9 @@
     .lv-focus { grid-template-columns: 1fr; }
   }
   .lv-hero { display: flex; align-items: center; gap: 16px; margin: 10px 2px 8px; padding: 16px 20px;
-    border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); background: var(--lv-surface); flex-wrap: wrap;
+    border: 1px solid var(--lv-line); border-radius: var(--lv-r-3);
+    background: linear-gradient(145deg, var(--lv-surface) 0%, color-mix(in srgb, var(--lv-surface-2) 40%, var(--lv-surface)) 100%);
+    box-shadow: var(--lv-shadow-1); flex-wrap: wrap;
     // 250 波：对齐原型字号层级（26/600 标题 + 32/600 计数）——46px/700 的计数在中文面板里
     // 喧宾夺主，且与 26px 页标题断层过大
     h1 { margin: 2px 0 0; font-size: clamp(20px, 2.2cqi, 24px); font-weight: 650; line-height: 1.35; letter-spacing: 0; }
@@ -323,7 +325,8 @@
     min-width: 130px; padding: 10px 14px; border-radius: var(--lv-r-3);
     background: var(--lv-surface-2); border: 1px solid var(--lv-line);
     display: flex; flex-direction: column; gap: 4px; box-shadow: var(--lv-shadow-1);
-    flex: none;
+    flex: none; transition: all var(--lv-t-med) var(--lv-ease);
+    &:hover { transform: translateY(-2px); box-shadow: var(--lv-shadow-2); border-color: var(--lv-line-strong); }
   }
   .lv-hero-stat-header {
     display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--lv-tx-3);
@@ -364,24 +367,28 @@
   // ── 4. 卡片与容器 ───────────────────────────────────────
   // R54：普通卡由白面、细描边与留白分层；阴影仅留给弹层。
   .lv-card { background: var(--lv-surface);
-    border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); box-shadow: none; }
-  .lv-card--hover { transition: border-color var(--lv-t-med) var(--lv-ease);
-    &:hover { border-color: var(--lv-line-strong); } }
+    border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); box-shadow: var(--lv-shadow-1);
+    transition: all var(--lv-t-med) var(--lv-ease); }
+  .lv-card--hover,
+  .lv-card.lv-card--hover {
+    &:hover { border-color: var(--lv-line-strong); transform: translateY(-2px); box-shadow: var(--lv-shadow-2); } }
 
   // ── 5. 按钮 ─────────────────────────────────────────────
-  .lv-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--lv-space-2); min-height: var(--lv-control-lg); padding: var(--lv-space-2) 15px;
+  .lv-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--lv-space-2); min-height: var(--lv-control-md); padding: 0 16px;
     border-radius: var(--lv-r-2); border: 1px solid var(--lv-line);
-    background: var(--lv-surface); font-size: 13px; color: var(--lv-tx);
-    box-shadow: none; transition: background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease);
-    &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); color: var(--lv-tx); }
-    &:active { transform: translateY(1px); }
+    background: var(--lv-surface); font-size: 13px; font-weight: 500; color: var(--lv-tx);
+    box-shadow: var(--lv-shadow-1); transition: all var(--lv-t-fast) var(--lv-ease);
+    cursor: pointer; user-select: none;
+    &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); color: var(--lv-tx); transform: translateY(-1px); box-shadow: var(--lv-shadow-2); }
+    &:active { transform: translateY(0) scale(.98); }
     &:disabled { opacity: .45; pointer-events: none; }
-    &.primary { background: var(--lv-accent); border-color: transparent; color: var(--b3-theme-on-primary);
-      font-weight: 600; box-shadow: none;
-      &:hover { background: var(--lv-accent); color: var(--b3-theme-on-primary); border-color: transparent; filter: brightness(1.05); } }
-    &.ghost { border-color: transparent; box-shadow: none; color: var(--lv-tx-2); padding: 6px 10px;
+    &.primary { background: var(--lv-accent); border-color: transparent; color: #ffffff;
+      font-weight: 600; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+      &:hover { background: var(--lv-accent); color: #ffffff; border-color: transparent; filter: brightness(1.08); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35); }
+      &:active { transform: translateY(0) scale(.98); box-shadow: 0 1px 3px rgba(217, 119, 6, 0.2); } }
+    &.ghost { border-color: transparent; box-shadow: none; color: var(--lv-tx-2); padding: 0 12px;
       &:hover { background: var(--lv-surface-2); color: var(--lv-tx); } }
-    &.sm { min-height: var(--lv-control-sm); padding: 4px 10px; font-size: 12px; } }
+    &.sm { min-height: var(--lv-control-sm); padding: 0 10px; font-size: 12px; } }
   .lv-iconbtn { width: 36px; height: 36px; min-width: 36px; min-height: var(--lv-control-md); border-radius: 10px; display: grid; place-items: center; background: transparent; cursor: pointer;
     color: var(--lv-tx-2); border: 1px solid transparent; transition: all var(--lv-t-med) var(--lv-ease);
     &:hover { background: var(--lv-surface-2); color: var(--lv-tx); border-color: var(--lv-line); box-shadow: var(--lv-shadow-1); }
@@ -422,13 +429,13 @@
     &:hover { border-color: var(--lv-line-strong); color: var(--lv-tx); }
     &.on { background: var(--lv-accent-soft); border-color: var(--lv-accent-line);
       color: var(--lv-accent); font-weight: 500; } }
-  .lv-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 9px;
-    border-radius: 999px; font-weight: 500;
-    &.red { background: var(--lv-danger-soft); color: var(--lv-danger); }
-    &.orange { background: var(--lv-warn-soft); color: var(--lv-warn); }
-    &.yellow { background: var(--lv-amber-soft); color: var(--lv-amber); }
-    &.green { background: var(--lv-ok-soft); color: var(--lv-ok); }
-    &.gray { background: var(--lv-surface-2); color: var(--lv-tx-3); } }
+  .lv-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px;
+    border-radius: 999px; font-weight: 550; border: 1px solid transparent; line-height: 1.35;
+    &.red { background: var(--lv-danger-soft); color: var(--lv-danger); border-color: rgba(220, 38, 38, 0.2); }
+    &.orange { background: var(--lv-warn-soft); color: var(--lv-warn); border-color: rgba(234, 88, 12, 0.2); }
+    &.yellow { background: var(--lv-amber-soft); color: var(--lv-amber); border-color: rgba(217, 119, 6, 0.25); }
+    &.green { background: var(--lv-ok-soft); color: var(--lv-ok); border-color: rgba(5, 150, 105, 0.2); }
+    &.gray { background: var(--lv-surface-2); color: var(--lv-tx-3); border-color: var(--lv-line); } }
   .lv-sev { width: 8px; height: 8px; border-radius: 50%; display: inline-block;
     &.red { background: var(--lv-danger); box-shadow: 0 0 0 3px var(--lv-danger-soft); }
     &.orange { background: var(--lv-warn); box-shadow: 0 0 0 3px var(--lv-warn-soft); }
@@ -524,9 +531,9 @@
       transition: all var(--lv-t-med) var(--lv-ease);
       // 251 波：操作钮 ghost 化（对齐原型 .rem .ops .btn.ghost）——中性灰、hover 才浮出底色；
       // 之前 b3-button--text 的主色蓝字让整排操作过度用色
-      .b3-button { padding: 6px 10px; color: var(--lv-tx-2); border-radius: var(--lv-r-2);
-        transition: background var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease);
-        &:hover { background: var(--lv-surface-2); color: var(--lv-tx); box-shadow: none; } } }
+      .b3-button { padding: 5px 9px; color: var(--lv-tx-2); border-radius: var(--lv-r-2); font-size: 12px;
+        border: 1px solid transparent; transition: all var(--lv-t-fast) var(--lv-ease);
+        &:hover { background: var(--lv-surface); color: var(--lv-tx); border-color: var(--lv-line); box-shadow: var(--lv-shadow-1); } } }
     // 173 波（13 §3.3 对齐原型）：键盘聚焦行时操作显现（触屏常显另有 hover:none 分支）
     &:hover .lv-rem-ops, &:focus-within .lv-rem-ops { opacity: 1; transform: none; }
     &.overdue {
@@ -977,7 +984,10 @@
     .b3-text-field[type="date"] { width: 150px; flex: none; }
     .b3-button { min-height: var(--lv-control-sm); } }
   // 250 波：成员卡结构（对齐原型 .person：head 分区 + 顶部分隔的信息区 + 提醒行）
-  .lv-person { padding: 20px; display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; position: relative; overflow: hidden;
+  .lv-person { padding: 18px 20px; display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; position: relative; overflow: hidden;
+    background: var(--lv-surface); border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); box-shadow: var(--lv-shadow-1);
+    transition: all var(--lv-t-med) var(--lv-ease);
+    &:hover { border-color: var(--lv-line-strong); transform: translateY(-2px); box-shadow: var(--lv-shadow-2); }
     // 260 波：展开档案区入场（对齐抽屉编排语言）
     .lv-person-expanded { animation: lv-rise var(--lv-t-med) var(--lv-ease); }
     .lv-person-head { display: flex; align-items: center; gap: var(--lv-space-3); cursor: pointer; border-radius: var(--lv-r-2);

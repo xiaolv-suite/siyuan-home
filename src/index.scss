@@ -464,6 +464,13 @@
 }
 .b3-dialog.lv-top-confirm {
     z-index: 2000 !important;
+    .b3-dialog__container {
+        border-radius: 14px;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+        border: 1px solid var(--lv-line-strong);
+    }
+    .b3-dialog__header { font-size: 15px; font-weight: 600; color: var(--lv-tx); }
+    .b3-dialog__content { color: var(--lv-tx-2); font-size: 13.5px; line-height: 1.6; }
 }
 
 // 只匹配管家专属内容，保持思源和其他插件的弹窗样式独立，绝不全局污染 .b3-dialog。
@@ -495,7 +502,38 @@
     }
     .b3-dialog__header { font-size: 16px; font-weight: 600; color: var(--lv-tx); }
     .b3-dialog__content { color: var(--lv-tx); line-height: 1.6; background: var(--lv-surface); }
-    .b3-dialog__action { background: var(--lv-surface); border-top: 1px solid var(--lv-line); }
+    .b3-dialog__action {
+        background: var(--lv-surface);
+        border-top: 1px solid var(--lv-line);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 12px 18px;
+        .b3-button:not(.b3-button--text):not(.b3-button--cancel):not(.b3-button--outline) {
+            background: var(--lv-accent);
+            color: #ffffff;
+            font-weight: 500;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2);
+            transition: all 150ms ease;
+            &:hover { filter: brightness(1.08); box-shadow: 0 3px 8px rgba(217, 119, 6, 0.3); }
+            &:active { transform: scale(0.98); }
+        }
+        .b3-button--cancel {
+            background: var(--lv-surface);
+            color: var(--lv-tx-2);
+            border: 1px solid var(--lv-line);
+            border-radius: 8px;
+            box-shadow: none;
+            transition: all 150ms ease;
+            &:hover { background: var(--lv-surface-2); border-color: var(--lv-line-strong); color: var(--lv-tx); }
+        }
+        .b3-button--text {
+            color: var(--lv-tx-3);
+            &:hover { color: var(--lv-tx); }
+        }
+    }
     :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select) {
         min-height: var(--lv-control-lg);
         border-radius: 8px;

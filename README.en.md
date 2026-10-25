@@ -39,22 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.67
+## 🆕 What's new in v0.5.68
 
-This release fixes the vertical text wrapping on the quick-capture footer and upgrades field placeholder ergonomics:
+This release establishes a comprehensive natural-language example placeholder library across all 31 modules and daily life event streams:
 
-- **Fixed (Quick-Capture Footer Text Wrapping)**: Added `white-space: nowrap; flex-shrink: 0;` and responsive container wrapping for `.lv-keep-context-label`, completely preventing the 16-character label from wrapping into an ugly 1-character-wide vertical column;
-- **Improved (Intuitive Field Example Placeholders)**: Upgraded placeholders across plates, brands/models, and mileage with realistic examples (`e.g. 京A12345`, `e.g. 别克君越 / 特斯拉 Model Y`, `e.g. 15000（公里）`) instead of mechanically echoing the field label.
-- **Validation**: 91 test suites, **801 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.67)
+- **Improved (Full-Spectrum Example Placeholders Library)**: Consolidated `EXAMPLE_PLACEHOLDERS` and `MODULE_NAME_PLACEHOLDERS` in `core/capture.ts`, providing realistic, human-friendly input examples for medicine, stock, shopping, certs, contracts, insurance, favors, chores, pets, house, and appliances;
+- **Refined (Daily Life Event Stream Forms)**: Enhanced placeholder ergonomics across fueling/charging, blood pressure/glucose readings, and shopping additions;
+- **Tested (Matrix Expanded to 802 Tests)**: Added unit test coverage for placeholder resolvers, maintaining 100% test pass rate across the codebase.
+- **Validation**: 91 test suites, **802 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.68)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.67 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.67 package is the current GitHub release; local quality checks report 801 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.68 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.68 package is the current GitHub release; local quality checks report 802 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.67 (current) | Quick-capture footer vertical text wrap fix, realistic example placeholders |
+| ✅ v0.5.68 (current) | Comprehensive example placeholders library across 31 modules, 802 tests |
+| v0.5.67 | Quick-capture footer vertical text wrap fix, realistic example placeholders |
 | v0.5.66 | Fix quick-capture vehicle stall, tabbar centering & pill alignment, hero whitespace compacting |
 | v0.5.65 | Batch concurrency locks, cross-module rescan sync, 801 tests |
 | v0.5.64 | Drawer styling deduplication, bundle size headroom, 801 tests |

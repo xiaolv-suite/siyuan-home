@@ -19,7 +19,7 @@
     import { COMMON_COLUMN_ALIASES } from "@/core/provisioner";
     import { getCertificateProfile, getCertificateReminderField } from "@/core/schema";
     import type { ColumnDef } from "@/core/schema";
-    import { getCaptureFields, getFormFields, validateCaptureInput, type CaptureInputError } from "@/core/capture";
+    import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
     import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "@/core/assets";
     import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "@/core/fuel";
     import { calculateMaintenanceStats, calculateVehicleCostSummary, createVehicleActionQueue, type MaintenanceRecord, type VehicleQuickAction } from "@/core/vehicle";
@@ -2405,14 +2405,7 @@
         return value === key ? "" : value;
     }
     function fieldMetaPlaceholder(field: ColumnDef): string {
-        const custom = fieldMetaText(field.placeholderKey);
-        if (custom) return custom;
-        if (field.key === "name") return t("ledger.newName");
-        if (field.key === "plate") return "例如：京A12345 / 粤B88888";
-        if (field.key === "brand_model") return "例如：别克君越 / 特斯拉 Model Y";
-        if (field.key === "mileage") return "例如：15000（公里）";
-        if (field.key === "vin") return "17位车辆识别代号（车架号）";
-        return fieldLabel(field.key);
+        return getFieldPlaceholder(field, active, t);
     }
     function captureValidationMessage(field: ColumnDef, issue: CaptureInputError): string {
         return t(`capture.validation.${issue}`)

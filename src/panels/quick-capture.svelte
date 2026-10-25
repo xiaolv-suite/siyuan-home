@@ -5,7 +5,7 @@
     import { tick } from "svelte";
     import { addDetachedRow, RowIdentityPendingError, setCell, renderLedgerAll } from "@/core/siyuan";
     import { saveRuntime } from "@/core/hub/runtime";
-    import { captureCellValue, getCaptureFields, validateCaptureInput } from "@/core/capture";
+    import { captureCellValue, getCaptureFields, validateCaptureInput, getFieldPlaceholder } from "@/core/capture";
     import { getGroupedModules, moduleIcon } from "@/core/modules";
     import { localDateKey } from "@/core/hub/rule";
     import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
@@ -257,13 +257,7 @@
         return t(key) !== key ? t(key) : field.key;
     }
     function fieldPlaceholder(field: ColumnDef): string {
-        if (field.placeholderKey) return t(field.placeholderKey);
-        if (field.key === "name") return t("ledger.newName");
-        if (field.key === "plate") return "例如：京A12345 / 粤B88888";
-        if (field.key === "brand_model") return "例如：别克君越 / 特斯拉 Model Y";
-        if (field.key === "mileage") return "例如：15000（公里）";
-        if (field.key === "vin") return "17位车辆识别代号（车架号）";
-        return fieldLabel(field);
+        return getFieldPlaceholder(field, moduleId, t);
     }
     function fieldDetail(key: string | undefined): string {
         if (!key) return "";
@@ -767,15 +761,15 @@
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-amount">{t("capture.amountCny")} *</label>
-                                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder="加油/充电金额" bind:value={fuelingAmount} disabled={saving} />
+                                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：300 或 250.5" bind:value={fuelingAmount} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-mileage">{t("capture.currentMileage")}</label>
-                                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" placeholder="当前总里程" bind:value={fuelingMileage} disabled={saving} />
+                                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" placeholder="例如：15800（公里）" bind:value={fuelingMileage} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-liters">{t("capture.fuelLiters")}</label>
-                                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" placeholder="加油升数 / 充电度数" bind:value={fuelingLiters} disabled={saving} />
+                                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：42.5（升）或 50（度）" bind:value={fuelingLiters} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-fuel-date">{t("field.date")}</label>
@@ -801,20 +795,20 @@
                         {#if vitalMetricType === "bp"}
                             <div class="lv-frow">
                                 <label for="lv-vital-sys">{t("capture.systolic")}</label>
-                                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder="如 120" bind:value={vitalSys} disabled={saving} />
+                                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder="收缩压高压，例如：120" bind:value={vitalSys} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-dia">{t("capture.diastolic")}</label>
-                                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder="如 80" bind:value={vitalDia} disabled={saving} />
+                                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder="舒张压低压，例如：80" bind:value={vitalDia} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-pulse">{t("capture.pulse")}</label>
-                                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder="如 72" bind:value={vitalPulse} disabled={saving} />
+                                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder="静息心率，例如：72" bind:value={vitalPulse} disabled={saving} />
                             </div>
                         {:else}
                             <div class="lv-frow">
                                 <label for="lv-vital-glu">{t("capture.glucoseVal")}</label>
-                                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder="如 5.6" bind:value={vitalGlucose} disabled={saving} />
+                                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder="空腹/餐后血糖，例如：5.6" bind:value={vitalGlucose} disabled={saving} />
                             </div>
                             <div class="lv-frow">
                                 <label for="lv-vital-tim">测量时段</label>
@@ -827,16 +821,16 @@
                     {:else if eventSub === "shopping"}
                         <div class="lv-frow">
                             <label for="lv-shop-name">{t("field.name")} *</label>
-                            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder="输入想买的物品" bind:value={quickShopName} disabled={saving} />
+                            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder="例如：维达无芯卷纸 / 纯牛奶 / 抽纸" bind:value={quickShopName} disabled={saving} />
                         </div>
                         <div class="lv-frow">
                             <label for="lv-shop-qty">{t("field.qty")}</label>
-                            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" bind:value={quickShopQty} disabled={saving} />
+                            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder="数量，默认 1" bind:value={quickShopQty} disabled={saving} />
                         </div>
                     {:else if eventSub === "snippet"}
                         <div class="lv-frow" style="display:flex;flex-direction:column;align-items:stretch">
                             <label for="lv-snip-text">{t("capture.actSnippet")}</label>
-                            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘..." bind:value={quickSnippetText} disabled={saving}></textarea>
+                            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期..." bind:value={quickSnippetText} disabled={saving}></textarea>
                         </div>
                     {/if}
                 </div>

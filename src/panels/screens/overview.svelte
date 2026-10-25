@@ -416,8 +416,7 @@
 
 {#if !onboarded}
     <Onboarding {plugin} {t} onGoto={onGoto} {onCapture} />
-{/if}
-
+{:else}
 <div class="lv-hero">
     <div class="lv-hero-copy">
         <div class="lv-hero-meta" role="status" aria-label={t("dash.stripLabel")}>
@@ -802,4 +801,5 @@
     </section>
     {/each}
     {/if}
+{/if}
 {/if}

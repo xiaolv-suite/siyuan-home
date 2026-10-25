@@ -172,14 +172,14 @@
 
   // ── 3. 页头与节奏 ───────────────────────────────────────
   // 主导航使用白面与细描边，普通工作面不依赖浮起阴影。
-  .lv-tabbar { display: flex; align-items: center; gap: var(--lv-space-3); padding: 8px 16px; margin-bottom: var(--lv-space-5);
+  .lv-tabbar { display: flex; align-items: center; gap: var(--lv-space-3); padding: 8px 16px; margin-bottom: var(--lv-space-4);
     min-height: 52px; box-sizing: border-box;
     // 长台账/提醒列表滚动时保留主导航和快速记录入口；窄屏在下方容器断点
     // 复用同一 sticky 语义，避免侧栏场景导航消失。
     position: sticky; top: 0; z-index: var(--lv-z-topbar);
     background: var(--lv-surface);
     border: 1px solid var(--lv-line); border-radius: var(--lv-r-3);
-    box-shadow: none; }
+    box-shadow: var(--lv-shadow-1); }
   .lv-appbrand { display: flex; align-items: center; gap: var(--lv-space-2); flex: none; height: 36px; }
   .lv-appbrand-sep { width: 1px; height: 18px; background: var(--lv-line); margin: 0 4px; opacity: 0.7; }
   .lv-avatar-wrap { display: inline-flex; align-items: center; justify-content: center; height: 36px; }
@@ -272,10 +272,12 @@
     box-shadow: var(--lv-shadow-1);
     &:hover { border-color: var(--lv-accent); transform: translateY(-2px); }
     &.is-today {
-      background: var(--lv-accent); color: #fff; border-color: var(--lv-accent);
-      box-shadow: 0 4px 12px -2px var(--lv-accent-soft);
-      .lv-pulse-weekday, .lv-pulse-day { color: #fff; }
-      .lv-pulse-status { background: rgba(255, 255, 255, 0.25); color: #fff; }
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff; border-color: #0f172a;
+      box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.25);
+      .lv-pulse-weekday { color: #94a3b8; }
+      .lv-pulse-day { color: #ffffff; }
+      .lv-pulse-status { background: rgba(255, 255, 255, 0.16); color: #38bdf8; }
     }
   }
   .lv-pulse-weekday { font-size: 11px; color: var(--lv-tx-3); font-weight: 500; }
@@ -676,7 +678,8 @@
   }
 
   // ── 10. 抽屉 / 蒙层 / 弹层 ─────────────────────────────
-  .lv-mask { position: absolute; inset: 0; background: var(--b3-mask-background); opacity: 0;
+  .lv-mask { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.4); opacity: 0;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     pointer-events: none; transition: opacity var(--lv-t-slow) var(--lv-ease); z-index: var(--lv-z-mask);
     &.open { opacity: 1; pointer-events: auto; } }
   .lv-drawer { position: absolute; inset: 0; margin: auto; width: min(720px, 94%); height: min(760px, 88%); max-width: 94%; z-index: var(--lv-z-drawer);
@@ -699,10 +702,10 @@
     // 宽度用容器查询单位：92% 在 place-items:center 的 auto 网格里百分比解析不可靠
     // （实测按 482px 而非面板宽解析，窄容器溢出 69px）；.lv-home 即 inline-size 容器，cqw 恒定可期
     .lv-sheet { box-sizing: border-box; width: min(480px, calc(100cqw - 24px)); max-height: calc(100% - 32px); min-height: 0; background: var(--lv-surface);
-      border: 1px solid var(--lv-line-strong); border-radius: var(--lv-r-4);
-      box-shadow: var(--lv-shadow-3), inset 0 1px 0 var(--lv-inset); opacity: 0;
+      border: 1px solid var(--lv-line); border-radius: var(--lv-r-4);
+      box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08); opacity: 0;
       display: flex; flex-direction: column; position: relative;
-      transform: translateY(16px) scale(.97);
+      transform: translateY(12px) scale(.98);
       transition: transform var(--lv-t-sheet) var(--lv-spring), opacity var(--lv-t-slow) var(--lv-ease); }
     &.open { pointer-events: auto;
       .lv-sheet { opacity: 1; transform: none; } }

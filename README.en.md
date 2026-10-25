@@ -39,22 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.62
+## 🆕 What's new in v0.5.63
 
-This release brings the automated test suite past the **800-test milestone** and refines smart title parsing:
+This release refines memo dialog keyboard interactions and natural-language date parsing:
 
-- **Improved (Smart Title Parsing E2E Guarantees)**: Enhanced `smartExtractFieldsFromTitle`, automatically extracting natural-language dates and amounts from title inputs to pre-populate form fields without repetitive jumping;
-- **Milestone (800 Unit Tests Passed)**: Reached 800 passing tests across 91 suites with 0 failures, ensuring deep quality closure.
-- **Validation**: 91 test suites, **800 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.62)
+- **Improved (Memo Dialog & Date Input Enter Shortcuts)**: Both the memo edit dialog (`editMemoDialog`) and overview date picker now bind the Enter key, enabling fluid keyboard-first memo creation and updates;
+- **Tested (E2E Suite Expansion to 801 Tests)**: Added test coverage for natural-language date parsing from Chinese phrases ("明天去车管所年检"), ensuring prompt and title separation.
+- **Validation**: 91 test suites, **801 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.63)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.62 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.62 package is the current GitHub release; local quality checks report 800 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.63 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.63 package is the current GitHub release; local quality checks report 801 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.62 (current) | 800-test milestone, smart title date/amount extraction E2E |
+| ✅ v0.5.63 (current) | Memo Enter shortcuts, natural-language date parsing E2E, 801 tests |
+| v0.5.62 | 800-test milestone, smart title date/amount extraction E2E |
 | v0.5.61 | Quick-capture primary block fallback, E2E suite expanded to 799 tests |
 | v0.5.60 | Member card menu contacts fallback, E2E suite expanded to 798 tests |
 | v0.5.59 | Reminder value extraction decoupling, legacy storage E2E closure |

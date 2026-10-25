@@ -214,4 +214,13 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(res2.cleanTitle).toBe("居民身份证");
         expect(res2.extractedDate).toBe("2028-10-15");
     });
+
+    it("parseNaturalDate 智能抽取备忘中的中文自然语言日期与标题分离", async () => {
+        const { parseNaturalDate } = await import("@/core/dateparse");
+        const today = new Date(2026, 9, 25);
+        const res = parseNaturalDate("明天去车管所年检", today);
+        expect(res).not.toBeNull();
+        expect(res?.date).toBe("2026-10-26");
+        expect(res?.rest).toBe("去车管所年检");
+    });
 });

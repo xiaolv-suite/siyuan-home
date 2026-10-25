@@ -583,11 +583,13 @@
         row1.style.cssText = "display:flex;gap:8px;align-items:center";
         const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.name");
         const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.style.flex = "1"; titleInput.value = r.title;
+        titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
         row1.append(l1, titleInput);
         const row2 = document.createElement("div");
         row2.style.cssText = "display:flex;gap:8px;align-items:center";
         const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.due");
         const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
+        dateInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
         row2.append(l2, dateInput);
         // 260 波：确认键升为描边按钮（幽灵样式的保存键没有动作感，与取消键主次不分）
         const save = document.createElement("button"); save.className = "b3-button"; save.textContent = t("save");

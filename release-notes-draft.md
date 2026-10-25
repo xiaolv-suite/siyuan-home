@@ -1,10 +1,10 @@
-# v0.5.74 · 小驴管家（内测版）键盘优先录入体验全场景闭环与常用弹窗回车提交覆盖
+# v0.5.75 · 小驴管家（内测版）台账详情抽屉深度瘦身与高频行样式常量收敛优化
 
 ## 变更
 
-- **常用弹窗输入框全面接入回车快捷提交**：
-  - 提醒排期弹窗（`schedulePlanDialog` 日期输入）、保存命名视图弹窗（`promptSaveNamedView` 视图名称）、绑定文档弹窗（`bindDocInput`）、批量存放位置弹窗（`batchLocationInput`）全面绑定 `Enter` 快捷提交；
-  - 键盘操作无缝直达，免去频繁伸手使用鼠标点击保存的繁琐流程；
+- **台账高频子行样式收敛与构建瘦身**：
+  - 对 `ledger.svelte` 内部的 25 处长内联样式字面量进行体系化收敛（`itemRowCss`、`lineBadgeCss`、`colLeftCss`、`sectionHeadBorderCss`、`linkBtnCss`、`boxContentCss`、`btnActionSmCss` 等）；
+  - 单文件原始体积从 950.34 kB 降至 949.09 kB，优化产物压缩冗余，扩大 CI 门禁安全缓冲；
 - **全量测试与门禁验证**：
   - 保持全仓 804 项单测 100% 全绿，五层静态门禁全部通过。
 

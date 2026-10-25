@@ -39,21 +39,21 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.74
+## 🆕 What's new in v0.5.75
 
-This release closes the keyboard-first input loop across all modal dialogs:
+This release performs deep bundle size optimization and drawer inline styling deduplication:
 
-- **Improved (Universal Modal Enter-Key Shortcuts)**: Enter key now triggers instant saving in schedule plan dialogs (`schedulePlanDialog`), named view creators (`promptSaveNamedView`), document binding modals (`bindDocInput`), and batch location setters (`batchLocationInput`);
+- **Optimized (Drawer Sub-Row Styling Constant Consolidation)**: Systematically refactored 25 inline style literals across `ledger.svelte` into shared constants (`itemRowCss`, `lineBadgeCss`, `colLeftCss`, `sectionHeadBorderCss`, `linkBtnCss`, `boxContentCss`, `btnActionSmCss`), lowering uncompressed output from 950.34 kB to 949.09 kB and securing healthy CI compression margins;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.74)
+## 📦 Install (v0.5.75)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.74 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.74 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.75 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.75 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -111,7 +111,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.74 (current) | Universal modal Enter-key shortcuts, keyboard-first loop closure, 804 tests |
+| ✅ v0.5.75 (current) | Drawer styling deduplication and bundle slimming, 804 tests |
+| v0.5.74 | Universal modal Enter-key shortcuts, keyboard-first loop closure, 804 tests |
 | v0.5.73 | Event stream Enter shortcuts, unrestricted draft discard, 804 tests |
 | v0.5.72 | Ledger creator button lockup fix, draft reset ergonomics, 803 tests |
 | v0.5.71 | Onboarding wizard and dashboard structural separation, 803 tests |

@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.69
+## 🆕 What's new in v0.5.70
 
-This release completely fixes the confirmation dialog z-index inversion issue where delete confirmations were hidden behind detail drawers, and resolves identity pending stalls and footer cutoffs:
+This release refines detail drawer interactions and ensures high-fidelity draft copying:
 
-- **Fixed (Delete Confirm Dialog Hidden Behind Drawer)**: Wrapped `confirm` from `@/libs/dialog` to dynamically promote confirmation modals to `z-index: 2000 !important`, paired with CSS sibling layer elevation so confirmation dialogs always display cleanly in front of detail drawers;
-- **Fixed (Row Identity Pending False Alarms)**: Enhanced `rowIDsFromAddResponse` with comprehensive support for `blockIDs`, `ids`, and `blocks` payloads, backed by SQLite recent blocks lookup fallback;
-- **Refined (Quick-Capture Responsive Footer)**: Moved the batch-entry context switch into the form body, freeing the footer for action buttons and permanently eliminating the "位置/分类" horizontal cutoff;
-- **Validation**: 91 test suites, **802 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.69)
+- **Improved (Duplicate As New Record Dual-Mode Healing)**: Decoupled numeric and date field copying from rigid packaging layers, resolving dates via `parseDate` to ensure zero data loss when cloning existing records;
+- **Refined (Auto-Collapse Detail Actions Menu)**: Automatically collapses the `<details>` more-actions menu upon copying images, texts, or block references, eliminating lingering UI obstruction;
+- **Tested (Matrix Expanded to 803 Tests)**: Added unit test coverage for `confirm` top-layer elevation wrappers, maintaining 100% test pass rate across the codebase.
+- **Validation**: 91 test suites, **803 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
+## 📦 Install (v0.5.70)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.69 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.69 package is the current GitHub release; local quality checks report 802 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.70 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.70 package is the current GitHub release; local quality checks report 803 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.69 (current) | Fix confirm dialog z-index inversion, row identity SQLite fallback, footer cutoff fix |
+| ✅ v0.5.70 (current) | Duplicate as new record dual-mode healing, auto-collapse more menu, 803 tests |
+| v0.5.69 | Fix confirm dialog z-index inversion, row identity SQLite fallback, footer cutoff fix |
 | v0.5.68 | Comprehensive example placeholders library across 31 modules, 802 tests |
 | v0.5.67 | Quick-capture footer vertical text wrap fix, realistic example placeholders |
 | v0.5.66 | Fix quick-capture vehicle stall, tabbar centering & pill alignment, hero whitespace compacting |

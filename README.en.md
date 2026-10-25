@@ -39,21 +39,21 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.71
+## 🆕 What's new in v0.5.72
 
-This release implements structured isolation between the onboarding wizard and the main overview dashboard:
+This release eliminates form button lockups across the main ledger record creator and improves draft reset ergonomics:
 
-- **Improved (Onboarding Wizard & Dashboard Structural Separation)**: Wrapped the main overview components (hero banner, focus cards, weekly pulse, and module grids) in `{:else}`, guaranteeing that new users in the wizard stage enjoy a clean, focused setup flow without empty dashboard cards leaking below;
+- **Fixed (Ledger Record Creator Button Lockup)**: Aligned `saveNewRecord` and `doCreateRow` in `ledger.svelte` to remove rigid `identityPending` button disables, allowing users to freely retry submissions or clear drafts upon transient kernel indexing delays;
 - **Validation**: 91 test suites, **803 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.71)
+## 📦 Install (v0.5.72)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.71 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.71 package is the current GitHub release; local quality checks report 803 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.72 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.72 package is the current GitHub release; local quality checks report 803 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -111,7 +111,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.71 (current) | Onboarding wizard and dashboard structural separation, 803 tests |
+| ✅ v0.5.72 (current) | Ledger creator button lockup fix, draft reset ergonomics, 803 tests |
+| v0.5.71 | Onboarding wizard and dashboard structural separation, 803 tests |
 | v0.5.70 | Duplicate as new record dual-mode healing, auto-collapse more menu, 803 tests |
 | v0.5.69 | Fix confirm dialog z-index inversion, row identity SQLite fallback, footer cutoff fix |
 | v0.5.68 | Comprehensive example placeholders library across 31 modules, 802 tests |

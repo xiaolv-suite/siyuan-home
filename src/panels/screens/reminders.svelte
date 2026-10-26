@@ -92,7 +92,7 @@
             title: t("hub.planScheduleTitle"),
             content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px">
                 <p class="lv-caption" style="margin:0">${t("hub.planScheduleIntro")}</p>
-                <div style="font-size:12px;color:var(--b3-theme-on-surface)">
+                <div style="font-size:12px;color:var(--lv-tx-2)">
                     <b>${r.title}</b> · ${t("hub.summaryDue")}: ${r.dueDate}
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -101,12 +101,12 @@
                     <button class="b3-button b3-button--outline" id="lv-plan-preset-nextmon" style="font-size:12px;padding:3px 8px">${t("hub.planPresetNextWeek")}</button>
                 </div>
                 <label style="display:flex;flex-direction:column;gap:6px">
-                    <span style="font-size:12px;color:var(--b3-theme-on-surface)">${t("hub.planDateLabel")}</span>
+                    <span style="font-size:12px;color:var(--lv-tx-2)">${t("hub.planDateLabel")}</span>
                     <input class="b3-text-field" id="lv-plan-date-input" type="date" value="${currentPlan || todayKey}" style="width:100%" />
                 </label>
             </div>
             <div class="b3-dialog__action">
-                ${currentPlan ? `<button class="b3-button b3-button--text ft__error" id="lv-plan-clear" style="color:var(--b3-theme-error)">${t("hub.clearPlanDate")}</button>` : ""}
+                ${currentPlan ? `<button class="b3-button b3-button--text ft__error" id="lv-plan-clear" style="color:var(--lv-danger)">${t("hub.clearPlanDate")}</button>` : ""}
                 <span class="fn__flex-1"></span>
                 <button class="b3-button b3-button--cancel" id="lv-plan-cancel">${t("cancel")}</button>
                 <button class="b3-button" id="lv-plan-save">${t("save")}</button>

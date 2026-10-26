@@ -29,21 +29,21 @@
     import { rowLogActivityId, type ActivityTarget } from "@/core/activity";
     /** 312 波：抽屉内子记录行样式（原 4 处重复字面量收敛） */
     const substRowCss = "padding:2px 0;font-size:12.5px";
-    const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+    const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
     const sectionHeaderCss = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
     const sectionTitleCss = "font-weight:600;font-size:12px";
-    const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--b3-theme-background-light)";
+    const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
     const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
     const itemRowCss = "display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
     const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
     const colLeftCss = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
-    const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+    const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
     const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
     const btnSmCss = "margin-top:8px;font-size:12px";
     const boxContentCss = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
     const btnActionSmCss = "padding:0 4px;font-size:11px";
-    const wrapBorderCss = "margin-top:12px;padding-top:10px;border-top:1px solid var(--b3-border-color)";
+    const wrapBorderCss = "margin-top:12px;padding-top:10px;border-top:1px solid var(--lv-line)";
     const h3TitleCss = "font-size:14px;margin:0 0 8px";
     const hintTextCss = "font-size:12px;line-height:1.6;margin:0 0 10px";
     const fieldErrCss = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
@@ -837,7 +837,7 @@
             const vehicleType = (row: any) => selectCellContent(row.cells?.[cols.energy_type ?? ""]) ?? "gasoline";
             const miniStat = (label: string, value: string) => {
                 const item = document.createElement("div");
-                item.style.cssText = "min-width:0;padding:8px 10px;border-radius:8px;background:var(--b3-theme-background-light);display:flex;flex-direction:column;gap:3px";
+                item.style.cssText = "min-width:0;padding:8px 10px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
                 const name = document.createElement("span"); name.className = "ft__on-surface"; name.style.fontSize = "11px"; name.textContent = label;
                 const val = document.createElement("b"); val.style.cssText = "font-size:14px;overflow-wrap:anywhere"; val.textContent = value;
                 item.append(name, val);
@@ -980,9 +980,9 @@
                     if (bandPts.length >= 2) {
                         const top = bandPts.map((b) => `${sx(b.x)},${sy(b.p97)}`).join(" ");
                         const bottom = [...bandPts].reverse().map((b) => `${sx(b.x)},${sy(b.p3)}`).join(" ");
-                        svg.appendChild(el("polygon", { points: `${top} ${bottom}`, fill: "var(--b3-theme-primary)", opacity: 0.08 }));
-                        svg.appendChild(el("polyline", { points: bandPts.map((b) => `${sx(b.x)},${sy(b.p50)}`).join(" "), fill: "none", stroke: "var(--b3-theme-primary)", opacity: 0.45, "stroke-width": 1.2, "stroke-dasharray": "4 3" }));
-                        const bandLabel = el("text", { x: W - PAD / 2, y: PAD / 2 - 8, "text-anchor": "end", "font-size": 10, fill: "var(--b3-theme-primary)", opacity: 0.85 });
+                        svg.appendChild(el("polygon", { points: `${top} ${bottom}`, fill: "var(--lv-accent)", opacity: 0.08 }));
+                        svg.appendChild(el("polyline", { points: bandPts.map((b) => `${sx(b.x)},${sy(b.p50)}`).join(" "), fill: "none", stroke: "var(--lv-accent)", opacity: 0.45, "stroke-width": 1.2, "stroke-dasharray": "4 3" }));
+                        const bandLabel = el("text", { x: W - PAD / 2, y: PAD / 2 - 8, "text-anchor": "end", "font-size": 10, fill: "var(--lv-accent)", opacity: 0.85 });
                         bandLabel.textContent = `WHO P3–P97 · ${t(bandSex === "male" ? "members.sex.male" : "members.sex.female")}`;
                         svg.appendChild(bandLabel);
                     }
@@ -2675,7 +2675,7 @@
         const dlg = new Dialog({
             title: detailTitle,
             content: `<div class="b3-dialog__content b3-dialog__content--wrap" id="lv-detail-body" style="max-height:60vh;overflow:auto"></div>
-<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error" id="lv-detail-del" style="color:var(--b3-theme-error)">${t("delete")}</button><button class="b3-button b3-button--text" id="lv-detail-duplicate">📋 ${t("ledger.duplicateRow")}</button><span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu"><button class="b3-button b3-button--cancel" id="lv-detail-card-copy">${t("ledger.copyAsImage")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-png">${t("ledger.downloadPng")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-text">${t("ledger.copyAsText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-masked-text">${t("ledger.copyAsMaskedText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-ref">🔗 ${t("ledger.copyBlockRef")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-embed">📑 ${t("ledger.copyBlockEmbed")}</button><button class="b3-button b3-button--cancel" id="lv-detail-open">${t("ledger.openDoc")} →</button></div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
+<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error" id="lv-detail-del" style="color:var(--lv-danger)">${t("delete")}</button><button class="b3-button b3-button--text" id="lv-detail-duplicate">📋 ${t("ledger.duplicateRow")}</button><span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu"><button class="b3-button b3-button--cancel" id="lv-detail-card-copy">${t("ledger.copyAsImage")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-png">${t("ledger.downloadPng")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-text">${t("ledger.copyAsText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-masked-text">${t("ledger.copyAsMaskedText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-ref">🔗 ${t("ledger.copyBlockRef")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-embed">📑 ${t("ledger.copyBlockEmbed")}</button><button class="b3-button b3-button--cancel" id="lv-detail-open">${t("ledger.openDoc")} →</button></div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
             width: "520px",
         });
         const body = dlg.element.querySelector("#lv-detail-body") as HTMLElement;
@@ -2687,7 +2687,7 @@
             line.classList.add("lv-activity-target");
             line.setAttribute("aria-current", "location");
             line.tabIndex = -1;
-            line.style.cssText += ";border-radius:6px;background:var(--lv-accent-soft, var(--b3-theme-background-light));outline:2px solid var(--lv-accent, var(--b3-theme-primary));outline-offset:2px;padding:7px";
+            line.style.cssText += ";border-radius:6px;background:var(--lv-accent-soft);outline:2px solid var(--lv-accent);outline-offset:2px;padding:7px";
             requestAnimationFrame(() => {
                 if (!dlg.element.isConnected || !line.isConnected) return;
                 line.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -3743,13 +3743,13 @@
                         const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
                         const points = values.map((value, index) => `${12 + index * (276 / Math.max(1, values.length - 1))},${62 - ((value - min) / range) * 46}`).join(" ");
                         const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-                        line.setAttribute("points", points); line.setAttribute("fill", "none"); line.setAttribute("stroke", "var(--b3-theme-primary)"); line.setAttribute("stroke-width", "2.5"); line.setAttribute("stroke-linecap", "round"); line.setAttribute("stroke-linejoin", "round");
+                        line.setAttribute("points", points); line.setAttribute("fill", "none"); line.setAttribute("stroke", "var(--lv-accent)"); line.setAttribute("stroke-width", "2.5"); line.setAttribute("stroke-linecap", "round"); line.setAttribute("stroke-linejoin", "round");
                         svg.appendChild(line);
                         for (const [index, interval] of intervals.entries()) {
                             const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                             dot.setAttribute("cx", String(12 + index * (276 / Math.max(1, intervals.length - 1))));
                             dot.setAttribute("cy", String(62 - ((interval.consumptionPer100Km - min) / range) * 46));
-                            dot.setAttribute("r", "3.5"); dot.setAttribute("fill", "var(--b3-theme-primary)");
+                            dot.setAttribute("r", "3.5"); dot.setAttribute("fill", "var(--lv-accent)");
                             const tip = document.createElementNS("http://www.w3.org/2000/svg", "title"); tip.textContent = `${interval.toDate} · ${compactNumber(interval.consumptionPer100Km)} ${unit}/100km`;
                             dot.appendChild(tip); svg.appendChild(dot);
                         }
@@ -3778,7 +3778,7 @@
                         for (const [month, value] of monthRows) {
                             const column = document.createElement("div"); column.style.cssText = "height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0";
                             const amount = document.createElement("span"); amount.className = "ft__on-surface"; amount.style.cssText = "font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis"; amount.textContent = formatAmount(value.amount); amount.title = `${month} · ${formatAmount(value.amount)} ${t("fuel.currency")} · ${value.count}`;
-                            const bar = document.createElement("i"); bar.style.cssText = `display:block;width:min(24px,70%);min-height:3px;height:${Math.max(4, (value.amount / maxSpend) * 52)}px;background:var(--b3-theme-primary);border-radius:4px 4px 1px 1px`;
+                            const bar = document.createElement("i"); bar.style.cssText = `display:block;width:min(24px,70%);min-height:3px;height:${Math.max(4, (value.amount / maxSpend) * 52)}px;background:var(--lv-accent);border-radius:4px 4px 1px 1px`;
                             const label = document.createElement("span"); label.style.cssText = "font-size:9px;white-space:nowrap"; label.textContent = month.slice(5);
                             column.append(amount, bar, label); monthly.appendChild(column);
                         }
@@ -4011,15 +4011,15 @@
             if (active === "vehicles") wrap.className = "lv-detail-wide";
             wrap.style.cssText = "border-top:1px solid var(--b3-border-color);margin-top:10px;padding-top:10px";
             const head = document.createElement("p");
-            head.style.cssText = "font-size:12px;margin:0 0 6px;color:var(--b3-theme-on-surface)";
+            head.style.cssText = "font-size:12px;margin:0 0 6px;color:var(--lv-tx-2)";
             head.textContent = t("ledger.qrTitle");
             const rowEl = document.createElement("div");
             rowEl.style.cssText = "display:flex;gap:10px;align-items:center";
             const img = document.createElement("img");
             img.alt = "QR";
-            img.style.cssText = "width:96px;height:96px;border:1px solid var(--b3-border-color);border-radius:8px;padding:4px;background:#fff;flex-shrink:0";
+            img.style.cssText = "width:96px;height:96px;border:1px solid var(--lv-line);border-radius:8px;padding:4px;background:#fff;flex-shrink:0";
             const hint = document.createElement("span");
-            hint.style.cssText = "font-size:12px;color:var(--b3-theme-on-surface);flex:1";
+            hint.style.cssText = "font-size:12px;color:var(--lv-tx-2);flex:1";
             hint.textContent = t("ledger.qrHint");
             rowEl.append(img, hint);
             wrap.append(head, rowEl);
@@ -4099,7 +4099,7 @@
                         // Progress bars cap their visual width at 100%.
                         if (target !== undefined && target > 0) {
                             const bar = document.createElement("div");
-                            bar.style.cssText = "height:6px;border-radius:3px;background:var(--b3-theme-background-light);overflow:hidden;margin-top:4px";
+                            bar.style.cssText = "height:6px;border-radius:3px;background:var(--lv-surface-2);overflow:hidden;margin-top:4px";
                             const fill = document.createElement("div");
                             fill.style.cssText = `height:100%;width:${Math.min(100, Math.round((saved / target) * 100))}%;background:var(--lv-accent)`;
                             bar.appendChild(fill);
@@ -5318,7 +5318,7 @@
         if (active === "vehicles") {
             const quick = document.createElement("section");
             quick.className = "lv-vehicle-quick-actions";
-            quick.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border:1px solid var(--b3-border-color);border-radius:8px;background:var(--b3-theme-background-light)";
+            quick.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border:1px solid var(--lv-line);border-radius:8px;background:var(--lv-surface-2)";
             const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.style.cssText = "font-size:12px;margin-right:2px";
             quick.appendChild(label);
             for (const action of ["fuel", "charging", "maintenance"] as const) {
@@ -5777,7 +5777,7 @@
                 <span class="lv-badge" style="position:absolute;right:22px;font-size:10.5px;padding:1px 5px;pointer-events:none;opacity:0.85">
                     {filteredRows.length}
                 </span>
-                <button class="b3-button b3-button--text" style="position:absolute;right:2px;padding:2px 5px;font-size:11px;color:var(--b3-theme-on-surface);cursor:pointer"
+                <button class="b3-button b3-button--text" style="position:absolute;right:2px;padding:2px 5px;font-size:11px;color:var(--lv-tx-3);cursor:pointer"
                     title={t("clear")} onclick={() => { searchText = ""; panelMemory.ledgerSearch = ""; }}>✕</button>
             {/if}
         </div>
@@ -6300,7 +6300,7 @@
                     👤 {t("ledger.batchMember")}
                 </button>
             {/if}
-            <button type="button" class="b3-button b3-button--text ft__error" style="font-size:12px;padding:3px 10px;color:var(--b3-theme-error)" disabled={batchBusy} onclick={batchDelete}>
+            <button type="button" class="b3-button b3-button--text ft__error" style="font-size:12px;padding:3px 10px;color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
                 🗑️ {t("ledger.batchDelete")}
             </button>
             <button type="button" class="b3-button b3-button--text" style="font-size:12px;padding:3px 6px" onclick={() => { selectedItemIds = []; }} title={t("close")}>

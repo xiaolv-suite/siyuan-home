@@ -964,7 +964,7 @@
                     <span class="lv-caption lv-capture-error-summary" role="alert" aria-live="assertive"><UiIcon name="alert" size={13} /> {saveError}</span>
                 {/if}
                 <div class="lv-keep-context-wrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed var(--lv-line)">
-                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--b3-theme-on-surface);user-select:none" title={t("capture.keepContext")}>
+                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--lv-tx-2);user-select:none" title={t("capture.keepContext")}>
                         <input type="checkbox" class="b3-switch" style="transform:scale(0.85);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
                         <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")}</span>
                     </label>

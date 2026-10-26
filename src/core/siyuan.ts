@@ -861,14 +861,10 @@ export async function setCell(avID: string, keyID: string, itemID: string, value
     // Cell edits are last-write-wins.  A slow response from an earlier blur
     // must never be allowed to report success after a newer value was sent.
     const requestOptions = { ...options, latestKey: options?.latestKey ?? `cell:${avID}:${keyID}:${itemID}` };
-    let payloadValue = value;
-    if (typeof value === "string") {
-        payloadValue = { type: "text", text: { content: value } };
-    } else if (typeof value === "number") {
-        payloadValue = { type: "number", number: { content: value, isNotEmpty: true } };
-    } else if (typeof value === "boolean") {
-        payloadValue = { type: "checkbox", checkbox: { checked: value } };
-    }
+    const payloadValue = typeof value === "string" ? { type: "text", text: { content: value } }
+        : typeof value === "number" ? { type: "number", number: { content: value, isNotEmpty: true } }
+        : typeof value === "boolean" ? { type: "checkbox", checkbox: { checked: value } }
+        : value;
     await post("/api/av/setAttributeViewBlockAttr", { avID, keyID, itemID, value: payloadValue }, requestOptions);
 }
 

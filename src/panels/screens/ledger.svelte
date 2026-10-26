@@ -2430,6 +2430,11 @@
             return;
         }
         if (saving) return;
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            event.preventDefault();
+            if (canSubmitNewRecord) void saveNewRecord(event.altKey);
+            return;
+        }
         if (event.key === "Escape") {
             event.preventDefault();
             closeNewRecord();
@@ -2580,6 +2585,7 @@
         || quickAssetCols.some((e) => (certificateFiles[e.key]?.length ?? 0) > 0 || (uploadedCertificateFiles[e.key]?.length ?? 0) > 0));
     // A name is required whenever any other field has been entered.
     const nameMissing = $derived(hasAnyInput && !(form.name && String(form.name).trim()));
+    const canSubmitNewRecord = $derived(!saving && !nameMissing && !(active === "certs" && !form.category));
 
     function resetForm() {
         form = {};
@@ -6159,8 +6165,8 @@
             {/if}
             <button class="b3-button b3-button--text" onclick={clearNewRecord} disabled={saving}>{pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}</button>
             <span class="fn__flex-1"></span>
-            <button class="lv-btn" onclick={() => saveNewRecord(true)} disabled={saving || nameMissing || (active === "certs" && !form.category)}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}</button>
-            <button class="lv-btn primary" onclick={() => saveNewRecord(false)} disabled={saving || nameMissing || (active === "certs" && !form.category)}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}</button>
+            <button class="lv-btn" onclick={() => saveNewRecord(true)} disabled={!canSubmitNewRecord}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}</button>
+            <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => saveNewRecord(false)} disabled={!canSubmitNewRecord}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}</button>
         </div>
     </div>
 </div>

@@ -1245,7 +1245,7 @@
 
     .lv-settings-member__delete:hover {
         color: var(--lv-danger);
-        background: color-mix(in srgb, var(--lv-danger) 8%, var(--lv-surface));
+        background: var(--lv-danger-soft);
     }
 
     .lv-settings-member__fields {

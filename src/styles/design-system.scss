@@ -161,7 +161,7 @@
 
   // ── 模块色砖变量（249 波）：图标磁贴按模块着色（对齐原型模块色砖）；
   // tone-* 只定义变量，磁贴自身 background/border 消费（无优先级冲突）
-  .tone-blue { --tile-bg: color-mix(in srgb, var(--b3-theme-primary) 11%, transparent); --tile-border: color-mix(in srgb, var(--b3-theme-primary) 24%, transparent); }
+  .tone-blue { --tile-bg: var(--lv-info-soft); --tile-border: var(--lv-info-line); }
   .tone-green { --tile-bg: var(--lv-ok-soft); --tile-border: color-mix(in srgb, var(--lv-ok) 24%, transparent); }
   .tone-rose { --tile-bg: var(--lv-danger-soft); --tile-border: color-mix(in srgb, var(--lv-danger) 24%, transparent); }
   .tone-amber { --tile-bg: var(--lv-amber-soft); --tile-border: color-mix(in srgb, var(--lv-amber) 24%, transparent); }
@@ -631,13 +631,11 @@
   .lv-module-open > b { min-width: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; }
   .lv-module-open:focus-visible, .lv-module-pending:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; border-radius: 4px; }
   .lv-module-pending { display: inline-flex; align-items: center; gap: var(--lv-space-1); margin: 0; padding: 0; border: 0; background: transparent; color: var(--lv-tx-2); font: inherit; cursor: pointer; }
-  .t-blue { background: color-mix(in srgb, var(--b3-theme-primary) 13%, transparent);
-    border: 1px solid color-mix(in srgb, var(--b3-theme-primary) 26%, transparent); }
+  .t-blue { background: var(--lv-info-soft); border: 1px solid var(--lv-info-line); }
   .t-green { background: var(--lv-ok-soft); border: 1px solid color-mix(in srgb, var(--lv-ok) 26%, transparent); }
   .t-warn { background: var(--lv-warn-soft); border: 1px solid color-mix(in srgb, var(--lv-warn) 26%, transparent); }
   .t-amber { background: var(--lv-amber-soft); border: 1px solid color-mix(in srgb, var(--lv-amber) 26%, transparent); }
-  .t-rose { background: color-mix(in srgb, var(--b3-theme-secondary, var(--lv-danger)) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--b3-theme-secondary, var(--lv-danger)) 26%, transparent); }
+  .t-rose { background: var(--lv-danger-soft); border: 1px solid color-mix(in srgb, var(--lv-danger) 26%, transparent); }
   .lv-spark { display: flex; align-items: flex-end; gap: 3px; height: 20px; margin-left: auto;
     i { width: 4px; border-radius: 2px; background: var(--lv-accent-soft); transform-origin: bottom;
       transform: scaleY(0); transition: transform 520ms var(--lv-spring); }
@@ -648,7 +646,7 @@
   .lv-spark i:nth-child(5) { transition-delay: 430ms; }
   .lv-meter { height: 3px; border-radius: 3px; background: var(--lv-surface-2); overflow: hidden;
     i { display: block; height: 100%; border-radius: 3px;
-      background: linear-gradient(90deg, var(--lv-accent), color-mix(in srgb, var(--lv-accent) 74%, var(--b3-theme-background)));
+      background: linear-gradient(90deg, var(--lv-accent), var(--lv-accent-2));
       transform-origin: left; transform: scaleX(0); transition: transform 700ms var(--lv-spring) 200ms; } }
   .lv-anim .lv-meter i { transform: scaleX(1); }
   .lv-meter-cap { display: flex; justify-content: space-between; font-size: 11px; color: var(--lv-tx-3); margin-top: 5px; }
@@ -1111,17 +1109,17 @@
   }
   // 高对比度偏好（prefers-contrast: more）：增强文字、边框与焦点的可见度
   @media (prefers-contrast: more) {
-    --lv-line: color-mix(in srgb, var(--b3-theme-on-background) 38%, transparent);
-    --lv-line-strong: var(--b3-theme-on-background);
-    --lv-border: var(--b3-theme-on-background);
-    --lv-border-strong: var(--b3-theme-on-background);
-    --lv-tx-2: var(--b3-theme-on-background);
-    --lv-tx-3: var(--b3-theme-on-background);
+    --lv-line: var(--lv-tx-2);
+    --lv-line-strong: var(--lv-tx);
+    --lv-border: var(--lv-tx);
+    --lv-border-strong: var(--lv-tx);
+    --lv-tx-2: var(--lv-tx);
+    --lv-tx-3: var(--lv-tx);
     .lv-card, .lv-mod, .lv-chip, .lv-badge, .lv-qbtn, .lv-focus-card, .lv-strip, .lv-rem,
     .lv-sheet, .lv-drawer, .lv-ledger-more__menu, .lv-table tr.lv-row-link, .lv-cal-cell,
     .lv-tabbar, .lv-hero, .lv-memo, .lv-person, .lv-settings, .lv-setcard, .lv-settings__row,
     .b3-button, .b3-select, .b3-text-field, .lv-start-guide, .lv-wiz__feature {
-      border: 1px solid var(--b3-theme-on-background);
+      border: 1px solid var(--lv-tx);
     }
     .lv-tabs__item.is-active, .lv-tabs__item.on, .lv-setnav__item.on {
       outline: 2px solid var(--b3-theme-primary);

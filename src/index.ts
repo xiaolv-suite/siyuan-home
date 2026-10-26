@@ -688,6 +688,14 @@ export default class LvHomePlugin extends Plugin {
             openRemindersTab: () => self.openRemindersScreen(),
             openModuleTab: (m) => self.openModuleTab(m),
             addMemo: (title, due) => self.addMemo(title, due),
+            completeReminder: async (id: string) => {
+                const target = self.scan?.reminders.find((r) => r.id === id);
+                if (target) {
+                    await self.complete(target);
+                    return true;
+                }
+                return false;
+            },
             onBridgeDisposed: () => { self.disposeLvHomeBridge = undefined; },
         });
 

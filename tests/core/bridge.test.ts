@@ -47,11 +47,26 @@ describe("LvHome 服务桥（EC03/v0.3 + Epoch 6）", () => {
             "openModule",
             "getOverview",
             "getReminders",
+            "completeReminder",
         ]);
         expect(api.hasCapability("whenReady")).toBe(true);
         expect(api.hasCapability("getReminders")).toBe(true);
+        expect(api.hasCapability("completeReminder")).toBe(true);
         expect(api.hasCapability("openButler")).toBe(true);
         expect(api.hasCapability("nonExistent")).toBe(false);
+    });
+
+    it("completeReminder：完成指定事项并派发桥接事件", async () => {
+        let completedId: string | undefined;
+        const api = buildLvHomeBridge(host({
+            completeReminder: async (id) => {
+                completedId = id;
+                return true;
+            },
+        }));
+        const ok = await api.completeReminder("rem-test-1");
+        expect(ok).toBe(true);
+        expect(completedId).toBe("rem-test-1");
     });
 
     it("getReminders：输出活跃提醒列表供任务管理器联动", () => {

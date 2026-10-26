@@ -172,6 +172,20 @@
         }
     }
 
+    async function batchCopyAsTasks() {
+        const selectedList = filtered.filter((r) => selected.has(r.id));
+        if (selectedList.length === 0) return;
+        const text = selectedList
+            .map((r) => formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id))
+            .join("\n");
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(t("hub.batchTasksCopied").replace("${n}", String(selectedList.length)), 3000, "info");
+        } catch {
+            showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        }
+    }
+
     // 命名视图（§17）：筛选组合一键保存与切换
     const namedViews = $derived.by(() => {
         void version;
@@ -1203,6 +1217,7 @@
         <b class="lv-caption">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
         <button class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
         <span class="fn__flex-1"></span>
+        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}>📋 {t("hub.batchCopyTasks")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}>{t("act.done")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}>{t("act.snooze7")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}>{t("act.mute")}</button>

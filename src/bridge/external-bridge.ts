@@ -49,7 +49,7 @@ export interface BridgeOverview {
 export interface HomeChangedEventDetail {
     plugin: string;
     v: number;
-    action: "add-memo" | "open-module" | "open-butler" | "open-reminders";
+    action: "add-memo" | "open-module" | "open-butler" | "open-reminders" | "complete-reminder";
     payload?: Record<string, unknown>;
     occurredAt: string;
     idempotencyKey?: string;
@@ -91,15 +91,18 @@ export interface LvHomeBridgeApi {
     getOverview(): BridgeOverview;
     /** 活跃提醒列表（供任务管理器/待办看板联动） */
     getReminders(): readonly BridgeReminderItem[];
+    /** 完成指定提醒事项（供外部任务管理器/看板打勾联动） */
+    completeReminder(id: string): Promise<boolean>;
 }
 
 export interface BridgeHost {
     settings: HomeSettings;
-    scan?: { reminders: Array<{ level: string; daysLeft: number }>; stale: boolean };
+    scan?: { reminders: Array<{ id?: string; level: string; daysLeft: number }>; stale: boolean };
     showTab(): void;
     openRemindersTab(): void;
     openModuleTab?(moduleId: string): void;
     addMemo(title: string, due: string): Promise<void>;
+    completeReminder?(id: string): Promise<boolean>;
     /** 桥卸载钩子（onunload 时置空 window 引用） */
     onBridgeDisposed(): void;
 }
@@ -115,6 +118,7 @@ export function buildLvHomeBridge(host: BridgeHost): LvHomeBridgeApi {
         "openModule",
         "getOverview",
         "getReminders",
+        "completeReminder",
     ];
     return {
         protocol: LVHOME_BRIDGE_PROTOCOL,
@@ -197,6 +201,13 @@ export function buildLvHomeBridge(host: BridgeHost): LvHomeBridgeApi {
                 level: r.level ?? "normal",
                 moduleId: r.moduleId ?? "",
             }));
+        },
+
+        async completeReminder(id: string) {
+            if (!id || !host.completeReminder) return false;
+            const ok = await host.completeReminder(id);
+            if (ok) dispatchHomeChangedEvent({ action: "complete-reminder", payload: { id } });
+            return ok;
         },
     };
 }

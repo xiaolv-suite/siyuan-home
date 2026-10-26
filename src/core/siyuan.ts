@@ -615,6 +615,7 @@ function rowIDsFromAddResponse(d: any): string[] {
             if (typeof v.rowID === "string" && v.rowID) out.push(v.rowID);
             else if (typeof v.blockID === "string" && v.blockID) out.push(v.blockID);
             else if (typeof v.id === "string" && v.id) out.push(v.id);
+            else if (typeof v.itemID === "string" && v.itemID) out.push(v.itemID);
         }
     };
     if (typeof d === "string" && d) push(d);
@@ -623,27 +624,26 @@ function rowIDsFromAddResponse(d: any): string[] {
     if (Array.isArray(d?.blockIDs)) d.blockIDs.forEach(push);
     if (Array.isArray(d?.ids)) d.ids.forEach(push);
     if (Array.isArray(d?.blocks)) d.blocks.forEach(push);
-    if (Array.isArray(d?.operations)) d.operations.forEach((op: any) => push(op?.rowID ?? op?.blockID ?? op?.id));
-    if (Array.isArray(d?.rows)) d.rows.forEach((r: any) => push(r?.id ?? r?.rowID));
+    if (Array.isArray(d?.operations)) d.operations.forEach((op: any) => push(op?.rowID ?? op?.blockID ?? op?.id ?? op?.itemID));
+    if (Array.isArray(d?.doOperations)) d.doOperations.forEach((op: any) => push(op?.id ?? op?.rowID ?? op?.blockID ?? op?.itemID));
+    if (Array.isArray(d?.rows)) d.rows.forEach((r: any) => push(r?.id ?? r?.rowID ?? r?.itemID));
     return out;
 }
 
 /**
  * 加 detached 行，返回新行 itemID（D02）：
- * 真机发现（2026-10-03）：getAttributeViewPrimaryKeyValues 与 renderAttributeView 返回
- * **不同的行 ID 空间**。batchSetAttributeViewBlockAttrs 期望 renderAttributeView 的 row.id。
- * 因此此函数改为从 renderAttributeView 的 diff 获取 ID（而非 PK values diff）。
- *
- * 1) 响应直接携带且不在加行前集合中的 ID 唯一 → 确认；
- * 2) 否则加行前后 render row 集合 diff 唯一 → 确认；
- * 3) 多候选（如并发加行）→ RowIdentityPendingError，不猜。
+ * 1) 显式注入客户端自造 itemID（F4 端点候选强化，杜绝无脑猜 ID）；
+ * 2) 响应直接携带且不在加行前集合中的 ID 唯一 → 确认；
+ * 3) 短轮询对比加行前后 render row 集合（退避等待内核 SQLite 异步事务写入）；
+ * 4) 确认到目标行或唯一新增行即刻返回，消除假性待确认死锁。
  */
 export async function addDetachedRow(avID: string, content: string, options?: RequestOptions): Promise<string> {
     const before = new Set(await renderRowIDs(avID, options));
+    const desiredItemID = newSiYuanId();
     let d: any;
     try {
         d = await post<any>("/api/av/addAttributeViewBlocks", {
-            avID, blockID: "", srcs: [{ blockID: "", content, isDetached: true }],
+            avID, blockID: "", srcs: [{ blockID: "", content, isDetached: true, itemID: desiredItemID, id: desiredItemID }],
         }, { ...options, retries: 0 });
     } catch (error) {
         if (!isWriteResultUnknown(error)) throw error;
@@ -656,6 +656,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         await new Promise((resolve) => setTimeout(resolve, 300));
         try {
             const recovered = (await renderRowIDs(avID, recoveryOptions)).filter((id) => !before.has(id));
+            if (recovered.includes(desiredItemID)) return desiredItemID;
             if (recovered.length === 1) return recovered[0];
             throw new RowIdentityPendingError(Array.from(new Set(recovered)));
         } catch (recoveryError) {
@@ -664,14 +665,16 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         }
     }
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
+    if (fromResponse.includes(desiredItemID)) return desiredItemID;
     if (fromResponse.length === 1) return fromResponse[0];
 
-    // 块索引异步重建：短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
+    // 块索引异步重建：梯级短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];
-    for (let attempt = 0; attempt < 3; attempt++) {
-        await new Promise((r) => setTimeout(r, 100 + attempt * 100));
+    for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise((r) => setTimeout(r, 150 + attempt * 150));
         try {
             added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
+            if (added.includes(desiredItemID)) return desiredItemID;
             if (added.length === 1) return added[0];
             if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
         } catch { /* soft retry */ }

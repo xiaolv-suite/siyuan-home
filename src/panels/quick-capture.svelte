@@ -543,12 +543,30 @@
                 r = plugin.settings.dbRefs[moduleId];
                 if (!r?.avId) throw new Error(t("triage.noTarget"));
             }
-            const missingColumn = captureFields.find((field) => {
+            let missingColumn = captureFields.find((field) => {
                 const value = values[field.key];
                 const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
                 return field.key !== "name" && hasValue && !r!.columns?.[field.key];
             });
-            if (missingColumn) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(missingColumn)));
+            if (missingColumn) {
+                try {
+                    const { provisionModule } = await import("@/core/provisioner");
+                    const schema = plugin.schemaCatalog[moduleId];
+                    const report = await provisionModule(plugin.settings, moduleId, schema, modLabel(moduleId), {
+                        resolveName: (k) => String(plugin.i18n[`field.${k}`] ?? k),
+                    });
+                    plugin.settings.dbRefs[moduleId] = report.dbRef;
+                    r = report.dbRef;
+                    const { saveSettings } = await import("@/core/settings");
+                    await saveSettings(plugin as any, plugin.settings);
+                } catch { /* soft heal */ }
+                missingColumn = captureFields.find((field) => {
+                    const value = values[field.key];
+                    const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
+                    return field.key !== "name" && hasValue && !r!.columns?.[field.key];
+                });
+                if (missingColumn) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(missingColumn)));
+            }
             // 禁用选项仍可能由旧草稿带入失效关系 ID；建行前做最终校验。
             for (const f of captureFields as { key: string; type: string }[]) {
                 if (f.type !== "relation") continue;
@@ -568,6 +586,7 @@
                     itemID = await addDetachedRow(r.avId, title, { idempotencyKey: `${saveOperationKey}:row` });
                     pendingRowId = itemID;
                 } catch (e) {
+                    saveOperationKey = undefined;
                     if (e instanceof RowIdentityPendingError) {
                         identityPending = true;
                         saveError = t("capture.identityPending").replace("${module}", modLabel(moduleId));

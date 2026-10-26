@@ -14,6 +14,7 @@
     import ActivityFeed from "../activity-feed.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { getWeeklyPulse, getFamilyAchievements } from "@/core/pulse-and-achievements";
+    import { formatAsTaskBlock } from "@/core/block-capture";
     import type { ModuleGroupId } from "@/types";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
@@ -247,6 +248,16 @@
     function drillReminders(mid: string) {
         plugin.runtime.hubModuleId = mid;
         onGoto("reminders");
+    }
+
+    async function copyAsTaskBlock(r: Reminder) {
+        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id);
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(t("hub.taskBlockCopied"), 2500, "info");
+        } catch {
+            showMessage(t("ledger.copyAsImageFail"), 4000, "error");
+        }
     }
 
     function openLedgerFor(moduleId: string) {
@@ -654,6 +665,7 @@
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
                 </b><span class="lv-num">{r.dueDate}</span></div>
                 <div class="lv-rem-ops">
+                    <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} onclick={() => copyAsTaskBlock(r)}>📋</button>
                     <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => void runOverviewAction(r.id, () => plugin.complete(r))}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
                     <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => void runOverviewAction(r.id, () => plugin.snooze(r.id, 7))}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>
                 </div>

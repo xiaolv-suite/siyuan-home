@@ -49,6 +49,23 @@
     const fieldErrCss = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
     const actionRowEndCss = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
     const flexCenterGap6Css = "display:flex;align-items:center;gap:6px";
+    const flexColGap6Css = "display:flex;flex-direction:column;gap:6px";
+    const centerPad24Css = "text-align:center;padding:24px 0";
+    const gridCol3Gap10Css = "display:grid;grid-template-columns:repeat(3,1fr);gap:10px";
+    const logItemRowCss = "display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 0;border-top:1px solid var(--lv-line);font-size:12px;flex-wrap:wrap";
+    const dangerAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
+    const warnAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
+    const flex1Min180Css = "flex:1;min-width:180px;overflow-wrap:anywhere";
+    const pad24Fs12Css = "padding:2px 4px;font-size:12px";
+    const pad06Fs12Css = "padding:0 6px;font-size:12px";
+    const cap11Mb3Css = "display:block;font-size:11px;margin-bottom:3px";
+    const minW96Shrink0Css = "min-width:96px;flex-shrink:0";
+    const wordBreakAllCss = "word-break:break-all";
+    const fs125Css = "font-size:12.5px";
+    const statsGrid112Css = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px";
+    const pad6BorderSurfaceCss = "padding:6px 8px;background:var(--lv-surface);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
+    const fs12Pad38Css = "font-size:12px;padding:3px 8px";
+    const fs12Pad310Css = "font-size:12px;padding:3px 10px";
     const btnSm6Css = "margin-top:6px;font-size:12px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
@@ -844,9 +861,9 @@
             const vehicleType = (row: any) => selectCellContent(row.cells?.[cols.energy_type ?? ""]) ?? "gasoline";
             const miniStat = (label: string, value: string) => {
                 const item = document.createElement("div");
-                item.style.cssText = "min-width:0;padding:8px 10px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
+                item.style.cssText = metricCardCss;
                 const name = document.createElement("span"); name.className = "ft__on-surface"; name.style.fontSize = "11px"; name.textContent = label;
-                const val = document.createElement("b"); val.style.cssText = "font-size:14px;overflow-wrap:anywhere"; val.textContent = value;
+                const val = document.createElement("b"); val.style.cssText = subCardValCss; val.textContent = value;
                 item.append(name, val);
                 return item;
             };
@@ -1103,7 +1120,7 @@
                 if (candidate.length > 1) {
                     const sel = document.createElement("select");
                     sel.className = "b3-select";
-                    sel.style.cssText = "font-size:12px;padding:3px 8px";
+                    sel.style.cssText = fs12Pad38Css;
                     for (const c of candidate) {
                         const opt = document.createElement("option");
                         opt.value = c.id;
@@ -1471,7 +1488,7 @@
             if (report.total === 0) {
                 const empty = document.createElement("div");
                 empty.className = "lv-caption";
-                empty.style.cssText = "text-align:center;padding:24px 0";
+                empty.style.cssText = centerPad24Css;
                 empty.textContent = t("ledger.bookmarksNoLinks");
                 body.appendChild(empty);
                 return;
@@ -1479,7 +1496,7 @@
 
             // 统计指标卡
             const metrics = document.createElement("div");
-            metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px";
+            metrics.style.cssText = gridCol3Gap10Css;
 
             const totalCard = document.createElement("div");
             totalCard.className = "lv-metric-lg";
@@ -1509,7 +1526,7 @@
                 sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.bookmarksBrokenCount").replace("${n}", String(report.brokenCount))}</div>`;
 
                 const list = document.createElement("div");
-                list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+                list.style.cssText = flexColGap6Css;
 
                 for (const item of report.brokenItems) {
                     const rowEl = document.createElement("div");
@@ -1627,7 +1644,7 @@
             if (report.activeItems === 0) {
                 const empty = document.createElement("div");
                 empty.className = "lv-caption";
-                empty.style.cssText = "text-align:center;padding:24px 0";
+                empty.style.cssText = centerPad24Css;
                 empty.textContent = t("ledger.assetValuationEmpty");
                 body.appendChild(empty);
                 copyBtn.disabled = true;
@@ -1636,7 +1653,7 @@
 
             // 指标卡
             const metrics = document.createElement("div");
-            metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px";
+            metrics.style.cssText = gridCol3Gap10Css;
 
             const initCard = document.createElement("div");
             initCard.className = "lv-metric-lg";
@@ -1660,7 +1677,7 @@
                 sec.style.cssText = "margin-top:4px";
                 sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.assetTopValued")}</div>`;
                 const list = document.createElement("div");
-                list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+                list.style.cssText = flexColGap6Css;
 
                 for (const it of report.topValuedItems) {
                     const rowEl = document.createElement("div");
@@ -2729,7 +2746,7 @@
         function labelSpan(col: any) {
             const k = document.createElement("span");
             k.className = "ft__on-surface";
-            k.style.cssText = "min-width:96px;flex-shrink:0";
+            k.style.cssText = minW96Shrink0Css;
             k.textContent = colLabel(col);
             return k;
         }
@@ -3019,7 +3036,7 @@
                         try {
                             const preview = document.createElement("a");
                             preview.className = "b3-button b3-button--text";
-                            preview.style.cssText = "padding:2px 4px;font-size:12px";
+                            preview.style.cssText = pad24Fs12Css;
                             preview.textContent = t("ledger.previewAttachment");
                             preview.href = assetHref(f.content);
                             preview.target = "_blank";
@@ -3030,7 +3047,7 @@
                         }
                         const download = document.createElement("button");
                         download.className = "b3-button b3-button--text";
-                        download.style.cssText = "padding:2px 4px;font-size:12px";
+                        download.style.cssText = pad24Fs12Css;
                         download.textContent = t("ledger.downloadAttachment");
                         download.onclick = async () => {
                             download.disabled = true;
@@ -3047,13 +3064,13 @@
                         if (isImageAsset(f.content) && isEncryptedNotebookAsset(f.content, window.siyuan.notebooks ?? [])) {
                             const encryptedHint = document.createElement("span");
                             encryptedHint.className = "ft__on-surface";
-                            encryptedHint.style.cssText = "padding:2px 4px;font-size:12px";
+                            encryptedHint.style.cssText = pad24Fs12Css;
                             encryptedHint.textContent = t("ledger.ocrEncrypted");
                             line.appendChild(encryptedHint);
                         } else if (isImageAsset(f.content)) {
                             const ocr = document.createElement("button");
                             ocr.className = "b3-button b3-button--text";
-                            ocr.style.cssText = "padding:2px 4px;font-size:12px";
+                            ocr.style.cssText = pad24Fs12Css;
                             ocr.textContent = t("ledger.ocrOpen");
                             ocr.onclick = async () => {
                                 ocr.disabled = true;
@@ -3076,7 +3093,7 @@
                 if (existing.length === 0) {
                     const none = document.createElement("div");
                     none.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-                    none.style.cssText = "font-size:12.5px";
+                    none.style.cssText = fs125Css;
                     none.textContent = t("ledger.noAttachments");
                     body.appendChild(none);
                 }
@@ -3174,7 +3191,7 @@
                 line.style.cssText = "gap:10px;padding:7px 0;font-size:13px;min-width:0";
                 line.append(labelSpan(col));
                 const v = document.createElement("span");
-                v.style.cssText = "word-break:break-all";
+                v.style.cssText = wordBreakAllCss;
                 // 提案 B/210 波：金额白名单列的数值走千分位显示（CSV/导入仍为机器可读原始值）
                 const cell = row.cells[keyID];
                 if (AMOUNT_KEYS.has(col.key) && cell?.type === "number" && cell?.number?.isNotEmpty && typeof cell.number.content === "number") {
@@ -3190,7 +3207,7 @@
                         v.textContent = mask;
                         const reveal = document.createElement("button");
                         reveal.className = "b3-button b3-button--text";
-                        reveal.style.cssText = "padding:0 6px;font-size:12px";
+                        reveal.style.cssText = pad06Fs12Css;
                         reveal.textContent = t("ledger.idNumberShow");
                         let shown = false;
                         reveal.onclick = () => {
@@ -3200,7 +3217,7 @@
                         };
                         const copy = document.createElement("button");
                         copy.className = "b3-button b3-button--text";
-                        copy.style.cssText = "padding:0 6px;font-size:12px";
+                        copy.style.cssText = pad06Fs12Css;
                         copy.textContent = t("ledger.idNumberCopy");
                         copy.onclick = async () => {
                             try {
@@ -3219,7 +3236,7 @@
                         if (parsedId?.ok && parsedId.birth && member && !member.birthday && !member.lunarBirthday) {
                             const birthFill = document.createElement("button");
                             birthFill.className = "b3-button b3-button--text";
-                            birthFill.style.cssText = "padding:0 6px;font-size:12px";
+                            birthFill.style.cssText = pad06Fs12Css;
                             birthFill.textContent = t("ledger.idBirthFill").replace("${birth}", parsedId.birth);
                             birthFill.onclick = async () => {
                                 const target = (plugin.settings.members ?? []).find(m => m.id === member.id);
@@ -3282,11 +3299,11 @@
                     line.style.cssText = "gap:10px;padding:4px 0;font-size:13px";
                     const k = document.createElement("span");
                     k.className = "ft__on-surface";
-                    k.style.cssText = "min-width:96px;flex-shrink:0";
+                    k.style.cssText = minW96Shrink0Css;
                     k.textContent = String(c.name);
                     line.append(k);
                     const v = document.createElement("span");
-                    v.style.cssText = "word-break:break-all";
+                    v.style.cssText = wordBreakAllCss;
                     v.textContent = cellText(row.cells[c.id]);
                     if (EDITABLE.has(c.type)) {
                         if (!v.textContent?.trim() || v.textContent === "—") { v.textContent = t("ledger.detailEmpty"); v.classList.add("is-empty"); }
@@ -3372,7 +3389,7 @@
                 } else if (loaded.length === 0) {
                     const none = document.createElement("div");
                     none.className = "ft__on-surface";
-                    none.style.cssText = "font-size:12.5px";
+                    none.style.cssText = fs125Css;
                     none.textContent = opts.emptyText;
                     section.appendChild(none);
                 }
@@ -3471,13 +3488,13 @@
             hint.textContent = t("vehicle.summary.hint");
             wrap.appendChild(hint);
             const grid = document.createElement("div");
-            grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px";
+            grid.style.cssText = statsGrid112Css;
             const metric = (label: string, value: string) => {
                 const box = document.createElement("div");
                 box.style.cssText = subCardBoxCss;
                 const cap = document.createElement("span");
                 cap.className = "ft__on-surface";
-                cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px";
+                cap.style.cssText = cap11Mb3Css;
                 cap.textContent = label;
                 const val = document.createElement("b");
                 val.style.cssText = subCardValCss;
@@ -3723,7 +3740,7 @@
                     registerVehicleAction(kind, add);
 
                     const statsGrid = document.createElement("div");
-                    statsGrid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px";
+                    statsGrid.style.cssText = statsGrid112Css;
                     const metric = (label: string, value: string) => {
                         const box = document.createElement("div"); box.style.cssText = subCardBoxCss;
                         const cap = document.createElement("span"); cap.className = "ft__on-surface"; cap.style.cssText = "display:block;font-size:11px;margin-bottom:3px"; cap.textContent = label;
@@ -3809,10 +3826,10 @@
                     }
                     for (const entry of recent) {
                         const line = document.createElement("div");
-                        line.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 0;border-top:1px solid var(--b3-border-color);font-size:12px;flex-wrap:wrap";
+                        line.style.cssText = logItemRowCss;
                     line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>);
                     if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
-                        const desc = document.createElement("span"); desc.style.cssText = "flex:1;min-width:180px;overflow-wrap:anywhere";
+                        const desc = document.createElement("span"); desc.style.cssText = flex1Min180Css;
                         const volume = `${compactNumber(entry.quantity)} ${unit}`;
                         const type = isFuel ? (entry.fuelGrade ? t(`fuel.option.${entry.fuelGrade}`) : "") : (entry.chargingMode ? t(`fuel.option.${entry.chargingMode}`) : "");
                         const price = typeof entry.totalCost === "number" ? `${formatAmount(entry.totalCost)} ${t("fuel.currency")}` : typeof entry.unitPrice === "number" ? `${compactNumber(entry.unitPrice)} ${t("fuel.unitPrice")}` : t("fuel.costUnknown");
@@ -3996,10 +4013,10 @@
                     if (targetEntry && !recentRecords.includes(targetEntry)) recentRecords.push(targetEntry);
                 }
                 for (const entry of recentRecords) {
-                    const line = document.createElement("div"); line.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 0;border-top:1px solid var(--b3-border-color);font-size:12px;flex-wrap:wrap";
+                    const line = document.createElement("div"); line.style.cssText = logItemRowCss;
                     line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, "maintenance", entry as unknown as Record<string, unknown>);
                     if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
-                    const desc = document.createElement("span"); desc.style.cssText = "flex:1;min-width:180px;overflow-wrap:anywhere"; desc.textContent = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
+                    const desc = document.createElement("span"); desc.style.cssText = flex1Min180Css; desc.textContent = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
                     const edit = document.createElement("button"); edit.className = "b3-button b3-button--text"; edit.style.cssText = btnActionSmCss; edit.textContent = t("members.edit"); edit.onclick = () => openForm(entry);
                     const del = document.createElement("button"); del.className = "b3-button b3-button--text"; del.style.cssText = btnActionSmCss; del.textContent = t("delete"); del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => { del.disabled = true; try { const next = await updateRowLogs(plugin as any, (latest) => removeEntry(latest, ref!.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>)); records = getEntries<MaintenanceRecord>(next, ref!.avId!, row.itemID, "maintenance"); render(); try { await plugin.refreshHub(["vehicles"], true); } catch (refreshError) { showMessage(t("ledger.logSavedRefreshFailed").replace("${msg}", refreshError instanceof Error ? refreshError.message : String(refreshError)), 5000, "error"); } } catch (error) { del.disabled = false; showMessage(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error"); } });
                     line.append(desc, edit, del); wrap.appendChild(line);
@@ -4329,10 +4346,10 @@
                             for (const c of check.conflicts) {
                                 const alertEl = document.createElement("div");
                                 if (c.type === "allergy") {
-                                    alertEl.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
+                                    alertEl.style.cssText = dangerAlertCss;
                                     alertEl.innerHTML = `<span>🚨 <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
                                 } else {
-                                    alertEl.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
+                                    alertEl.style.cssText = warnAlertCss;
                                     alertEl.innerHTML = `<span>⚠️ <b>${c.memberName}</b>：${t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}</span>`;
                                 }
                                 contentWrap.append(alertEl);
@@ -4344,7 +4361,7 @@
                             actionRow.style.cssText = actionRowEndCss;
                             const copyIngBtn = document.createElement("button");
                             copyIngBtn.className = "b3-button b3-button--outline";
-                            copyIngBtn.style.cssText = "font-size:12px;padding:3px 8px";
+                            copyIngBtn.style.cssText = fs12Pad38Css;
                             copyIngBtn.textContent = `＋ ${t("ledger.foodCopyIngredients")}`;
                             copyIngBtn.onclick = async () => {
                                 const text = formatShoppingIngredientsText(foodName, check.parsedIngredients);
@@ -4474,7 +4491,7 @@
                     const badgeCls = (u: string) => u === "overdue" ? "danger" : u === "soon" ? "orange" : u === "ok" ? "green" : "gray";
 
                     const vBox = document.createElement("div");
-                    vBox.style.cssText = "padding:6px 8px;background:var(--lv-surface);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
+                    vBox.style.cssText = pad6BorderSurfaceCss;
                     vBox.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center">
                             <span style="font-weight:500">${t("field.vaccine_due")}</span>
@@ -4484,7 +4501,7 @@
                     `;
 
                     const dBox = document.createElement("div");
-                    dBox.style.cssText = "padding:6px 8px;background:var(--lv-surface);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
+                    dBox.style.cssText = pad6BorderSurfaceCss;
                     dBox.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center">
                             <span style="font-weight:500">${t("field.deworm_due")}</span>
@@ -4594,7 +4611,7 @@
 
                                 if (conflict) {
                                     const alertLine = document.createElement("div");
-                                    alertLine.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
+                                    alertLine.style.cssText = dangerAlertCss;
                                     alertLine.innerHTML = `<span>⚠️ ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
                                     contentWrap.append(alertLine);
                                 }
@@ -4609,7 +4626,7 @@
                             actionRow.style.cssText = actionRowEndCss;
                             const addAllergyBtn = document.createElement("button");
                             addAllergyBtn.className = "b3-button b3-button--outline";
-                            addAllergyBtn.style.cssText = "font-size:12px;padding:3px 8px";
+                            addAllergyBtn.style.cssText = fs12Pad38Css;
                             addAllergyBtn.textContent = `＋ ${t("ledger.recordAllergyToHealth")}`;
                             addAllergyBtn.onclick = () => {
                                 const adlg = new Dialog({
@@ -5612,6 +5629,9 @@
         identityPending = false;
         saving = true;
         saveError = "";
+        if (missingSchemaCols.length > 0 && ref?.avId) {
+            try { await plugin.repairModule?.(active); } catch { /* soft heal */ }
+        }
         if (!recordOperationKey) {
             try { recordOperationKey = `ledger:${crypto.randomUUID()}`; }
             catch { recordOperationKey = `ledger:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
@@ -5716,6 +5736,7 @@
                 showMessage(t("ledger.refreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
             }
         } catch (e) {
+            recordOperationKey = null;
             if (e instanceof RowIdentityPendingError) {
                 // D02：行已提交但身份未确认——不自动重试（会重复建行），提示人工核对
                 identityPending = true;
@@ -6328,16 +6349,16 @@
                 {t("ledger.batchSelected").replace("${n}", String(selectedItemIds.length))}
             </span>
             {#if ref?.columns?.location}
-                <button type="button" class="b3-button b3-button--outline" style="font-size:12px;padding:3px 10px" disabled={batchBusy} onclick={openBatchLocationModal}>
+                <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchLocationModal}>
                     📍 {t("ledger.batchLocation")}
                 </button>
             {/if}
             {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-                <button type="button" class="b3-button b3-button--outline" style="font-size:12px;padding:3px 10px" disabled={batchBusy} onclick={openBatchMemberModal}>
+                <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchMemberModal}>
                     👤 {t("ledger.batchMember")}
                 </button>
             {/if}
-            <button type="button" class="b3-button b3-button--text ft__error" style="font-size:12px;padding:3px 10px;color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
+            <button type="button" class="b3-button b3-button--text ft__error" style="{fs12Pad310Css};color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
                 🗑️ {t("ledger.batchDelete")}
             </button>
             <button type="button" class="b3-button b3-button--text" style="font-size:12px;padding:3px 6px" onclick={() => { selectedItemIds = []; }} title={t("close")}>

@@ -612,21 +612,15 @@ function rowIDsFromAddResponse(d: any): string[] {
     const push = (v: any) => {
         if (typeof v === "string" && v) out.push(v);
         else if (v && typeof v === "object") {
-            if (typeof v.rowID === "string" && v.rowID) out.push(v.rowID);
-            else if (typeof v.blockID === "string" && v.blockID) out.push(v.blockID);
-            else if (typeof v.id === "string" && v.id) out.push(v.id);
-            else if (typeof v.itemID === "string" && v.itemID) out.push(v.itemID);
+            const id = v.rowID || v.blockID || v.id || v.itemID;
+            if (typeof id === "string" && id) out.push(id);
         }
     };
     if (typeof d === "string" && d) push(d);
     if (Array.isArray(d)) d.forEach(push);
-    if (Array.isArray(d?.rowIDs)) d.rowIDs.forEach(push);
-    if (Array.isArray(d?.blockIDs)) d.blockIDs.forEach(push);
-    if (Array.isArray(d?.ids)) d.ids.forEach(push);
-    if (Array.isArray(d?.blocks)) d.blocks.forEach(push);
-    if (Array.isArray(d?.operations)) d.operations.forEach((op: any) => push(op?.rowID ?? op?.blockID ?? op?.id ?? op?.itemID));
-    if (Array.isArray(d?.doOperations)) d.doOperations.forEach((op: any) => push(op?.id ?? op?.rowID ?? op?.blockID ?? op?.itemID));
-    if (Array.isArray(d?.rows)) d.rows.forEach((r: any) => push(r?.id ?? r?.rowID ?? r?.itemID));
+    for (const k of ["rowIDs", "blockIDs", "ids", "blocks", "operations", "doOperations", "rows"] as const) {
+        if (Array.isArray(d?.[k])) d[k].forEach(push);
+    }
     return out;
 }
 
@@ -680,20 +674,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         } catch { /* soft retry */ }
     }
 
-    // SQLite 直查兜底：若属性视图缓存延迟刷新，通过近期创建的块内容检索唯一新行
-    if (added.length === 0 && content) {
-        try {
-            const escapedContent = content.replace(/'/g, "''");
-            const sqlRows = await sql<{ id: string }>(
-                `SELECT id FROM blocks WHERE content='${escapedContent}' AND updated > ${Date.now() - 15000} ORDER BY updated DESC LIMIT 2`,
-                options,
-            );
-            const sqlCandidates = sqlRows.map((r) => r.id).filter((id) => !before.has(id));
-            if (sqlCandidates.length === 1) return sqlCandidates[0];
-        } catch { /* soft fallback */ }
-    }
-
-    const confirmed = fromResponse.length === 1 ? fromResponse[0] : added.length === 1 ? added[0] : undefined;
+    const confirmed = fromResponse.includes(desiredItemID) ? desiredItemID : fromResponse.length === 1 ? fromResponse[0] : added.includes(desiredItemID) ? desiredItemID : added.length === 1 ? added[0] : undefined;
     if (confirmed) return confirmed;
     throw new RowIdentityPendingError(added.length ? Array.from(new Set(added)) : fromResponse);
 }
@@ -887,7 +868,15 @@ export async function setCell(avID: string, keyID: string, itemID: string, value
         ...options,
         latestKey: options?.latestKey ?? `cell:${avID}:${keyID}:${itemID}`,
     };
-    await post("/api/av/setAttributeViewBlockAttr", { avID, keyID, itemID, value }, requestOptions);
+    let payloadValue = value;
+    if (typeof value === "string") {
+        payloadValue = { type: "text", text: { content: value } };
+    } else if (typeof value === "number") {
+        payloadValue = { type: "number", number: { content: value, isNotEmpty: true } };
+    } else if (typeof value === "boolean") {
+        payloadValue = { type: "checkbox", checkbox: { checked: value } };
+    }
+    await post("/api/av/setAttributeViewBlockAttr", { avID, keyID, itemID, value: payloadValue }, requestOptions);
 }
 
 export interface AvRow {

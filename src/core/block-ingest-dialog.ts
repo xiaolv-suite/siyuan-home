@@ -140,14 +140,14 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
 
             if (res.rowPayload.date) {
                 const dateKey = dbRef.columns.expiry || dbRef.columns.date || dbRef.columns.due;
-                if (dateKey) await setCellFn(dbRef.avId, dateKey, rowId, res.rowPayload.date);
+                if (dateKey) await setCellFn(dbRef.avId, dateKey, rowId, { type: "date", date: { content: new Date(`${res.rowPayload.date}T00:00:00`).getTime(), isNotEmpty: true } });
             }
             if (res.rowPayload.amount !== undefined) {
                 const amtKey = dbRef.columns.amount || dbRef.columns.deposit || dbRef.columns.premium;
-                if (amtKey) await setCellFn(dbRef.avId, amtKey, rowId, res.rowPayload.amount);
+                if (amtKey) await setCellFn(dbRef.avId, amtKey, rowId, { type: "number", number: { content: res.rowPayload.amount, isNotEmpty: true } });
             }
             if (res.rowPayload.note && dbRef.columns.note) {
-                await setCellFn(dbRef.avId, dbRef.columns.note, rowId, res.rowPayload.note);
+                await setCellFn(dbRef.avId, dbRef.columns.note, rowId, { type: "text", text: { content: res.rowPayload.note } });
             }
 
             // 复制反向收录标注

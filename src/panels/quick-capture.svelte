@@ -382,6 +382,18 @@
         }
         if (saving) return;
         if (e.key === "Escape") { e.preventDefault(); close(); return; }
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            e.preventDefault();
+            if (captureTab === "event") {
+                if (eventSub === "fuel") void submitQuickFueling();
+                else if (eventSub === "vital") void submitQuickVital();
+                else if (eventSub === "shopping") void submitQuickShopping();
+                else if (eventSub === "snippet") void submitQuickSnippet();
+            } else if (modules.length > 0 && captureFields.length > 0) {
+                void save(e.altKey);
+            }
+            return;
+        }
         if (e.altKey && (e.key === "k" || e.key === "K")) {
             e.preventDefault();
             keepContext = !keepContext;
@@ -1001,7 +1013,7 @@
             <button class="b3-button b3-button--cancel" onclick={close} disabled={saving}>{t("cancel")}</button>
             <span class="fn__flex-1"></span>
             {#if captureTab === "event"}
-                <button class="lv-btn primary" onclick={() => {
+                <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => {
                     if (eventSub === "fuel") void submitQuickFueling();
                     else if (eventSub === "vital") void submitQuickVital();
                     else if (eventSub === "shopping") void submitQuickShopping();
@@ -1017,7 +1029,7 @@
                 <button class="lv-btn" onclick={() => save(true)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
                     {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryContinue") : t("capture.saveContinue")}
                 </button>
-                <button class="lv-btn primary" onclick={() => save(false)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
+                <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => save(false)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
                     {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryClose") : t("capture.saveClose")}
                 </button>
             {/if}

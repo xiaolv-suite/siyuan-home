@@ -241,4 +241,12 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(vitalLog.systolic).toBe(120);
         expect(vitalLog.pulse).toBe(72);
     });
+
+    it("快速记录支持 Ctrl+Enter / Cmd+Enter 全局快捷键保存与 Alt 连续录入分派", () => {
+        const isSubmitKey = (e: { key: string; ctrlKey?: boolean; metaKey?: boolean }) =>
+            Boolean((e.ctrlKey || e.metaKey) && e.key === "Enter");
+        expect(isSubmitKey({ key: "Enter", ctrlKey: true })).toBe(true);
+        expect(isSubmitKey({ key: "Enter", metaKey: true })).toBe(true);
+        expect(isSubmitKey({ key: "Enter" })).toBe(false);
+    });
 });

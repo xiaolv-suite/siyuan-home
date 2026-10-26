@@ -1209,7 +1209,7 @@
                     <div class="lv-rem-ops">
                         <button class="b3-button b3-button--text" disabled={reminderBusy.has(h.id)} aria-busy={reminderBusy.has(h.id)} onclick={() => restoreEntry(h.id)}>{reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}</button>
                         {#if h.kind === "memo"}
-                            <button class="b3-button b3-button--text" disabled={reminderBusy.has(h.id)} onclick={() => confirmDeleteHandledMemo(h.id, h.title || t("hub.handledUnknown"))}>{t("delete")}</button>
+                            <button class="b3-button b3-button--text ft__error" style="color:var(--lv-danger)" disabled={reminderBusy.has(h.id)} onclick={() => confirmDeleteHandledMemo(h.id, h.title || t("hub.handledUnknown"))}>{t("delete")}</button>
                         {/if}
                     </div>
                 </div>

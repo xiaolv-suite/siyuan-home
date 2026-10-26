@@ -435,12 +435,14 @@
   .lv-ledger-more__menu .b3-button { justify-content: flex-start; width: 100%; text-align: left; }
 
   // ── 6. chips / 徽章 / 状态点 ────────────────────────────
-  .lv-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px;
+  .lv-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
     font-size: 12.5px; color: var(--lv-tx-2); border: 1px solid var(--lv-line);
     background: var(--lv-surface); transition: all var(--lv-t-fast) var(--lv-ease); cursor: pointer;
-    &:hover { border-color: var(--lv-line-strong); color: var(--lv-tx); }
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    &:hover { border-color: var(--lv-line-strong); color: var(--lv-tx); transform: translateY(-1px); box-shadow: var(--lv-shadow-1); }
+    &:active { transform: translateY(0) scale(.98); }
     &.on { background: var(--lv-accent-soft); border-color: var(--lv-accent-line);
-      color: var(--lv-accent); font-weight: 500; } }
+      color: var(--lv-accent); font-weight: 550; } }
   .lv-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px;
     border-radius: 999px; font-weight: 550; border: 1px solid transparent; line-height: 1.35;
     &.red { background: var(--lv-danger-soft); color: var(--lv-danger); border-color: rgba(220, 38, 38, 0.2); }
@@ -1273,9 +1275,11 @@
     .lv-ledger-toolbar { position: sticky; top: 0; z-index: var(--lv-z-topbar); margin-inline: -2px; padding: var(--lv-space-2); border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); box-shadow: none; }
     .lv-ledger-toolbar > .fn__flex-1 { display: none; }
     .lv-ledger-toolbar > .b3-select { order: 1; flex: 1 1 100%; }
-    .lv-ledger-toolbar > .b3-text-field { order: 2; flex: 1 1 calc(100% - 150px); }
-    .lv-ledger-toolbar > .lv-btn.primary { order: 3; flex: 0 1 138px; }
-    .lv-ledger-toolbar > .lv-ledger-more { order: 4; }
+    .lv-ledger-toolbar > .lv-search-box,
+    .lv-ledger-toolbar > .b3-text-field { order: 2; flex: 1 1 calc(100% - 150px); min-width: 0; }
+    .lv-ledger-toolbar > .lv-density-btn { order: 3; flex: 0 1 auto; }
+    .lv-ledger-toolbar > .lv-btn.primary { order: 4; flex: 0 1 138px; }
+    .lv-ledger-toolbar > .lv-ledger-more { order: 5; }
     .lv-ledger-more > summary { min-height: var(--lv-control-md); }
     .lv-ledger-more__menu { position: fixed; top: auto; right: 12px; left: 12px; bottom: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; padding: 10px; }
     .lv-table { border: none; background: transparent; box-shadow: none;

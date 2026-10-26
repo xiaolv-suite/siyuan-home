@@ -2780,7 +2780,7 @@
             const save = document.createElement("button");
             save.type = "button";
             save.className = "b3-button b3-button--text";
-            save.style.cssText = "padding:3px 6px;font-size:12px";
+            save.style.cssText = "padding:2px 6px;font-size:12px;color:var(--lv-accent)";
             save.textContent = t("save");
             const cancel = document.createElement("button");
             cancel.type = "button";
@@ -2806,6 +2806,10 @@
                 delete line.dataset.lvEditing;
                 valueEl.removeAttribute("aria-hidden");
             };
+            control.addEventListener("keydown", (e: KeyboardEvent) => {
+                if (e.key === "Escape") { e.preventDefault(); restore(); }
+                else if (e.key === "Enter" && !e.isComposing && !(control instanceof HTMLTextAreaElement)) { e.preventDefault(); void saveInline(); }
+            });
             let writeOperation: { signature: string; key: string } | null = null;
             cancel.onclick = restore;
             const saveInline = async () => {
@@ -5774,7 +5778,7 @@
                 onkeydown={(event) => { if (event.key === "Escape") { searchText = ""; panelMemory.ledgerSearch = ""; } }}
                 title={t("ledger.search")} />
             {#if searchText}
-                <span class="lv-badge" style="position:absolute;right:22px;font-size:10.5px;padding:1px 5px;pointer-events:none;opacity:0.85">
+                <span class="lv-badge {filteredRows.length > 0 ? 'blue' : 'orange'}" style="position:absolute;right:22px;font-size:10.5px;padding:1px 5px;pointer-events:none;opacity:0.85">
                     {filteredRows.length}
                 </span>
                 <button class="b3-button b3-button--text" style="position:absolute;right:2px;padding:2px 5px;font-size:11px;color:var(--lv-tx-3);cursor:pointer"

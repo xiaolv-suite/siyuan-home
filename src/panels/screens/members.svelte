@@ -703,7 +703,7 @@ function openReassignDialog(fromMember?: FamilyMember) {
                 {#if m.birthday}
                     {@const ret = calculateRetirement({ birthday: m.birthday, sex: m.sex })}
                     {#if ret}
-                        <div class="lv-member-retire-card" style="padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px;margin:4px 0">
+                        <div class="lv-member-retire-card" style="padding:10px 14px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:7px;font-size:12px;margin:6px 0">
                             <div style="display:flex;align-items:center;justify-content:space-between">
                                 <span style="font-weight:600;color:var(--lv-tx)">{t("members.retirementTitle")}</span>
                                 {#if ret.isRetired}
@@ -716,8 +716,8 @@ function openReassignDialog(fromMember?: FamilyMember) {
                                 <span>{t("members.retirementTarget")}: <b>{ret.targetRetireDate}</b> ({t("members.retirementAge").replace("${age}", String(ret.targetRetireAge))}{ret.delayedMonths > 0 ? ` · ${t("members.retirementDelay").replace("${n}", String(ret.delayedMonths))}` : ""})</span>
                                 <span>{t("members.retirementCareerProgress")}: {ret.careerProgressPercent}%</span>
                             </div>
-                            <div style="height:4px;border-radius:2px;background:var(--lv-line);overflow:hidden;width:100%">
-                                <div style="height:100%;background:var(--lv-accent);width:{ret.careerProgressPercent}%;border-radius:2px;transition:width .3s ease"></div>
+                            <div style="height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%">
+                                <div style="height:100%;background:linear-gradient(90deg, var(--lv-accent), #f59e0b);width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
                             </div>
                         </div>
                     {/if}

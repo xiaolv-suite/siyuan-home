@@ -904,7 +904,10 @@ export default class LvHomePlugin extends Plugin {
         const schema = this.schemaCatalog[moduleId];
         if (!schema) return;
         const resolveName = (key: string) => String(this.i18n[`field.${key}`] ?? key);
-        const res = await provisionModule(this.settings, moduleId, schema, this.i18nText("module." + moduleId), { resolveName });
+        const res = await provisionModule(this.settings, moduleId, schema, this.i18nText("module." + moduleId), {
+            resolveName,
+            reconcileGhostColumns: true,
+        });
         try {
             await saveSettings(this, this.settings);
         } catch (e) {

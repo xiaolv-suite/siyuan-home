@@ -48,6 +48,7 @@
     const hintTextCss = "font-size:12px;line-height:1.6;margin:0 0 10px";
     const fieldErrCss = "min-height:16px;color:var(--lv-danger);font-size:11px;line-height:1.35";
     const actionRowEndCss = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
+    const flexCenterGap6Css = "display:flex;align-items:center;gap:6px";
     const btnSm6Css = "margin-top:6px;font-size:12px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
@@ -610,15 +611,16 @@
         }
         return keys.length > 0 ? keys : schemaKeys.slice(0, 5);
     });
-    function switchLedger(event: Event) {
-        const next = (event.currentTarget as HTMLSelectElement).value;
+    const PINNED_MODULES = ["certs", "medicine", "vehicles", "stock", "shopping", "house", "contracts", "health"];
+    const pinnedLedgers = $derived(PINNED_MODULES.filter((id) => ledgers.some((l) => l.id === id)).slice(0, 5));
+
+    function switchLedgerTo(next: string) {
         const hasDraft = hasAnyInput
             || !!pendingItemID
             || identityPending
             || Object.values(certificateFiles).some((files) => files.length > 0)
             || Object.values(uploadedCertificateFiles).some((files) => files.length > 0);
         if (next !== active && hasDraft) {
-            (event.currentTarget as HTMLSelectElement).value = active;
             showMessage(t("ledger.draftModuleSwitchBlocked"), 5000, "info");
             return;
         }
@@ -631,6 +633,11 @@
         saveError = "";
         plugin.activeLedger = active;
         searchText = "";
+    }
+
+    function switchLedger(event: Event) {
+        const next = (event.currentTarget as HTMLSelectElement).value;
+        switchLedgerTo(next);
     }
 
     // CSV export uses schema columns and a BOM for spreadsheet compatibility.
@@ -920,7 +927,7 @@
             let bandMode: "auto" | "male" | "female" | "off" = "auto";
             const sexById = new Map(members.map((m) => [m.id, m.sex as "male" | "female" | undefined]));
             const controls = document.createElement("div");
-            controls.style.cssText = "display:flex;align-items:center;gap:6px;font-size:12px";
+            controls.style.cssText = flexCenterGap6Css;
             const ctlLabel = document.createElement("span");
             ctlLabel.className = "ft__on-surface";
             ctlLabel.textContent = t("ledger.growthWhoSex");
@@ -1092,7 +1099,7 @@
 
                 // 顶部孩子切换（若多位孩子）与完成率
                 const topBar = document.createElement("div");
-                topBar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+                topBar.style.cssText = sectionHeaderCss;
                 if (candidate.length > 1) {
                     const sel = document.createElement("select");
                     sel.className = "b3-select";
@@ -1159,7 +1166,7 @@
                     left.style.cssText = colLeftCss;
 
                     const titleLine = document.createElement("div");
-                    titleLine.style.cssText = "display:flex;align-items:center;gap:6px";
+                    titleLine.style.cssText = flexCenterGap6Css;
                     const nameSpan = document.createElement("b");
                     nameSpan.style.cssText = "color:var(--lv-tx)";
                     nameSpan.textContent = `${it.vaccine}（第 ${it.dose} 剂）`;
@@ -1182,7 +1189,7 @@
                     left.append(titleLine, metaSpan);
 
                     const right = document.createElement("div");
-                    right.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
+                    right.style.cssText = flexCenterGap6Css;
 
                     const statusBadge = document.createElement("span");
                     if (it.status === "given") {
@@ -1506,7 +1513,7 @@
 
                 for (const item of report.brokenItems) {
                     const rowEl = document.createElement("div");
-                    rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12px";
+                    rowEl.style.cssText = itemRowCss;
 
                     const left = document.createElement("div");
                     left.style.cssText = colLeftCss;
@@ -3706,7 +3713,7 @@
                     section.className = "lv-card";
                     section.style.cssText = "padding:10px;margin:8px 0";
                     const head = document.createElement("div");
-                    head.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px";
+                    head.style.cssText = sectionHeaderCss;
                     const heading = document.createElement("b"); heading.textContent = t(isFuel ? "fuel.fuelTitle" : "fuel.chargingTitle");
                     const add = document.createElement("button"); add.className = "b3-button b3-button--outline"; add.dataset.lvVehicleAction = kind;
                     add.textContent = `+ ${t(isFuel ? "fuel.addFuel" : "fuel.addCharging")}`;
@@ -3965,7 +3972,7 @@
             };
             const render = () => {
                 wrap.replaceChildren();
-                const head = document.createElement("div"); head.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px";
+                const head = document.createElement("div"); head.style.cssText = sectionHeaderCss;
                 const title = document.createElement("h3"); title.style.cssText = "font-size:14px;margin:0"; title.textContent = t("vehicle.maintenance.title");
                 const add = document.createElement("button"); add.className = "b3-button b3-button--outline"; add.dataset.lvVehicleAction = "maintenance"; add.textContent = `+ ${t("vehicle.maintenance.add")}`; add.onclick = () => openForm();
                 head.append(title, add); wrap.appendChild(head);
@@ -4334,7 +4341,7 @@
 
                         if (check.parsedIngredients.length > 0) {
                             const actionRow = document.createElement("div");
-                            actionRow.style.cssText = "display:flex;align-items:center;justify-content:flex-end;margin-top:4px";
+                            actionRow.style.cssText = actionRowEndCss;
                             const copyIngBtn = document.createElement("button");
                             copyIngBtn.className = "b3-button b3-button--outline";
                             copyIngBtn.style.cssText = "font-size:12px;padding:3px 8px";
@@ -5831,6 +5838,18 @@
         </details>
     {/if}
 </div>
+
+{#if pinnedLedgers.length > 1}
+    <div class="lv-ledger-pinned-bar" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:-6px 0 10px">
+        <span class="lv-caption" style="font-size:11px;color:var(--lv-tx-3);margin-right:2px">📌</span>
+        {#each pinnedLedgers as pid (pid)}
+            <button type="button" class="lv-preset-tag" class:active={active === pid}
+                onclick={() => switchLedgerTo(pid)}>
+                {t(`module.${pid}`)}
+            </button>
+        {/each}
+    </div>
+{/if}
 
 {#if (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
     <div class="lv-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:11.5px">

@@ -46,10 +46,20 @@ describe("LvHome 服务桥（EC03/v0.3 + Epoch 6）", () => {
             "summary",
             "openModule",
             "getOverview",
+            "getReminders",
         ]);
         expect(api.hasCapability("whenReady")).toBe(true);
+        expect(api.hasCapability("getReminders")).toBe(true);
         expect(api.hasCapability("openButler")).toBe(true);
         expect(api.hasCapability("nonExistent")).toBe(false);
+    });
+
+    it("getReminders：输出活跃提醒列表供任务管理器联动", () => {
+        const api = buildLvHomeBridge(host());
+        const rems = api.getReminders();
+        expect(rems).toHaveLength(5);
+        expect(rems[0].level).toBe("overdue");
+        expect(rems[0].daysLeft).toBe(-2);
     });
 
     it("summary：overdue/soon/today 计数正确", () => {

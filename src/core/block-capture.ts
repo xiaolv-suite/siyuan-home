@@ -99,6 +99,31 @@ export function extractAmountFromText(text: string): { amount?: number; cleanTex
 }
 
 /**
+ * 识别并剥离思源/Markdown 任务列表块前缀（`- [ ] `, `* [ ] `, `- [x] `, `* [x] ` 等）
+ */
+export function cleanTaskPrefix(text: string): { cleanText: string; isTask: boolean; isCompleted: boolean } {
+    if (!text) return { cleanText: "", isTask: false, isCompleted: false };
+    const m = text.match(/^\s*[-*]\s*\[([ xX])\]\s*/);
+    if (m) {
+        return {
+            cleanText: text.slice(m[0].length).trim(),
+            isTask: true,
+            isCompleted: m[1].toLowerCase() === "x",
+        };
+    }
+    return { cleanText: text.trim(), isTask: false, isCompleted: false };
+}
+
+/**
+ * 组装思源原生任务列表块 Markdown 语法
+ */
+export function formatAsTaskBlock(title: string, dueDate?: string, blockRefId?: string): string {
+    const titleWithRef = blockRefId ? `((${blockRefId} "${title}"))` : title;
+    const dueStr = dueDate ? ` · 到期: ${dueDate}` : "";
+    return `- [ ] ${titleWithRef}${dueStr}`;
+}
+
+/**
  * 录入标题智能清洗与自动析出（如在名称输入 "2028-10-15 居民身份证" 或 "租房合同 3500元"）
  * 自动剥离日期与金额供表单联动回填，避免用户反复在输入框之间跳转切换。
  */
@@ -106,9 +131,14 @@ export function smartExtractFieldsFromTitle(rawTitle: string): {
     cleanTitle: string;
     extractedDate?: string;
     extractedAmount?: number;
+    isTask?: boolean;
+    isCompleted?: boolean;
 } {
     let text = (rawTitle ?? "").trim();
     if (!text) return { cleanTitle: "" };
+
+    const taskRes = cleanTaskPrefix(text);
+    text = taskRes.cleanText;
 
     const dateRes = extractDateFromText(text);
     text = dateRes.cleanText;
@@ -122,6 +152,8 @@ export function smartExtractFieldsFromTitle(rawTitle: string): {
         cleanTitle: cleanTitle || rawTitle.trim(),
         extractedDate: dateRes.date,
         extractedAmount: amountRes.amount,
+        isTask: taskRes.isTask,
+        isCompleted: taskRes.isCompleted,
     };
 }
 
@@ -134,11 +166,14 @@ export function smartParseNoteContent(rawText: string): ParsedCaptureResult {
         return { raw: "", title: "", confidence: 0 };
     }
 
+    const taskRes = cleanTaskPrefix(raw);
+    const textToAnalyze = taskRes.cleanText || raw;
+
     // 1. 语义模块推断
-    const moduleInferred = inferModuleFromText(raw);
+    const moduleInferred = inferModuleFromText(textToAnalyze);
 
     // 2. 抽取日期
-    const { date, cleanText: textWithoutDate } = extractDateFromText(raw);
+    const { date, cleanText: textWithoutDate } = extractDateFromText(textToAnalyze);
 
     // 3. 抽取金额
     const { amount, cleanText: finalText } = extractAmountFromText(textWithoutDate);

@@ -1,5 +1,5 @@
 # 小驴管家（Lv Home）· 项目待办总清单
-> **当前事实（2026-10-26）**：本地 `main` 为 v0.5.98，91 个测试文件 / 804 项单测、类型/Svelte/i18n/meta/audit/build/smoke/loader 全绿；提醒计划日一键触达、已计划徽章直接编辑、单测804项；i18n 1950 键对齐。真实 Android WebView、独立窗口、兄弟插件、双端冲突和用户工作区验证待完成；`pnpm test:live` 缺少 `SIYUAN_TOKEN` 时阻断；集市发布继续暂缓。
+> **当前事实（2026-10-26）**：本地 `main` 为 v0.5.99，91 个测试文件 / 808 项单测、类型/Svelte/i18n/meta/audit/build/smoke/loader 全绿；任务列表块联动、任务管理器桥接接口、单测808项；i18n 1952 键对齐。真实 Android WebView、独立窗口、兄弟插件、双端冲突和用户工作区验证待完成；`pnpm test:live` 缺少 `SIYUAN_TOKEN` 时阻断；集市发布继续暂缓。
 
 ## 第 224 波复审行动清单（当前唯一入口）
 

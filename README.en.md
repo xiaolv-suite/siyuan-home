@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.104
+## 🆕 What's new in v0.5.105
 
-This release eliminates empty database shells and ghost column mapping deadlocks:
+This release closes automated provisioning on quick daily records and refactors row creation assertions:
 
-- **Healed (Ghost Column Pruning & Forced SiYuan Provisioning)**: Introduced `reconcileGhostColumns` to auto-detect and prune stale column mappings when an attribute view actually lacks columns in SiYuan, ensuring `addAttributeViewColumn` actively creates all required standard columns;
-- **Optimized (Idempotency Key & Error Recovery)**: Refactored column idempotency keys to eliminate `-409` conflict rejections across repetitive provision runs;
-- **Hardened (Auto-Healing via repairModule)**: `repairModule` now activates `reconcileGhostColumns: true` by default, guaranteeing that database rebuilds and capture self-heals produce 100% complete column schemas;
+- **Enhanced (Automated Self-Healing for Quick Records)**: `submitQuickShopping` and `submitQuickSnippet` now connect to `ensureTargetRef`, automatically provisioning modules on the fly instead of throwing cold unprovisioned errors;
+- **Refactored (Row Assertion Reuse in addDetachedRow)**: Unified row identity confirmation logic into a single `findHit` helper, eliminating redundant ternary checks;
+- **Fixed (Style Variable Alignment in Ledger Drawer)**: Fixed naming drift on action buttons inside the ledger details drawer;
 - **Validation**: 91 test suites, **810 unit tests passing**, TypeScript, Svelte, i18n (1956 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.104)
+## 📦 Install (v0.5.105)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.104 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.104 package is the current GitHub release; local quality checks report 810 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.105 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.105 package is the current GitHub release; local quality checks report 810 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +113,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.104 (current) | Eliminate ghost column deadlocks, forced column provisioning, 810 tests |
+| ✅ v0.5.105 (current) | Quick record auto-heal, row assertion reuse, 810 tests |
+| v0.5.104 | Eliminate ghost column deadlocks, forced column provisioning, 810 tests |
 | v0.5.103 | Hardened record creation, defensive setCell wrapping, retry deadlock elimination, 809 tests |
 | v0.5.102 | Fix row identity pending & empty ledger, explicit itemID injection, primary key aliases, 809 tests |
 | v0.5.101 | Overview & calendar day task block export, full screen task coverage, 809 tests |

@@ -8,6 +8,7 @@
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { showMessage } from "siyuan";
+    import { formatAsTaskBlock } from "@/core/block-capture";
 
     let { items, t, version, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn }: {
         items: Reminder[];
@@ -135,6 +136,17 @@
             savingMemo = false;
         }
     }
+
+    async function copyDayTasks() {
+        if (dayItems.length === 0) return;
+        const text = dayItems.map((r) => formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id)).join("\n");
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(t("hub.batchTasksCopied").replace("${n}", String(dayItems.length)), 2500, "info");
+        } catch {
+            showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        }
+    }
     function moveDayFocus(event: KeyboardEvent, index: number) {
         const key = event.key;
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(key)) return;
@@ -202,7 +214,14 @@
         {/each}
     </div>
     <div class="lv-card lv-cal-day-panel">
-        <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
+            {#if dayItems.length > 0}
+                <button class="b3-button b3-button--text" style="font-size:12px;color:var(--lv-accent)" onclick={copyDayTasks}>
+                    📋 {t("hub.batchCopyTasks")}
+                </button>
+            {/if}
+        </div>
         {#if dayItems.length === 0}
             <div class="lv-caption" style="margin-top:6px">{t("cal.emptyDay")}</div>
         {:else}

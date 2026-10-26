@@ -39,23 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.100
+## 🆕 What's new in v0.5.101
 
-This release takes the SiYuan native task block and task manager integration to full bi-directional maturity:
+This release extends native SiYuan task list block exports across all primary screens:
 
-- **Enhanced (Batch Copy Reminders as Task List)**: Added "Copy as Task List" to the batch action bar (`.lv-hub-batchbar`), assembling selected reminders into multi-line SiYuan task list markdown (`- [ ] ((blockId "title")) · due: YYYY-MM-DD`) with block deep links for instant pasting into daily notes;
-- **Implemented (Detail Drawer Task Block Export)**: Ledger detail drawer now provides a "Copy as Task List Block" option, turning any ledger entity into a native task block;
-- **Extended (Bi-Directional Task Manager Completion API)**: Added `completeReminder(id)` to `window.LvHome` bridge and broadcast `complete-reminder` event, allowing external task manager plugins to mark butler items as done and archive them directly from their task boards;
+- **Enhanced (Overview Reminders Copy as Task Block)**: Added a `📋` button to upcoming reminder rows on the Overview dashboard, copying items as SiYuan task blocks with one click;
+- **Implemented (Calendar Day Panel Task List Export)**: Added a "Copy as Task List" button to the Calendar day panel, copying all reminders on the selected day as a Markdown task list;
 - **Validation**: 91 test suites, **809 unit tests passing**, TypeScript, Svelte, i18n (1956 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.100)
+## 📦 Install (v0.5.101)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.100 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.100 package is the current GitHub release; local quality checks report 809 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.101 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.101 package is the current GitHub release; local quality checks report 809 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.100 (current) | Batch copy task list, drawer task block copy, task manager bi-directional completion, 809 tests |
+| ✅ v0.5.101 (current) | Overview & calendar day task block export, full screen task coverage, 809 tests |
+| v0.5.100 | Batch copy task list, drawer task block copy, task manager bi-directional completion, 809 tests |
 | v0.5.99 | SiYuan task block integration, task manager bridge getReminders, 808 tests |
 | v0.5.98 | Direct plan date tag & badge interaction, scheduled handling shortcuts, 804 tests |
 | v0.5.97 | Settings draft discard, dual-column sticky pinning in wide ledgers, 804 tests |

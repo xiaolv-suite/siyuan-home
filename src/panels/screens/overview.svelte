@@ -61,11 +61,13 @@
     // C2e：成员过滤——本地 $state 驱动（runtime.filterMemberId 只作持久化；普通对象属性读不追踪）
     // svelte-ignore state_referenced_locally
     let memberFilter = $state<string | undefined>(plugin.runtime.filterMemberId);
-    // C2e：成员过滤（持久化 runtime.filterMemberId；成员行 memberId 在 v0.2 由行创建顺序关联，未关联时显示全部）
+    let pulseDateFilter = $state<string | undefined>(undefined);
+    // C2e：成员过滤与周律动日期联动筛选
     const reminders = $derived(
-        memberFilter
+        (memberFilter
             ? allReminders.filter((r: Reminder) => !r.memberId || r.memberId === memberFilter)
-            : allReminders,
+            : allReminders
+        ).filter((r: Reminder) => !pulseDateFilter || r.dueDate === pulseDateFilter)
     );
     const top = $derived(reminders.slice(0, 4));
     // 260 波：首扫 loading 态——runtime 无快照时间且无错误时，"最近没有要紧事"是撒谎
@@ -540,9 +542,9 @@
 <!-- 原型参考图生活律动周条（Weekly Pulse Strip） -->
 <div class="lv-pulse-strip" role="region" aria-label="本周日程节奏">
     {#each weeklyPulse as p (p.date)}
-        <button type="button" class="lv-pulse-pill" class:is-today={p.isToday}
-            onclick={() => onGoto("reminders")}
-            title={`${p.date} ${p.weekday}：${p.dueCount} 项待办`}>
+        <button type="button" class="lv-pulse-pill" class:is-today={p.isToday} class:is-selected={pulseDateFilter === p.date}
+            onclick={() => { pulseDateFilter = pulseDateFilter === p.date ? undefined : p.date; }}
+            title={`${p.date} ${p.weekday}：${p.dueCount} 项待办（点击筛选该日）`}>
             <span class="lv-pulse-weekday">{p.weekday}</span>
             <span class="lv-pulse-day lv-num">{p.dayNum}</span>
             <span class="lv-pulse-status" class:has-due={p.dueCount > 0} class:is-past-ok={p.isPast && p.dueCount === 0}>
@@ -582,7 +584,14 @@
     <button class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>
 </div>
 
-<div class="lv-sec"><h2 class="lv-title-sec">{t("dash.upcoming")}</h2><span class="lv-sub">{t("dash.upcomingSub")}</span>
+<div class="lv-sec">
+    <h2 class="lv-title-sec">{t("dash.upcoming")}</h2>
+    <span class="lv-sub">{t("dash.upcomingSub")}</span>
+    {#if pulseDateFilter}
+        <button type="button" class="lv-badge blue" style="cursor:pointer;border:none;margin-left:8px" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
+            🗓️ {pulseDateFilter} ✕
+        </button>
+    {/if}
     <button class="b3-button b3-button--text" onclick={viewAllReminders}>{t("dash.viewAll")} →</button>
 </div>
 {#if reminders.length === 0 && (initialScanError || scanErrors.length > 0)}

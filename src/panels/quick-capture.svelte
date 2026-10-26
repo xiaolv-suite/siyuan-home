@@ -23,6 +23,7 @@
         runtime?: { hubQuickModule?: string };
         openSetting: () => void;
         refreshHub?: (only?: string | string[], force?: boolean) => Promise<unknown>;
+        repairModule?: (moduleId: string) => Promise<unknown>;
         showTabDocs?: (docId?: string) => void;
     }
 
@@ -550,15 +551,8 @@
             });
             if (missingColumn) {
                 try {
-                    const { provisionModule } = await import("@/core/provisioner");
-                    const schema = plugin.schemaCatalog[moduleId];
-                    const report = await provisionModule(plugin.settings, moduleId, schema, modLabel(moduleId), {
-                        resolveName: (k) => String(plugin.i18n[`field.${k}`] ?? k),
-                    });
-                    plugin.settings.dbRefs[moduleId] = report.dbRef;
-                    r = report.dbRef;
-                    const { saveSettings } = await import("@/core/settings");
-                    await saveSettings(plugin as any, plugin.settings);
+                    await plugin.repairModule?.(moduleId);
+                    r = plugin.settings.dbRefs[moduleId];
                 } catch { /* soft heal */ }
                 missingColumn = captureFields.find((field) => {
                     const value = values[field.key];

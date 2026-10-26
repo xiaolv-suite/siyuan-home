@@ -776,7 +776,7 @@
         const err = document.createElement("span"); err.className = "lv-caption"; err.setAttribute("role", "alert"); err.style.color = "var(--lv-danger)";
         // 一个转台账对话框对应一个业务操作。若首个请求超时、或用户点击重试，
         // 必须复用同一幂等 key，避免内核已落行但前端未拿到响应时再次建出重复行。
-        const operationKey = (() => {
+        let operationKey = (() => {
             try { return `triage:${crypto.randomUUID()}`; }
             catch { return `triage:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
         })();
@@ -816,10 +816,11 @@
                     pendingRowId = itemID;
                     pendingModuleId = mod;
                 } catch (e) {
+                    operationKey = `triage:${Date.now()}`;
                     const { RowIdentityPendingError } = await import("@/core/siyuan");
                     if (e instanceof RowIdentityPendingError) {
                         identityPending = true;
-                        ok.disabled = true;
+                        ok.disabled = false;
                         err.textContent = t("triage.identityPending");
                         return;
                     }

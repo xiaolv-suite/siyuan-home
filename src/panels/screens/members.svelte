@@ -661,7 +661,13 @@ function openReassignDialog(fromMember?: FamilyMember) {
             </div>
         {/if}
         {#if alertsFor(m.id).length > 0}
-            <div class="lv-person-alert" role="status">需关注 · {alertsFor(m.id).length} {alertsFor(m.id).length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</div>
+            <button type="button" class="lv-person-alert"
+                style="background:none;border:none;padding:0;cursor:pointer;font:inherit;text-align:left;display:inline-flex;align-items:center;gap:6px"
+                title="点击展开该成员详情与到期提醒"
+                onclick={() => { if (expandedId !== m.id) toggleExpand(m.id); }}>
+                <span>⚠️ 需关注 · <b>{alertsFor(m.id).length}</b> {alertsFor(m.id).length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
+                <span class="lv-caption" style="color:var(--lv-warn);font-size:11px">→</span>
+            </button>
         {/if}
         {#if expandedId === m.id}
             <!-- 260 波：展开区入场动画（对齐抽屉编排语言；lv-rise 180ms） -->

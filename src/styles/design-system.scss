@@ -1432,10 +1432,11 @@
     .lv-wiz-flow span:not(.lv-wiz-flow__num) { font-size: 10.5px; }
 }
 .lv-rolechip { display: inline-flex; align-items: center; gap: var(--lv-space-2); padding: 9px 16px; border-radius: 999px;
-    border: 1px solid var(--lv-line-strong); font-size: 13.5px; color: var(--lv-tx); background: none; cursor: pointer;
-    transition: all var(--lv-t-med) var(--lv-spring);
-    &:hover { border-color: var(--lv-accent-line); transform: translateY(-1px); }
-    &.on { background: var(--lv-accent-soft); border-color: var(--lv-accent-line); color: var(--lv-accent); font-weight: 500; } }
+    border: 1px solid var(--lv-line); font-size: 13.5px; color: var(--lv-tx); background: var(--lv-surface); cursor: pointer;
+    box-shadow: var(--lv-shadow-1);
+    transition: all var(--lv-t-fast) var(--lv-ease);
+    &:hover { border-color: var(--lv-line-strong); transform: translateY(-1px); box-shadow: var(--lv-shadow-2); }
+    &.on { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); font-weight: 550; } }
 
 // 首次配置完成后的操作路径：用户完成第一条记录后自动隐藏。
 .lv-start-guide { margin: 0 0 22px; padding: 20px 22px; border: 1px solid var(--lv-accent-line); border-left: 3px solid var(--lv-accent);

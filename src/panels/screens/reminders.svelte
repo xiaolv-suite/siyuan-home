@@ -1070,15 +1070,19 @@
     </div>
 {/snippet}
 
-<section class="lv-hub-head" aria-labelledby="lv-hub-title">
-    <div class="lv-hero lv-hub-title">
-        <div><span class="lv-hub-eyebrow">{t("dash.upcoming")}</span><h1 id="lv-hub-title">{t("hub.title")}</h1><p>{t("hub.subtitle")}</p></div>
+<div class="lv-hero lv-hub-hero" aria-labelledby="lv-hub-title">
+    <div class="lv-hero-copy">
+        <span class="lv-hub-eyebrow">{t("dash.upcoming")}</span>
+        <h1 id="lv-hub-title">{t("hub.title")}</h1>
+        <p class="lv-hero-lead">{t("hub.subtitle")}</p>
     </div>
-    <div class="lv-hub-summary" aria-label={t("hub.title")}>
-        <div class="lv-hub-summary__item"><span>{t("hub.filterAll")}</span><b class="lv-num">{all.length}</b></div>
-        <div class="lv-hub-summary__item is-overdue"><span>{t("hub.groupOverdue")}</span><b class="lv-num">{overdueCount}</b></div>
+    <div class="lv-hero-tools">
+        <div class="lv-hub-summary" aria-label={t("hub.title")}>
+            <div class="lv-hub-summary__item"><span>{t("hub.filterAll")}</span><b class="lv-num">{all.length}</b></div>
+            <div class="lv-hub-summary__item is-overdue"><span>{t("hub.groupOverdue")}</span><b class="lv-num">{overdueCount}</b></div>
+        </div>
     </div>
-</section>
+</div>
 
 <section class="lv-hub-controls" aria-label={t("hub.title")}>
     <div class="lv-card lv-hub-filter-panel">
@@ -1292,15 +1296,6 @@
 
 <style>
     /* 提醒页局部视觉层级：页头负责摘要，控制区分成筛选与动作两层，避免长工具条抢占内容。 */
-    .lv-hub-head {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 20px;
-        margin: 4px 2px 18px;
-    }
-    .lv-hub-title { margin: 0; }
-    .lv-hub-title h1 { margin: 2px 0 0; }
     .lv-hub-eyebrow {
         display: block;
         color: var(--lv-accent);
@@ -1308,6 +1303,7 @@
         font-weight: 650;
         letter-spacing: .08em;
         text-transform: uppercase;
+        margin-bottom: 2px;
     }
     .lv-hub-summary {
         display: flex;
@@ -1316,13 +1312,13 @@
         flex: none;
         overflow: hidden;
         border: 1px solid var(--lv-line);
-        border-radius: var(--lv-r-3);
-        background: var(--lv-surface);
-        box-shadow: var(--lv-shadow-1), inset 0 1px 0 var(--lv-inset);
+        border-radius: var(--lv-r-2);
+        background: var(--lv-surface-2);
+        box-shadow: var(--lv-shadow-1);
     }
     .lv-hub-summary__item {
         min-width: 74px;
-        padding: 9px 13px;
+        padding: 8px 14px;
         display: flex;
         flex-direction: column-reverse;
         gap: 2px;
@@ -1331,10 +1327,10 @@
     }
     .lv-hub-summary__item + .lv-hub-summary__item { border-left: 1px solid var(--lv-line); }
     .lv-hub-summary__item span { color: var(--lv-tx-3); font-size: 11px; white-space: nowrap; }
-    .lv-hub-summary__item b { font-size: 19px; line-height: 1.1; font-weight: 650; }
+    .lv-hub-summary__item b { font-size: 20px; line-height: 1.1; font-weight: 650; color: var(--lv-tx); }
     .lv-hub-summary__item.is-overdue b { color: var(--lv-danger); }
     .lv-hub-controls { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 10px; margin-bottom: 18px; }
-    .lv-hub-filter-panel, .lv-hub-action-panel { padding: 11px 13px; min-width: 0; }
+    .lv-hub-filter-panel, .lv-hub-action-panel { padding: 12px 14px; min-width: 0; border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); background: var(--lv-surface); box-shadow: var(--lv-shadow-1); }
     .lv-hub-panel-label {
         margin: 0 0 7px 2px;
         color: var(--lv-tx-3);

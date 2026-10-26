@@ -976,7 +976,7 @@
             {/if}
         </div>
         <div class="lv-sheet-foot">
-            <button class="b3-button b3-button--text" onclick={close} disabled={saving}>{t("cancel")}</button>
+            <button class="b3-button b3-button--cancel" onclick={close} disabled={saving}>{t("cancel")}</button>
             <span class="fn__flex-1"></span>
             {#if captureTab === "event"}
                 <button class="lv-btn primary" onclick={() => {

@@ -589,10 +589,11 @@
     b { color: var(--lv-tx-2); font-size: 14px; } }
   .lv-module-section { margin-bottom: 20px; }
   .lv-module-section__heading { margin: 0 0 8px; }
-  .lv-module-section__head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+  .lv-module-section__head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 14px;
     border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); text-align: left;
-    transition: background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease);
-    &:hover { background: var(--lv-surface-2); border-color: var(--lv-line-strong); }
+    box-shadow: var(--lv-shadow-1); cursor: pointer; user-select: none;
+    transition: all var(--lv-t-fast) var(--lv-ease);
+    &:hover { background: var(--lv-surface-2); border-color: var(--lv-line-strong); box-shadow: var(--lv-shadow-2); }
     .lv-module-section__chevron { width: 18px; flex: none; color: var(--lv-accent); font-size: 17px; text-align: center; }
     .lv-module-section__title { color: var(--lv-tx); font-size: 13px; font-weight: 600; }
     .lv-caption { color: var(--lv-tx-3); font-size: 11px; } }
@@ -611,8 +612,9 @@
     box-shadow: none; }
   .lv-mod { padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--lv-space-3); min-height: 128px; min-width: 0; cursor: pointer;
     position: relative; overflow: hidden; border-radius: var(--lv-r-3); border: 1px solid var(--lv-line); background: var(--lv-surface);
+    box-shadow: var(--lv-shadow-1);
     transition: all var(--lv-t-med) var(--lv-ease);
-    &:hover { border-color: var(--lv-line-strong); transform: translateY(-2px); box-shadow: var(--lv-shadow-1); }
+    &:hover { border-color: var(--lv-line-strong); transform: translateY(-2px); box-shadow: var(--lv-shadow-2); }
     > b { font-size: 14px; font-weight: 600; position: relative; }
     .lv-stat { display: flex; align-items: baseline; gap: 6px; position: relative;
       b { font-size: 22px; font-weight: 700; letter-spacing: 0; color: var(--lv-tx); line-height: 1.2; }

@@ -353,7 +353,7 @@
     .lv-activity-list { overflow:hidden; padding:0 14px; }
     .lv-activity-row { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:11px; min-width:0; padding:12px 0; border-bottom:1px solid var(--lv-line); }
     .lv-activity-row:last-of-type { border-bottom:0; }
-    .lv-activity-mark { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; color:var(--lv-accent); background:var(--lv-accent-soft); }
+    .lv-activity-mark { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; color:var(--lv-accent); background:var(--lv-accent-soft); border:1px solid rgba(217, 119, 6, 0.18); }
     .lv-activity-main { display:flex; flex-direction:column; gap:5px; min-width:0; }
     .lv-activity-open { display:flex; align-items:baseline; gap:8px; min-width:0; width:fit-content; max-width:100%; padding:0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; font:inherit; }
     .lv-activity-open b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }

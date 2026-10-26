@@ -24,6 +24,7 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
     });
 
     it("车辆建库能正确识别并生成全量字段别名", () => {
+        expect(COMMON_COLUMN_ALIASES.name).toContain("主键");
         expect(COMMON_COLUMN_ALIASES.plate).toContain("车牌");
         expect(COMMON_COLUMN_ALIASES.plate).toContain("车牌号");
         expect(COMMON_COLUMN_ALIASES.brand_model).toContain("品牌型号");

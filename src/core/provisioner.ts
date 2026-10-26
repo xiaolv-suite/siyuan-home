@@ -308,7 +308,7 @@ export function getProvisioningReport(settings: Pick<HomeSettings, "enabledModul
 
 /** 常见列定义多语言与历史别名映射库，彻底解决列名不匹配与重复建列问题 */
 export const COMMON_COLUMN_ALIASES: Record<string, string[]> = {
-    name: ["名称", "姓名", "标题", "物品名称", "证件名称", "合同名称", "车辆名称", "车名", "块", "主要", "主属性", "name", "title", "block"],
+    name: ["主键", "名称", "姓名", "标题", "物品名称", "证件名称", "合同名称", "车辆名称", "车名", "块", "主要", "主属性", "name", "title", "block"],
     qty: ["数量", "库存", "库存量", "现存数量", "qty", "stock_qty"],
     stock_qty: ["数量", "库存", "库存量", "现存数量", "qty", "stock_qty"],
     expiry: ["到期日", "有效期", "过期时间", "到期时间", "截止日期", "保质期至", "expiry", "due"],
@@ -645,6 +645,10 @@ export async function discoverAndAdoptAllLedgers(
             try {
                 const hp = await getHPathByID(existing.docId);
                 if (hp) {
+                    const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
+                    const { columns, error } = await ensureColumns(existing.avId, schema, existing.columns, moduleId, { resolveName }, memberAvId);
+                    existing.columns = columns;
+                    if (error) existing.provisionError = error;
                     report.alreadyReadyCount++;
                     continue;
                 }

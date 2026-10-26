@@ -10,7 +10,7 @@
     import { showMessage } from "siyuan";
     import { formatAsTaskBlock } from "@/core/block-capture";
 
-    let { items, t, version, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn }: {
+    let { items, t, version, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn, onLocate }: {
         items: Reminder[];
         t: (k: string) => string;
         version?: number;
@@ -22,6 +22,7 @@
         onModeChange?: (m: "month" | "week") => void;
         onTogglePin?: (r: Reminder) => void | Promise<void>;
         isPinnedFn?: (r: Reminder) => boolean;
+        onLocate?: (r: Reminder) => void;
     } = $props();
 
     const now = new Date();
@@ -147,6 +148,16 @@
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
         }
     }
+
+    async function copySingleTask(r: Reminder) {
+        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id);
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(t("hub.taskBlockCopied"), 2500, "info");
+        } catch {
+            showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        }
+    }
     function moveDayFocus(event: KeyboardEvent, index: number) {
         const key = event.key;
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(key)) return;
@@ -229,14 +240,30 @@
                 {#each dayItems as r (r.id)}
                     <div class="lv-cal-item">
                         <span class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></span>
-                        <div style="min-width:0;flex:1">
-                            <b style="font-size:13px">
-                                {#if isPinnedFn?.(r)}<span style="color:var(--lv-accent);margin-right:2px">📌</span>{/if}
-                                {r.title}
-                            </b>
-                            <span class="lv-caption" style="display:block">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
-                        </div>
+                        {#if onLocate && r.moduleId !== "adhoc"}
+                            <div style="min-width:0;flex:1;cursor:pointer"
+                                role="button"
+                                tabindex="0"
+                                title={t("act.locate")}
+                                onclick={() => onLocate?.(r)}
+                                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLocate?.(r); } }}>
+                                <b style="font-size:13px">
+                                    {#if isPinnedFn?.(r)}<span style="color:var(--lv-accent);margin-right:2px">📌</span>{/if}
+                                    {r.title}
+                                </b>
+                                <span class="lv-caption" style="display:block">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
+                            </div>
+                        {:else}
+                            <div style="min-width:0;flex:1">
+                                <b style="font-size:13px">
+                                    {#if isPinnedFn?.(r)}<span style="color:var(--lv-accent);margin-right:2px">📌</span>{/if}
+                                    {r.title}
+                                </b>
+                                <span class="lv-caption" style="display:block">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
+                            </div>
+                        {/if}
                         <span class="lv-badge {r.level === "overdue" ? "red" : r.level === "soon" ? "orange" : "yellow"}">{r.level === "overdue" ? t("level.overdue") : r.level === "soon" ? t("level.soon") : t("level.lead")}</span>
+                        <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}>📋</button>
                         {#if onTogglePin}
                             <button class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}>{isPinnedFn?.(r) ? "📌 " + t("act.unpin") : "📌 " + t("act.pin")}</button>
                         {/if}

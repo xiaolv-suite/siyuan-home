@@ -39,22 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.108
+## 🆕 What's new in v0.5.109
 
-This release expands `Ctrl+Enter` / `Cmd+Enter` shortcut submission across ledger record creation drawers:
+This release integrates instant location searching onto the Overview dashboard and optimizes bundle architecture:
 
-- **Enhanced (Ledger Drawer Ctrl+Enter / Cmd+Enter Shortcut)**: Users can now press `Ctrl+Enter` (or `Cmd+Enter` on macOS) anywhere inside the ledger new-record drawer to instantly submit and close;
-- **Integrated (Alt-Combination Continuous Capture)**: Pressing `Ctrl+Alt+Enter` automatically dispatches continuous batch creation for the next row without mouse interruption;
+- **Enhanced (Overview Instant "Where is it?" Search)**: Added a dedicated `📍 Where is it?` action button to the Overview Hero section, providing instant keyword search across all household items and storages;
+- **Optimized (Decoupled Location Index Dispatch)**: Consolidated location search events through `siyuan-home:open-location`, avoiding duplicated dynamic import chunks and reducing gzip bundle size to 281.35 KB (248B budget margin);
 - **Validation**: 91 test suites, **811 unit tests passing**, TypeScript, Svelte, i18n (1956 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.108)
+## 📦 Install (v0.5.109)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.108 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.108 package is the current GitHub release; local quality checks report 811 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.109 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.109 package is the current GitHub release; local quality checks report 811 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.108 (current) | Ledger drawer Ctrl+Enter shortcut submission, continuous record dispatch, 811 tests |
+| ✅ v0.5.109 (current) | Overview "Where is it?" search, decoupled event dispatch, 811 tests |
+| v0.5.108 | Ledger drawer Ctrl+Enter shortcut submission, continuous record dispatch, 811 tests |
 | v0.5.107 | Global Ctrl+Enter shortcut submission, continuous capture dispatch, 811 tests |
 | v0.5.106 | Vital signs auto-provisioning, vehicle fueling activity sync, 810 tests |
 | v0.5.105 | Quick record auto-heal, row assertion reuse, 810 tests |

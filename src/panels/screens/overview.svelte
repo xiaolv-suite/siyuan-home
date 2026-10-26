@@ -352,29 +352,6 @@
         }
     }
 
-    // 259 波（对齐原型动效 #6）：总览计数 0→N 数字滚动（560ms ease-out-cubic，仅此一处）。
-    // action 形式挂载，target 变化时重跑；prefers-reduced-motion 直接落终值
-    function countUp(node: HTMLElement, target: number) {
-        let raf = 0;
-        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const render = (v: number) => { node.textContent = String(Math.round(v)); };
-        const run = (to: number) => {
-            cancelAnimationFrame(raf);
-            if (reduced) { render(to); return; }
-            const from = Number(node.textContent) || 0;
-            if (from === to) return;
-            const t0 = performance.now();
-            const tick = (now: number) => {
-                const p = Math.min(1, (now - t0) / 560);
-                render(from + (to - from) * (1 - Math.pow(1 - p, 3)));
-                if (p < 1) raf = requestAnimationFrame(tick);
-            };
-            raf = requestAnimationFrame(tick);
-        };
-        run(target);
-        return { update: run, destroy: () => cancelAnimationFrame(raf) };
-    }
-
     // 300波里程碑：家庭年度生活指数与幸福资产盘点
     async function openLifeIndexModal() {
         try {
@@ -425,6 +402,12 @@
             showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
         }
     }
+
+    // 322波：总览主屏一键直达全模块「📍 东西放哪了」存放位置速查
+    function openLocationIndexModal() {
+        onGoto("ledger");
+        setTimeout(() => window.dispatchEvent(new CustomEvent("siyuan-home:open-location")), 60);
+    }
 </script>
 
 {#if !onboarded}
@@ -447,6 +430,7 @@
         </p>
         <div class="lv-hero-actions">
             <button class="b3-button lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
+            <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openLocationIndexModal}><UiIcon name="mapPin" size={15} />{t("ledger.locSearch")}</button>
             <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openLifeIndexModal}><UiIcon name="shield" size={15} />{t("overview.lifeIndex")}</button>
             <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openEmergencyCardModal}><UiIcon name="alert" size={15} />{t("overview.emergencyCard")}</button>
             <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openShareCardModal}><UiIcon name="camera" size={15} />{t("overview.shareCard")}</button>
@@ -463,7 +447,7 @@
                 <span class="lv-hero-stat-label">{reminders.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
             </div>
             <div class="lv-hero-stat-body">
-                <b class="lv-num lv-hero-stat-num" use:countUp={reminders.length}>{reminders.length}</b>
+                <b class="lv-num lv-hero-stat-num">{reminders.length}</b>
             </div>
             <div class="lv-hero-stat-footer">
                 <span class="lv-badge {reminders.length > 0 ? 'orange' : 'green'}" style="font-size:11px">

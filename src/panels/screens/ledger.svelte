@@ -60,6 +60,8 @@
     const flex1Min180Css = "flex:1;min-width:180px;overflow-wrap:anywhere";
     const pad24Fs12Css = "padding:2px 4px;font-size:12px";
     const pad06Fs12Css = "padding:0 6px;font-size:12px";
+    const pad36Fs12Css = "padding:3px 6px;font-size:12px";
+    const fs11Lh16Css = "font-size:11px;line-height:1.6";
     const cap11Mb3Css = "display:block;font-size:11px;margin-bottom:3px";
     const minW96Shrink0Css = "min-width:96px;flex-shrink:0";
     const wordBreakAllCss = "word-break:break-all";
@@ -2226,6 +2228,11 @@
         }
     }
     $effect(() => { void version; void active; void plugin.scan?.scannedAt; load(); });
+    $effect(() => {
+        const handler = () => void openLocationIndexModal();
+        window.addEventListener("siyuan-home:open-location", handler);
+        return () => window.removeEventListener("siyuan-home:open-location", handler);
+    });
 
     // Keep the fast path small, while exposing every supported schema field in
     // the expandable section below. Writes still follow the declared cell type.
@@ -2816,7 +2823,7 @@
             const cancel = document.createElement("button");
             cancel.type = "button";
             cancel.className = "b3-button b3-button--text";
-            cancel.style.cssText = "padding:3px 6px;font-size:12px";
+            cancel.style.cssText = pad36Fs12Css;
             cancel.textContent = t("cancel");
             actions.append(save, cancel);
             editor.append(control);
@@ -2824,7 +2831,7 @@
                 const pick = document.createElement("button");
                 pick.type = "button";
                 pick.className = "b3-button b3-button--outline";
-                pick.style.cssText = "padding:3px 6px;font-size:12px";
+                pick.style.cssText = pad36Fs12Css;
                 pick.textContent = t("ledger.pickContact");
                 pick.onclick = () => pickFromContacts((picked) => { control.value = picked; });
                 editor.append(pick);
@@ -3535,7 +3542,7 @@
             if (reminders.length) {
                 const reminder = document.createElement("div");
                 reminder.className = "lv-record-next";
-                reminder.style.cssText = "font-size:11px;line-height:1.6;margin-top:6px";
+                reminder.style.cssText = `${fs11Lh16Css};margin-top:6px`;
                 reminder.textContent = `${t("vehicle.summary.nextAction")}：${reminders.join(" · ")}`;
                 wrap.appendChild(reminder);
             }
@@ -3652,7 +3659,7 @@
                 formBody.appendChild(fullLabel);
                 const formHint = document.createElement("p");
                 formHint.className = "ft__on-surface";
-                formHint.style.cssText = "font-size:11px;line-height:1.6;margin:10px 0 0";
+                formHint.style.cssText = `${fs11Lh16Css};margin:10px 0 0`;
                 formHint.textContent = t("fuel.formHint");
                 formBody.appendChild(formHint);
 
@@ -3790,7 +3797,7 @@
                         }
                         section.append(chartTitle, svg);
                     } else if (!isHybridVehicle) {
-                        const guidance = document.createElement("div"); guidance.className = "ft__on-surface"; guidance.style.cssText = "font-size:11px;line-height:1.6;margin-top:8px";
+                        const guidance = document.createElement("div"); guidance.className = "ft__on-surface"; guidance.style.cssText = `${fs11Lh16Css};margin-top:8px`;
                         guidance.textContent = t(records.length ? "fuel.baselineHint" : "fuel.emptyHint");
                         section.appendChild(guidance);
                     }
@@ -6368,7 +6375,7 @@
             <button type="button" class="b3-button b3-button--text ft__error" style="{fs12Pad310Css};color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
                 🗑️ {t("ledger.batchDelete")}
             </button>
-            <button type="button" class="b3-button b3-button--text" style="font-size:12px;padding:3px 6px" onclick={() => { selectedItemIds = []; }} title={t("close")}>
+            <button type="button" class="b3-button b3-button--text" style={pad36Fs12Css} onclick={() => { selectedItemIds = []; }} title={t("close")}>
                 ✕
             </button>
         </div>

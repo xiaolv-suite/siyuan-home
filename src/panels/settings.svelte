@@ -2,7 +2,7 @@
     import { showMessage, Dialog } from "siyuan";
     import { confirm } from "@/libs/dialog";
     import { listNotebooks } from "@/core/siyuan";
-    import { MODULE_GROUPS, modulesByGroup } from "@/core/modules";
+    import { MODULE_GROUPS, modulesByGroup, BUILT_IN_MODULES } from "@/core/modules";
     import { newMember, saveSettings, normalizeCheckinBindings, errText } from "@/core/settings";
     import type { ProvisioningReport } from "@/core/provisioner";
     import type { HomeSettings, MemberRole, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
@@ -51,6 +51,12 @@
     type SettingsArea = "modules" | "members" | "reminders" | "data" | "about";
     let area: SettingsArea = $state("modules");
     let moduleGroup: ModuleGroupId = $state("people");
+    let moduleSearch = $state("");
+    const currentModules = $derived(
+        moduleSearch.trim()
+            ? BUILT_IN_MODULES.filter((m) => (t(`module.${m.id}`) + m.id).toLowerCase().includes(moduleSearch.trim().toLowerCase()))
+            : modulesByGroup(moduleGroup)
+    );
     let reminderSection: "schedule" | "webhook" | "leads" | "checkin" = $state("schedule");
     let dataSection: "migration" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
     let saving = $state(false);
@@ -814,44 +820,58 @@
 
     <div class="lv-setpane" aria-busy={saving || migrationBusy || demoBusy} inert={saving || migrationBusy || demoBusy}>
     {#if area === "modules"}
-        <div class="lv-settings__pane-title">{t("tabModules")}</div>
-        <nav class="lv-settings__subnav" aria-label={t("settings.moduleCategory")}>
-            {#each MODULE_GROUPS as gid (gid)}
-                <button class="lv-setnav__item {moduleGroup === gid ? 'on' : ''}" aria-current={moduleGroup === gid ? 'true' : undefined} onclick={() => (moduleGroup = gid)}>{t(`group.${gid}`)}</button>
-            {/each}
-        </nav>
-        <div class="lv-settings__scroll" aria-label={t(`group.${moduleGroup}`)}>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0">
+            <div class="lv-settings__pane-title">{t("tabModules")}</div>
+            <div style="position:relative;display:inline-flex;align-items:center;max-width:180px">
+                <input class="b3-text-field" style="width:100%;font-size:12px;padding:3px 22px 3px 8px;min-height:28px"
+                    placeholder={t("dash.moduleSearch") || "搜索模块..."}
+                    bind:value={moduleSearch} />
+                {#if moduleSearch}
+                    <button type="button" class="b3-button b3-button--text" style="position:absolute;right:2px;padding:0 4px;font-size:11px;color:var(--lv-tx-3)" onclick={() => { moduleSearch = ""; }}>✕</button>
+                {/if}
+            </div>
+        </div>
+        {#if !moduleSearch.trim()}
+            <nav class="lv-settings__subnav" aria-label={t("settings.moduleCategory")}>
+                {#each MODULE_GROUPS as gid (gid)}
+                    <button class="lv-setnav__item {moduleGroup === gid ? 'on' : ''}" aria-current={moduleGroup === gid ? 'true' : undefined} onclick={() => (moduleGroup = gid)}>{t(`group.${gid}`)}</button>
+                {/each}
+            </nav>
+        {/if}
+        <div class="lv-settings__scroll" aria-label={moduleSearch.trim() ? "搜索模块" : t(`group.${moduleGroup}`)}>
             <div class="lv-card lv-setcard lv-setcard--hint">{t("settings.modulesHint")}</div>
             <div class="lv-card lv-setcard">
-                <div class="lv-setcard__title">{t(`group.${moduleGroup}`)}</div>
-                {#each modulesByGroup(moduleGroup) as mod (mod.id)}
-                    <div class="fn__flex lv-settings__row">
-                        <input
-                            type="checkbox"
-                            class="b3-switch"
-                            aria-label={t(`module.${mod.id}`)}
-                            checked={enabledIds.has(mod.id)}
-                            disabled={mod.alwaysOn}
-                            onchange={() => toggleModule(mod.id, mod.alwaysOn)}
-                        />
-                        <div class="fn__flex-1 fn__flex-column">
-                            <span>
-                                {t(`module.${mod.id}`)}
-                                <!-- 259 波：徽章归入 lv 体系（灰阶）——此前 31 行"开发中"全蓝 b3-chip
-                                     让整个模块页充满主色噪点；徽章=属性标注，不抢开关的主角色 -->
-                                {#if mod.alwaysOn}<span class="lv-badge gray">{t("alwaysOn")}</span>{/if}
-                                {#if mod.devStatus === "skeleton"}<span class="lv-badge gray">{t("skeleton")}</span>{/if}
-                            </span>
-                            <span class="b3-card__info-meta">{t(`module.${mod.id}.desc`)}</span>
-                            {#if mod.suggestRoles?.length && !enabledIds.has(mod.id)}
-                                <span class="ft__smaller ft__on-surface">
-                                    {t("settings.suggestRoles")}
-                                    {mod.suggestRoles.map((r) => t(`role.${r}`)).join(" / ")}
+                <div class="lv-setcard__title">{moduleSearch.trim() ? `搜索结果 · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>
+                {#if currentModules.length === 0}
+                    <div class="lv-caption" style="padding:12px 0;color:var(--lv-tx-3)">{t("ledger.searchEmpty")}</div>
+                {:else}
+                    {#each currentModules as mod (mod.id)}
+                        <div class="fn__flex lv-settings__row">
+                            <input
+                                type="checkbox"
+                                class="b3-switch"
+                                aria-label={t(`module.${mod.id}`)}
+                                checked={enabledIds.has(mod.id)}
+                                disabled={mod.alwaysOn}
+                                onchange={() => toggleModule(mod.id, mod.alwaysOn)}
+                            />
+                            <div class="fn__flex-1 fn__flex-column">
+                                <span>
+                                    {t(`module.${mod.id}`)}
+                                    {#if mod.alwaysOn}<span class="lv-badge gray">{t("alwaysOn")}</span>{/if}
+                                    {#if mod.devStatus === "skeleton"}<span class="lv-badge gray">{t("skeleton")}</span>{/if}
                                 </span>
-                            {/if}
+                                <span class="b3-card__info-meta">{t(`module.${mod.id}.desc`)}</span>
+                                {#if mod.suggestRoles?.length && !enabledIds.has(mod.id)}
+                                    <span class="ft__smaller ft__on-surface">
+                                        {t("settings.suggestRoles")}
+                                        {mod.suggestRoles.map((r) => t(`role.${r}`)).join(" / ")}
+                                    </span>
+                                {/if}
+                            </div>
                         </div>
-                    </div>
-                {/each}
+                    {/each}
+                {/if}
             </div>
         </div>
     {:else if area === "members"}

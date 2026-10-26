@@ -172,25 +172,27 @@
         {#each calendarWeeks as week, weekIndex (week[0]?.key ?? weekIndex)}
             <div class="lv-cal-row" role="row" aria-label={`${week[0]?.key ?? ""} – ${week[week.length - 1]?.key ?? ""}`}>
                 {#each week as c, dayIndex (c.key)}
+                    {@const dayReminders = byDate.get(c.key) ?? []}
+                    {@const hasOverdue = dayReminders.some((r) => r.level === "overdue")}
                     <button class="lv-cal-cell" class:out={mode === "month" && !c.inMonth} class:sel={c.key === selected}
                         data-cal-day={c.key} role="gridcell" aria-selected={c.key === selected}
-                        aria-label={`${c.key}, ${(byDate.get(c.key) ?? []).length} ${t("cal.itemsUnit")}${c.key === todayKey ? `, ${t("cal.today")}` : ""}${mode === "month" && !c.inMonth ? `, ${t("cal.otherMonth")}` : ""}`}
+                        aria-label={`${c.key}, ${dayReminders.length} ${t("cal.itemsUnit")}${c.key === todayKey ? `, ${t("cal.today")}` : ""}${mode === "month" && !c.inMonth ? `, ${t("cal.otherMonth")}` : ""}`}
                         tabindex={c.key === selected ? 0 : -1} onkeydown={(e) => moveDayFocus(e, weekIndex * 7 + dayIndex)}
                         onclick={() => (selected = c.key)}>
-                        <span class="d" class:today={c.key === todayKey}>{c.day}</span>
+                        <span class="d" class:today={c.key === todayKey} class:has-overdue={hasOverdue}>{c.day}</span>
                         <span class="dots">
-                            {#each (byDate.get(c.key) ?? []).slice(0, 5) as r (r.id)}
+                            {#each dayReminders.slice(0, 5) as r (r.id)}
                                 <i class={dotCls(r)} title={r.title}></i>
                             {/each}
-                            {#if (byDate.get(c.key) ?? []).length > 5}<i class="more" title={`${(byDate.get(c.key) ?? []).length - 5} more`}>+</i>{/if}
+                            {#if dayReminders.length > 5}<i class="more" title={`${dayReminders.length - 5} more`}>+</i>{/if}
                         </span>
                         {#if mode === "week"}
                             <span class="tt">
-                                {#each (byDate.get(c.key) ?? []).slice(0, 3) as r (r.id)}
+                                {#each dayReminders.slice(0, 3) as r (r.id)}
                                     <span class="tt-line {r.level}">{r.title}</span>
                                 {/each}
-                                {#if (byDate.get(c.key) ?? []).length > 3}
-                                    <span class="tt-line">+{(byDate.get(c.key) ?? []).length - 3}</span>
+                                {#if dayReminders.length > 3}
+                                    <span class="tt-line">+{dayReminders.length - 3}</span>
                                 {/if}
                             </span>
                         {/if}

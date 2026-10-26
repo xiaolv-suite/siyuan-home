@@ -343,6 +343,8 @@ export const COMMON_COLUMN_ALIASES: Record<string, string[]> = {
 export interface ProvisionOptions {
     /** 列名解析（i18n）：列 key → 显示名（缺省用 key 本身） */
     resolveName?: (colKey: string) => string;
+    /** 真实性对齐：强制核实思源数据库中真实列存在性，清理幽灵列映射并在思源中补齐缺失列 */
+    reconcileGhostColumns?: boolean;
 }
 
 /** 补列（D08 只增不改）：跳过已登记列；返回完整 keyID 映射与首个失败摘要（undefined = 全部就绪） */
@@ -363,29 +365,22 @@ async function ensureColumns(
     } catch (e) {
         return { columns, error: `column preflight: ${errText(e)}` };
     }
+    const knownIds = new Set(knownColumns.map((c: any) => c?.id));
     for (const col of schema.columns) {
-        if (columns[col.key]) continue; // 已登记 → 不删不改（ensureColumns 约束，15/33.2）
-        const keyID = newSiYuanId();
         const columnName = opts.resolveName?.(col.key) ?? col.key;
-        // 别名与跨语言双向匹配池（中文、英文、历史别名全量覆盖）
-        const colAliases = new Set([
-            columnName,
-            col.key,
-            ...(COMMON_COLUMN_ALIASES[col.key] ?? []),
-        ]);
-        const currentMatches = knownColumns.filter((candidate: any) =>
-            candidate?.id === keyID || colAliases.has(candidate?.name) || colAliases.has(candidate?.keyName),
-        );
-        if (currentMatches.length === 1 && currentMatches[0]?.id) {
+        const colAliases = new Set([columnName, col.key, ...(COMMON_COLUMN_ALIASES[col.key] ?? [])]);
+        if (columns[col.key]) {
+            if (!opts.reconcileGhostColumns || knownIds.has(columns[col.key]) || knownColumns.length === 0) continue;
+            const match = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName));
+            if (match?.id) { columns[col.key] = String(match.id); continue; }
+            delete columns[col.key];
+        }
+        const keyID = newSiYuanId();
+        const currentMatches = knownColumns.filter((c: any) => c?.id === keyID || colAliases.has(c?.name) || colAliases.has(c?.keyName));
+        if (currentMatches.length >= 1 && currentMatches[0]?.id) {
             columns[col.key] = String(currentMatches[0].id);
             continue;
         }
-        if (currentMatches.length > 1) {
-            // 优选第一个有效匹配，确保映射不落空
-            columns[col.key] = String(currentMatches[0].id);
-            continue;
-        }
-        // 如果是 relation 列但成员目标库尚未就绪，不直接发起可能导致负数错误码的请求
         if (col.type === "relation" && !memberAvId) {
             error = `relation column "${col.key}" deferred: members ledger pending`;
             continue;
@@ -396,9 +391,10 @@ async function ensureColumns(
                 name: columnName,
                 type: col.type,
                 relationTargetAvID: col.type === "relation" ? memberAvId : undefined,
-            }, { idempotencyKey: `provision:column:${moduleId}:${col.key}`, retries: 0 });
+            }, { idempotencyKey: `pcol:${avId}:${col.key}:${Date.now().toString(36)}`, retries: 0 });
             columns[col.key] = keyID;
             knownColumns.push({ id: keyID, name: columnName });
+            knownIds.add(keyID);
         } catch (e) {
             // The add may have committed while its response was lost. A
             // fresh view can safely recover the key; otherwise leave the

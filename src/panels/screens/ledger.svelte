@@ -30,7 +30,9 @@
     /** 312 波：抽屉内子记录行样式（原 4 处重复字面量收敛） */
     const substRowCss = "padding:2px 0;font-size:12.5px";
     const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
-    const sectionHeaderCss = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px";
+    const flexBetweenCenterGap8Css = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+    const sectionHeaderCss = `${flexBetweenCenterGap8Css};margin-bottom:8px`;
+    const pad12Mb10Css = "padding:12px;margin-bottom:10px";
     const sectionTitleCss = "font-weight:600;font-size:12px";
     const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
@@ -870,9 +872,9 @@
             for (const vehicle of vehicles) {
                 const card = document.createElement("section");
                 card.className = "lv-card";
-                card.style.cssText = "padding:12px;margin-bottom:10px";
+                card.style.cssText = pad12Mb10Css;
                 const head = document.createElement("div");
-                head.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px";
+                head.style.cssText = "display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px";
                 const title = document.createElement("b");
                 title.style.fontSize = "14px";
                 title.textContent = cellText(vehicle.cells?.[cols.name ?? ""], "name") || t("ledger.unnamed");
@@ -1173,7 +1175,7 @@
 
                 // 疫苗排期列表
                 const list = document.createElement("div");
-                list.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-top:4px";
+                list.style.cssText = `${flexColGap6Css};margin-top:4px`;
 
                 for (const it of report.items) {
                     const itemEl = document.createElement("div");
@@ -1547,7 +1549,7 @@
                     left.append(titleSpan, urlSpan);
 
                     const right = document.createElement("div");
-                    right.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
+                    right.style.cssText = `${flexCenterGap6Css};flex-shrink:0`;
 
                     const badge = document.createElement("span");
                     badge.className = "lv-badge danger";
@@ -2771,7 +2773,7 @@
             const current = rawFromValue(col.type, row.cells[keyID]);
             const editor = document.createElement("div");
             editor.className = "lv-inline-editor";
-            editor.style.cssText = "display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap";
+            editor.style.cssText = `${flexCenterGap6Css};flex:1;min-width:0;flex-wrap:wrap`;
             let control: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
             const longText = col.type === "text" && /(^|_)(note|memo|description|remark|address)($|_)/i.test(String(col.key));
             if (col.type === "select") {
@@ -3401,7 +3403,7 @@
             body.appendChild(head);
             body.appendChild(section);
             const form = document.createElement("div");
-            form.style.cssText = "display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap";
+            form.style.cssText = `${flexCenterGap6Css};margin-top:6px;flex-wrap:wrap`;
             const inputs: Record<string, HTMLInputElement> = {};
             for (const f of opts.fields) {
                 const inp = document.createElement("input");
@@ -4037,12 +4039,12 @@
             const link = blockDeepLink(blockId || ref?.docId || "");
             const wrap = document.createElement("div");
             if (active === "vehicles") wrap.className = "lv-detail-wide";
-            wrap.style.cssText = "border-top:1px solid var(--b3-border-color);margin-top:10px;padding-top:10px";
+            wrap.style.cssText = wrapBorderCss;
             const head = document.createElement("p");
             head.style.cssText = "font-size:12px;margin:0 0 6px;color:var(--lv-tx-2)";
             head.textContent = t("ledger.qrTitle");
             const rowEl = document.createElement("div");
-            rowEl.style.cssText = "display:flex;gap:10px;align-items:center";
+            rowEl.style.cssText = `${flexCenterGap6Css};gap:10px`;
             const img = document.createElement("img");
             img.alt = "QR";
             img.style.cssText = "width:96px;height:96px;border:1px solid var(--lv-line);border-radius:8px;padding:4px;background:#fff;flex-shrink:0";
@@ -4472,7 +4474,7 @@
                     // 1. 生理年龄与阶段
                     if (summary.ageInfo) {
                         const ageLine = document.createElement("div");
-                        ageLine.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+                        ageLine.style.cssText = flexBetweenCenterGap8Css;
                         ageLine.innerHTML = `
                             <span>${t("ledger.petAgeEquivalent")}: <b>${summary.ageInfo.humanEquivalentAge} 岁</b> (${summary.ageInfo.chronologicalYears} 岁 ${summary.ageInfo.chronologicalMonths} 个月)</span>
                             <span class="lv-badge purple">${summary.ageInfo.lifeStageLabel}</span>
@@ -5642,7 +5644,7 @@
                 idempotencyKey: `${recordOperationKey}:row`,
             });
             pendingItemID = itemID;
-            const cols = ref.columns ?? {};
+            const cols = plugin.settings.dbRefs[active]?.columns ?? ref.columns ?? {};
             const failed: string[] = [];
             const tryCell = async (label: string, key: string | undefined, value: unknown) => {
                 if (!key) {

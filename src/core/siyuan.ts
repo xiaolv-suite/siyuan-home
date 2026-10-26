@@ -643,10 +643,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         if (!isWriteResultUnknown(error)) throw error;
         // The add may have committed before the response was lost. Reconcile
         // against a fresh render without reusing the caller's aborted signal.
-        const recoveryOptions: RequestOptions = {
-            timeoutMs: options?.timeoutMs,
-            retries: 0,
-        };
+        const recoveryOptions = { timeoutMs: options?.timeoutMs, retries: 0 };
         await new Promise((resolve) => setTimeout(resolve, 300));
         try {
             const recovered = (await renderRowIDs(avID, recoveryOptions)).filter((id) => !before.has(id));
@@ -659,8 +656,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         }
     }
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
-    if (fromResponse.includes(desiredItemID)) return desiredItemID;
-    if (fromResponse.length === 1) return fromResponse[0];
+    if (fromResponse.includes(desiredItemID) || fromResponse.length === 1) return fromResponse.includes(desiredItemID) ? desiredItemID : fromResponse[0];
 
     // 块索引异步重建：梯级短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];
@@ -674,8 +670,6 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         } catch { /* soft retry */ }
     }
 
-    const confirmed = fromResponse.includes(desiredItemID) ? desiredItemID : fromResponse.length === 1 ? fromResponse[0] : added.includes(desiredItemID) ? desiredItemID : added.length === 1 ? added[0] : undefined;
-    if (confirmed) return confirmed;
     throw new RowIdentityPendingError(added.length ? Array.from(new Set(added)) : fromResponse);
 }
 
@@ -864,10 +858,7 @@ export async function recognizeAsset(path: string, options?: RequestOptions): Pr
 export async function setCell(avID: string, keyID: string, itemID: string, value: unknown, options?: RequestOptions): Promise<void> {
     // Cell edits are last-write-wins.  A slow response from an earlier blur
     // must never be allowed to report success after a newer value was sent.
-    const requestOptions: RequestOptions = {
-        ...options,
-        latestKey: options?.latestKey ?? `cell:${avID}:${keyID}:${itemID}`,
-    };
+    const requestOptions = { ...options, latestKey: options?.latestKey ?? `cell:${avID}:${keyID}:${itemID}` };
     let payloadValue = value;
     if (typeof value === "string") {
         payloadValue = { type: "text", text: { content: value } };

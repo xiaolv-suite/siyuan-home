@@ -277,6 +277,20 @@ describe("provisionModule（D07/D08）", () => {
         expect(s.columnsAdded).toHaveLength(0);
     });
 
+    it("④ 幽灵列自愈：reconcileGhostColumns 开启时发现登记 ID 在真实库中缺失且无同名列 → 真正向思源加列并修正映射", async () => {
+        const s = fakeKernel();
+        s.notebooks = [NB];
+        // 模拟真实思源库只有主键列，没有 note 列
+        s.avColumns = [{ id: "real-pk", name: "主键" }];
+        // 设置里却记录了一个失效的幽灵 note ID
+        const st = settings({ certs: { docId: "doc-1", avId: "av-1", columns: { name: "real-pk", note: "ghost-note-id" }, notebook: NB_ID } });
+        const res = await provisionModule(st, "certs", schema, "证件", { ...opts, reconcileGhostColumns: true });
+        // 确认真正调用了 addAttributeViewKey
+        expect(s.columnsAdded.some((c) => c.keyName === "名-note")).toBe(true);
+        expect(res.dbRef.columns.note).not.toBe("ghost-note-id");
+        expect(res.dbRef.columns.note).toBeTruthy();
+    });
+
     it("④ 加列提交后响应丢失 → 回读真实列并登记，不再重加", async () => {
         const s = fakeKernel();
         s.notebooks = [NB];

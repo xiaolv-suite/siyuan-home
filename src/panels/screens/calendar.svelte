@@ -229,11 +229,11 @@
             </div>
         {/if}
         <!-- 233 波：当日快捷新增备忘（日期预设为选中日） -->
-        <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--lv-line)">
+        <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--lv-line);align-items:center">
             <input bind:this={memoInput} class="b3-text-field fn__flex-1" style="min-width:0" placeholder={t("cal.memoPlaceholder")} disabled={savingMemo}
                 bind:value={memoTitle}
                 onkeydown={(e: KeyboardEvent) => e.key === "Enter" && !e.isComposing && void addMemoForDay()} />
-            <button class="b3-button b3-button--outline" style="flex:none" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
+            <button class="lv-btn primary sm" style="flex:none" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
         </div>
     </div>
 </div>

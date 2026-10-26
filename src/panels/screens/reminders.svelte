@@ -1346,8 +1346,17 @@
     .lv-hub-view-toggle { flex: 0 0 auto; padding: 2px; }
     .lv-hub-view-toggle .lv-tabs__item { min-height: 28px; padding: 4px 10px; font-size: 12px; }
     .lv-hub-filters .is-filtered, .lv-hub-actions .is-active { color: var(--lv-accent); border-color: var(--lv-accent-line); background: var(--lv-accent-soft); }
-    .lv-hub-batchbar { padding: 8px 13px; margin-bottom: 12px; border-color: var(--lv-accent-line); background: var(--lv-surface); }
-    .lv-hub-batchbar .lv-caption { color: var(--lv-tx-2); font-weight: 600; }
+    .lv-hub-batchbar {
+        padding: 8px 16px;
+        margin-bottom: 14px;
+        border: 1px solid var(--lv-accent);
+        border-radius: var(--lv-r-2);
+        background: var(--lv-surface);
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
+    }
+    .lv-hub-batchbar .lv-caption { color: var(--lv-accent); font-weight: 650; }
+    .lv-hub-batchbar .b3-button--text { color: var(--lv-tx-2); font-size: 12.5px; padding: 4px 8px; border-radius: 6px; }
+    .lv-hub-batchbar .b3-button--text:hover { color: var(--lv-tx); background: var(--lv-surface-2); }
     @media (max-width: 760px) {
         .lv-hub-head { align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .lv-hub-summary { align-self: stretch; width: 100%; }

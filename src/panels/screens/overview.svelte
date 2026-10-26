@@ -679,7 +679,7 @@
         <span class="lv-parsechip" role="status"><UiIcon name="calendar" size={13} /> <span class="lv-num">{memoParsed.date}</span></span>
     {/if}
     <input class="b3-text-field" type="date" bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-    <button class="b3-button b3-button--text" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
+    <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
 </div>
 
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>

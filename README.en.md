@@ -39,23 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.90
+## 🆕 What's new in v0.5.91
 
-This release conducts systematic UI refinement and flow continuity stabilization:
+This release delivers the P1 priority interaction flows outlined in the UI/UX review:
 
-- **Refactored (Ledger Toolbar Responsive Flow Bugfix)**: Fixed broken direct-child selector matching on `.lv-search-box` in narrow container queries, restoring clean responsive wrapping across module selector, search box, density toggle, and primary actions;
-- **Enhanced (Member Filter Chip Tactility)**: Infused `.lv-chip` with elevation shadows (`0 1px 2px rgba(0, 0, 0, 0.03)`) and lift feedback (`-1px`), improving filtering interaction comfort;
-- **Clarified (Reminders Actions Panel Semantics)**: Clarified the right-hand panel label in Reminders to accurately reflect view modes and batch management capabilities;
+- **Implemented (On-Screen Weekly Pulse Day Filtering)**: Clicking any day pill in the weekly pulse strip (`.lv-pulse-pill`) now immediately filters and focuses upcoming reminders for that date on the dashboard, with a quick clear chip (`🗓️ YYYY-MM-DD ✕`);
+- **Added (Continuous Capture Shortcut Alt+K)**: Quick capture now supports `Alt+K` keyboard shortcut to toggle continuous entry mode on the fly with instant feedback;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.90)
+## 📦 Install (v0.5.91)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.90 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.90 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.91 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.91 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.90 (current) | Ledger toolbar responsive flow bugfix, member filter chip tactility, 804 tests |
+| ✅ v0.5.91 (current) | On-screen weekly pulse day filtering, Alt+K capture shortcut, 804 tests |
+| v0.5.90 | Ledger toolbar responsive flow bugfix, member filter chip tactility, 804 tests |
 | v0.5.89 | Direct ledger navigation from overview reminders, memo deletion warning, 804 tests |
 | v0.5.88 | Module group accordion handle elevation, card hover lift, 804 tests |
 | v0.5.87 | Nested confirm mask frosted glass, end-to-end workflow usability auditing, 804 tests |

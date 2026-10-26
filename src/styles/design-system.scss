@@ -279,6 +279,7 @@
     cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
     box-shadow: var(--lv-shadow-1);
     &:hover { border-color: var(--lv-accent); transform: translateY(-2px); }
+    &.is-selected { border-color: var(--lv-accent); box-shadow: 0 0 0 2px var(--lv-accent-soft), var(--lv-shadow-2); transform: translateY(-2px); }
     &.is-today {
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #fff; border-color: #0f172a;

@@ -365,6 +365,12 @@
         }
         if (saving) return;
         if (e.key === "Escape") { e.preventDefault(); close(); return; }
+        if (e.altKey && (e.key === "k" || e.key === "K")) {
+            e.preventDefault();
+            keepContext = !keepContext;
+            showMessage(keepContext ? `${t("capture.keepContext")} ON` : `${t("capture.keepContext")} OFF`, 1500, "info");
+            return;
+        }
         // 268 波：焦点圈——Tab 循环限制在弹层内（背景虽 inert 不可点，键盘焦点路径仍需自锁）
         if (e.key === "Tab") {
             const sheet = document.querySelector(".lv-modal.open .lv-sheet");
@@ -964,9 +970,9 @@
                     <span class="lv-caption lv-capture-error-summary" role="alert" aria-live="assertive"><UiIcon name="alert" size={13} /> {saveError}</span>
                 {/if}
                 <div class="lv-keep-context-wrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed var(--lv-line)">
-                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--lv-tx-2);user-select:none" title={t("capture.keepContext")}>
+                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--lv-tx-2);user-select:none" title={`${t("capture.keepContext")} (Alt+K)`}>
                         <input type="checkbox" class="b3-switch" style="transform:scale(0.85);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
-                        <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")}</span>
+                        <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")} <span style="opacity:0.6;font-size:10.5px">(Alt+K)</span></span>
                     </label>
                     {#if identityPending}
                         <button type="button" class="b3-button b3-button--text" style="font-size:11.5px;color:var(--lv-danger)" onclick={discardUncertainDraft}>{t("capture.discardUncertain")}</button>

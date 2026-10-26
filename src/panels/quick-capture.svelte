@@ -92,12 +92,12 @@
                 mileage: fuelingMileage,
                 fuelType: fuelingType,
             });
-            const vRef = plugin.settings.dbRefs?.vehicles;
-            if (!vRef?.avId) throw new Error("vehicles ledger not provisioned");
+            const vRef = await ensureTargetRef("vehicles");
             await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingType === "electric" ? "chargings" : "fuelings", log));
             if (fuelingMileage && vRef.columns?.mileage) {
-                await setCell(vRef.avId, vRef.columns.mileage, selectedVehicleId, { type: "number", number: { content: fuelingMileage } });
+                await setCell(vRef.avId!, vRef.columns.mileage, selectedVehicleId, { type: "number", number: { content: fuelingMileage } });
             }
+            try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             fuelingAmount = undefined;
             fuelingLiters = undefined;
@@ -127,12 +127,20 @@
                 glucose: vitalGlucose,
                 glucoseTiming: vitalTiming,
             });
-            const healthRef = plugin.settings.dbRefs?.health;
-            if (!healthRef?.avId) throw new Error("health ledger not provisioned");
-            const all = await renderLedgerAll(healthRef.avId);
-            const row = (all.rows ?? []).find((r) => r.cells?.[healthRef.columns!.member]?.relation?.blockIDs?.includes(vitalMemberId)) || all.rows?.[0];
-            if (!row) throw new Error("no health record row for member");
+            const healthRef = await ensureTargetRef("health");
+            const all = await renderLedgerAll(healthRef.avId!);
+            let row = (all.rows ?? []).find((r) => r.cells?.[healthRef.columns?.member ?? ""]?.relation?.blockIDs?.includes(vitalMemberId)) || all.rows?.[0];
+            if (!row) {
+                const targetMember = plugin.settings.members?.find((m) => m.avItemId === vitalMemberId);
+                const memberName = targetMember?.name || "家庭成员健康档案";
+                const rowId = await addDetachedRow(healthRef.avId!, memberName, { idempotencyKey: `vital:init:${vitalMemberId}:${Date.now()}` });
+                if (healthRef.columns?.member) {
+                    await setCell(healthRef.avId!, healthRef.columns.member, rowId, { type: "relation", relation: { blockIDs: [vitalMemberId] } });
+                }
+                row = { itemID: rowId, cells: {} };
+            }
             await updateRowLogs(plugin as any, (cur) => appendEntry(cur, healthRef.avId!, row.itemID, "vitals", log));
+            try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             vitalSys = undefined;
             vitalDia = undefined;

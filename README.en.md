@@ -39,22 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.86
+## 🆕 What's new in v0.5.87
 
-This release executes a secondary deep calibration of the system color palette, eliminating all color impurities:
+This release conducts comprehensive usability auditing and frosted-glass refinements across nested modals:
 
-- **Refined (Pure Module Tiles & Gradients)**: Aligned `.tone-blue` and `.t-blue` completely to `--lv-info-soft` and `--lv-info-line`, and replaced external theme references in `.lv-meter` with pure `--lv-accent-2` dual-tone gradients;
-- **Eliminated (Residual Color-Mix Imperfections)**: Refactored food allergy alerts and schema missing-column prompt banners to standard `--lv-danger-soft` and `--lv-amber-soft`, removing muddy color-mix calculations;
+- **Refined (Nested Confirm Mask Frosted Glass)**: Upgraded `.lv-sheet-confirm-mask` with native `backdrop-filter: blur(4px)` and standard `--lv-line` border, establishing a unified frosted glass depth across all nested action confirmations;
+- **Audited (End-to-End Workflow Usability)**: Systematically audited core life cycles (data entry, event routing, due reminder, resolution, and archiving), ensuring zero dead-ends or unhandled states;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.86)
+## 📦 Install (v0.5.87)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.86 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.86 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.87 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.87 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -112,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.86 (current) | Color palette purification, elimination of color-mix impurities, 804 tests |
+| ✅ v0.5.87 (current) | Nested confirm mask frosted glass, end-to-end workflow usability auditing, 804 tests |
+| v0.5.86 | Color palette purification, elimination of color-mix impurities, 804 tests |
 | v0.5.85 | System-wide semantic color palette, zero hardcoded theme color leaks, 804 tests |
 | v0.5.84 | Page-by-page micro-refinements, vehicle hover elevation, retirement gradients |
 | v0.5.83 | Onboarding role capsule tactility, activity stream badge refinement, 804 tests |

@@ -39,23 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.96
+## 🆕 What's new in v0.5.97
 
-This release brings fast pinned module navigation and structural bundle slimming:
+This release delivers draft discard capability and dual-column sticky table pinning:
 
-- **Implemented (Pinned Household Ledgers Bar)**: Embedded a quick pinned bar (`.lv-ledger-pinned-bar`) below the toolbar for top household ledgers (certs, medicine, vehicles, stock, shopping), enabling instant switching without opening long dropdowns;
-- **Guarded (Module Switch Draft Interception)**: Module switching is protected by draft verification, warning before accidental loss if uncommitted entries or certificate uploads exist;
-- **Slimmed (Bundle Size Compression)**: Systematically unified verbose inline cssText literals in drawers, keeping single-file gzip footprint lean at 279.77 KB (comfortably below the 281,600 budget);
+- **Implemented (One-Click Settings Draft Reversion)**: Added an explicit "Cancel (Discard Changes)" action next to the unsaved breathing badge in Settings footer, resetting in-memory draft back to persisted state with one click;
+- **Enhanced (Dual-Column Sticky Pinning in Ledgers)**: Both checkbox column (`th:first-child` / `td:first-child`, left 0) and detail entry column (`th:nth-child(2)` / `td:nth-child(2)`, left 36px) stay locked in place during wide table horizontal scrolling;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.96)
+## 📦 Install (v0.5.97)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.96 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.96 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.97 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.97 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -113,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.96 (current) | Pinned ledger bar, draft switch guard, 279.77KB gzip bundle slimming, 804 tests |
+| ✅ v0.5.97 (current) | Settings draft discard, dual-column sticky pinning in wide ledgers, 804 tests |
+| v0.5.96 | Pinned ledger bar, draft switch guard, 279.77KB gzip bundle slimming, 804 tests |
 | v0.5.95 | Calendar overdue day ring, settings instant module search, sticky first column, 804 tests |
 | v0.5.94 | Ledger inline editing shortcuts, dynamic query match pill, 804 tests |
 | v0.5.93 | Settings unsaved changes breathing indicator, configuration loss prevention, 804 tests |

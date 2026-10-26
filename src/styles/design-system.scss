@@ -678,11 +678,13 @@
       padding: 4px; border: 0; border-radius: var(--lv-r-1); background: transparent; color: var(--lv-tx-3); cursor: pointer;
       &:hover { background: var(--lv-accent-soft); color: var(--lv-accent); } }
     tbody tr { transition: background var(--lv-t-fast) var(--lv-ease);
-      &:hover { background: var(--lv-surface-2); td:first-child { background: var(--lv-surface-2); } }
-      &.sel { background: var(--lv-accent-soft); box-shadow: inset 2px 0 0 var(--lv-accent); td:first-child { background: var(--lv-accent-soft); } } }
+      &:hover { background: var(--lv-surface-2); td:first-child, td:nth-child(2) { background: var(--lv-surface-2); } }
+      &.sel { background: var(--lv-accent-soft); box-shadow: inset 2px 0 0 var(--lv-accent); td:first-child, td:nth-child(2) { background: var(--lv-accent-soft); } } }
     thead th:first-child,
     tbody td:first-child { position: sticky; left: 0; z-index: 2; background: var(--lv-surface); }
-    thead th:first-child { z-index: 4; } }
+    thead th:nth-child(2),
+    tbody td:nth-child(2) { position: sticky; left: 36px; z-index: 2; background: var(--lv-surface); }
+    thead th:first-child, thead th:nth-child(2) { z-index: 4; } }
   // 紧凑密度模式（§17）：行高由 48px 收拢至 34px，提升大列表与窄屏信息展示效率
   .lv-table--compact table {
     thead th { padding: 6px 12px; font-size: 11px; }

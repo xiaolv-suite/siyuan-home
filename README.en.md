@@ -39,21 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.88
+## 🆕 What's new in v0.5.89
 
-This release elevates visual feedback and handles from a real user workflow perspective:
+This release refines direct navigation paths and safeguards destructive actions:
 
-- **Refined (Module Group Accordion Handle & Cards)**: Added subtle elevation (`var(--lv-shadow-1)`) and smooth lift (`var(--lv-shadow-2)`) to `.lv-module-section__head` and `.lv-mod` cards, delivering delightful spatial feedback;
+- **Improved (Direct Ledger Navigation from Overview Reminders)**: Clicking reminder titles in the Overview panel now directly opens the corresponding ledger view, saving multiple manual steps;
+- **Safeguarded (Permanent Memo Deletion Warning)**: Handled memo deletion triggers now feature high-visibility danger styling (`color: var(--lv-danger)`), preventing accidental loss;
 - **Validation**: 91 test suites, **804 unit tests passing**, TypeScript, Svelte, i18n (1950 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.88)
+## 📦 Install (v0.5.89)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.88 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.88 package is the current GitHub release; local quality checks report 804 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.89 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.89 package is the current GitHub release; local quality checks report 804 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >
@@ -111,7 +112,8 @@ The v0.5.1 release is available on GitHub, with static isolated-kernel gates and
 
 | Phase | Content |
 |---|---|
-| ✅ v0.5.88 (current) | Module group accordion handle elevation, card hover lift, 804 tests |
+| ✅ v0.5.89 (current) | Direct ledger navigation from overview reminders, memo deletion warning, 804 tests |
+| v0.5.88 | Module group accordion handle elevation, card hover lift, 804 tests |
 | v0.5.87 | Nested confirm mask frosted glass, end-to-end workflow usability auditing, 804 tests |
 | v0.5.86 | Color palette purification, elimination of color-mix impurities, 804 tests |
 | v0.5.85 | System-wide semantic color palette, zero hardcoded theme color leaks, 804 tests |

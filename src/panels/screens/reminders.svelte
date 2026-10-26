@@ -1148,7 +1148,7 @@
         {/if}
     </div>
     <div class="lv-card lv-hub-action-panel">
-        <div class="lv-hub-panel-label">{t("view.list")}</div>
+        <div class="lv-hub-panel-label">{t("ledger.moreActions")}</div>
         <div class="lv-toolbar lv-hub-actions">
             <span class="lv-tabs lv-hub-view-toggle" role="group" aria-label={t("view.list") + "/" + t("view.calendar")}>
                 <button class="lv-tabs__item" class:on={viewMode === "list"}

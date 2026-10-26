@@ -1357,6 +1357,8 @@
     "hub.icsFailed": "Calendar export failed: ${msg}",
     "hub.filterSaveFailed": "Could not save filter preferences: ${msg}",
     "hub.preferenceSaveFailed": "Could not save view preferences: ${msg}",
+    "hub.copyTaskBlock": "Copy as Task List Block",
+    "hub.taskBlockCopied": "Copied as SiYuan task list block, ready to paste into notes or task managers",
     "ledger.delTitle": "Delete ledger row",
     "ledger.exportSensitiveTitle": "Export sensitive ledger",
     "ledger.exportSensitiveBody": "\"${module}\" belongs to high-consequence categories (health / IDs / finance / children). The CSV will export all currently visible rows in full. Keep the file safe and do not share it casually.",

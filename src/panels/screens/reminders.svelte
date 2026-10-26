@@ -15,6 +15,7 @@
     import { toggleReminderPin } from "@/core/hub/actions";
     import { isReminderPinned } from "@/core/hub/runtime";
     import { stageBadgeLabel, stageBadge, stagesOf } from "@/core/reminder-stage";
+    import { formatAsTaskBlock } from "@/core/block-capture";
     import Calendar from "@/panels/screens/calendar.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
@@ -159,6 +160,16 @@
                 showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
             }
         };
+    }
+
+    async function copyAsTaskBlock(r: Reminder) {
+        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id);
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(t("hub.taskBlockCopied"), 3000, "info");
+        } catch {
+            showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        }
     }
 
     // 命名视图（§17）：筛选组合一键保存与切换
@@ -1030,6 +1041,7 @@
                         <button class="b3-button b3-button--text" disabled={batchBusy} title={t("act.locate")} onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>{t("act.locate")}</button>
                     {/if}
                     <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => schedulePlanDialog(r)}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
+                    <button class="b3-button b3-button--text" disabled={batchBusy} onclick={() => void copyAsTaskBlock(r)}>{t("hub.copyTaskBlock")}</button>
                     <!-- 304 波：重要证件与到期项紧急置顶（置顶项组内排最前） -->
                     <button class="b3-button b3-button--text" title={isPinned(r) ? t("act.unpin") : t("act.pin")}
                         disabled={batchBusy || reminderBusy.has(r.id)} aria-busy={reminderBusy.has(r.id)}

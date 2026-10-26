@@ -27,6 +27,15 @@ export interface BridgeSummary {
     updatedAt: string;
 }
 
+export interface BridgeReminderItem {
+    id: string;
+    title: string;
+    dueDate: string;
+    daysLeft: number;
+    level: string;
+    moduleId: string;
+}
+
 export interface BridgeOverview {
     protocol: number;
     enabledModules: readonly string[];
@@ -80,6 +89,8 @@ export interface LvHomeBridgeApi {
     summary(): BridgeSummary;
     /** 高层只读概览（包含启用模块、提醒总量与扫描时效，防敏感信息泄露） */
     getOverview(): BridgeOverview;
+    /** 活跃提醒列表（供任务管理器/待办看板联动） */
+    getReminders(): readonly BridgeReminderItem[];
 }
 
 export interface BridgeHost {
@@ -103,6 +114,7 @@ export function buildLvHomeBridge(host: BridgeHost): LvHomeBridgeApi {
         "summary",
         "openModule",
         "getOverview",
+        "getReminders",
     ];
     return {
         protocol: LVHOME_BRIDGE_PROTOCOL,
@@ -174,6 +186,17 @@ export function buildLvHomeBridge(host: BridgeHost): LvHomeBridgeApi {
                 scanStale: !!host.scan?.stale,
                 updatedAt: new Date().toISOString(),
             };
+        },
+
+        getReminders() {
+            return (host.scan?.reminders ?? []).map((r: any) => ({
+                id: r.id ?? "",
+                title: r.title ?? "",
+                dueDate: r.dueDate ?? "",
+                daysLeft: r.daysLeft ?? 0,
+                level: r.level ?? "normal",
+                moduleId: r.moduleId ?? "",
+            }));
         },
     };
 }

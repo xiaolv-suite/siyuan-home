@@ -5,6 +5,8 @@ import {
     extractAmountFromText,
     smartExtractFieldsFromTitle,
     smartParseNoteContent,
+    cleanTaskPrefix,
+    formatAsTaskBlock,
 } from "@/core/block-capture";
 
 describe("core/block-capture 思源块内容与笔记智能速记（301波）", () => {
@@ -143,6 +145,35 @@ describe("core/block-capture 思源块内容与笔记智能速记（301波）", 
             expect(res.cleanTitle).toBe("清风原木纯品抽纸");
             expect(res.extractedDate).toBeUndefined();
             expect(res.extractedAmount).toBeUndefined();
+        });
+
+        it("思源任务列表块前缀智能净化 (- [ ] 与 - [x])", () => {
+            const res1 = smartExtractFieldsFromTitle("- [ ] 2026-11-20 去车管所年检机动车");
+            expect(res1.cleanTitle).toBe("去车管所年检机动车");
+            expect(res1.extractedDate).toBe("2026-11-20");
+            expect(res1.isTask).toBe(true);
+            expect(res1.isCompleted).toBe(false);
+
+            const res2 = smartExtractFieldsFromTitle("* [x] 缴纳物业费 320元");
+            expect(res2.cleanTitle).toBe("缴纳物业费");
+            expect(res2.extractedAmount).toBe(320);
+            expect(res2.isTask).toBe(true);
+            expect(res2.isCompleted).toBe(true);
+        });
+    });
+
+    describe("cleanTaskPrefix 与 formatAsTaskBlock 思源任务列表块联动", () => {
+        it("识别任务前缀并提取纯净文本", () => {
+            expect(cleanTaskPrefix("- [ ] 购买纯牛奶 2箱")).toEqual({ cleanText: "购买纯牛奶 2箱", isTask: true, isCompleted: false });
+            expect(cleanTaskPrefix("* [X] 已完成备忘")).toEqual({ cleanText: "已完成备忘", isTask: true, isCompleted: true });
+            expect(cleanTaskPrefix("普通文本")).toEqual({ cleanText: "普通文本", isTask: false, isCompleted: false });
+        });
+
+        it("格式化为思源任务列表块 Markdown", () => {
+            expect(formatAsTaskBlock("身份证换证", "2026-11-05", "20261026-abc1234"))
+                .toBe('- [ ] ((20261026-abc1234 "身份证换证")) · 到期: 2026-11-05');
+            expect(formatAsTaskBlock("随手备忘", "2026-11-05"))
+                .toBe("- [ ] 随手备忘 · 到期: 2026-11-05");
         });
     });
 });

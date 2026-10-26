@@ -634,6 +634,7 @@ function rowIDsFromAddResponse(d: any): string[] {
 export async function addDetachedRow(avID: string, content: string, options?: RequestOptions): Promise<string> {
     const before = new Set(await renderRowIDs(avID, options));
     const desiredItemID = newSiYuanId();
+    const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : list.length === 1 ? list[0] : "";
     let d: any;
     try {
         d = await post<any>("/api/av/addAttributeViewBlocks", {
@@ -647,8 +648,8 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         await new Promise((resolve) => setTimeout(resolve, 300));
         try {
             const recovered = (await renderRowIDs(avID, recoveryOptions)).filter((id) => !before.has(id));
-            if (recovered.includes(desiredItemID)) return desiredItemID;
-            if (recovered.length === 1) return recovered[0];
+            const hit = findHit(recovered);
+            if (hit) return hit;
             throw new RowIdentityPendingError(Array.from(new Set(recovered)));
         } catch (recoveryError) {
             if (recoveryError instanceof RowIdentityPendingError) throw recoveryError;
@@ -656,7 +657,8 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         }
     }
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
-    if (fromResponse.includes(desiredItemID) || fromResponse.length === 1) return fromResponse.includes(desiredItemID) ? desiredItemID : fromResponse[0];
+    const hitResp = findHit(fromResponse);
+    if (hitResp) return hitResp;
 
     // 块索引异步重建：梯级短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];
@@ -664,8 +666,8 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         await new Promise((r) => setTimeout(r, 150 + attempt * 150));
         try {
             added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
-            if (added.includes(desiredItemID)) return desiredItemID;
-            if (added.length === 1) return added[0];
+            const hit = findHit(added);
+            if (hit) return hit;
             if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
         } catch { /* soft retry */ }
     }

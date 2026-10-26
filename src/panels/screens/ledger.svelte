@@ -68,7 +68,6 @@
     const pad6BorderSurfaceCss = "padding:6px 8px;background:var(--lv-surface);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
     const fs12Pad38Css = "font-size:12px;padding:3px 8px";
     const fs12Pad310Css = "font-size:12px;padding:3px 10px";
-    const btnSm6Css = "margin-top:6px;font-size:12px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { uiIcon } from "@/ui/icons";
@@ -3101,7 +3100,7 @@
                 }
                 const uploadBtn = document.createElement("button");
                 uploadBtn.className = `b3-button b3-button--outline${active === "vehicles" ? " lv-detail-wide" : ""}`;
-                uploadBtn.style.cssText = btnSm6Css;
+                uploadBtn.style.cssText = btnSmCss;
                 uploadBtn.textContent = t("ledger.upload");
                 const fileInput = document.createElement("input");
                 fileInput.type = "file";
@@ -4239,7 +4238,7 @@
                     houseWarrantySection.append(head);
 
                     const contentWrap = document.createElement("div");
-                    contentWrap.style.cssText = "font-size:12.5px;display:flex;flex-direction:column;gap:6px";
+                    contentWrap.style.cssText = `${flexColGap6Css};font-size:12.5px`;
                     contentWrap.innerHTML = `<span class="lv-caption">${t("ledger.loading")}</span>`;
                     houseWarrantySection.append(contentWrap);
                     body.appendChild(houseWarrantySection);
@@ -4313,7 +4312,7 @@
                     foodDietarySection.append(head);
 
                     const contentWrap = document.createElement("div");
-                    contentWrap.style.cssText = "font-size:12.5px;display:flex;flex-direction:column;gap:6px";
+                    contentWrap.style.cssText = `${flexColGap6Css};font-size:12.5px`;
                     foodDietarySection.append(contentWrap);
                     body.appendChild(foodDietarySection);
 
@@ -4456,7 +4455,7 @@
                 petCareSection.append(head);
 
                 const contentWrap = document.createElement("div");
-                contentWrap.style.cssText = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:8px;font-size:12px";
+                contentWrap.style.cssText = boxContentCss;
                 petCareSection.append(contentWrap);
                 body.appendChild(petCareSection);
 
@@ -5088,7 +5087,7 @@
             const linkBtn = () => {
                 const btn = document.createElement("button");
                 btn.className = "b3-button b3-button--outline";
-                btn.style.cssText = btnSm6Css;
+                btn.style.cssText = btnSmCss;
                 btn.textContent = t("ledger.linkNew");
                 btn.onclick = () => {
                     const picker = new Dialog({
@@ -5174,7 +5173,7 @@
             body.appendChild(head);
             const btn = document.createElement("button");
             btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = btnSm6Css;
+            btn.style.cssText = btnSmCss;
             btn.textContent = synced ? t("ec15.again") : t("ec15.record");
 	            btn.onclick = async () => {
 	                const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;

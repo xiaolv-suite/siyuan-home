@@ -145,17 +145,26 @@
         }
     }
 
+    async function ensureTargetRef(mod: string) {
+        let r = plugin.settings.dbRefs?.[mod];
+        if (!r?.avId) {
+            await plugin.repairModule?.(mod);
+            r = plugin.settings.dbRefs?.[mod];
+        }
+        if (!r?.avId) throw new Error(t("triage.noTarget"));
+        return r;
+    }
+
     async function submitQuickShopping() {
         const name = quickShopName.trim();
         if (!name) return;
         saving = true;
         saveError = "";
         try {
-            const shopRef = plugin.settings.dbRefs?.shopping;
-            if (!shopRef?.avId || !shopRef.columns?.name) throw new Error("shopping ledger not provisioned");
-            const rowId = await addDetachedRow(shopRef.avId, name, { idempotencyKey: `quick:shop:${Date.now()}` });
-            if (shopRef.columns.qty && quickShopQty) {
-                await setCell(shopRef.avId, shopRef.columns.qty, rowId, { type: "number", number: { content: quickShopQty } });
+            const shopRef = await ensureTargetRef("shopping");
+            const rowId = await addDetachedRow(shopRef.avId!, name, { idempotencyKey: `quick:shop:${Date.now()}` });
+            if (shopRef.columns?.qty && quickShopQty) {
+                await setCell(shopRef.avId!, shopRef.columns.qty, rowId, { type: "number", number: { content: quickShopQty } });
             }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickShopName = "";
@@ -174,13 +183,12 @@
         saving = true;
         saveError = "";
         try {
-            const snipRef = plugin.settings.dbRefs?.snippets;
-            if (!snipRef?.avId || !snipRef.columns) throw new Error("snippets ledger not provisioned");
+            const snipRef = await ensureTargetRef("snippets");
             const title = text.slice(0, 30);
-            const rowId = await addDetachedRow(snipRef.avId, title, { idempotencyKey: `quick:snip:${Date.now()}` });
-            const col = snipRef.columns.content || snipRef.columns.note;
+            const rowId = await addDetachedRow(snipRef.avId!, title, { idempotencyKey: `quick:snip:${Date.now()}` });
+            const col = snipRef.columns?.content || snipRef.columns?.note || snipRef.columns?.name;
             if (col) {
-                await setCell(snipRef.avId, col, rowId, { type: "text", text: { content: text } });
+                await setCell(snipRef.avId!, col, rowId, { type: "text", text: { content: text } });
             }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickSnippetText = "";
@@ -526,28 +534,15 @@
         // 268 波：连续录入的重聚焦必须在 saving=false 之后（disabled 输入框不可聚焦）
         let refocusName = false;
         try {
-            let r = plugin.settings.dbRefs[moduleId];
             if (pendingRowId && pendingModuleId !== moduleId) {
                 saveError = t("capture.pendingTarget");
                 return;
             }
-            if (!r?.avId) {
-                // 未建库自动建库（triage 同链路；provisionModule 幂等）
-                await import("@/core/provisioner").then((m) => m.provisionModule(
-                    plugin.settings, moduleId, plugin.schemaCatalog?.[moduleId] as any, modLabel(moduleId),
-                    { resolveName: (k: string) => String(plugin.i18n[`field.${k}`] ?? k) },
-                ));
-                try {
-                    const { saveSettings } = await import("@/core/settings");
-                    await saveSettings(plugin as any, plugin.settings);
-                } catch { /* soft persist */ }
-                r = plugin.settings.dbRefs[moduleId];
-                if (!r?.avId) throw new Error(t("triage.noTarget"));
-            }
+            let r = await ensureTargetRef(moduleId);
             let missingColumn = captureFields.find((field) => {
                 const value = values[field.key];
                 const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
-                return field.key !== "name" && hasValue && !r!.columns?.[field.key];
+                return field.key !== "name" && hasValue && !r.columns?.[field.key];
             });
             if (missingColumn) {
                 try {
@@ -557,7 +552,7 @@
                 missingColumn = captureFields.find((field) => {
                     const value = values[field.key];
                     const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
-                    return field.key !== "name" && hasValue && !r!.columns?.[field.key];
+                    return field.key !== "name" && hasValue && !r.columns?.[field.key];
                 });
                 if (missingColumn) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(missingColumn)));
             }

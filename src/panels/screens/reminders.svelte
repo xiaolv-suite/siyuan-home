@@ -986,9 +986,19 @@
                 {/if}
                 {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
                 {#if plan.hasPlan}
-                    <span class="lv-plan-badge" class:is-planned-now={plan.isPlannedNow} title={`${t("hub.planDateLabel")}: ${plan.planDate}`}>
+                    <button type="button" class="lv-plan-badge" class:is-planned-now={plan.isPlannedNow}
+                        style="cursor:pointer;border:none;margin-left:4px"
+                        title={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
+                        onclick={(e) => { e.stopPropagation(); schedulePlanDialog(r); }}>
                         🗓️ {plan.planDate}{#if plan.isPlannedNow} · 🎯 {t("hub.planActive")}{/if}
-                    </span>
+                    </button>
+                {:else}
+                    <button type="button" class="lv-plan-tag-add"
+                        style="cursor:pointer;border:none;background:none;font-size:11px;color:var(--lv-tx-3);padding:0 3px;margin-left:3px;opacity:0.65"
+                        title={t("hub.setPlanDate")}
+                        onclick={(e) => { e.stopPropagation(); schedulePlanDialog(r); }}>
+                        🗓️
+                    </button>
                 {/if}
                 <button class="lv-rem-expand-btn" type="button"
                     aria-expanded={expandedReminders.has(r.id)}

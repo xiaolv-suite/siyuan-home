@@ -224,6 +224,11 @@
         draftBindings = (source.checkinBindings ?? []).map((b) => ({ ...b }));
     }
 
+    function revertDraft() {
+        syncDraftFromSettings(plugin.settings ?? settings);
+        showMessage(t("cancel"), 1500, "info");
+    }
+
     async function persistReplacement(next: HomeSettings): Promise<void> {
         const previous = cloneSettings(plugin.settings);
         plugin.settings = next;
@@ -1202,7 +1207,10 @@
         <span class="fn__flex-1"></span>
         <!-- 263 波：未保存更改徽章（脏检查口径=落盘口径）——设置页有两种生效心智（草稿+保存），
              让"改了但还没保存"可见，不再靠猜 -->
-        {#if dirty}<span class="lv-badge orange" role="status">● {t("settings.unsaved")}</span>{/if}
+        {#if dirty}
+            <span class="lv-badge orange" role="status">● {t("settings.unsaved")}</span>
+            <button class="b3-button b3-button--text" style="font-size:12px;color:var(--lv-tx-3)" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
+        {/if}
         <!-- 256 波：保存是设置视图唯一核心动作，升为主按钮（对齐原型"主按钮每视图 ≤1 个"） -->
         <button class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>
     </div>

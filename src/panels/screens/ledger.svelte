@@ -4318,7 +4318,7 @@
                             for (const c of check.conflicts) {
                                 const alertEl = document.createElement("div");
                                 if (c.type === "allergy") {
-                                    alertEl.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:color-mix(in srgb, var(--lv-danger) 10%, var(--lv-surface));border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
+                                    alertEl.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
                                     alertEl.innerHTML = `<span>🚨 <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
                                 } else {
                                     alertEl.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
@@ -4583,7 +4583,7 @@
 
                                 if (conflict) {
                                     const alertLine = document.createElement("div");
-                                    alertLine.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in srgb, var(--lv-danger) 10%, var(--lv-surface));border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
+                                    alertLine.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
                                     alertLine.innerHTML = `<span>⚠️ ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
                                     contentWrap.append(alertLine);
                                 }
@@ -6206,7 +6206,7 @@
     </div>
 {:else}
     {#if missingSchemaCols.length > 0 && ref?.avId}
-        <div class="lv-card" style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:color-mix(in srgb, var(--lv-amber) 8%, var(--lv-surface));border:1px solid color-mix(in srgb, var(--lv-amber) 30%, var(--lv-line));border-radius:var(--lv-r-2);margin:8px 0;font-size:12px">
+        <div class="lv-card" style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--lv-amber-soft);border:1px solid var(--lv-accent-line);border-radius:var(--lv-r-2);margin:8px 0;font-size:12px">
             <span style="color:var(--lv-amber)">⚠️</span>
             <span style="color:var(--lv-tx-2);flex:1">
                 {t("ledger.missingColumnsPrompt")} <b>{missingSchemaCols.map((c) => fieldLabel(c.key)).join("、")}</b>

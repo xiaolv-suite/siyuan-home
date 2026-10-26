@@ -362,6 +362,15 @@
 
     > .fn__flex-1 { min-width: 12px; }
     > .lv-btn.primary { margin-left: auto; }
+
+    .lv-badge.orange {
+        animation: lv-pulse-badge 2.4s ease-in-out infinite;
+    }
+}
+
+@keyframes lv-pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
 }
 
 .lv-settings__about {

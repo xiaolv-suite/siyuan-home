@@ -79,3 +79,42 @@ export function buildIcs(calName: string, events: IcsEvent[], now = new Date()):
     lines.push("END:VCALENDAR");
     return lines.map(foldLine).join("\r\n") + "\r\n";
 }
+
+/**
+ * 将台账包含日期的行直接转换为 iCalendar (.ics) 全天文本文档
+ */
+export function buildLedgerRowsIcs(
+    rows: readonly any[],
+    columns: Record<string, string>,
+    calName: string,
+    cellTextFn: (cell: any, key?: string) => string,
+): { count: number; icsText: string } {
+    const events: IcsEvent[] = [];
+    const dateCol = columns.date ?? columns.expiry ?? columns.due;
+    const nameCol = columns.name;
+    const noteCol = columns.note;
+
+    if (!dateCol) return { count: 0, icsText: buildIcs(calName, []) };
+
+    for (const r of rows) {
+        const dateVal = cellTextFn(r.cells?.[dateCol]);
+        if (!dateVal || !validDate(dateVal)) continue;
+
+        const nameVal = nameCol ? cellTextFn(r.cells?.[nameCol], "name") : "";
+        const title = nameVal || "未命名事项";
+        const noteVal = noteCol ? cellTextFn(r.cells?.[noteCol], "note") : undefined;
+
+        events.push({
+            uid: `ledger-${r.itemID}@lvhome.local`,
+            date: dateVal.slice(0, 10),
+            summary: title,
+            description: noteVal && noteVal !== "—" ? noteVal : undefined,
+        });
+    }
+
+    return {
+        count: events.length,
+        icsText: buildIcs(calName, events),
+    };
+}
+

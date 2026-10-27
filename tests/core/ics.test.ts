@@ -2,7 +2,7 @@
  * ICS 导出单测（第八十九波，UG11 v1）：转义、八字节折叠、事件结构、非法日期跳过、CRLF。
  */
 import { describe, it, expect } from "vitest";
-import { icsEscape, foldLine, buildIcs } from "@/core/ics";
+import { icsEscape, foldLine, buildIcs, buildLedgerRowsIcs } from "@/core/ics";
 
 describe("ics.icsEscape", () => {
     it("反斜杠/分号/逗号/换行", () => {
@@ -64,5 +64,34 @@ describe("ics.buildIcs", () => {
         expect(out.match(/BEGIN:VEVENT/g)).toHaveLength(1);
         expect(out).toContain("DTSTART;VALUE=DATE:20261130");
         expect(out).toContain("DTEND;VALUE=DATE:20261201");
+    });
+
+    it("buildLedgerRowsIcs 正确将台账行转换为 iCalendar 事项", () => {
+        const rows = [
+            {
+                itemID: "row-1",
+                cells: {
+                    c_name: { type: "text", text: { content: "护照到期" } },
+                    c_date: { type: "date", date: { content: "2026-12-15" } },
+                },
+            },
+            {
+                itemID: "row-2",
+                cells: {
+                    c_name: { type: "text", text: { content: "无日期事项" } },
+                },
+            },
+        ];
+        const res = buildLedgerRowsIcs(
+            rows,
+            { name: "c_name", date: "c_date" },
+            "测试日历",
+            (cell, key) => key === "name" ? cell?.text?.content || "" : cell?.date?.content || ""
+        );
+
+        expect(res.count).toBe(1);
+        expect(res.icsText).toContain("UID:ledger-row-1@lvhome.local");
+        expect(res.icsText).toContain("SUMMARY:护照到期");
+        expect(res.icsText).toContain("DTSTART;VALUE=DATE:20261215");
     });
 });

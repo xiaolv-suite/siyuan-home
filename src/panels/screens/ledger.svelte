@@ -3,7 +3,6 @@
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { renderEditableFormFields } from "@/core/record-form";
-    import { buildCsv } from "@/core/csv";
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
     import { localDateKey, parseDate } from "@/core/hub/rule";
@@ -525,162 +524,83 @@
         switchLedgerTo(next);
     }
 
-    // CSV export uses schema columns and a BOM for spreadsheet compatibility.
-    // Sensitive modules require an explicit confirmation before export.
-    const HIGH_CONSEQUENCE_MODULES = new Set(["health", "parenting", "certs", "insurance", "assets-real", "assets-virtual", "contracts", "medicine", "schooling"]);
-
-    // Print QR labels for all rows in the current module.
+    // CSV export, archive manifest & QR labels print (326波：解耦至 core/ledger-export.ts)
     async function printLabels() {
-        const sourceRef = ref;
-        const query = searchText.trim().toLowerCase();
-        if (!sourceRef?.avId || !sourceRef.docId || printing) return;
+        if (!ref?.avId || !ref.docId || printing) return;
         printing = true;
         try {
-            const all = await renderLedgerAll(sourceRef.avId);
-            if (!all.complete) { showMessage(t("ledger.loadIncomplete"), 5000, "error"); return; }
-            let list = all.rows;
-            if (query) list = list.filter((r) => rowMatchesSearch(r, query, sourceRef.columns));
-            if (list.length === 0) { showMessage(t("ledger.printNoRows"), 3000, "info"); return; }
-            const labels = await Promise.all(list.map(async (r) => {
-                const nameCol = sourceRef.columns?.name;
-                const nameVal = nameCol ? r.cells?.[nameCol] : undefined;
-                const blockId = nameVal?.type === "block" ? nameVal.block?.id : undefined;
-                const name = cellText(nameVal, "name");
-                const link = blockDeepLink(blockId || sourceRef.docId!);
-                let qr = "";
-                try { qr = await generateQRDataUrl(link, 160); } catch { qr = ""; }
-                return { name, qr };
-            }));
-            const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            // 259 波：打印页对齐设计语言（纸面固定色板，独立于屏幕主题——同 index.scss 打印豁免边界）
-            const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>${t("ledger.printTitle")}</title>
-<style>body{font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;margin:0;padding:20px;color:#1f2328;background:#fff}
-.head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid #d0d7de;padding-bottom:10px;margin-bottom:16px}
-.head b{font-size:16px;font-weight:600}
-.head .sub{font-size:11px;color:#57606a}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.label{border:1px solid #d0d7de;border-radius:10px;padding:14px 12px;text-align:center;page-break-inside:avoid}
-.label img{width:132px;height:132px}
-.label .nm{font-size:13px;font-weight:600;margin-top:8px;word-break:break-all}
-.label .tip{font-size:10px;color:#57606a;margin-top:3px}
-.printbtn{padding:7px 18px;border:none;border-radius:8px;background:#0969da;color:#fff;font-size:13px;cursor:pointer}
-.printbtn:hover{background:#0860c4}
-@media print{.noprint{display:none}body{padding:0}}</style></head><body>
-<div class="head"><b>${t("ledger.printTitle")}</b><span class="sub">${t("ledger.printScanTip")} · ${new Date().toLocaleString()}</span></div>
-<div class="noprint" style="text-align:center;margin-bottom:14px"><button class="printbtn" onclick="window.print()">${t("ledger.printButton")}</button></div>
-<div class="grid">${labels.map((l) => `<div class="label"><img src="${l.qr}" alt="QR" width="132" height="132" decoding="async">${l.name ? `<div class="nm">${esc(l.name)}</div>` : ""}<div class="tip">${t("ledger.printScanTip")}</div></div>`).join("")}</div>
-<script>window.print()<\/script></body></html>`;
-            const w = window.open("", "_blank");
-            if (!w) { showMessage(t("ledger.printBlocked"), 4000, "error"); return; }
-            w.document.write(html);
-            w.document.close();
-        } catch (e) {
-            showMessage(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            const { printLedgerLabels } = await import("@/core/ledger-export");
+            await printLedgerLabels({
+                sourceRef: ref,
+                searchText,
+                t,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+                rowMatchesSearchFn: rowMatchesSearch,
+            });
         } finally {
             printing = false;
         }
     }
 
-    function exportCsv() {
-        const sourceRef = ref;
-        const moduleId = active;
-        const query = searchText.trim().toLowerCase();
-        const sortField = sortKey ? sourceRef?.columns?.[sortKey] : undefined;
-        const ascending = sortAsc;
-        if (!sourceRef?.columns || filteredRows.length === 0 || exporting) return;
-        const download = async () => {
-            exporting = true;
-            // N7/E13：导出走全量读（UI 列表仍单页，PF11）；搜索词对全量行复用同一过滤语义
-            try {
-                let all;
-                try {
-                    all = await renderLedgerAll(sourceRef.avId!);
-                } catch (e) {
-                    showMessage(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                    return;
-                }
-                if (!all.complete) { showMessage(t("ledger.loadIncomplete"), 5000, "error"); return; }
-                let list = all.rows;
-                if (query) list = list.filter((r) => rowMatchesSearch(r, query, sourceRef.columns));
-                const sortType = sortKey ? plugin.schemaCatalog?.[moduleId]?.columns?.find((column: any) => column.key === sortKey)?.type : undefined;
-                list = sortRows(list, sortField, ascending, sortType);
-                const cols = (plugin.schemaCatalog?.[moduleId]?.columns ?? []).filter((c: any) => sourceRef.columns?.[c.key]);
-                const label = (c: any) => (t(`field.${c.key}`) !== `field.${c.key}` ? t(`field.${c.key}`) : c.key);
-                const csv = buildCsv(cols.map(label), list.map((r) => cols.map((c: any) => cellText(r.cells?.[sourceRef.columns![c.key]], c.key, true))));
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                const moduleTitle = t(`module.${moduleId}`) !== `module.${moduleId}` ? t(`module.${moduleId}`) : moduleId;
-                a.download = `小驴管家-${moduleTitle}-${new Date().toISOString().slice(0, 10)}.csv`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-            } finally {
-                exporting = false;
-            }
-        };
-        if (HIGH_CONSEQUENCE_MODULES.has(moduleId)) {
-            confirm(t("ledger.exportSensitiveTitle"), t("ledger.exportSensitiveBody").replace("${module}", t(`module.${moduleId}`)), () => { void download(); });
-            return;
-        }
-        void download();
-    }
-
-    // Export Attachments & Certificates Archive Manifest (.md) (303波)
-    async function exportArchiveManifest() {
-        const sourceRef = ref;
-        const moduleId = active;
-        if (!sourceRef?.columns || filteredRows.length === 0 || exporting) return;
-        const attCol = sourceRef.columns.attachments;
-        if (!attCol) {
-            showMessage(t("ledger.exportArchiveNoAttCol"), 4000, "info");
-            return;
-        }
-
+    async function exportCsv() {
+        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
         exporting = true;
         try {
-            const all = await renderLedgerAll(sourceRef.avId!);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-
-            const { buildArchiveManifest, formatArchiveManifestMarkdown } = await import("@/core/archive");
-            const memberMap = new Map((plugin.settings.members ?? []).map((m: any) => [m.avItemId, m.name]));
-
-            const records = all.rows.map((row) => {
-                const title = sourceRef.columns?.name ? cellText(row.cells?.[sourceRef.columns.name]) : "未命名记录";
-                const memId = sourceRef.columns?.member ? String(row.cells?.[sourceRef.columns.member]?.relation?.blockIDs?.[0] ?? "") : "";
-                const memberName = memId ? (memberMap.get(memId) ?? "") : "";
-                const attList = row.cells?.[attCol]?.mAsset ?? [];
-                return {
-                    id: row.itemID,
-                    module: moduleId,
-                    title,
-                    memberName,
-                    date: sourceRef.columns?.date ? cellText(row.cells?.[sourceRef.columns.date]) : undefined,
-                    expiry: sourceRef.columns?.expiry ? cellText(row.cells?.[sourceRef.columns.expiry]) : undefined,
-                    attachments: attList,
-                };
-            }).filter((r) => r.attachments.length > 0);
-
-            if (records.length === 0) {
-                showMessage(t("ledger.exportArchiveEmpty"), 4000, "info");
-                return;
-            }
-
-            const manifest = buildArchiveManifest(records, {
-                maskSensitive: Boolean(plugin.runtime?.guestModeActive),
+            const { exportLedgerCsv } = await import("@/core/ledger-export");
+            await exportLedgerCsv({
+                sourceRef: ref,
+                moduleId: active,
+                searchText,
+                sortKey,
+                sortAsc,
+                schemaCatalog: plugin.schemaCatalog,
+                t,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+                rowMatchesSearchFn: rowMatchesSearch,
+                sortRowsFn: sortRows,
             });
-            const md = formatArchiveManifestMarkdown(manifest, t);
-            const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `lv-archive-${moduleId}-${new Date().toISOString().slice(0, 10)}.md`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-            showMessage(t("ledger.exportArchiveSuccess").replace("${n}", String(manifest.totalFiles)), 3500, "info");
-        } catch (e) {
-            showMessage(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        } finally {
+            exporting = false;
+        }
+    }
+
+    async function exportArchiveManifest() {
+        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
+        exporting = true;
+        try {
+            const { exportArchiveManifestFile } = await import("@/core/ledger-export");
+            await exportArchiveManifestFile({
+                sourceRef: ref,
+                moduleId: active,
+                members: plugin.settings.members,
+                guestModeActive: Boolean(plugin.runtime?.guestModeActive),
+                t,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+            });
+        } finally {
+            exporting = false;
+        }
+    }
+
+    async function exportIcs() {
+        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
+        exporting = true;
+        try {
+            const { exportLedgerIcsFile } = await import("@/core/ledger-export");
+            await exportLedgerIcsFile({
+                sourceRef: ref,
+                moduleId: active,
+                t,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+            });
         } finally {
             exporting = false;
         }
@@ -3063,6 +2983,8 @@
             <div class="lv-ledger-more__menu" role="menu" tabindex="-1" onclick={() => { if (ledgerMoreDetails) ledgerMoreDetails.open = false; }}>
                 <button class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
                     disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportCsv}>{exporting ? t("ledger.saving") : t("ledger.exportCsv")}</button>
+                <button class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
+                    disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportIcs}>{exporting ? t("ledger.saving") : t("ledger.exportIcs")}</button>
                 <button class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
                     disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportArchiveManifest}>{t("ledger.exportArchive")}</button>
                 <button class="b3-button b3-button--outline" title={t("ledger.printLabels")}

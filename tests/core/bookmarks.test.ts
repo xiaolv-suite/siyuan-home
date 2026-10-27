@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     checkBookmarksHealth,
     formatBookmarkHealthReportText,
+    openBookmarksCheckDialog,
     type LinkProbe,
 } from "@/core/bookmarks";
 import type { AvRow } from "@/core/siyuan";
@@ -69,5 +70,15 @@ describe("bookmarks.checkBookmarksHealth（书签链接健康检测）", () => {
         expect(text).toContain("· 正常链接：1 个");
         expect(text).toContain("· 异常链接：1 个");
         expect(text).toContain("· 旧办事指南：https://old.service.com (HTTP 404)");
+    });
+
+    it("openBookmarksCheckDialog 安全调用不抛错", async () => {
+        await expect(openBookmarksCheckDialog({
+            rows: [],
+            columns: {},
+            t: (k) => k,
+            DialogCls: class {} as any,
+            showMessageFn: () => {},
+        })).resolves.not.toThrow();
     });
 });

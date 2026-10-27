@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { calculateAssetValuationStats, mapShoppingToAssetReal } from "@/core/valuation";
+import { describe, it, expect, vi } from "vitest";
+import { calculateAssetValuationStats, mapShoppingToAssetReal, openAssetValuationDialog } from "@/core/valuation";
 import type { AvRow } from "@/core/siyuan";
 import type { RowLogs } from "@/core/rowlog";
 
@@ -126,5 +126,19 @@ describe("valuation.mapShoppingToAssetReal（购物转实物资产建档映射�
         const row = makeShoppingRow("戴森吸尘器", 2999, "daily");
         const draft = mapShoppingToAssetReal(row, shoppingCols);
         expect(draft.suggestedCategory).toBe("appliance");
+    });
+
+    it("openAssetValuationDialog 安全容错调用", () => {
+        expect(() => {
+            openAssetValuationDialog({
+                rows: [],
+                columns: {},
+                logs: { logs: {} },
+                avId: "av-test",
+                t: (k) => k,
+                DialogCls: class {} as any,
+                showMessageFn: vi.fn(),
+            });
+        }).not.toThrow();
     });
 });

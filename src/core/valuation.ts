@@ -225,3 +225,119 @@ export function mapShoppingToAssetReal(
         note,
     };
 }
+
+export interface AssetValuationDialogOptions {
+    rows: AvRow[];
+    columns: Record<string, string>;
+    logs: RowLogs;
+    avId: string;
+    t: (k: string) => string;
+    DialogCls: any;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+}
+
+export function openAssetValuationDialog(options: AssetValuationDialogOptions): void {
+    if (typeof document === "undefined") return;
+    const { rows, columns, logs, avId, t, DialogCls, showMessageFn } = options;
+    const report = calculateAssetValuationStats(rows, columns, logs, avId);
+
+    const dlg = new DialogCls({
+        title: t("ledger.assetValuationReport"),
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-asset-val-body" style="max-height:65vh;overflow:auto"></div>
+<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-asset-val-close">${t("close")}</button><button class="b3-button" id="lv-asset-val-copy">${t("ledger.assetValuationCopy")}</button></div>`,
+        width: "560px",
+    });
+    const body = dlg.element.querySelector("#lv-asset-val-body") as HTMLElement;
+    const copyBtn = dlg.element.querySelector("#lv-asset-val-copy") as HTMLButtonElement;
+
+    (dlg.element.querySelector("#lv-asset-val-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+
+    if (report.activeItems === 0) {
+        const empty = document.createElement("div");
+        empty.className = "lv-caption";
+        empty.style.cssText = "text-align:center;padding:24px 0";
+        empty.textContent = t("ledger.assetValuationEmpty");
+        body.appendChild(empty);
+        if (copyBtn) copyBtn.disabled = true;
+        return;
+    }
+
+    const formatAmountStr = (n: number) => n.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    const metrics = document.createElement("div");
+    metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:8px";
+
+    const initCard = document.createElement("div");
+    initCard.className = "lv-metric-lg";
+    initCard.innerHTML = `<span class="lv-caption">${t("ledger.assetInitialCost")}</span><b class="lv-num" style="font-size:18px">¥${formatAmountStr(report.totalInitialCost)}</b><span class="lv-caption">${report.activeItems} 件在役</span>`;
+
+    const valCard = document.createElement("div");
+    valCard.className = "lv-metric-lg";
+    valCard.innerHTML = `<span class="lv-caption">${t("ledger.assetCurrentValuation")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">¥${formatAmountStr(report.totalCurrentValuation)}</b><span class="lv-caption">最新总估值</span>`;
+
+    const deltaCard = document.createElement("div");
+    const deltaColor = report.netValuationChange >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
+    deltaCard.className = "lv-metric-lg";
+    deltaCard.innerHTML = `<span class="lv-caption">${t("ledger.assetNetChange")}</span><b class="lv-num" style="color:${deltaColor};font-size:18px">${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(report.netValuationChange))}</b><span class="lv-caption">${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}%</span>`;
+
+    metrics.append(initCard, valCard, deltaCard);
+    body.appendChild(metrics);
+
+    if (report.topValuedItems.length > 0) {
+        const sec = document.createElement("div");
+        sec.style.cssText = "margin-top:4px";
+        sec.innerHTML = `<div class="ft__on-surface lv-section-title" style="font-weight:600;font-size:13px;margin:8px 0 4px">${t("ledger.assetTopValued")}</div>`;
+        const list = document.createElement("div");
+        list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+
+        for (const it of report.topValuedItems) {
+            const rowEl = document.createElement("div");
+            rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+
+            const left = document.createElement("div");
+            left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0";
+
+            const nameSpan = document.createElement("b");
+            nameSpan.style.cssText = "color:var(--lv-tx)";
+            nameSpan.textContent = it.name;
+
+            const metaSpan = document.createElement("span");
+            metaSpan.className = "lv-caption";
+            metaSpan.textContent = `原价: ¥${formatAmountStr(it.purchaseAmount)}${it.location ? ` · 位置: ${it.location}` : ""}${it.hasValuationLog ? ` · 估值日: ${it.latestValuationDate}` : ""}`;
+
+            left.append(nameSpan, metaSpan);
+
+            const right = document.createElement("div");
+            right.style.cssText = "text-align:right;flex-shrink:0";
+            const chgColor = it.valueDelta >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
+            right.innerHTML = `<div><b class="lv-num" style="font-size:14px;color:var(--lv-accent)">¥${formatAmountStr(it.currentValue)}</b></div><div class="lv-caption" style="color:${chgColor}">${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(it.valueDelta))} (${it.valueChangeRate >= 0 ? "+" : ""}${it.valueChangeRate}%)</div>`;
+
+            rowEl.append(left, right);
+            list.appendChild(rowEl);
+        }
+        sec.appendChild(list);
+        body.appendChild(sec);
+    }
+
+    if (copyBtn) {
+        copyBtn.onclick = async () => {
+            const lines = [
+                `【实物资产估值与净值报告】`,
+                `· 在役资产：${report.activeItems} 件`,
+                `· 初始总成本：¥${formatAmountStr(report.totalInitialCost)}`,
+                `· 当前总估值：¥${formatAmountStr(report.totalCurrentValuation)}`,
+                `· 资产净变动：${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(report.netValuationChange))} (${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}% )`,
+                `---------------------------`,
+                `【高价值资产 TOP】`,
+                ...report.topValuedItems.map((it) => `· ${it.name}：当前估值 ¥${formatAmountStr(it.currentValue)} (初始 ¥${formatAmountStr(it.purchaseAmount)}${it.valueDelta !== 0 ? `，变动 ${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(it.valueDelta))}` : ""})`),
+            ];
+            try {
+                await navigator.clipboard.writeText(lines.join("\n"));
+                showMessageFn(t("ledger.assetValuationCopied"), 2500, "info");
+            } catch {
+                showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
+            }
+        };
+    }
+}
+

@@ -2716,7 +2716,7 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
         const dlg = new Dialog({
             title: detailTitle,
             content: `<div class="b3-dialog__content b3-dialog__content--wrap" id="lv-detail-body" style="max-height:60vh;overflow:auto"></div>
-<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error" id="lv-detail-del" style="color:var(--lv-danger)">${t("delete")}</button><button class="b3-button b3-button--text" id="lv-detail-duplicate">📋 ${t("ledger.duplicateRow")}</button><span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu"><button class="b3-button b3-button--cancel" id="lv-detail-card-copy">${t("ledger.copyAsImage")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-png">${t("ledger.downloadPng")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-text">${t("ledger.copyAsText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-masked-text">${t("ledger.copyAsMaskedText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-ref">🔗 ${t("ledger.copyBlockRef")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-embed">📑 ${t("ledger.copyBlockEmbed")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-task">☑️ ${t("ledger.copyAsTaskBlock")}</button><button class="b3-button b3-button--cancel" id="lv-detail-open">${t("ledger.openDoc")} →</button></div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
+<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error" id="lv-detail-del" style="color:var(--lv-danger)">${t("delete")}</button><button class="b3-button b3-button--text" id="lv-detail-duplicate">📋 ${t("ledger.duplicateRow")}</button><span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu"><button class="b3-button b3-button--cancel" id="lv-detail-card-copy">${t("ledger.copyAsImage")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-png">${t("ledger.downloadPng")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-text">${t("ledger.copyAsText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-card-masked-text">${t("ledger.copyAsMaskedText")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-ref">🔗 ${t("ledger.copyBlockRef")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-embed">📑 ${t("ledger.copyBlockEmbed")}</button><button class="b3-button b3-button--cancel" id="lv-detail-copy-task">☑️ ${t("ledger.copyAsTaskBlock")}</button><button class="b3-button b3-button--cancel" id="lv-detail-push-glean">📖 ${t("ledger.pushToGlean")}</button><button class="b3-button b3-button--cancel" id="lv-detail-open">${t("ledger.openDoc")} →</button></div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
             width: "520px",
         });
         const body = dlg.element.querySelector("#lv-detail-body") as HTMLElement;
@@ -5489,6 +5489,31 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
                 try {
                     await navigator.clipboard.writeText(taskText);
                     showMessage(t("ledger.taskBlockCopied"), 2500, "info");
+                } catch (e) {
+                    showMessage(String(e), 5000, "error");
+                }
+            };
+        }
+        // Push long contract / appliance manual to Glean for incremental reading (Issue #128).
+        const pushGleanBtn = dlg.element.querySelector("#lv-detail-push-glean") as HTMLButtonElement | null;
+        if (pushGleanBtn) {
+            pushGleanBtn.onclick = async () => {
+                closeMore();
+                try {
+                    const { pushToGleanReadingSafely } = await import("@/libs/ecosystem-bridge-kit");
+                    const res = await pushToGleanReadingSafely({
+                        title: cardTitle,
+                        module: active,
+                        docId: ref?.docId,
+                        blockId: row.itemID,
+                        summary: ref?.columns?.note ? cellText(row.cells?.[ref.columns.note], "note") : undefined,
+                    });
+                    if (res.mode === "bridge") {
+                        showMessage(t("ledger.pushToGleanSuccess"), 3500, "info");
+                    } else {
+                        await navigator.clipboard.writeText(res.text);
+                        showMessage(t("ledger.pushToGleanFallback"), 3500, "info");
+                    }
                 } catch (e) {
                     showMessage(String(e), 5000, "error");
                 }

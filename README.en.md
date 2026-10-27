@@ -39,24 +39,24 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.128
+## 🆕 What's new in v0.5.129
 
-This release completely decouples the New Record Form into an independent component, bringing `ledger.svelte` down to 2,734 lines:
+This release marks a historic milestone in modularization: decoupling the 1,470+ line detail drawer into a standalone engine, reducing `ledger.svelte` to 1,225 lines (an 81%+ total reduction):
 
-- **Refactoring (Independent New Record Form Modal Component)**: Extracted `src/panels/screens/ledger-record-modal.svelte`, packaging dynamic field generation, quick templates, Chinese ID validation, and batch attachment uploads;
-- **Performance**: Main component `ledger.svelte` dropped from 3,500 lines to **2,734 lines** (accumulating over 3,760 lines trimmed across all phases, a **58% total reduction**);
-- **Feature (Contract Renewal & Notice Window Engine)**: Added calculation in `src/core/contracts.ts` for lease/service agreement notice period deadlines (30d/60d advance notice);
-- **Validation**: 105 test suites, **846 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
+- **Refactoring (Decoupled 1,470+ Line Detail Drawer Engine)**: Extracted `src/core/ledger-detail-drawer.ts` (1,500+ lines), encapsulating field presentations, sensitive masking, custom columns, domain extension panels (depreciation, wish savings, chore rotations, vitals, schooling, meters, dietary conflicts, pet age, retirement) and full edit/delete flows;
+- **Performance**: Main component `ledger.svelte` plummeted from 2,734 lines to **1,225 lines** (accumulating over 5,270 lines trimmed from the original ~6,500 lines);
+- **Feature (Real Asset Depreciation Health Indicator)**: Added pure function `getAssetDepreciationHealth` in `src/core/valuation.ts` for quick net salvage value and lifecycle stage estimation;
+- **Validation**: 106 test suites, **848 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.128)
+## 📦 Install (v0.5.129)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.128 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.128 package is the current GitHub release; local quality checks report 846 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.129 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.129 package is the current GitHub release; local quality checks report 848 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

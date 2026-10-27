@@ -10,6 +10,7 @@ import {
     type BridgeHost,
 } from "@/bridge/external-bridge";
 import { defaultSettings } from "@/core/settings";
+import { pushToGleanReadingSafely } from "@/libs/ecosystem-bridge-kit";
 
 function host(over: Partial<BridgeHost> = {}): BridgeHost {
     return {
@@ -203,5 +204,19 @@ describe("LvHome 服务桥（EC03/v0.3 + Epoch 6）", () => {
         first();
         expect((globalThis as any).window.LvHome).toBeUndefined();
         (globalThis as any).window = previousWindow;
+    });
+
+    it("pushToGleanReadingSafely 安全推入渐进阅读切片", async () => {
+        const res = await pushToGleanReadingSafely({
+            title: "重大疾病保险保单合同",
+            module: "insurance",
+            docId: "20261027120000-abcdef1",
+            summary: "第3条免责条款与等待期说明",
+        });
+        expect(res.text).toContain("重大疾病保险保单合同");
+        expect(res.text).toContain("insurance");
+        expect(res.text).toContain("20261027120000-abcdef1");
+        expect(res.text).toContain("每日消化 1~2 个条款切片");
+        expect(["bridge", "clipboard"]).toContain(res.mode);
     });
 });

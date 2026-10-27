@@ -39,23 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.113
+## 🆕 What's new in v0.5.114
 
-This release adopts ecosystem design directives and deepens cross-plugin federation:
+This release completes all directives and suggestions from the ecosystem coordination directive (Issue #128):
 
-- **Feature (Smooth Cubic-Bezier S-Curves for Vehicle Energy)**: Replaced rigid polyline chart with smooth cubic-bezier curve (C1 continuity) and soft gradient area fill for vehicle energy consumption;
-- **Feature (Extract Emergency & Safety Flashcards)**: Emergency Card now supports one-click extraction into Q&A flashcards (`Q ::: A` format) for spaced review (FSRS / siyuan-lv-cards);
-- **Validation**: 92 test suites, **816 unit tests passing**, TypeScript, Svelte, i18n (1964 keys), metadata, and package smoke all green.
+- **Feature (Push Complex Contracts & Manuals to Glean for Incremental Reading)**: Detail drawer "More" menu now includes "Push to Glean Reading" (📖), enabling users to push policies, property deeds, and appliance manuals to siyuan-glean's reading queue (or fallback to copying structured reading slices);
+- **Validation**: 92 test suites, **817 unit tests passing**, TypeScript, Svelte, i18n (1967 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.113)
+## 📦 Install (v0.5.114)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.113 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.113 package is the current GitHub release; local quality checks report 816 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.114 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.114 package is the current GitHub release; local quality checks report 817 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

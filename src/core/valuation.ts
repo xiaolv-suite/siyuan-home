@@ -6,6 +6,7 @@
 import type { AvRow } from "@/core/siyuan";
 import type { RowLogs, ValuationEntry } from "@/core/rowlog";
 import { getValuations } from "@/core/rowlog";
+import { calculateAssetDepreciation } from "./depreciation";
 
 export interface AssetItemValuation {
     id: string;
@@ -38,6 +39,9 @@ export interface AssetValuationReport {
     overallChangeRate: number; // 百分比
     categoryBreakdown: AssetCategoryValuation[];
     topValuedItems: AssetItemValuation[];
+    totalDepreciationNetValue: number;
+    totalDepreciationAccumulated: number;
+    depreciationEligibleCount: number;
 }
 
 export interface ShoppingToAssetDraft {
@@ -91,6 +95,9 @@ export function calculateAssetValuationStats(
     let disposedItems = 0;
     let totalInitialCost = 0;
     let totalCurrentValuation = 0;
+    let totalDepreciationNetValue = 0;
+    let totalDepreciationAccumulated = 0;
+    let depreciationEligibleCount = 0;
 
     const items: AssetItemValuation[] = [];
     const catMap = new Map<string, { count: number; totalPurchase: number; totalCurrent: number }>();
@@ -135,6 +142,16 @@ export function calculateAssetValuationStats(
 
         totalInitialCost += purchaseAmount;
         totalCurrentValuation += currentValue;
+
+        const dateStr = cellString(row, cols.date);
+        if (purchaseAmount > 0 && dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const dep = calculateAssetDepreciation({ initialCost: purchaseAmount, purchaseDate: dateStr });
+            if (dep) {
+                totalDepreciationNetValue += dep.currentNetValue;
+                totalDepreciationAccumulated += dep.accumulatedDepreciation;
+                depreciationEligibleCount++;
+            }
+        }
 
         items.push({
             id: row.itemID,
@@ -188,6 +205,9 @@ export function calculateAssetValuationStats(
         overallChangeRate,
         categoryBreakdown,
         topValuedItems: items.slice(0, 10),
+        totalDepreciationNetValue,
+        totalDepreciationAccumulated,
+        depreciationEligibleCount,
     };
 }
 
@@ -282,6 +302,16 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
 
     metrics.append(initCard, valCard, deltaCard);
     body.appendChild(metrics);
+
+    if (report.depreciationEligibleCount > 0) {
+        const depBanner = document.createElement("div");
+        depBanner.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);margin-bottom:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px";
+        depBanner.innerHTML = `
+            <span>📉 <b>财务直线折旧测算 (${report.depreciationEligibleCount} 件)</b></span>
+            <span>折后净残值: <b style="color:var(--lv-accent)">¥${formatAmountStr(report.totalDepreciationNetValue)}</b> · 累计折旧: <b style="color:var(--lv-danger)">¥${formatAmountStr(report.totalDepreciationAccumulated)}</b></span>
+        `;
+        body.appendChild(depBanner);
+    }
 
     if (report.topValuedItems.length > 0) {
         const sec = document.createElement("div");

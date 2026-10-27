@@ -15,6 +15,7 @@ export interface FavorsDialogOptions {
 }
 
 export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise<void> {
+    if (typeof document === "undefined") return;
     const { ref, t, DialogCls, showMessageFn, loadRows } = opts;
     if (!ref?.columns) return;
 
@@ -40,6 +41,7 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
         width: "560px",
     });
     const body = dlg.element.querySelector("#lv-favors-body") as HTMLElement;
+    if (!body) return;
 
     const render = () => {
         body.replaceChildren();

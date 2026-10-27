@@ -519,6 +519,16 @@ describe("addDetachedRow 身份确认（D02）", () => {
         expect(await addDetachedRow(AV, "内容")).toBe("row-1");
     });
 
+    it("携带 idempotencyKey 时，短轮询 renderRowIDs 必须能读取到最新行而非前置缓存（解决待确认假死Bug）", async () => {
+        let added = false;
+        handler = (endpoint, payload) => {
+            if (endpoint === ADD) { added = true; return { code: 0, msg: "", data: {} }; }
+            if (endpoint === RENDER) return renderRows(added ? 2 : 1)(payload);
+            return { code: 0, msg: "", data: {} };
+        };
+        expect(await addDetachedRow(AV, "内容", { idempotencyKey: "test-save-op-key:row" })).toBe("row-1");
+    });
+
     it("diff 出现多候选（如并发加行）→ RowIdentityPendingError 且携带候选，不猜", async () => {
         let added = false;
         handler = (endpoint, payload) => {

@@ -532,6 +532,7 @@
 
     async function save(continueAfter = false) {
         if (saving) return;
+        const hadIdentityPending = identityPending;
         identityPending = false;
         const title = String(values.name ?? "").trim();
         saveError = "";
@@ -589,6 +590,23 @@
                 }
             }
             let itemID = pendingRowId;
+            if (!itemID && hadIdentityPending) {
+                // 如果先前处于“身份待确认”状态，重试时优先回查目标台账，看是否已创建该行
+                try {
+                    const ledger = await renderLedgerAll(r.avId, 50);
+                    const nameCol = r.columns?.name;
+                    if (nameCol) {
+                        const matched = ledger.rows.find((row) => {
+                            const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
+                            return val === title;
+                        });
+                        if (matched) {
+                            itemID = matched.itemID;
+                            pendingRowId = itemID;
+                        }
+                    }
+                } catch { /* soft reconciliation */ }
+            }
             if (!itemID) {
                 pendingModuleId = moduleId;
                 try {

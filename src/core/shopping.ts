@@ -141,3 +141,114 @@ export function formatStoreModeText(
     }
     return lines.join("\n").trimEnd();
 }
+
+export interface LowStockShoppingDialogOptions {
+    ref: { avId?: string; columns?: Record<string, string> };
+    allRows: any[];
+    t: (k: string) => string;
+    plugin: any;
+    DialogCls: any;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+}
+
+export function openLowStockShoppingDialog(options: LowStockShoppingDialogOptions): void {
+    if (typeof document === "undefined") return;
+    const { ref, allRows, t, plugin, DialogCls, showMessageFn } = options;
+    if (!ref.columns?.name || !ref.columns.qty || !ref.columns.low_stock_at) return;
+
+    const items = buildShoppingList(allRows, {
+        nameKey: ref.columns.name,
+        qtyKey: ref.columns.qty,
+        thresholdKey: ref.columns.low_stock_at,
+    });
+
+    const dlg = new DialogCls({
+        title: t("ledger.shoppingList"),
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-shop-body" style="max-height:65vh;overflow:auto"></div>
+<div class="b3-dialog__action"><span class="lv-caption" id="lv-shop-total" style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-shop-close">${t("cancel")}</button><button class="b3-button b3-button--text" id="lv-shop-copy" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopCopy")}</button><button class="b3-button" id="lv-shop-write" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopWriteToLedger")}</button></div>`,
+        width: "560px",
+    });
+
+    const body = dlg.element.querySelector("#lv-shop-body") as HTMLElement;
+    if (items.length === 0) {
+        const none = document.createElement("div");
+        none.className = "ft__on-surface";
+        none.style.cssText = "font-size:13px;padding:12px 0;text-align:center";
+        none.textContent = t("ledger.shopEmpty");
+        body.appendChild(none);
+    }
+
+    const qtyInputs: HTMLInputElement[] = [];
+    for (const it of items) {
+        const line = document.createElement("div");
+        line.style.cssText = "display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid var(--lv-line)";
+        const label = document.createElement("span");
+        label.style.cssText = "flex:1;word-break:break-all;color:var(--lv-tx)";
+        label.textContent = it.name;
+        const meta = document.createElement("span");
+        meta.className = "lv-caption";
+        meta.style.cssText = "flex-shrink:0";
+        meta.textContent = t("ledger.shopExisting").replace("${q}", String(it.qty)).replace("${t2}", String(it.threshold));
+        const input = document.createElement("input");
+        input.type = "number";
+        input.className = "b3-text-field";
+        input.style.cssText = "width:74px;flex-shrink:0";
+        input.min = "1";
+        input.value = String(it.suggest);
+        input.title = t("ledger.shopBuy");
+        qtyInputs.push(input);
+        line.append(label, meta, input);
+        body.appendChild(line);
+    }
+
+    const total = dlg.element.querySelector("#lv-shop-total") as HTMLElement;
+    if (total) total.textContent = t("ledger.shopTotal").replace("${n}", String(items.length));
+
+    const closeBtn = dlg.element.querySelector("#lv-shop-close") as HTMLButtonElement | null;
+    if (closeBtn) closeBtn.onclick = () => dlg.destroy();
+
+    const copyBtn = dlg.element.querySelector("#lv-shop-copy") as HTMLButtonElement | null;
+    if (copyBtn) {
+        copyBtn.onclick = async () => {
+            const lines = items
+                .map((it, i) => `${it.name} ×${Math.max(1, Math.floor(Number(qtyInputs[i]?.value) || 1))}`)
+                .join("\n");
+            const text = `${t("ledger.shoppingList")} · ${new Date().toISOString().slice(0, 10)}\n${lines}`;
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessageFn(t("ledger.shopCopied"), 2500, "info");
+            } catch {
+                showMessageFn(t("ledger.shopCopyFailed"), 4000, "error");
+            }
+        };
+    }
+
+    const writeBtn = dlg.element.querySelector("#lv-shop-write") as HTMLButtonElement | null;
+    if (writeBtn) {
+        writeBtn.onclick = async () => {
+            const shoppingRef = plugin.settings?.dbRefs?.["shopping"];
+            if (!shoppingRef?.avId || !shoppingRef.columns?.name) {
+                showMessageFn(t("capture.ledgerUnavailable").replace("${module}", t("module.shopping")), 5000, "info");
+                return;
+            }
+            writeBtn.disabled = true;
+            try {
+                const { addDetachedRow, setCell } = await import("./siyuan");
+                for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    const buyQty = Math.max(1, Math.floor(Number(qtyInputs[i]?.value) || 1));
+                    const rowId = await addDetachedRow(shoppingRef.avId, it.name, { idempotencyKey: `stock:to-shop:${it.name}:${Date.now()}` });
+                    if (shoppingRef.columns.qty) {
+                        await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty } });
+                    }
+                }
+                dlg.destroy();
+                showMessageFn(t("ledger.shopWritten"), 3000, "info");
+            } catch (e) {
+                writeBtn.disabled = false;
+                showMessageFn(String(e), 5000, "error");
+            }
+        };
+    }
+}
+

@@ -39,22 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.118
+## 🆕 What's new in v0.5.119
 
-This release continues the modular decoupling of the monolithic ledger component (Phase 2):
+This release continues the modular decoupling of the monolithic ledger component (Phase 3):
 
-- **Refactoring (Decoupled Asset Valuation & Bookmark Check Dialogs)**: Submerged asset valuation analytics and bookmarks health checker into domain modules (`valuation.ts` and `bookmarks.ts`) with dynamic `import()`, trimming another 220+ lines from `ledger.svelte` (accumulating 650+ lines trimmed);
-- **Validation**: 93 test suites, **821 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
+- **Refactoring (Decoupled Energy Dashboard & Low-Stock Shopping Dialogs)**: Submerged vehicle energy dashboard and low-stock shopping suggestions into domain modules (`fuel.ts` and `shopping.ts`) with dynamic `import()`, trimming another ~200 lines from `ledger.svelte` (accumulating 850+ lines trimmed across phases);
+- **Validation**: 93 test suites, **823 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.118)
+## 📦 Install (v0.5.119)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.118 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.118 package is the current GitHub release; local quality checks report 821 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.119 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.119 package is the current GitHub release; local quality checks report 823 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

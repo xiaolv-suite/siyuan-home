@@ -38,9 +38,7 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
     const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
-    const itemRowCss = "display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
     const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
-    const colLeftCss = "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1";
     const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
     const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
     const btnSmCss = "margin-top:8px;font-size:12px";
@@ -53,8 +51,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const actionRowEndCss = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
     const flexCenterGap6Css = "display:flex;align-items:center;gap:6px";
     const flexColGap6Css = "display:flex;flex-direction:column;gap:6px";
-    const centerPad24Css = "text-align:center;padding:24px 0";
-    const gridCol3Gap10Css = "display:grid;grid-template-columns:repeat(3,1fr);gap:10px";
     const logItemRowCss = "display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 0;border-top:1px solid var(--lv-line);font-size:12px;flex-wrap:wrap";
     const dangerAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
     const warnAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
@@ -1109,123 +1105,14 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
                 showMessage(t("ledger.loadIncomplete"), 5000, "error");
                 return;
             }
-
-            const dlg = new Dialog({
-                title: t("ledger.checkBookmarks"),
-                content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-bm-check-body">
-                    <div style="display:flex;align-items:center;gap:8px;padding:16px;justify-content:center">
-                        <span class="lv-caption">${t("ledger.bookmarksChecking").replace("${n}", String(all.rows.length))}</span>
-                    </div>
-                </div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-bm-check-close">${t("close")}</button><button class="b3-button" id="lv-bm-check-copy" disabled>${t("ledger.bookmarksCopyReport")}</button></div>`,
-                width: "560px",
+            const { openBookmarksCheckDialog } = await import("@/core/bookmarks");
+            await openBookmarksCheckDialog({
+                rows: all.rows,
+                columns: ref.columns,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
             });
-            const body = dlg.element.querySelector("#lv-bm-check-body") as HTMLElement;
-            const copyBtn = dlg.element.querySelector("#lv-bm-check-copy") as HTMLButtonElement;
-
-            (dlg.element.querySelector("#lv-bm-check-close") as HTMLButtonElement).onclick = () => dlg.destroy();
-
-            const { checkBookmarksHealth, formatBookmarkHealthReportText } = await import("@/core/bookmarks");
-            const report = await checkBookmarksHealth(all.rows, ref.columns);
-
-            body.replaceChildren();
-
-            if (report.total === 0) {
-                const empty = document.createElement("div");
-                empty.className = "lv-caption";
-                empty.style.cssText = centerPad24Css;
-                empty.textContent = t("ledger.bookmarksNoLinks");
-                body.appendChild(empty);
-                return;
-            }
-
-            // 统计指标卡
-            const metrics = document.createElement("div");
-            metrics.style.cssText = gridCol3Gap10Css;
-
-            const totalCard = document.createElement("div");
-            totalCard.className = "lv-metric-lg";
-            totalCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksTotal")}</span><b class="lv-num" style="font-size:18px">${report.total}</b>`;
-
-            const healthyCard = document.createElement("div");
-            healthyCard.className = "lv-metric-lg";
-            healthyCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksHealthy")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">${report.healthyCount}</b>`;
-
-            const brokenCard = document.createElement("div");
-            const brokenColor = report.brokenCount > 0 ? "var(--lv-danger)" : "var(--lv-tx-3)";
-            brokenCard.className = "lv-metric-lg";
-            brokenCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksBroken")}</span><b class="lv-num" style="color:${brokenColor};font-size:18px">${report.brokenCount}</b>`;
-
-            metrics.append(totalCard, healthyCard, brokenCard);
-            body.appendChild(metrics);
-
-            if (report.brokenCount === 0) {
-                const okMsg = document.createElement("div");
-                okMsg.style.cssText = "padding:14px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-accent);color:var(--lv-accent);text-align:center;font-size:13px";
-                okMsg.textContent = `✓ ${t("ledger.bookmarksAllHealthy")}`;
-                body.appendChild(okMsg);
-            } else {
-                copyBtn.disabled = false;
-                const sec = document.createElement("div");
-                sec.style.cssText = "margin-top:4px";
-                sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.bookmarksBrokenCount").replace("${n}", String(report.brokenCount))}</div>`;
-
-                const list = document.createElement("div");
-                list.style.cssText = flexColGap6Css;
-
-                for (const item of report.brokenItems) {
-                    const rowEl = document.createElement("div");
-                    rowEl.style.cssText = itemRowCss;
-
-                    const left = document.createElement("div");
-                    left.style.cssText = colLeftCss;
-
-                    const titleSpan = document.createElement("span");
-                    titleSpan.style.cssText = "font-weight:500;color:var(--lv-tx)";
-                    titleSpan.textContent = item.name;
-
-                    const urlSpan = document.createElement("span");
-                    urlSpan.className = "lv-caption";
-                    urlSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
-                    urlSpan.textContent = item.url || "（空链接）";
-
-                    left.append(titleSpan, urlSpan);
-
-                    const right = document.createElement("div");
-                    right.style.cssText = `${flexCenterGap6Css};flex-shrink:0`;
-
-                    const badge = document.createElement("span");
-                    badge.className = "lv-badge danger";
-                    badge.textContent = item.error ? item.error : (item.statusCode ? `HTTP ${item.statusCode}` : "失效");
-
-                    right.append(badge);
-
-                    if (item.url && (item.url.startsWith("http://") || item.url.startsWith("https://"))) {
-                        const testBtn = document.createElement("button");
-                        testBtn.className = "b3-button b3-button--text";
-                        testBtn.style.cssText = linkBtnCss;
-                        testBtn.textContent = t("ledger.bookmarksOpenTest");
-                        testBtn.onclick = () => window.open(item.url, "_blank");
-                        right.append(testBtn);
-                    }
-
-                    rowEl.append(left, right);
-                    list.appendChild(rowEl);
-                }
-
-                sec.appendChild(list);
-                body.appendChild(sec);
-            }
-
-            copyBtn.onclick = async () => {
-                const text = formatBookmarkHealthReportText(report);
-                try {
-                    await navigator.clipboard.writeText(text);
-                    showMessage(t("ledger.bookmarksReportCopied"), 2500, "info");
-                } catch {
-                    showMessage(t("ledger.copyAsImageFail"), 4000, "error");
-                }
-            };
         } catch (e) {
             showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
         }
@@ -1272,105 +1159,16 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
             }
             const { loadRowLogs } = await import("@/core/rowlog");
             const logs = await loadRowLogs(plugin as any);
-            const { calculateAssetValuationStats } = await import("@/core/valuation");
-            const report = calculateAssetValuationStats(all.rows, ref.columns, logs, ref.avId);
-
-            const dlg = new Dialog({
-                title: t("ledger.assetValuationReport"),
-                content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-asset-val-body"></div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-asset-val-close">${t("close")}</button><button class="b3-button" id="lv-asset-val-copy">${t("ledger.assetValuationCopy")}</button></div>`,
-                width: "560px",
+            const { openAssetValuationDialog } = await import("@/core/valuation");
+            openAssetValuationDialog({
+                rows: all.rows,
+                columns: ref.columns,
+                logs,
+                avId: ref.avId,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
             });
-            const body = dlg.element.querySelector("#lv-asset-val-body") as HTMLElement;
-            const copyBtn = dlg.element.querySelector("#lv-asset-val-copy") as HTMLButtonElement;
-
-            (dlg.element.querySelector("#lv-asset-val-close") as HTMLButtonElement).onclick = () => dlg.destroy();
-
-            if (report.activeItems === 0) {
-                const empty = document.createElement("div");
-                empty.className = "lv-caption";
-                empty.style.cssText = centerPad24Css;
-                empty.textContent = t("ledger.assetValuationEmpty");
-                body.appendChild(empty);
-                copyBtn.disabled = true;
-                return;
-            }
-
-            // 指标卡
-            const metrics = document.createElement("div");
-            metrics.style.cssText = gridCol3Gap10Css;
-
-            const initCard = document.createElement("div");
-            initCard.className = "lv-metric-lg";
-            initCard.innerHTML = `<span class="lv-caption">${t("ledger.assetInitialCost")}</span><b class="lv-num" style="font-size:18px">¥${formatAmount(report.totalInitialCost)}</b><span class="lv-caption">${report.activeItems} 件在役</span>`;
-
-            const valCard = document.createElement("div");
-            valCard.className = "lv-metric-lg";
-            valCard.innerHTML = `<span class="lv-caption">${t("ledger.assetCurrentValuation")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">¥${formatAmount(report.totalCurrentValuation)}</b><span class="lv-caption">最新总估值</span>`;
-
-            const deltaCard = document.createElement("div");
-            const deltaColor = report.netValuationChange >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
-            deltaCard.className = "lv-metric-lg";
-            deltaCard.innerHTML = `<span class="lv-caption">${t("ledger.assetNetChange")}</span><b class="lv-num" style="color:${deltaColor};font-size:18px">${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netValuationChange))}</b><span class="lv-caption">${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}%</span>`;
-
-            metrics.append(initCard, valCard, deltaCard);
-            body.appendChild(metrics);
-
-            // TOP 资产列表
-            if (report.topValuedItems.length > 0) {
-                const sec = document.createElement("div");
-                sec.style.cssText = "margin-top:4px";
-                sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.assetTopValued")}</div>`;
-                const list = document.createElement("div");
-                list.style.cssText = flexColGap6Css;
-
-                for (const it of report.topValuedItems) {
-                    const rowEl = document.createElement("div");
-                    rowEl.style.cssText = itemRowCss;
-
-                    const left = document.createElement("div");
-                    left.style.cssText = colLeftCss;
-
-                    const nameSpan = document.createElement("b");
-                    nameSpan.style.cssText = "color:var(--lv-tx)";
-                    nameSpan.textContent = it.name;
-
-                    const metaSpan = document.createElement("span");
-                    metaSpan.className = "lv-caption";
-                    metaSpan.textContent = `原价: ¥${formatAmount(it.purchaseAmount)}${it.location ? ` · 位置: ${it.location}` : ""}${it.hasValuationLog ? ` · 估值日: ${it.latestValuationDate}` : ""}`;
-
-                    left.append(nameSpan, metaSpan);
-
-                    const right = document.createElement("div");
-                    right.style.cssText = "text-align:right;flex-shrink:0";
-                    const chgColor = it.valueDelta >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
-                    right.innerHTML = `<div><b class="lv-num" style="font-size:14px;color:var(--lv-accent)">¥${formatAmount(it.currentValue)}</b></div><div class="lv-caption" style="color:${chgColor}">${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(it.valueDelta))} (${it.valueChangeRate >= 0 ? "+" : ""}${it.valueChangeRate}%)</div>`;
-
-                    rowEl.append(left, right);
-                    list.appendChild(rowEl);
-                }
-                sec.appendChild(list);
-                body.appendChild(sec);
-            }
-
-            copyBtn.onclick = async () => {
-                const lines = [
-                    `【实物资产估值与净值报告】`,
-                    `· 在役资产：${report.activeItems} 件`,
-                    `· 初始总成本：¥${formatAmount(report.totalInitialCost)}`,
-                    `· 当前总估值：¥${formatAmount(report.totalCurrentValuation)}`,
-                    `· 资产净变动：${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netValuationChange))} (${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}% )`,
-                    `---------------------------`,
-                    `【高价值资产 TOP】`,
-                    ...report.topValuedItems.map((it) => `· ${it.name}：当前估值 ¥${formatAmount(it.currentValue)} (初始 ¥${formatAmount(it.purchaseAmount)}${it.valueDelta !== 0 ? `，变动 ${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(it.valueDelta))}` : ""})`),
-                ];
-                try {
-                    await navigator.clipboard.writeText(lines.join("\n"));
-                    showMessage(t("ledger.assetValuationCopied"), 2500, "info");
-                } catch {
-                    showMessage(t("ledger.copyAsImageFail"), 4000, "error");
-                }
-            };
         } catch (e) {
             showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
         }

@@ -114,11 +114,33 @@ export function cleanTaskPrefix(text: string): { cleanText: string; isTask: bool
     return { cleanText: text.trim(), isTask: false, isCompleted: false };
 }
 
+export interface TaskBlockFormatOptions {
+    moduleName?: string;
+    priority?: "urgent" | "high" | "medium" | "low";
+    status?: "todo" | "done";
+    asTaskHorizon?: boolean;
+}
+
 /**
  * 组装思源原生任务列表块 Markdown 语法
+ * 支持 Task Horizon (任务视界, by 5kyfkr) 标准自定义属性集
  */
-export function formatAsTaskBlock(title: string, dueDate?: string, blockRefId?: string): string {
-    const titleWithRef = blockRefId ? `((${blockRefId} "${title}"))` : title;
+export function formatAsTaskBlock(
+    title: string,
+    dueDate?: string,
+    blockRefId?: string,
+    options?: TaskBlockFormatOptions
+): string {
+    const cleanTitle = (title ?? "").trim();
+    if (options?.asTaskHorizon || (blockRefId && dueDate && options?.moduleName)) {
+        const mod = options?.moduleName ? ` · ${options.moduleName}` : "";
+        const priority = options?.priority ?? "high";
+        const status = options?.status ?? "todo";
+        const remarkAttr = blockRefId ? ` custom-remark="(( ${blockRefId} '${cleanTitle}' ))"` : "";
+        const dueAttr = dueDate ? ` custom-completion-time="${dueDate}"` : "";
+        return `- [ ] ${cleanTitle}${mod} {: custom-status="${status}" custom-priority="${priority}"${dueAttr}${remarkAttr} }`;
+    }
+    const titleWithRef = blockRefId ? `((${blockRefId} "${cleanTitle}"))` : cleanTitle;
     const dueStr = dueDate ? ` · 到期: ${dueDate}` : "";
     return `- [ ] ${titleWithRef}${dueStr}`;
 }

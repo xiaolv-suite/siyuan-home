@@ -256,7 +256,8 @@
     }
 
     async function copyAsTaskBlock(r: Reminder) {
-        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id);
+        const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
+        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
         try {
             await navigator.clipboard.writeText(text);
             showMessage(t("hub.taskBlockCopied"), 2500, "info");

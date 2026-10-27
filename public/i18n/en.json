@@ -1870,6 +1870,8 @@
     "overview.emergencyAllergies": "Known allergies",
     "overview.emergencyConditions": "Chronic conditions / medication",
     "overview.emergencyInsurance": "Medical insurance no.",
+    "overview.exportFlashcards": "Generate Flashcards",
+    "overview.flashcardsCopied": "Copied ${n} flashcards for spaced review",
     "capture.ingestAction": "🔗 Ingest Block",
     "capture.ingestTitle": "Ingest SiYuan Block into Ledger",
     "capture.ingestHint": "Enter a block link or ID to parse fields into ledger rows with backlink.",

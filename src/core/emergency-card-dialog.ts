@@ -5,7 +5,7 @@
  * 独立模块，按需延迟加载以减轻主包负担。
  */
 
-import { buildFamilyEmergencyCard, formatEmergencyCardText, type HealthRowLike, type CertRowLike, type StockRowLike } from "./emergency-card";
+import { buildFamilyEmergencyCard, formatEmergencyCardText, generateEmergencyCards, formatEmergencyCardsMarkdown, type HealthRowLike, type CertRowLike, type StockRowLike } from "./emergency-card";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 
@@ -105,6 +105,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
+  <button class="b3-button b3-button--outline" id="lv-ecard-flashcards">📇 ${t("overview.exportFlashcards")}</button>
   <button class="b3-button" id="lv-ecard-copy">${t("ledger.emergencyKitCopy")}</button>
 </div>`,
         width: "600px",
@@ -168,6 +169,21 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 
         membersEl.appendChild(item);
     }
+
+    (dlg.element.querySelector("#lv-ecard-flashcards") as HTMLButtonElement | null)?.addEventListener("click", async () => {
+        const cards = generateEmergencyCards(card);
+        if (!cards.length) {
+            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            return;
+        }
+        const md = formatEmergencyCardsMarkdown(cards);
+        try {
+            await navigator.clipboard.writeText(md);
+            showMessageFn(t("overview.flashcardsCopied").replace("${n}", String(cards.length)), 3500, "info");
+        } catch {
+            showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
+        }
+    });
 
     (dlg.element.querySelector("#lv-ecard-copy") as HTMLButtonElement).onclick = async () => {
         try {

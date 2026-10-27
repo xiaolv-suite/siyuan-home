@@ -202,3 +202,65 @@ export function formatEmergencyCardText(
     lines.push("📌 急救提示：发生紧急事故时，请第一时间拨打 120 / 119 并告知医护人员以上过敏史。");
     return lines.join("\n").trimEnd();
 }
+
+export interface EmergencyFlashcard {
+    question: string;
+    answer: string;
+}
+
+/**
+ * 从急救卡数据中提炼高价值家庭安全与生命支持问答闪卡（Issue #128 中枢联动小驴闪卡规范）
+ */
+export function generateEmergencyCards(card: FamilyEmergencyCardData): EmergencyFlashcard[] {
+    const cards: EmergencyFlashcard[] = [];
+
+    if (card.emergencyKitLocation) {
+        cards.push({
+            question: "家庭急救箱或防灾应急包存放在哪里？",
+            answer: `存放在：${card.emergencyKitLocation}`,
+        });
+    }
+
+    if (card.evacuationAddress) {
+        cards.push({
+            question: "家庭紧急疏散避难点或应急联络地址是什么？",
+            answer: card.evacuationAddress,
+        });
+    }
+
+    for (const m of card.members) {
+        if (m.bloodType) {
+            cards.push({
+                question: `家人【${m.name}】的血型是什么？`,
+                answer: `${m.name} 的血型是 ${m.bloodType}`,
+            });
+        }
+        if (m.allergies.length > 0) {
+            cards.push({
+                question: `家人【${m.name}】有哪些严禁接触的药物或过敏源？`,
+                answer: `⚠️ 明确过敏史：${m.allergies.join("、")}`,
+            });
+        }
+        if (m.emergencyContact) {
+            cards.push({
+                question: `家人【${m.name}】的紧急联络人方式是？`,
+                answer: `📞 紧急联络：${m.emergencyContact}`,
+            });
+        }
+    }
+
+    return cards;
+}
+
+/**
+ * 格式化为思源问答闪卡标准 Markdown 语法（支持直接粘贴到思源笔记或导入小驴闪卡）
+ */
+export function formatEmergencyCardsMarkdown(cards: readonly EmergencyFlashcard[]): string {
+    if (!cards || !cards.length) return "";
+    const lines = ["# 📇 家庭急救与安全常识闪卡", ""];
+    for (const c of cards) {
+        lines.push(`* ${c.question} ::: ${c.answer}`);
+    }
+    return lines.join("\n");
+}
+

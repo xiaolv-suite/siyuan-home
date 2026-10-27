@@ -3,6 +3,8 @@ import {
     extractBloodType,
     buildFamilyEmergencyCard,
     formatEmergencyCardText,
+    generateEmergencyCards,
+    formatEmergencyCardsMarkdown,
     type HealthRowLike,
     type CertRowLike,
     type StockRowLike,
@@ -112,6 +114,20 @@ describe("core/emergency-card 家庭急救与应急联络卡（318波）", () =>
         it("支持敏感卡号脱敏展示", () => {
             const masked = formatEmergencyCardText(card, { maskSensitive: true });
             expect(masked).toContain("1101 **** **** 1234");
+        });
+
+        it("generateEmergencyCards 提炼高价值生命支持常识问答对", () => {
+            const cards = generateEmergencyCards(card);
+            expect(cards.length).toBeGreaterThan(0);
+            const kitCard = cards.find((c) => c.question.includes("急救箱"));
+            expect(kitCard?.answer).toContain("客厅门后");
+
+            const allergyCard = cards.find((c) => c.question.includes("过敏源"));
+            expect(allergyCard?.answer).toContain("青霉素过敏");
+
+            const md = formatEmergencyCardsMarkdown(cards);
+            expect(md).toContain("::: ");
+            expect(md).toContain("# 📇 家庭急救与安全常识闪卡");
         });
     });
 });

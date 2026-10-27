@@ -1870,6 +1870,8 @@
     "overview.emergencyAllergies": "高危过敏史",
     "overview.emergencyConditions": "日常慢病/用药",
     "overview.emergencyInsurance": "医保/社保卡号",
+    "overview.exportFlashcards": "提炼为复习闪卡",
+    "overview.flashcardsCopied": "已提炼并复制 ${n} 张常识闪卡，可在思源中粘贴复习",
     "capture.ingestAction": "🔗 收录思源块",
     "capture.ingestTitle": "收录思源文档块到台账",
     "capture.ingestHint": "输入思源块链接或块 ID，智能提炼字段并建立双向追溯引用。",

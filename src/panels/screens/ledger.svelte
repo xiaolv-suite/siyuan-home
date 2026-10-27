@@ -23,6 +23,7 @@
     import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
     import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "@/core/assets";
     import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "@/core/fuel";
+import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     import { calculateMaintenanceStats, calculateVehicleCostSummary, createVehicleActionQueue, type MaintenanceRecord, type VehicleQuickAction } from "@/core/vehicle";
     import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "@/core/rowlog";
     import type { LogKind } from "@/core/rowlog";
@@ -3785,10 +3786,35 @@
                         svg.setAttribute("viewBox", "0 0 300 76"); svg.setAttribute("width", "100%"); svg.setAttribute("height", "76"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("fuel.trendTitle"));
                         const values = intervals.map((item) => item.consumptionPer100Km);
                         const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
-                        const points = values.map((value, index) => `${12 + index * (276 / Math.max(1, values.length - 1))},${62 - ((value - min) / range) * 46}`).join(" ");
-                        const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-                        line.setAttribute("points", points); line.setAttribute("fill", "none"); line.setAttribute("stroke", "var(--lv-accent)"); line.setAttribute("stroke-width", "2.5"); line.setAttribute("stroke-linecap", "round"); line.setAttribute("stroke-linejoin", "round");
-                        svg.appendChild(line);
+                        const pts = values.map((value, index) => ({
+                            x: 12 + index * (276 / Math.max(1, values.length - 1)),
+                            y: 62 - ((value - min) / range) * 46,
+                        }));
+                        const bezierPath = pointsToSmoothBezierPath(pts);
+                        const areaPath = pointsToAreaBezierPath(pts, 68);
+
+                        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                        defs.innerHTML = `<linearGradient id="lv-fuel-curve-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="var(--lv-accent)" stop-opacity="0.25"/>
+                            <stop offset="100%" stop-color="var(--lv-accent)" stop-opacity="0.0"/>
+                        </linearGradient>`;
+                        svg.appendChild(defs);
+
+                        if (areaPath) {
+                            const area = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            area.setAttribute("d", areaPath);
+                            area.setAttribute("fill", "url(#lv-fuel-curve-grad)");
+                            svg.appendChild(area);
+                        }
+
+                        const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        curve.setAttribute("d", bezierPath);
+                        curve.setAttribute("fill", "none");
+                        curve.setAttribute("stroke", "var(--lv-accent)");
+                        curve.setAttribute("stroke-width", "2.5");
+                        curve.setAttribute("stroke-linecap", "round");
+                        curve.setAttribute("stroke-linejoin", "round");
+                        svg.appendChild(curve);
                         for (const [index, interval] of intervals.entries()) {
                             const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                             dot.setAttribute("cx", String(12 + index * (276 / Math.max(1, intervals.length - 1))));

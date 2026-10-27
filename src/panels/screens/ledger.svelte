@@ -271,109 +271,54 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     }
 
     async function openBatchMemberModal() {
-        if (!selectedItemIds.length || !ref?.avId || !memberCol) return;
-        const targetCol = memberCol;
+        if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
         const membersList = (plugin.settings.members ?? []).filter((m) => !!m.avItemId);
         if (!membersList.length) {
             showMessage(t("members.notLinked"), 4000, "info");
             return;
         }
-        const dlg = new Dialog({
-            title: t("ledger.batchMemberTitle"),
-            content: `
-                <div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px">
-                    <label class="lv-caption">${t("ledger.batchMemberTitle")}：</label>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap">
-                        ${membersList.map((m) => `<button type="button" class="lv-preset-tag lv-batch-mem-tag" data-id="${m.avItemId}">${m.name}</button>`).join("")}
-                    </div>
-                </div>
-                <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel">${t("cancel")}</button>
-                </div>
-            `,
-            width: "380px",
-        });
-        (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        dlg.element.querySelectorAll(".lv-batch-mem-tag").forEach((btn) => {
-            (btn as HTMLButtonElement).onclick = async () => {
-                const memId = btn.getAttribute("data-id");
-                if (!memId || batchBusy) return;
-                dlg.destroy();
-                batchBusy = true;
-                const count = selectedItemIds.length;
-                try {
-                    const { setCell } = await import("@/core/siyuan");
-                    for (const rowId of selectedItemIds) {
-                        await setCell(ref!.avId!, targetCol, rowId, { type: "relation", relation: { blockIDs: [memId] } });
-                    }
+        try {
+            const { openBatchMemberDialog } = await import("@/core/batch-dialog");
+            openBatchMemberDialog({
+                targetCol: memberCol,
+                membersList,
+                selectedItemIds,
+                avId: ref.avId,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                onBatchSuccess: async () => {
                     selectedItemIds = [];
-                    showMessage(t("ledger.batchMember") + ` (${count})`, 3000, "info");
                     await load();
                     try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
-                } catch (e) {
-                    showMessage(String(e), 5000, "error");
-                } finally {
-                    batchBusy = false;
-                }
-            };
-        });
+                },
+            });
+        } catch (e) {
+            showMessage(String(e), 5000, "error");
+        }
     }
 
     async function openBatchLocationModal() {
-        if (!selectedItemIds.length || !ref?.avId || !ref?.columns?.location) return;
-        const targetCol = ref.columns.location;
-        const locOptions = dynamicLocations;
-        const dlg = new Dialog({
-            title: t("ledger.batchLocationTitle"),
-            content: `
-                <div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px">
-                    <label class="lv-caption">${t("ledger.batchLocationTitle")}：</label>
-                    <input class="b3-text-field" id="lv-batch-loc-input" style="width:100%" placeholder="${t("capture.presetLocations")}" />
-                    <div style="display:flex;gap:4px;flex-wrap:wrap">
-                        ${locOptions.map((loc) => `<button type="button" class="lv-preset-tag lv-batch-loc-tag" data-loc="${loc}">${loc}</button>`).join("")}
-                    </div>
-                </div>
-                <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel">${t("cancel")}</button>
-                    <button class="b3-button" id="lv-batch-loc-ok">${t("save")}</button>
-                </div>
-            `,
-            width: "420px",
-        });
-        const inp = dlg.element.querySelector("#lv-batch-loc-input") as HTMLInputElement;
-        dlg.element.querySelectorAll(".lv-batch-loc-tag").forEach((btn) => {
-            (btn as HTMLButtonElement).onclick = () => {
-                inp.value = btn.getAttribute("data-loc") ?? "";
-            };
-        });
-        if (inp) {
-            inp.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement)?.click();
+        if (!selectedItemIds.length || !ref?.avId || !ref?.columns?.location || batchBusy) return;
+        try {
+            const { openBatchLocationDialog } = await import("@/core/batch-dialog");
+            openBatchLocationDialog({
+                targetCol: ref.columns.location,
+                selectedItemIds,
+                locOptions: dynamicLocations,
+                avId: ref.avId,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                onBatchSuccess: async () => {
+                    selectedItemIds = [];
+                    await load();
+                    try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
+                },
             });
+        } catch (e) {
+            showMessage(String(e), 5000, "error");
         }
-        (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        (dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            const locVal = inp.value.trim();
-            if (!locVal || batchBusy) return;
-            this.disabled = true;
-            batchBusy = true;
-            try {
-                const { setCell } = await import("@/core/siyuan");
-                const count = selectedItemIds.length;
-                for (const rowId of selectedItemIds) {
-                    await setCell(ref!.avId!, targetCol, rowId, { type: "text", text: { content: locVal } });
-                }
-                dlg.destroy();
-                selectedItemIds = [];
-                showMessage(t("ledger.batchLocation") + ` (${count})`, 3000, "info");
-                await load();
-                try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
-            } catch (e) {
-                showMessage(String(e), 5000, "error");
-            } finally {
-                batchBusy = false;
-            }
-        };
     }
 
     function batchDelete() {

@@ -6,7 +6,6 @@
     import { buildCsv } from "@/core/csv";
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
-    import { renderRecordCardPng, copyPngToClipboard, downloadPng } from "@/core/sharecard";
     import { localDateKey, parseDate } from "@/core/hub/rule";
     import { showMessage, Dialog } from "siyuan";
     import { confirm } from "@/libs/dialog";
@@ -54,7 +53,7 @@
     import { maskValueForGuest, createDefaultGuestConfig } from "@/core/guest-mode";
     import { getGroupedModules } from "@/core/modules";
     import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
-    import { smartExtractFieldsFromTitle, formatAsTaskBlock } from "@/core/block-capture";
+    import { smartExtractFieldsFromTitle } from "@/core/block-capture";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
@@ -1378,13 +1377,6 @@
     function newOperationKey(prefix: string): string {
         try { return `${prefix}:${crypto.randomUUID()}`; }
         catch { return `${prefix}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
-    }
-    const ledgerWriteChains = new WeakMap<object, Promise<unknown>>();
-    function enqueueLedgerWrite<T>(run: () => Promise<T>): Promise<T> {
-        const previous = ledgerWriteChains.get(plugin) ?? Promise.resolve();
-        const current = previous.then(run);
-        ledgerWriteChains.set(plugin, current.catch(() => undefined));
-        return current;
     }
     function setCertificateFiles(key: string, files: File[]) {
         const vehiclePhoto = active === "vehicles" && key === "attachments";
@@ -2963,303 +2955,17 @@
                 body.appendChild(btn);
             }
         })();
-        // Link health prescriptions to medicine stock rows when both ledgers exist.
-        function addRxToMedicineButton() {
-            if (active !== "health") return;
-            const medRef = plugin.settings.dbRefs?.["medicine"];
-            if (!medRef?.avId) return;
-            const name = String(cellText(row.cells[ref!.columns.name]));
-            if (!name || name === "—") return;
-            const btn = document.createElement("button");
-            btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = btnSmCss;
-            btn.textContent = t("ledger.rxToMedicine");
-            let pendingMedicineID: string | null = null;
-            let medicineOperationKey: string | null = null;
-            btn.onclick = () => {
-                if (btn.disabled) return;
-                confirm(t("ledger.rxToMedicine"), t("ledger.rxToMedicineBody").replace("${name}", name), async () => {
-                    btn.disabled = true;
-                    try {
-                        const { addDetachedRow, setCell } = await import("@/core/siyuan");
-                        if (!medicineOperationKey) medicineOperationKey = newOperationKey(`ledger:rx-to-medicine:${row.itemID}`);
-                        const itemID = pendingMedicineID ?? await addDetachedRow(medRef.avId!, name, {
-                            idempotencyKey: `${medicineOperationKey}:row`,
-                            retries: 1,
-                        });
-                        pendingMedicineID = itemID;
-                        const catKey = medRef.columns?.category;
-                        if (catKey) await setCell(medRef.avId!, catKey, itemID, selectCellValue("rx"), {
-                            idempotencyKey: `${medicineOperationKey}:category`,
-                            retries: 1,
-                        });
-                        const memKey = medRef.columns?.member;
-                        const relBlock = row.cells[ref!.columns.member]?.relation?.blockIDs?.[0];
-                        if (memKey && relBlock) await setCell(medRef.avId!, memKey, itemID, { type: "relation", relation: { blockIDs: [relBlock], contents: null } }, {
-                            idempotencyKey: `${medicineOperationKey}:member`,
-                            retries: 1,
-                        });
-                        showMessage(t("ledger.rxToMedicineDone").replace("${name}", name), 3000, "info");
-                        pendingMedicineID = null;
-                        medicineOperationKey = null;
-                    } catch (e) {
-                        showMessage(t("ledger.rxToMedicineFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                        btn.disabled = false;
-                    }
-                });
-            };
-            body.appendChild(btn);
-        }
-        addRxToMedicineButton();
-
-        // Link shopping purchases to stock rows, creating a row when needed.
-        function addStockInButton() {
-            if (active !== "shopping") return;
-            const medRef = plugin.settings.dbRefs?.["medicine"];
-            if (!medRef?.avId) return;
-            const name = String(cellText(row.cells[ref!.columns.name]));
-            if (!name || name === "—") return;
-            const qtyRaw = cellText(row.cells[ref!.columns.qty]);
-            const qty = qtyRaw !== "—" && qtyRaw !== "" && Number.isFinite(Number(qtyRaw)) && Number(qtyRaw) > 0 ? Number(qtyRaw) : 1;
-            const btn = document.createElement("button");
-            btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = btnSmCss;
-            btn.textContent = t("ledger.stockIn");
-            let pendingStockItemID: string | null = null;
-            let stockOperationKey: string | null = null;
-            let stockWrite: { itemID: string; value: number; idempotencyKey: string } | null = null;
-            let stockInBusy = false;
-            btn.onclick = async () => {
-                if (stockInBusy) return;
-                stockInBusy = true;
-                btn.disabled = true;
-                try {
-                    const { addDetachedRow, setCell } = await import("@/core/siyuan");
-                    const read = await renderLedgerAll(medRef.avId!);
-                    if (!read.complete) throw new Error(t("ledger.loadIncomplete"));
-                    const nameKey = medRef.columns?.name;
-                    const stockKey = medRef.columns?.stock_qty;
-                    if (!stockKey) throw new Error("stock quantity column is unavailable");
-                    const matches = nameKey
-                        ? read.rows.filter((r) => String(r.cells[nameKey]?.text?.content ?? "").trim() === name)
-                        : [];
-                    const dialog = new Dialog({
-                        title: t("ledger.stockIn"),
-                        content: `<div class="b3-dialog__content" id="lv-stockin-body"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-stockin-cancel">${t("cancel")}</button><button class="b3-button" id="lv-stockin-ok">${t("ledger.stockIn")}</button></div>`,
-                        width: "420px",
-                        destroyCallback: () => {
-                            if (!stockCommitted) {
-                                stockInBusy = false;
-                                btn.disabled = false;
-                            }
-                        },
-                    });
-                    let stockCommitted = false;
-                    const body = dialog.element.querySelector("#lv-stockin-body") as HTMLElement;
-                    body.textContent = t("ledger.stockInBody").replace("${name}", name).replace("${qty}", String(qty)).replace("${n}", String(matches.length));
-                    const cancel = dialog.element.querySelector("#lv-stockin-cancel") as HTMLButtonElement;
-                    const ok = dialog.element.querySelector("#lv-stockin-ok") as HTMLButtonElement;
-                    cancel.onclick = () => { dialog.destroy(); stockInBusy = false; btn.disabled = false; };
-                    ok.onclick = async () => {
-                        if (ok.disabled) return;
-                        ok.disabled = true;
-                        cancel.disabled = true;
-                        try {
-                            await enqueueLedgerWrite(async () => {
-                                // Re-read at commit time so a dialog left open cannot
-                                // overwrite a newer stock quantity. The queue also
-                                // serializes two stock-in dialogs in this plugin.
-                                const latest = await renderLedgerAll(medRef.avId!);
-                                if (!latest.complete) throw new Error(t("ledger.loadIncomplete"));
-                                const latestMatches = nameKey
-                                    ? latest.rows.filter((r) => String(r.cells[nameKey]?.text?.content ?? "").trim() === name)
-                                    : [];
-                                const target = stockWrite ? { itemID: stockWrite.itemID, cells: {} } : latestMatches[0];
-                                if (!stockOperationKey) stockOperationKey = newOperationKey(`ledger:stock-in:${row.itemID}`);
-                                if (target) {
-                                    if (!stockWrite) {
-                                        const cur = target.cells[stockKey]?.number;
-                                        const curVal = cur?.isNotEmpty && typeof cur.content === "number" ? cur.content : 0;
-                                        stockWrite = { itemID: target.itemID, value: curVal + qty, idempotencyKey: `${stockOperationKey}:cell:${target.itemID}` };
-                                    }
-                                    await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
-                                        idempotencyKey: stockWrite.idempotencyKey,
-                                        retries: 1,
-                                    });
-                                } else {
-                                    const itemID = pendingStockItemID ?? await addDetachedRow(medRef.avId!, name, {
-                                        idempotencyKey: `${stockOperationKey}:row`,
-                                        retries: 1,
-                                    });
-                                    pendingStockItemID = itemID;
-                                    if (!stockWrite) stockWrite = { itemID, value: qty, idempotencyKey: `${stockOperationKey}:cell:${itemID}` };
-                                    await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
-                                        idempotencyKey: stockWrite.idempotencyKey,
-                                        retries: 1,
-                                    });
-                                    pendingStockItemID = null;
-                                }
-                            });
-                            stockCommitted = true;
-                            stockOperationKey = null;
-                            stockWrite = null;
-                            dialog.destroy();
-                            btn.textContent = t("ledger.stockIn");
-                            try {
-                                await plugin.refreshHub?.(["medicine"]); // Refresh low-stock reminders.
-                            } catch (e) {
-                                showMessage(t("ledger.stockInRefreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                            } finally {
-                                stockInBusy = false;
-                                btn.disabled = false;
-                            }
-                        } catch (e) {
-                            if (stockCommitted) {
-                                showMessage(t("ledger.stockInRefreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                                stockInBusy = false;
-                                btn.disabled = false;
-                            } else {
-                                showMessage(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                                ok.disabled = false;
-                                cancel.disabled = false;
-                            }
-                            return;
-                        }
-                    };
-                } catch (e) {
-                    showMessage(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                    stockInBusy = false;
-                    btn.disabled = false;
-                }
-            };
-            body.appendChild(btn);
-        }
-        addStockInButton();
-
-        // Link shopping delivered purchases to assets-real records.
-        function addShoppingToAssetButton() {
-            if (active !== "shopping") return;
-            const assetsRef = plugin.settings.dbRefs?.["assets-real"];
-            if (!assetsRef?.avId || !assetsRef.columns) return;
-            const name = String(cellText(row.cells[ref!.columns.name]));
-            if (!name || name === "—") return;
-
-            const btn = document.createElement("button");
-            btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = "margin-top:8px;margin-left:6px;font-size:12px";
-            btn.textContent = t("ledger.shoppingToAsset");
-
-            let busy = false;
-            btn.onclick = async () => {
-                if (busy) return;
-                busy = true;
-                btn.disabled = true;
-                try {
-                    const { mapShoppingToAssetReal } = await import("@/core/valuation");
-                    const draft = mapShoppingToAssetReal(row, ref!.columns);
-
-                    const catOptions = [
-                        { val: "digital", label: "数码电子" },
-                        { val: "appliance", label: "家用电器" },
-                        { val: "furniture", label: "家具家居" },
-                        { val: "apparel", label: "服饰箱包" },
-                        { val: "collection", label: "潮玩收藏" },
-                        { val: "sports", label: "运动户外" },
-                        { val: "other_ar", label: "其他资产" },
-                    ].map((c) => `<option value="${c.val}" ${c.val === draft.suggestedCategory ? "selected" : ""}>${c.label}</option>`).join("");
-
-                    const dlg = new Dialog({
-                        title: t("ledger.shoppingToAssetTitle"),
-                        content: `<div class="b3-dialog__content lv-dialog-col">
-                            <p class="lv-caption" style="margin:0">${t("ledger.shoppingToAssetIntro")}</p>
-                            <label style="display:flex;flex-direction:column;gap:4px">
-                                <span class="lv-caption">${t("field.name")}</span>
-                                <input class="b3-text-field" id="lv-s2a-name" value="${draft.name}" style="width:100%" />
-                            </label>
-                            <label style="display:flex;flex-direction:column;gap:4px">
-                                <span class="lv-caption">${t("field.category")}</span>
-                                <select class="b3-select" id="lv-s2a-cat" style="width:100%">${catOptions}</select>
-                            </label>
-                            <label style="display:flex;flex-direction:column;gap:4px">
-                                <span class="lv-caption">${t("field.amount")}</span>
-                                <input class="b3-text-field" id="lv-s2a-amount" type="number" value="${draft.amount ?? ""}" style="width:100%" />
-                            </label>
-                        </div>
-                        <div class="b3-dialog__action">
-                            <button class="b3-button b3-button--cancel" id="lv-s2a-cancel">${t("cancel")}</button>
-                            <button class="b3-button" id="lv-s2a-save">${t("save")}</button>
-                        </div>`,
-                        width: "420px",
-                    });
-
-                    (dlg.element.querySelector("#lv-s2a-cancel") as HTMLButtonElement).onclick = () => {
-                        dlg.destroy();
-                        busy = false;
-                        btn.disabled = false;
-                    };
-
-                    (dlg.element.querySelector("#lv-s2a-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-                        const nameVal = (dlg.element.querySelector("#lv-s2a-name") as HTMLInputElement)?.value.trim() || draft.name;
-                        const catVal = (dlg.element.querySelector("#lv-s2a-cat") as HTMLSelectElement)?.value || draft.suggestedCategory;
-                        const amtVal = Number((dlg.element.querySelector("#lv-s2a-amount") as HTMLInputElement)?.value) || draft.amount;
-
-                        this.disabled = true;
-                        dlg.destroy();
-                        try {
-                            const { addDetachedRow, setCell } = await import("@/core/siyuan");
-                            const rowId = await addDetachedRow(assetsRef.avId!, nameVal);
-                            if (assetsRef.columns.category) {
-                                await setCell(assetsRef.avId!, assetsRef.columns.category, rowId, {
-                                    type: "select", select: { content: catVal },
-                                });
-                            }
-                            if (assetsRef.columns.amount && typeof amtVal === "number" && Number.isFinite(amtVal)) {
-                                await setCell(assetsRef.avId!, assetsRef.columns.amount, rowId, {
-                                    type: "number", number: { content: amtVal, isNotEmpty: true },
-                                });
-                            }
-                            if (assetsRef.columns.date && draft.date) {
-                                await setCell(assetsRef.avId!, assetsRef.columns.date, rowId, {
-                                    type: "date", date: { content: draft.date, isNotEmpty: true },
-                                });
-                            }
-                            if (assetsRef.columns.channel && draft.channel) {
-                                await setCell(assetsRef.avId!, assetsRef.columns.channel, rowId, {
-                                    type: "text", text: { content: draft.channel },
-                                });
-                            }
-                            if (assetsRef.columns.member && draft.memberId) {
-                                await setCell(assetsRef.avId!, assetsRef.columns.member, rowId, {
-                                    type: "relation", relation: { blockIDs: [draft.memberId] },
-                                });
-                            }
-                            if (assetsRef.columns.note) {
-                                const noteContent = draft.note ? `${draft.note} (来自购物记录)` : "来自购物记录";
-                                await setCell(assetsRef.avId!, assetsRef.columns.note, rowId, {
-                                    type: "text", text: { content: noteContent },
-                                });
-                            }
-                            showMessage(t("ledger.shoppingToAssetDone").replace("${name}", nameVal), 3500, "info");
-                            btn.textContent = `✓ ${t("ledger.shoppingToAssetDoneShort")}`;
-                            btn.disabled = true;
-                        } catch (err) {
-                            showMessage(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
-                            busy = false;
-                            btn.disabled = false;
-                        }
-                    };
-                } catch (e) {
-                    showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-                    busy = false;
-                    btn.disabled = false;
-                }
-            };
-            body.appendChild(btn);
-        }
-        addShoppingToAssetButton();
-
-        // 324波：证件换证链与人情同步转入 core/drawer-sections.ts 模块化瘦身
-        import("@/core/drawer-sections").then(({ renderRenewChainSection, renderFavorsSyncSection }) => {
+        // 324/325波：跨台账联动（处方转药箱/备货入库/购物转资产/换证链/人情同步）抽离至 core/drawer-sections.ts
+        import("@/core/drawer-sections").then(({
+            renderRxToMedicineButton,
+            renderStockInButton,
+            renderShoppingToAssetButton,
+            renderRenewChainSection,
+            renderFavorsSyncSection,
+        }) => {
+            renderRxToMedicineButton({ body, row, ref: ref!, active, plugin, t, showMessageFn: showMessage, cellTextFn: cellText });
+            renderStockInButton({ body, row, ref: ref!, active, plugin, t, DialogCls: Dialog, showMessageFn: showMessage, cellTextFn: cellText });
+            renderShoppingToAssetButton({ body, row, ref: ref!, active, plugin, t, DialogCls: Dialog, showMessageFn: showMessage, cellTextFn: cellText });
             renderRenewChainSection({
                 body,
                 row,
@@ -3416,126 +3122,20 @@
         const nameValForCard = nameKeyForCard ? row.cells?.[nameKeyForCard] : undefined;
         const cardTitle = (nameValForCard?.type === "block" ? nameValForCard.block?.content : "") || detailTitle;
         const cardDeepLink = nameValForCard?.type === "block" && nameValForCard.block?.id ? blockDeepLink(nameValForCard.block.id) : blockDeepLink(ref?.docId || "");
-        const buildCard = async () => renderRecordCardPng({
-            title: cardTitle,
-            moduleLabel: t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active,
-            rows: cardRows,
-            deepLink: cardDeepLink,
+        import("@/core/drawer-actions").then(({ bindDrawerMoreActions }) => {
+            bindDrawerMoreActions({
+                dlg,
+                row,
+                cardTitle,
+                cardDeepLink,
+                cardRows,
+                active,
+                ref: ref!,
+                t,
+                showMessageFn: showMessage,
+                cellTextFn: cellText,
+            });
         });
-        const more = dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement | null;
-        const closeMore = () => { if (more) more.open = false; };
-        (dlg.element.querySelector("#lv-detail-card-copy") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            closeMore();
-            this.disabled = true;
-            try {
-                const blob = await buildCard();
-                const ok = await copyPngToClipboard(blob);
-                if (ok) showMessage(t("ledger.copyAsImageOk"), 2500, "info");
-                else { downloadPng(blob, `${cardTitle.slice(0, 20) || "lvhome"}.png`); showMessage(t("ledger.copyAsImageFail"), 4000, "info"); }
-            } catch (e) {
-                showMessage(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
-            } finally { this.disabled = false; }
-        };
-        (dlg.element.querySelector("#lv-detail-card-png") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            closeMore();
-            this.disabled = true;
-            try {
-                const blob = await buildCard();
-                downloadPng(blob, `${cardTitle.slice(0, 20) || "lvhome"}.png`);
-            } catch (e) {
-                showMessage(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
-            } finally { this.disabled = false; }
-        };
-        // Copy the detail card as label/value text.
-        (dlg.element.querySelector("#lv-detail-card-text") as HTMLButtonElement).onclick = async () => {
-            closeMore();
-            const text = cardRows.map((r) => `${r.label}: ${r.value}`).join("\n");
-            try {
-                await navigator.clipboard.writeText(`${cardTitle}\n${text}`);
-                showMessage(t("ledger.copyAsTextOk"), 2500, "info");
-            } catch (e) {
-                showMessage(t("ledger.copyAsImageFail") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
-            }
-        };
-        // Copy the detail card as masked label/value text.
-        (dlg.element.querySelector("#lv-detail-card-masked-text") as HTMLButtonElement).onclick = async () => {
-            closeMore();
-            const { formatMaskedRecordText } = await import("@/core/format");
-            const text = formatMaskedRecordText(cardTitle, cardRows);
-            try {
-                await navigator.clipboard.writeText(text);
-                showMessage(t("ledger.copyAsMaskedTextOk"), 2500, "info");
-            } catch (e) {
-                showMessage(t("ledger.copyAsImageFail") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
-            }
-        };
-        // Copy SiYuan block reference ((blockId "title")).
-        const copyRefBtn = dlg.element.querySelector("#lv-detail-copy-ref") as HTMLButtonElement | null;
-        if (copyRefBtn) {
-            copyRefBtn.onclick = async () => {
-                closeMore();
-                const blockRefText = `((${row.itemID} "${cardTitle}"))`;
-                try {
-                    await navigator.clipboard.writeText(blockRefText);
-                    showMessage(t("ledger.blockRefCopied"), 2500, "info");
-                } catch (e) {
-                    showMessage(String(e), 5000, "error");
-                }
-            };
-        }
-        // Copy as SiYuan Task List Block - [ ] ((blockId "title")).
-        const copyTaskBtn = dlg.element.querySelector("#lv-detail-copy-task") as HTMLButtonElement | null;
-        if (copyTaskBtn) {
-            copyTaskBtn.onclick = async () => {
-                closeMore();
-                const taskText = formatAsTaskBlock(cardTitle, undefined, row.itemID);
-                try {
-                    await navigator.clipboard.writeText(taskText);
-                    showMessage(t("ledger.taskBlockCopied"), 2500, "info");
-                } catch (e) {
-                    showMessage(String(e), 5000, "error");
-                }
-            };
-        }
-        // Push long contract / appliance manual to Glean for incremental reading (Issue #128).
-        const pushGleanBtn = dlg.element.querySelector("#lv-detail-push-glean") as HTMLButtonElement | null;
-        if (pushGleanBtn) {
-            pushGleanBtn.onclick = async () => {
-                closeMore();
-                try {
-                    const { pushToGleanReadingSafely } = await import("@/libs/ecosystem-bridge-kit");
-                    const res = await pushToGleanReadingSafely({
-                        title: cardTitle,
-                        module: active,
-                        docId: ref?.docId,
-                        blockId: row.itemID,
-                        summary: ref?.columns?.note ? cellText(row.cells?.[ref.columns.note], "note") : undefined,
-                    });
-                    if (res.mode === "bridge") {
-                        showMessage(t("ledger.pushToGleanSuccess"), 3500, "info");
-                    } else {
-                        await navigator.clipboard.writeText(res.text);
-                        showMessage(t("ledger.pushToGleanFallback"), 3500, "info");
-                    }
-                } catch (e) {
-                    showMessage(String(e), 5000, "error");
-                }
-            };
-        }
-        // Copy SiYuan block embed {{select * from blocks where id='blockId'}}.
-        const copyEmbedBtn = dlg.element.querySelector("#lv-detail-copy-embed") as HTMLButtonElement | null;
-        if (copyEmbedBtn) {
-            copyEmbedBtn.onclick = async () => {
-                closeMore();
-                const blockEmbedText = `{{select * from blocks where id='${row.itemID}'}}`;
-                try {
-                    await navigator.clipboard.writeText(blockEmbedText);
-                    showMessage(t("ledger.blockEmbedCopied"), 2500, "info");
-                } catch (e) {
-                    showMessage(String(e), 5000, "error");
-                }
-            };
-        }
         // Copy record as new draft.
         const dupBtn = dlg.element.querySelector("#lv-detail-duplicate") as HTMLButtonElement | null;
         if (dupBtn) {

@@ -39,24 +39,24 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.122
+## 🆕 What's new in v0.5.123
 
-This release brings major architectural modularization and two new family business features:
+This release brings inline edit & attachment OCR decoupling, asset depreciation calculation, and Spotlight command mode:
 
-- **Refactoring (Decoupled Drawer Sections & Form Engine)**: Extracted detail drawer specialized sections (`drawer-sections.ts`) and dynamic field rendering engine (`record-form.ts`) from `ledger.svelte`, trimming another ~400 lines;
-- **Feature (Batch Stock-In from Shopping List)**: Closed the loop between purchases and household stock (`shopping → stock`), enabling batch inventory entry with quantity inheritance;
-- **Feature (Pet Routine Care & Deworming Schedule)**: Implemented veterinary schedule calculation for monthly external deworming (30d), quarterly internal deworming (90d), and annual core vaccines (365d);
-- **Validation**: 96 test suites, **828 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
+- **Refactoring (Decoupled Inline Edit & Attachment OCR)**: Extracted inline micro-editing controls (`inline-edit.ts`) and attachment preview/OCR engine (`attachment-drawer.ts`) from `ledger.svelte`, accumulating 1,400+ lines trimmed;
+- **Feature (Asset Depreciation & Salvage Value Engine)**: Implemented standard straight-line financial depreciation with statutory salvage rate (5%), calculating used months, net book value, and replacement readiness;
+- **Feature (Spotlight Command Mode with &gt; Prefix)**: Spotlight now supports `>` command mode to directly trigger Quick Capture, Location Index, Emergency Card, Store Mode, Life Index, and Settings;
+- **Validation**: 98 test suites, **833 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.122)
+## 📦 Install (v0.5.123)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.122 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.122 package is the current GitHub release; local quality checks report 828 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.123 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.123 package is the current GitHub release; local quality checks report 833 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

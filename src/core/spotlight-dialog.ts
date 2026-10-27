@@ -3,7 +3,7 @@
  * 跨所有已启用模块实时并发检索家庭数据，支持键盘上下导航、回车直达或点击直达对应台账。
  * 独立模块，按需延迟加载。
  */
-import { searchSpotlight, type SpotlightItem } from "./spotlight";
+import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./spotlight";
 import { moduleIcon } from "./modules";
 import { showMessage } from "siyuan";
 
@@ -112,13 +112,14 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
 
     const renderResults = (query: string) => {
         const matched = searchSpotlight(allItems, query, 30);
+        const matchedCmds = searchSpotlightCommands(query);
         statusEl.innerHTML = `
-            <span>${query ? t("spotlight.resultsCount").replace("${n}", String(matched.length)) : t("spotlight.totalIndexed").replace("${n}", String(allItems.length))}</span>
-            <span style="font-size:11px">${t("spotlight.hint")}</span>
+            <span>${query ? t("spotlight.resultsCount").replace("${n}", String(matched.length + matchedCmds.length)) : t("spotlight.totalIndexed").replace("${n}", String(allItems.length))}</span>
+            <span style="font-size:11px">${t("spotlight.hint")} · 输入 &gt; 触发命令</span>
         `;
         listEl.innerHTML = "";
 
-        if (matched.length === 0) {
+        if (matched.length === 0 && matchedCmds.length === 0) {
             const safeQ = escapeHtml(query);
             listEl.innerHTML = `
                 <div style="text-align:center;padding:32px 0;color:var(--lv-tx-3);font-size:13px">
@@ -126,6 +127,46 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                 </div>
             `;
             return;
+        }
+
+        // 渲染匹配的快捷命令项
+        for (const cmd of matchedCmds) {
+            const card = document.createElement("div");
+            card.className = "lv-card lv-spotlight-cmd";
+            card.style.cssText = "padding:10px 14px;border:1px solid var(--lv-accent);border-radius:8px;background:var(--lv-surface-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all 0.15s ease";
+            card.tabIndex = 0;
+            card.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <b style="font-size:13.5px;color:var(--lv-tx)">${escapeHtml(cmd.title)}</b>
+                    <span class="lv-caption" style="color:var(--lv-tx-3)">${escapeHtml(cmd.sub)}</span>
+                </div>
+                <span class="lv-badge" style="background:var(--lv-accent-soft);color:var(--lv-accent);font-weight:600;font-size:11px">指令</span>
+            `;
+            const runCmd = () => {
+                dlg.destroy();
+                if (typeof window !== "undefined") {
+                    if (cmd.action === "open-capture") window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
+                    else if (cmd.action === "open-location") window.dispatchEvent(new CustomEvent("siyuan-home:open-location"));
+                    else if (cmd.action === "open-emergency") window.dispatchEvent(new CustomEvent("siyuan-home:open-emergency"));
+                    else if (cmd.action === "open-reminders") onNavigateToTarget({ moduleId: "adhoc", rowId: "" });
+                    else if (cmd.action === "open-settings") (plugin as any).openSetting?.();
+                    else if (cmd.action === "open-store-mode") window.dispatchEvent(new CustomEvent("siyuan-home:open-store"));
+                }
+            };
+            card.onclick = runCmd;
+            card.onkeydown = (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    runCmd();
+                } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    (card.nextElementSibling as HTMLElement | null)?.focus();
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    inp.focus();
+                }
+            };
+            listEl.appendChild(card);
         }
 
         for (const item of matched) {

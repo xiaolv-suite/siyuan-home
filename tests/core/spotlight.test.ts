@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchSpotlight, type SpotlightItem } from "@/core/spotlight";
+import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "@/core/spotlight";
 
 describe("core/spotlight 全景生活检索", () => {
     const items: SpotlightItem[] = [
@@ -38,5 +38,16 @@ describe("core/spotlight 全景生活检索", () => {
 
     it("无匹配返回空数组", () => {
         expect(searchSpotlight(items, "不存在的内容xyz")).toEqual([]);
+    });
+
+    it("searchSpotlightCommands 支持 > 触发快捷命令模式", () => {
+        const allCmds = searchSpotlightCommands(">");
+        expect(allCmds.length).toBeGreaterThan(0);
+
+        const captureCmd = searchSpotlightCommands("> 快速");
+        expect(captureCmd.some((c) => c.action === "open-capture")).toBe(true);
+
+        const emergencyCmd = searchSpotlightCommands("> 急救");
+        expect(emergencyCmd.some((c) => c.action === "open-emergency")).toBe(true);
     });
 });

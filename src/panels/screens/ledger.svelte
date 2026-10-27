@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError, getOCRConfig, getImageOCRText, recognizeAsset } from "@/core/siyuan";
+    import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { renderEditableFormFields } from "@/core/record-form";
@@ -19,7 +19,7 @@
     import { getCertificateProfile, getCertificateReminderField } from "@/core/schema";
     import type { ColumnDef } from "@/core/schema";
     import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
-    import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "@/core/assets";
+    import { assetHref, isImageAsset } from "@/core/assets";
     import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "@/core/fuel";
 import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     import { calculateMaintenanceStats, calculateVehicleCostSummary, createVehicleActionQueue, type MaintenanceRecord, type VehicleQuickAction } from "@/core/vehicle";
@@ -51,7 +51,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const dangerAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
     const warnAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
     const flex1Min180Css = "flex:1;min-width:180px;overflow-wrap:anywhere";
-    const pad24Fs12Css = "padding:2px 4px;font-size:12px";
     const pad06Fs12Css = "padding:0 6px;font-size:12px";
     const pad36Fs12Css = "padding:3px 6px;font-size:12px";
     const fs11Lh16Css = "font-size:11px;line-height:1.6";
@@ -1850,132 +1849,30 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
             const translated = t("ledger.inlineEditHint");
             return translated === "ledger.inlineEditHint" ? "点击字段值即可编辑" : translated;
         }
-        function inlineValue(value: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): any {
-            if (value instanceof HTMLInputElement && value.type === "checkbox") return value.checked;
-            return value.value;
-        }
         function beginInlineEdit(col: any, keyID: string, line: HTMLElement, valueEl: HTMLElement) {
-            if (!EDITABLE.has(col.type) || line.dataset.lvEditing === "true") return;
-            valueEl.setAttribute("aria-hidden", "true");
-            line.dataset.lvEditing = "true";
-            const originalChildren = Array.from(line.children);
-            const current = rawFromValue(col.type, row.cells[keyID]);
-            const editor = document.createElement("div");
-            editor.className = "lv-inline-editor";
-            editor.style.cssText = `${flexCenterGap6Css};flex:1;min-width:0;flex-wrap:wrap`;
-            let control: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-            const longText = col.type === "text" && /(^|_)(note|memo|description|remark|address)($|_)/i.test(String(col.key));
-            if (col.type === "select") {
-                const select = document.createElement("select");
-                select.className = "b3-select";
-                select.style.cssText = "flex:1;min-width:140px";
-                select.add(new Option("", ""));
-                for (const opt of col.options ?? []) select.add(new Option(optLabel(t, col.key, opt), String(opt)));
-                select.value = String(current ?? "");
-                control = select;
-            } else if (longText) {
-                const area = document.createElement("textarea");
-                area.className = "b3-text-field";
-                area.rows = 2;
-                area.style.cssText = "flex:1;min-width:160px;resize:vertical";
-                area.value = String(current ?? "");
-                control = area;
-            } else {
-                const input = document.createElement("input");
-                input.className = col.type === "checkbox" ? "b3-switch" : "b3-text-field";
-                input.type = col.type === "checkbox" ? "checkbox" : col.type === "number" ? "number" : col.type === "date" ? "date" : col.type === "url" ? "url" : "text";
-                if (col.type === "checkbox") input.checked = !!current;
-                else input.value = String(current ?? "");
-                if (col.type === "number") input.step = "any";
-                input.style.cssText = col.type === "checkbox" ? "flex:0 0 auto" : "flex:1;min-width:140px";
-                control = input;
-            }
-            const actions = document.createElement("span");
-            actions.style.cssText = "display:inline-flex;gap:3px;flex:0 0 auto";
-            const save = document.createElement("button");
-            save.type = "button";
-            save.className = "b3-button b3-button--text";
-            save.style.cssText = "padding:2px 6px;font-size:12px;color:var(--lv-accent)";
-            save.textContent = t("save");
-            const cancel = document.createElement("button");
-            cancel.type = "button";
-            cancel.className = "b3-button b3-button--text";
-            cancel.style.cssText = pad36Fs12Css;
-            cancel.textContent = t("cancel");
-            actions.append(save, cancel);
-            editor.append(control);
-            if (col.key === "contact" && control instanceof HTMLInputElement && getContactsBridge()) {
-                const pick = document.createElement("button");
-                pick.type = "button";
-                pick.className = "b3-button b3-button--outline";
-                pick.style.cssText = pad36Fs12Css;
-                pick.textContent = t("ledger.pickContact");
-                pick.onclick = () => pickFromContacts((picked) => { control.value = picked; });
-                editor.append(pick);
-            }
-            editor.append(actions);
-            control.setAttribute("aria-label", colLabel(col));
-            line.replaceChildren(...[originalChildren[0], editor]);
-            const restore = () => {
-                line.replaceChildren(...originalChildren);
-                delete line.dataset.lvEditing;
-                valueEl.removeAttribute("aria-hidden");
-            };
-            control.addEventListener("keydown", (e: KeyboardEvent) => {
-                if (e.key === "Escape") { e.preventDefault(); restore(); }
-                else if (e.key === "Enter" && !e.isComposing && !(control instanceof HTMLTextAreaElement)) { e.preventDefault(); void saveInline(); }
+            import("@/core/inline-edit").then(({ beginInlineEdit: runInlineEdit }) => {
+                runInlineEdit({
+                    col,
+                    keyID,
+                    line,
+                    valueEl,
+                    row,
+                    ref: ref!,
+                    active,
+                    t,
+                    rawFromValueFn: rawFromValue,
+                    showMessageFn: showMessage,
+                    hasContactsBridge: !!getContactsBridge(),
+                    onPickContact: pickFromContacts,
+                    onSaveSuccess: async () => {
+                        await load();
+                        try { await plugin.refreshHub([active]); } catch { /* soft */ }
+                        dlg.destroy();
+                        const fresh = rows.find((entry) => entry.itemID === row.itemID);
+                        if (fresh) openDetail(fresh);
+                    },
+                });
             });
-            let writeOperation: { signature: string; key: string } | null = null;
-            cancel.onclick = restore;
-            const saveInline = async () => {
-                if (save.disabled) return;
-                const value = inlineValue(control);
-                if (col.type === "number" && value !== "" && !Number.isFinite(Number(value))) {
-                    showMessage(t("ledger.logInvalid"), 3000, "error");
-                    control.focus();
-                    return;
-                }
-                const original = rawFromValue(col.type, row.cells[keyID]);
-                const same = col.type === "checkbox" ? value === original : String(value) === String(original);
-                if (same) { restore(); return; }
-                save.disabled = true;
-                cancel.disabled = true;
-                control.disabled = true;
-                try {
-                    const nextCell = cellValue(col.type, value);
-                    const signature = JSON.stringify(nextCell);
-                    if (!writeOperation || writeOperation.signature !== signature) {
-                        writeOperation = { signature, key: newOperationKey(`ledger:inline:${row.itemID}:${keyID}`) };
-                    }
-                    await setCell(ref!.avId!, keyID, row.itemID, nextCell, {
-                        idempotencyKey: writeOperation.key,
-                        retries: 1,
-                    });
-                    writeOperation = null;
-                    row.cells[keyID] = nextCell;
-                    // Reload the table and reopen the same detail card so derived
-                    // sections (history, QR and vehicle summaries) stay in sync.
-                    await load();
-                    try { await plugin.refreshHub([active]); }
-                    catch (refreshError) { showMessage(t("ledger.refreshFailed").replace("${msg}", refreshError instanceof Error ? refreshError.message : String(refreshError)), 5000, "error"); }
-                    dlg.destroy();
-                    const fresh = rows.find((entry) => entry.itemID === row.itemID);
-                    if (fresh) openDetail(fresh);
-                    showMessage(t("ledger.editSaved"), 2500, "info");
-                } catch (error) {
-                    save.disabled = false;
-                    cancel.disabled = false;
-                    control.disabled = false;
-                    showMessage(t("ledger.saveFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 6000, "error");
-                }
-            };
-            save.onclick = () => { void saveInline(); };
-            control.addEventListener("keydown", (event) => {
-                const keyEvent = event as KeyboardEvent;
-                if (keyEvent.key === "Escape") { keyEvent.preventDefault(); restore(); }
-                else if (keyEvent.key === "Enter" && (!(control instanceof HTMLTextAreaElement) || keyEvent.ctrlKey || keyEvent.metaKey)) { keyEvent.preventDefault(); void saveInline(); }
-            });
-            requestAnimationFrame(() => control.focus());
         }
         function addHistorySection() {
             const history = (plugin.runtime?.renewHistory?.[row.itemID] ?? []) as { from: string; to: string; at: string }[];
@@ -1995,268 +1892,23 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
         }
         function addAttachmentsSection() {
             const assetCols = schemaCols.filter((col) => col.type === "mAsset" && ref!.columns[col.key]);
-            const pendingDetailAssets: Record<string, { name?: string; content?: string }[]> = {};
-
-            function showOCRGuide() {
-                const guide = new Dialog({
-                    title: t("ledger.ocrSetupTitle"),
-                    content: `<div class="b3-dialog__content b3-dialog__content--wrap" style="line-height:1.7;max-height:60vh;overflow:auto"><p>${t("ledger.ocrSetupIntro")}</p><ol><li>${t("ledger.ocrSetupStep1")}</li><li>${t("ledger.ocrSetupStep2")}</li><li>${t("ledger.ocrSetupStep3")}</li></ol><p>${t("ledger.ocrSetupStorage")}</p><p>${t("ledger.ocrSetupAI")}</p></div><div class="b3-dialog__action"><button class="b3-button" id="lv-ocr-guide-close">${t("close")}</button></div>`,
-                    width: "460px",
+            if (!assetCols.length) return;
+            import("@/core/attachment-drawer").then(({ renderAttachmentDrawerSection }) => {
+                renderAttachmentDrawerSection({
+                    body,
+                    assetCols,
+                    ref: ref!,
+                    row,
+                    active,
+                    t,
+                    DialogCls: Dialog,
+                    showMessageFn: showMessage,
+                    onUploadSuccess: async () => {
+                        dlg.destroy();
+                        await load();
+                    },
                 });
-                guide.element.querySelector("#lv-ocr-guide-close")?.addEventListener("click", () => guide.destroy());
-            }
-
-            function escapeOCRHtml(value: string): string {
-                return value.replace(/[&<>"']/g, (char) => ({
-                    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
-                })[char] ?? char);
-            }
-
-            function showOCRText(fileName: string, text: string, rerun: () => void) {
-                const result = new Dialog({
-                    title: t("ledger.ocrResultTitle"),
-                    content: `<div class="b3-dialog__content b3-dialog__content--wrap" style="display:flex;flex-direction:column;gap:8px"><div class="ft__on-surface" id="lv-ocr-result-name" style="word-break:break-all"></div><textarea id="lv-ocr-result-text" class="b3-text-field fn__block" readonly style="min-height:180px;resize:vertical"></textarea><div class="ft__on-surface" style="font-size:12px">${t("ledger.ocrResultStored")}</div></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-rerun">${t("ledger.ocrRerun")}</button><span style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-ocr-copy" ${text ? "" : "disabled"}>${t("ledger.ocrCopy")}</button><button class="b3-button" id="lv-ocr-close">${t("close")}</button></div>`,
-                    width: "520px",
-                });
-                (result.element.querySelector("#lv-ocr-result-name") as HTMLElement).textContent = fileName;
-                (result.element.querySelector("#lv-ocr-result-text") as HTMLTextAreaElement).value = text || t("ledger.ocrNoText");
-                result.element.querySelector("#lv-ocr-close")?.addEventListener("click", () => result.destroy());
-                result.element.querySelector("#lv-ocr-copy")?.addEventListener("click", async () => {
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        showMessage(t("ledger.ocrCopyDone"), 2500, "info");
-                    } catch {
-                        showMessage(t("ledger.ocrCopyFailed"), 4000, "error");
-                    }
-                });
-                result.element.querySelector("#lv-ocr-rerun")?.addEventListener("click", () => {
-                    result.destroy();
-                    rerun();
-                });
-            }
-
-            function confirmAIOCR(modelName: string, providerName: string): Promise<boolean> {
-                return new Promise((resolve) => {
-                    let settled = false;
-                    const finish = (accepted: boolean, dialog?: Dialog) => {
-                        if (settled) return;
-                        settled = true;
-                        resolve(accepted);
-                        dialog?.destroy();
-                    };
-                    const dialog = new Dialog({
-                        title: t("ledger.ocrAIConfirmTitle"),
-                        content: `<div class="b3-dialog__content b3-dialog__content--wrap" style="line-height:1.7"><p>${t("ledger.ocrAIConfirmBody")
-                            .replace("${model}", escapeOCRHtml(modelName))
-                            .replace("${provider}", escapeOCRHtml(providerName))}</p></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-ai-cancel">${t("cancel")}</button><span style="flex:1"></span><button class="b3-button" id="lv-ocr-ai-send">${t("ledger.ocrAISend")}</button></div>`,
-                        width: "460px",
-                        destroyCallback: () => finish(false),
-                    });
-                    dialog.element.querySelector("#lv-ocr-ai-cancel")?.addEventListener("click", () => finish(false, dialog));
-                    dialog.element.querySelector("#lv-ocr-ai-send")?.addEventListener("click", () => finish(true, dialog));
-                });
-            }
-
-            async function recognizeImage(path: string, fileName: string, button: HTMLButtonElement) {
-                button.disabled = true;
-                const previousLabel = button.textContent;
-                button.textContent = t("ledger.ocrRunning");
-                try {
-                    const config = await getOCRConfig();
-                    const provider = config.config?.provider;
-                    const providerState = config.providers?.find((item) => item.id === provider);
-                    if (!providerState?.available) {
-                        showOCRGuide();
-                        return;
-                    }
-                    if (provider === "ai") {
-                        const model = config.config.aiModelId
-                            ? config.aiModels?.find((item) => item.id === config.config.aiModelId)
-                            : undefined;
-                        if (!model) {
-                            showOCRGuide();
-                            return;
-                        }
-                        const accepted = await confirmAIOCR(model.name, model.provider);
-                        if (accepted) await runRecognition();
-                    } else if (provider === "tesseract" || provider === "paddleocr") {
-                        await runRecognition();
-                    } else {
-                        showOCRGuide();
-                    }
-                } catch (error) {
-                    if (isKernelError(error)) showOCRGuide();
-                    else showMessage(t("ledger.ocrConfigFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
-                } finally {
-                    button.disabled = false;
-                    button.textContent = previousLabel;
-                }
-
-                async function runRecognition() {
-                    button.disabled = true;
-                    button.textContent = t("ledger.ocrRunning");
-                    try {
-                        const result = await recognizeAsset(path);
-                        showOCRText(fileName, result.text, () => { void recognizeImage(path, fileName, button); });
-                    } catch (error) {
-                        showMessage(t("ledger.ocrFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
-                    } finally {
-                        button.disabled = false;
-                        button.textContent = previousLabel;
-                    }
-                }
-            }
-
-            for (const attCol of assetCols) {
-                const attKeyID = ref!.columns[attCol.key];
-                const attHead = document.createElement("div");
-                attHead.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-                attHead.style.cssText = sectionHeadBorderCss;
-                attHead.textContent = colLabel(attCol);
-                body.appendChild(attHead);
-                const existing = (row.cells[attKeyID]?.mAsset ?? []) as { name?: string; content?: string }[];
-                for (const f of existing) {
-                    const line = document.createElement("div");
-                    line.className = active === "vehicles" ? "lv-detail-wide" : "";
-                    line.style.cssText = "padding:4px 0;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap";
-                    const name = document.createElement("span");
-                    name.style.cssText = "word-break:break-all;flex:1;min-width:120px";
-                    name.textContent = `📎 ${f.name ?? f.content ?? "?"}`;
-                    line.appendChild(name);
-                    if (f.content) {
-                        try {
-                            const preview = document.createElement("a");
-                            preview.className = "b3-button b3-button--text";
-                            preview.style.cssText = pad24Fs12Css;
-                            preview.textContent = t("ledger.previewAttachment");
-                            preview.href = assetHref(f.content);
-                            preview.target = "_blank";
-                            preview.rel = "noopener noreferrer";
-                            line.appendChild(preview);
-                        } catch {
-                            // A malformed/legacy path remains visible by name but cannot become a navigation target.
-                        }
-                        const download = document.createElement("button");
-                        download.className = "b3-button b3-button--text";
-                        download.style.cssText = pad24Fs12Css;
-                        download.textContent = t("ledger.downloadAttachment");
-                        download.onclick = async () => {
-                            download.disabled = true;
-                            try {
-                                await downloadAsset(f);
-                            } catch (e) {
-                                showMessage(t("ledger.downloadFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                            } finally {
-                                download.disabled = false;
-                            }
-                        };
-                        line.appendChild(download);
-
-                        if (isImageAsset(f.content) && isEncryptedNotebookAsset(f.content, window.siyuan.notebooks ?? [])) {
-                            const encryptedHint = document.createElement("span");
-                            encryptedHint.className = "ft__on-surface";
-                            encryptedHint.style.cssText = pad24Fs12Css;
-                            encryptedHint.textContent = t("ledger.ocrEncrypted");
-                            line.appendChild(encryptedHint);
-                        } else if (isImageAsset(f.content)) {
-                            const ocr = document.createElement("button");
-                            ocr.className = "b3-button b3-button--text";
-                            ocr.style.cssText = pad24Fs12Css;
-                            ocr.textContent = t("ledger.ocrOpen");
-                            ocr.onclick = async () => {
-                                ocr.disabled = true;
-                                try {
-                                    const text = await getImageOCRText(f.content!);
-                                    if (text) showOCRText(f.name ?? f.content!, text, () => { void recognizeImage(f.content!, f.name ?? f.content!, ocr); });
-                                    else await recognizeImage(f.content!, f.name ?? f.content!, ocr);
-                                } catch (error) {
-                                    if (isKernelError(error)) showOCRGuide();
-                                    else showMessage(t("ledger.ocrConfigFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
-                                } finally {
-                                    ocr.disabled = false;
-                                }
-                            };
-                            line.appendChild(ocr);
-                        }
-                    }
-                    body.appendChild(line);
-                }
-                if (existing.length === 0) {
-                    const none = document.createElement("div");
-                    none.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-                    none.style.cssText = fs125Css;
-                    none.textContent = t("ledger.noAttachments");
-                    body.appendChild(none);
-                }
-                const uploadBtn = document.createElement("button");
-                uploadBtn.className = `b3-button b3-button--outline${active === "vehicles" ? " lv-detail-wide" : ""}`;
-                uploadBtn.style.cssText = btnSmCss;
-                uploadBtn.textContent = t("ledger.upload");
-                const fileInput = document.createElement("input");
-                fileInput.type = "file";
-                fileInput.accept = active === "vehicles" && attCol.key === "attachments" ? "image/*" : "image/*,.pdf";
-                fileInput.multiple = attCol.key === "attachments";
-                if (active === "certs" && attCol.key !== "attachments") fileInput.setAttribute("capture", "environment");
-                fileInput.style.display = "none";
-                uploadBtn.onclick = () => fileInput.click();
-                fileInput.onchange = async () => {
-                    let files = Array.from(fileInput.files ?? []);
-                    if (files.length === 0) return;
-                    if (active === "vehicles" && attCol.key === "attachments") {
-                        const valid = files.filter((file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024);
-                        if (valid.length !== files.length) showMessage(t("vehicle.photoInvalid"), 4500, "error");
-                        files = valid.slice(0, 1);
-                    }
-                    if (files.length === 0) return;
-                    uploadBtn.disabled = true;
-                    const failed: string[] = [];
-                    try {
-                        const pending = pendingDetailAssets[attCol.key] ?? [];
-                        const appended = [...existing, ...pending];
-                        for (const f of files) {
-                            try {
-                                const { uploadAsset } = await import("@/core/siyuan");
-                                const { name, path } = await uploadAsset(f, "/assets/siyuan-home/", {
-                                    idempotencyKey: `ledger:detail-asset:${row.itemID}:${attCol.key}:${fileFingerprint(f)}`,
-                                    retries: 1,
-                                });
-                                appended.push({ name, content: path });
-                            } catch (e) {
-                                failed.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
-                            }
-                        }
-                        if (appended.length !== existing.length) {
-                            try {
-                                await setCell(ref!.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
-                                    idempotencyKey: `ledger:detail-asset-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
-                                    retries: 1,
-                                });
-                                delete pendingDetailAssets[attCol.key];
-                                const msg = failed.length ? t("ledger.uploadFailed").replace("${msg}", failed.join("; ")) : t("ledger.uploadDone");
-                                showMessage(msg, 5000, failed.length ? "error" : "info");
-                                dlg.destroy();
-                                await load();
-                            } catch (e) {
-                                pendingDetailAssets[attCol.key] = appended.slice(existing.length);
-                                showMessage(t("ledger.uploadFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                            }
-                        } else if (failed.length) {
-                            showMessage(t("ledger.uploadFailed").replace("${msg}", failed.join("; ")), 6000, "error");
-                        }
-                    } finally {
-                        uploadBtn.disabled = false;
-                    }
-                    // 附件写入不影响提醒派生——无需扫描（PF06：无相关变更不重扫）
-                };
-                body.append(uploadBtn, fileInput);
-            }
-            if (assetCols.length > 0) {
-                const hint = document.createElement("div");
-                hint.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-                hint.style.cssText = "font-size:12px;line-height:1.6;margin-top:6px";
-                hint.textContent = t("ledger.ocrHint");
-                body.appendChild(hint);
-            }
+            });
         }
         // View mode includes key/value rows, history, and attachments.
         let cardRows: { key?: string; label: string; value: string }[] = [];

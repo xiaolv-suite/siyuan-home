@@ -88,3 +88,80 @@ export function searchSpotlight(items: SpotlightItem[], query: string, limit = 4
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, limit).map((s) => s.item);
 }
+
+export interface SpotlightCommandItem {
+    id: string;
+    action: "open-capture" | "open-location" | "open-emergency" | "open-reminders" | "open-settings" | "open-life-index" | "open-store-mode";
+    title: string;
+    sub: string;
+    keywords: string[];
+}
+
+export const SPOTLIGHT_COMMANDS: SpotlightCommandItem[] = [
+    {
+        id: "cmd-capture",
+        action: "open-capture",
+        title: "⚡ 快速记录（流水与档案极速录入）",
+        sub: "快捷键 N · 支持加油/体征/购物/便签与台账全模块",
+        keywords: ["快速记录", "记一笔", "记账", "速记", "capture", "quick"],
+    },
+    {
+        id: "cmd-location",
+        action: "open-location",
+        title: "📍 东西放哪了（全局位置索引）",
+        sub: "跨 31 模块检索证件、钥匙、药品存放房间与抽屉",
+        keywords: ["东西放哪了", "找东西", "位置", "存放", "location", "where"],
+    },
+    {
+        id: "cmd-emergency",
+        action: "open-emergency",
+        title: "🚨 家庭急救与防灾应急卡",
+        sub: "呈现全家血型、高危过敏源、急救箱存放处与避难点",
+        keywords: ["急救卡", "应急卡", "急救", "过敏", "血型", "emergency", "card"],
+    },
+    {
+        id: "cmd-store",
+        action: "open-store-mode",
+        title: "🧺 超市扫货模式（采购动线核对）",
+        sub: "按超市日用/食品动线逐项勾选，生成采购核对清单",
+        keywords: ["扫货", "超市", "采购", "动线", "store", "shopping"],
+    },
+    {
+        id: "cmd-life-index",
+        action: "open-life-index",
+        title: "🛡️ 家庭生活指数与幸福资产盘点",
+        sub: "全景测算家庭韧性、健康覆盖与保障指数",
+        keywords: ["生活指数", "幸福资产", "年度盘点", "index", "life"],
+    },
+    {
+        id: "cmd-reminders",
+        action: "open-reminders",
+        title: "🕒 打开到期提醒中枢",
+        sub: "查看全部逾期、即将到期与多段割点事项",
+        keywords: ["提醒", "待办", "中枢", "reminders", "todo"],
+    },
+    {
+        id: "cmd-settings",
+        action: "open-settings",
+        title: "⚙️ 打开管家设置",
+        sub: "管理 31 个生活模块启用状态与提醒提前量",
+        keywords: ["设置", "配置", "settings", "config"],
+    },
+];
+
+export function searchSpotlightCommands(query: string): SpotlightCommandItem[] {
+    const raw = (query ?? "").trim();
+    const isCmdMode = raw.startsWith(">") || raw.startsWith("》");
+    const keyword = (isCmdMode ? raw.slice(1) : raw).trim().toLowerCase();
+
+    if (!keyword) {
+        return isCmdMode ? [...SPOTLIGHT_COMMANDS] : [];
+    }
+
+    return SPOTLIGHT_COMMANDS.filter((cmd) => {
+        if (cmd.title.toLowerCase().includes(keyword)) return true;
+        if (cmd.keywords.some((k) => k.toLowerCase().includes(keyword) || searchMatch(k, keyword))) return true;
+        return false;
+    });
+}
+

@@ -128,6 +128,31 @@ describe("valuation.mapShoppingToAssetReal（购物转实物资产建档映射�
         expect(draft.suggestedCategory).toBe("appliance");
     });
 
+    it("融合财务直线折旧推算资产净残值与累计折旧总额", () => {
+        const rows: AvRow[] = [
+            {
+                itemID: "ast-1",
+                cells: {
+                    "a-name": { type: "text", text: { content: "单反相机" } },
+                    "a-amt": { type: "number", number: { content: 10000 } },
+                    "a-stat": { type: "select", select: { content: "inuse" } },
+                    "a-date": { type: "date", date: { content: "2024-10-27" } },
+                },
+            },
+        ];
+
+        const report = calculateAssetValuationStats(rows, {
+            name: "a-name",
+            amount: "a-amt",
+            status: "a-stat",
+            date: "a-date",
+        });
+
+        expect(report.depreciationEligibleCount).toBe(1);
+        expect(report.totalDepreciationNetValue).toBeGreaterThan(0);
+        expect(report.totalDepreciationAccumulated).toBeGreaterThan(0);
+    });
+
     it("openAssetValuationDialog 安全容错调用", () => {
         expect(() => {
             openAssetValuationDialog({

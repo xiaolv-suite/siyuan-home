@@ -686,67 +686,30 @@
         }
     }
 
-    /** Show fuel and charging usage per vehicle without combining hybrid energy types. */
-    async function openEnergyDashboard() {
-        const sourceRef = ref;
-        if (!sourceRef?.avId || active !== "vehicles") return;
-        try {
-            const { openEnergyDashboardDialog } = await import("@/core/fuel");
-            await openEnergyDashboardDialog({
-                sourceRef,
-                t,
-                plugin,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellText,
-                selectContentFn: selectCellContent,
-                onOpenNewRecord: openNewRecord,
-                onOpenVehicleDetail: openDetail,
-            });
-        } catch (error) {
-            showMessage(t("ledger.readFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
-        }
+    function getModalContext(): import("@/core/ledger-modals").LedgerModalContext {
+        return {
+            active,
+            ref,
+            rows,
+            plugin,
+            t,
+            DialogCls: Dialog,
+            showMessageFn: showMessage,
+            renderLedgerAllFn: renderLedgerAll,
+            cellTextFn: cellText,
+            selectContentFn: selectCellContent,
+            addDetachedRowFn: addDetachedRow,
+            setCellFn: setCell,
+            cellValueFn: cellValue,
+            onOpenNewRecord: openNewRecord,
+            onOpenDetail: openDetail,
+            onReload: load,
+        };
     }
 
-    // Growth chart for parenting records, including an optional WHO reference band.
-    async function openGrowthChart() {
-        try {
-            const { openGrowthChartDialog } = await import("@/core/growth-dialog");
-            openGrowthChartDialog({
-                t,
-                rows,
-                columns: (ref?.columns ?? {}) as Record<string, string | undefined>,
-                members: plugin.settings.members ?? [],
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.growthFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-        }
-    }
-
-    // Vaccine schedule (given, overdue, due soon, upcoming) for children in parenting records.
-    async function openVaccineScheduleModal() {
-        if (!ref?.avId || !ref.columns) return;
-        try {
-            const { openVaccineScheduleDialog } = await import("@/core/growth-dialog");
-            await openVaccineScheduleDialog({
-                t,
-                members: plugin.settings.members ?? [],
-                avId: ref.avId,
-                columns: ref.columns,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                cellTextFn: cellText,
-                onRecordSaved: async () => {
-                    await load();
-                },
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
+    const openEnergyDashboard = () => import("@/core/ledger-modals").then((m) => m.openEnergyDashboardModal(getModalContext()));
+    const openGrowthChart = () => import("@/core/ledger-modals").then((m) => m.openGrowthChartModal(getModalContext()));
+    const openVaccineScheduleModal = () => import("@/core/ledger-modals").then((m) => m.openVaccineScheduleModal(getModalContext()));
 
     async function rebuildLedger() {
         rebuilding = true;
@@ -769,457 +732,25 @@
         }
     }
 
-    // Shopping suggestions aggregate low-stock items and support copying the list.
-    async function openShoppingList() {
-        if (!ref?.avId || !ref.columns?.name || !ref.columns.qty || !ref.columns.low_stock_at) {
-            if (!ref?.avId) showMessage(t("diag.missing"), 3000, "info");
-            else showMessage(t("ledger.missingColumnsPrompt") + " " + (t("field.low_stock_at") || "low_stock_at"), 3000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(ref.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            const { openLowStockShoppingDialog } = await import("@/core/shopping");
-            openLowStockShoppingDialog({
-                ref: ref as any,
-                allRows: all.rows,
-                t,
-                plugin,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.shoppingFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-        }
-    }
+    const openShoppingList = () => import("@/core/ledger-modals").then((m) => m.openShoppingListModal(getModalContext()));
+    const openFavorsReport = () => import("@/core/ledger-modals").then((m) => m.openFavorsReportModal(getModalContext()));
+    const openBookmarksCheck = () => import("@/core/ledger-modals").then((m) => m.openBookmarksCheckModal(getModalContext()));
+    const openSubscriptionStats = () => import("@/core/ledger-modals").then((m) => m.openSubscriptionStatsModal(getModalContext()));
+    const openAssetValuationModal = () => import("@/core/ledger-modals").then((m) => m.openAssetValuationModal(getModalContext()));
+    const openMediaReport = () => import("@/core/ledger-modals").then((m) => m.openMediaReportModal(getModalContext()));
 
-    // Favors annual summary report and relationship balance analysis (317波抽离减负).
-    async function openFavorsReport() {
-        if (!ref?.avId || !ref.columns) return;
-        const { openFavorsReportDialog } = await import("@/core/favors-dialog");
-        return openFavorsReportDialog({
-            ref,
-            t,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-            loadRows: () => renderLedgerAll(ref!.avId!),
-        });
-    }
+    const openMealPlanModal = () => import("@/core/ledger-modals").then((m) => m.openMealPlanModal(getModalContext()));
+    const openMedicineSupplyModal = () => import("@/core/ledger-modals").then((m) => m.openMedicineSupplyModal(getModalContext()));
+    const openWasteScheduleModal = () => import("@/core/ledger-modals").then((m) => m.openWasteScheduleModal(getModalContext()));
+    const openRewardsLedgerModal = () => import("@/core/ledger-modals").then((m) => m.openRewardsLedgerModal(getModalContext()));
+    const openExpenseTrendModal = () => import("@/core/ledger-modals").then((m) => m.openExpenseTrendModal(getModalContext()));
 
-    // Check validity of URLs in bookmarks ledger and highlight broken links.
-    async function openBookmarksCheck() {
-        if (!ref?.avId || !ref.columns?.url) {
-            if (!ref?.avId) showMessage(t("diag.missing"), 3000, "info");
-            else showMessage(t("ledger.missingColumnsPrompt") + " " + (t("field.url") || "url"), 3000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(ref.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            const { openBookmarksCheckDialog } = await import("@/core/bookmarks");
-            await openBookmarksCheckDialog({
-                rows: all.rows,
-                columns: ref.columns,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
-
-    // Calculate subscription expenses normalized to monthly and annual projections.
-    async function openSubscriptionStats() {
-        if (!ref?.avId || !ref.columns?.amount) {
-            if (!ref?.avId) showMessage(t("diag.missing"), 3000, "info");
-            else showMessage(t("ledger.expenseTrendNoCol"), 4000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(ref.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            const { openSubscriptionStatsDialog } = await import("@/core/subscriptions");
-            openSubscriptionStatsDialog({
-                rows: all.rows,
-                columns: ref.columns,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
-
-    // Asset valuation report summarizing initial costs and current appraised values.
-    async function openAssetValuationModal() {
-        if (!ref?.avId || !ref.columns?.amount) {
-            if (!ref?.avId) showMessage(t("diag.missing"), 3000, "info");
-            else showMessage(t("ledger.expenseTrendNoCol"), 4000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(ref.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            const { loadRowLogs } = await import("@/core/rowlog");
-            const logs = await loadRowLogs(plugin as any);
-            const { openAssetValuationDialog } = await import("@/core/valuation");
-            openAssetValuationDialog({
-                rows: all.rows,
-                columns: ref.columns,
-                logs,
-                avId: ref.avId,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
-
-    // Media reading/viewing annual report and status analysis.
-    async function openMediaReport() {
-        if (!ref?.avId || !ref.columns) {
-            showMessage(t("diag.missing"), 3000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(ref.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            const { openMediaReportDialog } = await import("@/core/media");
-            openMediaReportDialog({
-                rows: all.rows,
-                columns: ref.columns,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
-
-    // Weekly Meal Plan & Grocery Deficit Analysis (295波):
-    // Select recipes from food ledger, aggregate ingredients, compare against stock, and generate shopping list.
-    async function openMealPlanModal() {
-        if (!ref?.avId || !ref.columns?.name) {
-            showMessage(t("diag.missing"), 3000, "info");
-            return;
-        }
-        try {
-            const allFood = await renderLedgerAll(ref.avId);
-            if (!allFood.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            if (allFood.rows.length === 0) {
-                showMessage(t("ledger.mealPlanEmptyFood"), 4000, "info");
-                return;
-            }
-
-            let stockItems: import("@/core/meal-plan").StockItemInfo[] = [];
-            const stockRef = plugin.settings.dbRefs?.stock;
-            if (stockRef?.avId && stockRef.columns?.name) {
-                try {
-                    const allStock = await renderLedgerAll(stockRef.avId);
-                    if (allStock.complete) {
-                        const { extractStockItemsFromRows } = await import("@/core/meal-plan");
-                        stockItems = extractStockItemsFromRows(allStock.rows, {
-                            nameCol: stockRef.columns.name,
-                            qtyCol: stockRef.columns.qty,
-                        });
-                    }
-                } catch {
-                    // stock 异常时优雅降级为空库存
-                }
-            }
-
-            const { openMealPlanDialog } = await import("@/core/meal-plan");
-            openMealPlanDialog({
-                allFoodRows: allFood.rows,
-                stockItems,
-                ref,
-                plugin,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                cellTextFn: cellText,
-                addDetachedRowFn: addDetachedRow,
-                setCellFn: setCell,
-                cellValueFn: cellValue,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
-        }
-    }
-
-    // Medicine Supply & Runout Estimation (298波):
-    // Analyze dosing instructions, estimate days of supply, predict runout date, and check expiry inversion.
-    async function openMedicineSupplyModal() {
-        if (!ref?.avId || !ref.columns?.name) {
-            showMessage(t("diag.missing"), 3000, "info");
-            return;
-        }
-        try {
-            const allMed = await renderLedgerAll(ref.avId);
-            if (!allMed.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            if (allMed.rows.length === 0) {
-                showMessage(t("ledger.medicineSupplyEmpty"), 4000, "info");
-                return;
-            }
-
-            const { evaluateMedicineSupplyReport, openMedicineSupplyDialog } = await import("@/core/medicine-dosing");
-            const report = evaluateMedicineSupplyReport(allMed.rows, ref.columns);
-
-            openMedicineSupplyDialog({
-                report,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
-
-    // Municipal Waste Schedule & Recycling (316波):
-    async function openWasteScheduleModal() {
-        const { openWasteScheduleDialog } = await import("@/core/waste-dialog");
-        openWasteScheduleDialog({
-            t,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-        });
-    }
-
-    // Chores Rewards & Allowance Settlement (317波):
-    async function openRewardsLedgerModal() {
-        const { openRewardsDialog } = await import("@/core/rewards-dialog");
-        openRewardsDialog({
-            t,
-            plugin,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-            renderLedgerAllFn: renderLedgerAll,
-            cellTextFn: cellText,
-            addDetachedRowFn: addDetachedRow,
-            setCellFn: setCell,
-        });
-    }
-
-    // Expense Trend & Spikes Analysis (305波):
-    // Aggregate all rows with an amount + date field into monthly totals, compute MoM and detect spikes.
-    async function openExpenseTrendModal() {
-        const sourceRef = ref;
-        if (!sourceRef?.avId) return;
-        const amountCol = sourceRef.columns?.amount;
-        const dateCol = sourceRef.columns?.date ?? sourceRef.columns?.expiry;
-        if (!amountCol || !dateCol) {
-            showMessage(t("ledger.expenseTrendNoCol"), 4000, "info");
-            return;
-        }
-        try {
-            const all = await renderLedgerAll(sourceRef.avId);
-            if (!all.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-
-            const entries = all.rows
-                .map((row) => ({
-                    date: cellText(row.cells?.[dateCol]),
-                    amount: Number(cellText(row.cells?.[amountCol]).replace(/[^\d.-]/g, "")),
-                    category: sourceRef.columns?.category ? cellText(row.cells?.[sourceRef.columns.category]) : undefined,
-                }))
-                .filter((e) => e.date && Number.isFinite(e.amount) && e.amount > 0);
-
-            if (entries.length === 0) {
-                showMessage(t("ledger.expenseTrendEmpty"), 4000, "info");
-                return;
-            }
-
-            const { openExpenseTrendDialog } = await import("@/core/expense-dialog");
-            openExpenseTrendDialog({
-                entries,
-                budgetLimits: plugin.settings.budgetLimits,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
-
-    // Household Utility Tiers & Stepped Pricing Calculation (299波):
-    // Analyze meter readings (electricity, water, gas), calculate tiered costs, and issue high-tier warnings.
-    async function openUtilityTiersModal() {
-        if (!ref?.avId || !ref.columns?.name) return;
-        try {
-            const allHouse = await renderLedgerAll(ref.avId);
-            if (!allHouse.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-            if (allHouse.rows.length === 0) {
-                showMessage(t("ledger.utilityEmptyReadings"), 4000, "info");
-                return;
-            }
-
-            const { loadRowLogs, getEntries } = await import("@/core/rowlog");
-            const currentLogs = await loadRowLogs(plugin as any);
-
-            const { openUtilityTiersDialog } = await import("@/core/utility-tiers");
-            openUtilityTiersDialog({
-                allHouseRows: allHouse.rows,
-                currentLogs,
-                ref,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                cellTextFn: cellText,
-                getEntriesFn: getEntries,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
-
-    // 313 波（G4）：存放位置全局检索（动态加载 core/location-dialog.ts 减轻初始 bundle）
-    async function openLocationIndexModal() {
-        const { openLocationIndexDialog } = await import("@/core/location-dialog");
-        return openLocationIndexDialog({
-            t,
-            plugin,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-            renderLedgerAllFn: renderLedgerAll,
-            cellTextFn: cellText,
-        });
-    }
-
-    // 319 波：思源块收录入台账（动态加载 core/block-ingest-dialog.ts）
-    async function openBlockIngestModal() {
-        const { openBlockIngestDialog } = await import("@/core/block-ingest-dialog");
-        return openBlockIngestDialog({
-            t,
-            currentModule: active,
-            plugin,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-            addDetachedRowFn: addDetachedRow,
-            setCellFn: setCell,
-            onSuccessCallback: async () => {
-                await load();
-                try { await plugin.refreshHub([active]); } catch { /* ignore */ }
-            },
-        });
-    }
-
-    // 312 波（G3）：扫货模式（动态加载 core/store-dialog.ts）
-    async function openStoreModeModal() {
-        const sourceRef = ref;
-        if (!sourceRef?.avId || !sourceRef.columns?.name) {
-            showMessage(t("diag.missing"), 3000, "info");
-            return;
-        }
-        const { openStoreModeDialog } = await import("@/core/store-dialog");
-        return openStoreModeDialog({
-            t,
-            DialogCls: Dialog,
-            showMessageFn: showMessage,
-            loadRows: () => renderLedgerAll(sourceRef.avId!),
-            columns: {
-                name: sourceRef.columns.name,
-                category: sourceRef.columns.category,
-                qty: sourceRef.columns.qty,
-                note: sourceRef.columns.note,
-            },
-        });
-    }
-
-    // Emergency Kit Checklist & Stock Linking (302波):
-    // Compare standard emergency kit items with current stock ledger and import missing rows.
-    async function openEmergencyKitModal() {
-        if (!ref?.avId || !ref.columns?.name) {
-            showMessage(t("diag.missing"), 3000, "info");
-            return;
-        }
-        try {
-            const allStock = await renderLedgerAll(ref.avId);
-            if (!allStock.complete) {
-                showMessage(t("ledger.loadIncomplete"), 5000, "error");
-                return;
-            }
-
-            const { openEmergencyKitDialog } = await import("@/core/emergency-kit");
-            openEmergencyKitDialog({
-                stockRows: allStock.rows,
-                ref: ref as { avId: string; columns?: Record<string, string> },
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                cellTextFn: cellText,
-                addDetachedRowFn: addDetachedRow,
-                setCellFn: setCell,
-                isGuestReadOnly: Boolean(plugin.runtime?.guestModeActive),
-                onCreatedCallback: async () => {
-                    await load();
-                    try { await plugin.refreshHub([active]); } catch { /* ignore */ }
-                },
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
-
-    // CSV import uses a schema-driven mapping wizard; core owns the planning logic.
-    async function openCsvImport() {
-        if (!ref?.avId) return;
-        if (plugin.runtime?.guestModeActive) {
-            showMessage(t("guest.writeBlocked"), 4000, "info");
-            return;
-        }
-        try {
-            const importableTypes = new Set(["text", "number", "date", "checkbox", "select"]);
-            const schemaCols = (plugin.schemaCatalog?.[active]?.columns ?? []).filter((c: any) => importableTypes.has(c.type));
-            const { openCsvImportDialog } = await import("@/core/csv-import-dialog");
-            openCsvImportDialog({
-                active,
-                ref: ref as any,
-                schemaCols,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                onImportSuccess: async () => {
-                    await load();
-                    try { await plugin.refreshHub([active]); } catch { /* soft */ }
-                },
-            });
-        } catch (e) {
-            showMessage(String(e), 5000, "error");
-        }
-    }
+    const openUtilityTiersModal = () => import("@/core/ledger-modals").then((m) => m.openUtilityTiersModal(getModalContext()));
+    const openLocationIndexModal = () => import("@/core/ledger-modals").then((m) => m.openLocationIndexModal(getModalContext()));
+    const openBlockIngestModal = () => import("@/core/ledger-modals").then((m) => m.openBlockIngestModal(getModalContext()));
+    const openStoreModeModal = () => import("@/core/ledger-modals").then((m) => m.openStoreModeModal(getModalContext()));
+    const openEmergencyKitModal = () => import("@/core/ledger-modals").then((m) => m.openEmergencyKitModal(getModalContext()));
+    const openCsvImport = () => import("@/core/ledger-modals").then((m) => m.openCsvImportModal(getModalContext()));
 
     async function load() {
         const avID = ref?.avId;

@@ -39,23 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.125
+## 🆕 What's new in v0.5.126
 
-This release deepens the drawer architecture modularization, with over 2,440 lines trimmed from `ledger.svelte`:
+This release introduces the unified ledger modal dispatcher and brings `ledger.svelte` down into the 3,500s:
 
-- **Refactoring (Drawer More Menu & Cross-ledger Bridges Decoupled)**: Extracted detail drawer more actions (card PNG export, text/masked export, block reference/task block, Glean reading stream) into `src/core/drawer-actions.ts`, and prescription-to-medicine/stock-in/shopping-to-asset into `src/core/drawer-sections.ts`;
-- **Performance**: Main ledger component `ledger.svelte` is reduced to 4,060 lines (accumulating 2,440+ lines trimmed across all modularization phases);
-- **Validation**: 103 test suites, **840 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
+- **Refactoring (Unified Ledger Modals Dispatcher Hub)**: Extracted all 20+ specialized domain modal launchers into `src/core/ledger-modals.ts`, trimming another 470+ lines from `ledger.svelte` (accumulating nearly 3,000 lines trimmed across all phases);
+- **Feature (Asset Valuation with Financial Depreciation Contrast)**: Integrated straight-line depreciation metrics into the asset valuation report (`valuation.ts`), displaying eligible item count, net book value, and accumulated depreciation;
+- **Validation**: 104 test suites, **841 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.125)
+## 📦 Install (v0.5.126)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.125 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.125 package is the current GitHub release; local quality checks report 840 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.126 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.126 package is the current GitHub release; local quality checks report 841 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

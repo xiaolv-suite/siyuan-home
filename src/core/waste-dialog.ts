@@ -18,6 +18,7 @@ export interface WasteDialogOptions {
 }
 
 export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
+    if (typeof document === "undefined") return;
     const { t, rules = DEFAULT_WASTE_RULES, DialogCls, showMessageFn } = opts;
 
     const pickups = nextWastePickups(rules);

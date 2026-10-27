@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculatePetAge, evaluatePetSummary } from "@/core/pets";
+import { calculatePetAge, evaluatePetSummary, calculatePetRoutineSchedule } from "@/core/pets";
 
 describe("pets.calculatePetAge（宠物生理年龄与人类年龄换算）", () => {
     it("1岁猫换算为人类约 15 岁，2岁猫换算为约 24 岁", () => {
@@ -58,5 +58,30 @@ describe("pets.evaluatePetSummary（疫苗与驱虫护理周期评估）", () =>
         expect(summary.vaccine.urgency).toBe("not_set");
         expect(summary.deworm.urgency).toBe("not_set");
         expect(summary.hasOverdue).toBe(false);
+    });
+
+    it("calculatePetRoutineSchedule 自动推算体外30天、体内90天与疫苗365天周期", () => {
+        const today = "2026-10-27";
+        const sched = calculatePetRoutineSchedule({
+            lastExtDewormDate: "2026-10-01", // 30天后是 2026-10-31（4天后 -> soon）
+            lastIntDewormDate: "2026-07-01", // 90天后是 2026-09-29（已过 -> overdue）
+            lastVaccineDate: "2026-01-01",   // 365天后是 2027-01-01（ok）
+            today,
+        });
+
+        expect(sched.items).toHaveLength(3);
+        expect(sched.overdueCount).toBe(1);
+        expect(sched.dueSoonCount).toBe(1);
+        expect(sched.allGood).toBe(false);
+
+        const ext = sched.items.find((i) => i.type === "ext_deworm");
+        expect(ext?.nextDueDate).toBe("2026-10-31");
+        expect(ext?.urgency).toBe("soon");
+
+        const intD = sched.items.find((i) => i.type === "int_deworm");
+        expect(intD?.urgency).toBe("overdue");
+
+        const vac = sched.items.find((i) => i.type === "vaccine");
+        expect(vac?.urgency).toBe("ok");
     });
 });

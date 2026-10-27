@@ -2,7 +2,7 @@
  * 囤货采购建议单测（16 组/188 波）：H15 同口径（缺列不评估）、qty≤阈值、建议量下限 1、名称排序。
  */
 import { describe, it, expect } from "vitest";
-import { buildShoppingList, openLowStockShoppingDialog } from "@/core/shopping";
+import { buildShoppingList, openLowStockShoppingDialog, buildBatchStockInFromShopping } from "@/core/shopping";
 import type { AvRow } from "@/core/siyuan";
 
 const KEYS = { nameKey: "k_name", qtyKey: "k_qty", thresholdKey: "k_low" };
@@ -53,5 +53,36 @@ describe("buildShoppingList", () => {
                 showMessageFn: () => {},
             });
         }).not.toThrow();
+    });
+
+    it("buildBatchStockInFromShopping 从采购清单正确组装批量入库草稿", () => {
+        const mockRows = [
+            {
+                itemID: "shop-row-1",
+                cells: {
+                    s_name: { type: "text", text: { content: "抽纸" } },
+                    s_qty: { type: "number", number: { content: 5 } },
+                    s_price: { type: "number", number: { content: 49.9 } },
+                },
+            },
+            {
+                itemID: "shop-row-2",
+                cells: {
+                    s_name: { type: "text", text: { content: "洗洁精" } },
+                },
+            },
+        ];
+        const drafts = buildBatchStockInFromShopping(mockRows, {
+            name: "s_name",
+            qty: "s_qty",
+            price: "s_price",
+        });
+        expect(drafts).toHaveLength(2);
+        expect(drafts[0].name).toBe("抽纸");
+        expect(drafts[0].qty).toBe(5);
+        expect(drafts[0].price).toBe(49.9);
+        expect(drafts[0].sourceRowId).toBe("shop-row-1");
+        expect(drafts[1].name).toBe("洗洁精");
+        expect(drafts[1].qty).toBe(1); // 缺省数量为 1
     });
 });

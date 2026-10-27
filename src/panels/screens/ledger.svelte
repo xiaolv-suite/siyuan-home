@@ -2,6 +2,7 @@
     import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError, getOCRConfig, getImageOCRText, recognizeAsset } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
+    import { renderEditableFormFields } from "@/core/record-form";
     import { buildCsv } from "@/core/csv";
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
@@ -4187,150 +4188,38 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
         }
         addShoppingToAssetButton();
 
-        // Certificate renewal chains show both forward and reverse relations.
-        function addRenewChainSection() {
-            if (active !== "certs") return;
-            const relKey = ref!.columns.renewed_to;
-            if (!relKey) return;
-            const nameOf = (id: string) => {
-                const r = rows.find((x) => x.itemID === id);
-                return r ? String(cellText(r.cells[ref!.columns.name])) : "?";
-            };
-            const forward = (row.cells[relKey]?.relation?.blockIDs ?? []) as string[];
-            const backward = rows.filter((r) => ((r.cells[relKey]?.relation?.blockIDs ?? []) as string[]).includes(row.itemID));
-            const linkBtn = () => {
-                const btn = document.createElement("button");
-                btn.className = "b3-button b3-button--outline";
-                btn.style.cssText = btnSmCss;
-                btn.textContent = t("ledger.linkNew");
-                btn.onclick = () => {
-                    const picker = new Dialog({
-                        title: t("ledger.pickNew"),
-                        content: `<div class="b3-dialog__content" id="lv-pick-body" style="max-height:50vh;overflow:auto"></div>`,
-                        width: "420px",
-                    });
-                    const list = picker.element.querySelector("#lv-pick-body") as HTMLElement;
-                    for (const r of rows) {
-                        if (r.itemID === row.itemID) continue;
-                        const b = document.createElement("button");
-                        b.className = "b3-button b3-button--text";
-                        b.style.cssText = "display:block;width:100%;text-align:left;font-size:13px";
-                        const exp = ref!.columns.expiry ? cellText(r.cells[ref!.columns.expiry]) : "";
-                        b.textContent = `${String(cellText(r.cells[ref!.columns.name]))}${exp && exp !== "—" ? ` · ${exp}` : ""}`;
-                        b.onclick = async () => {
-                            b.disabled = true;
-                            try {
-                                const { setCell } = await import("@/core/siyuan");
-                                await setCell(ref!.avId!, relKey, row.itemID, { type: "relation", relation: { blockIDs: [r.itemID], contents: null } }, {
-                                    idempotencyKey: `ledger:renew-link:${row.itemID}:${r.itemID}`,
-                                    retries: 1,
-                                });
-                                picker.destroy();
-                                dlg.destroy();
-                                showMessage(t("ledger.linked").replace("${name}", String(cellText(r.cells[ref!.columns.name]))), 2500, "info");
-                                await load();
-                                try {
-                                    await plugin.refreshHub([active]);
-                                } catch (e) {
-                                    showMessage(t("ledger.refreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                                }
-                                const fresh = rows.find((x) => x.itemID === row.itemID);
-                                if (fresh) openDetail(fresh);
-                            } catch (e) {
-                                showMessage(t("ledger.renewLinkFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                                b.disabled = false;
-                            }
-                        };
-                        list.appendChild(b);
-                    }
-                    if (!list.children.length) list.innerHTML = `<div class="ft__on-surface" style="font-size:13px">${t("ledger.noOtherRows")}</div>`;
-                };
-                return btn;
-            };
-            if (forward.length === 0 && backward.length === 0) {
-                body.appendChild(linkBtn());
-                return;
-            }
-            const head = document.createElement("div");
-            head.className = "ft__on-surface";
-            head.style.cssText = sectionHeadBorderCss;
-            head.textContent = t("ledger.renewChain");
-            body.appendChild(head);
-            for (const id of forward) {
-                const line = document.createElement("div");
-                line.style.cssText = substRowCss;
-                line.textContent = `→ ${nameOf(id)} (${t("ledger.newCert")})`;
-                body.appendChild(line);
-            }
-            for (const r of backward) {
-                const line = document.createElement("div");
-                line.style.cssText = substRowCss;
-                line.textContent = `← ${String(cellText(r.cells[ref!.columns.name]))} (${t("ledger.oldCert")})`;
-                body.appendChild(line);
-            }
-            body.appendChild(linkBtn());
-        }
-        addRenewChainSection();
+        // 324波：证件换证链与人情同步转入 core/drawer-sections.ts 模块化瘦身
+        import("@/core/drawer-sections").then(({ renderRenewChainSection, renderFavorsSyncSection }) => {
+            renderRenewChainSection({
+                body,
+                row,
+                rows,
+                ref: ref!,
+                active,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                cellTextFn: cellText,
+                onChainUpdated: async (targetRowId: string) => {
+                    await load();
+                    try { await plugin.refreshHub([active]); } catch { /* ignore */ }
+                    const fresh = rows.find((x) => x.itemID === targetRowId);
+                    if (fresh) openDetail(fresh);
+                },
+            });
 
-            addFavorsSyncSection();
-        }
-        // Favor interactions use an idempotent external reference and degrade gracefully when contacts are unavailable.
-        function addFavorsSyncSection() {
-            if (active !== "favors") return;
-            const personName = (row.cells[ref!.columns.person ?? ""]?.text?.content ?? "").trim();
-            if (!personName || !ref!.columns.person) return;
-            const synced = plugin.runtime?.favorSyncs?.[row.itemID];
-            const head = document.createElement("div");
-            head.className = "ft__on-surface";
-            head.style.cssText = sectionHeadBorderCss;
-            head.textContent = t("ec15.title");
-            body.appendChild(head);
-            const btn = document.createElement("button");
-            btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = btnSmCss;
-            btn.textContent = synced ? t("ec15.again") : t("ec15.record");
-	            btn.onclick = async () => {
-	                const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;
-	                const bridge = (w.LvContacts || w.xiaolvContacts || w.siyuanContacts || w.lvContacts) as {
-	                    ensurePerson: (name: string) => Promise<{ docId: string; name: string; created: boolean }>;
-	                    recordInteraction: (ids: readonly string[], meta?: { ref?: string; date?: string; note?: string }) => Promise<{ recorded: number }>;
-	                } | undefined;
-	                if (!bridge?.ensurePerson || !bridge.recordInteraction) {
-                    showMessage(t("ledger.contactsMissing"), 5000, "info");
-                    return;
-                }
-                btn.disabled = true;
-                try {
-                    const person = await bridge.ensurePerson(personName);
-                    const dateVal = ref!.columns.date ? rawFromValue("date", row.cells[ref!.columns.date]) : "";
-                    const dir = selectCellContent(row.cells[ref!.columns.direction ?? ""]) ?? "";
-                    const amount = row.cells[ref!.columns.amount ?? ""]?.number;
-                    const noteParts = [
-                        dir === "in" ? t("ec15.received") : dir === "out" ? t("ec15.given") : "",
-                        typeof amount?.content === "number" && amount.isNotEmpty ? String(amount.content) : "",
-                    ].filter(Boolean);
-                    const result = await bridge.recordInteraction([person.docId], {
-                        ref: `favor:${row.itemID}`,
-                        date: dateVal || undefined,
-                        note: noteParts.join(" "),
-                    });
-                    plugin.runtime.favorSyncs = { ...(plugin.runtime.favorSyncs ?? {}), [row.itemID]: { docId: person.docId, at: new Date().toISOString() } };
-                                        await saveRuntime(plugin, plugin.runtime);
-                    showMessage(t("ec15.done").replace("${n}", person.name).replace("${r}", String(result.recorded)), 3000, "info");
-                    btn.disabled = false;
-                } catch (e) {
-                    showMessage(t("ec15.failed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                    btn.disabled = false;
-                }
-            };
-            if (synced) {
-                const tag = document.createElement("span");
-                tag.className = "lv-caption";
-                tag.style.cssText = "margin-left:8px;color:var(--lv-accent)";
-                tag.textContent = t("ec15.synced");
-                head.appendChild(tag);
-            }
-            body.appendChild(btn);
+            renderFavorsSyncSection({
+                body,
+                row,
+                ref: ref!,
+                active,
+                plugin,
+                t,
+                showMessageFn: showMessage,
+                selectContentFn: selectCellContent,
+                rawDateFn: (cell) => rawFromValue("date", cell) ?? "",
+            });
+        });
         }
         // Edit mode writes supported fields independently and reports partial failures.
         function buildEdit() {
@@ -4339,45 +4228,16 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
             const more = dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement;
             more.open = false;
             more.hidden = true;
-            const inputs: { keyID: string; type: string; label: string; get: () => any }[] = [];
-            for (const col of schemaCols) {
-                const keyID = ref!.columns[col.key];
-                if (!keyID || !EDITABLE.has(col.type)) continue;
-                const wrap = document.createElement("div");
-                wrap.className = "fn__flex";
-                wrap.style.cssText = "gap:10px;padding:4px 0;font-size:13px;align-items:center";
-                wrap.append(labelSpan(col));
-                const cur = rawFromValue(col.type, row.cells[keyID]);
-                let control: HTMLInputElement | HTMLSelectElement;
-                if (col.type === "select") {
-                    const sel = document.createElement("select");
-                    sel.className = "b3-select fn__flex-1";
-                    sel.add(new Option("", ""));
-                    for (const opt of col.options ?? []) sel.add(new Option(optLabel(t, col.key, opt), String(opt))); // 211 波：枚举标签
-                    sel.value = String(cur ?? "");
-                    control = sel;
-                } else {
-                    const input = document.createElement("input");
-                    input.className = "b3-text-field fn__flex-1";
-                    input.type = col.type === "number" ? "number" : col.type === "date" ? "date" : col.type === "url" ? "url" : "text";
-                    input.value = String(cur ?? "");
-                    if (col.type === "checkbox") { input.type = "checkbox"; input.checked = !!cur; input.className = "b3-switch"; }
-                    control = input;
-                }
-                control.setAttribute("aria-label", colLabel(col));
-                wrap.append(control);
-                // Contact fields can use the shared contacts picker when available.
-                if (col.key === "contact" && control instanceof HTMLInputElement && getContactsBridge()) {
-                    const pick = document.createElement("button");
-                    pick.className = "b3-button b3-button--outline";
-                    pick.style.cssText = "flex-shrink:0;font-size:12px";
-                    pick.textContent = t("ledger.pickContact");
-                    pick.onclick = () => pickFromContacts((picked) => { control.value = picked; });
-                    wrap.append(pick);
-                }
-                body.appendChild(wrap);
-                inputs.push({ keyID, type: col.type, label: colLabel(col), get: () => (control instanceof HTMLInputElement && control.type === "checkbox" ? control.checked : control.value) });
-            }
+            const inputs = renderEditableFormFields({
+                container: body,
+                schemaCols,
+                columns: ref!.columns,
+                rowCells: row.cells,
+                t,
+                rawFromValueFn: rawFromValue,
+                hasContactsBridge: !!getContactsBridge(),
+                onPickContact: pickFromContacts,
+            });
             const errorBox = document.createElement("div");
             errorBox.className = "lv-record-error";
             errorBox.setAttribute("role", "alert");

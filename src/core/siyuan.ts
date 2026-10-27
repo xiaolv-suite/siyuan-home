@@ -618,8 +618,11 @@ function rowIDsFromAddResponse(d: any): string[] {
     };
     if (typeof d === "string" && d) push(d);
     if (Array.isArray(d)) d.forEach(push);
-    for (const k of ["rowIDs", "blockIDs", "ids", "blocks", "operations", "doOperations", "rows"] as const) {
-        if (Array.isArray(d?.[k])) d[k].forEach(push);
+    if (d && typeof d === "object" && !Array.isArray(d)) {
+        push(d);
+        for (const k of ["rowIDs", "blockIDs", "ids", "blocks", "operations", "doOperations", "rows", "srcs"] as const) {
+            if (Array.isArray(d[k])) d[k].forEach(push);
+        }
     }
     return out;
 }
@@ -632,7 +635,8 @@ function rowIDsFromAddResponse(d: any): string[] {
  * 4) 确认到目标行或唯一新增行即刻返回，消除假性待确认死锁。
  */
 export async function addDetachedRow(avID: string, content: string, options?: RequestOptions): Promise<string> {
-    const before = new Set(await renderRowIDs(avID, options));
+    const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
+    const before = new Set(await renderRowIDs(avID, queryOptions));
     const desiredItemID = newSiYuanId();
     const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : list.length === 1 ? list[0] : "";
     let d: any;
@@ -644,7 +648,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         if (!isWriteResultUnknown(error)) throw error;
         // The add may have committed before the response was lost. Reconcile
         // against a fresh render without reusing the caller's aborted signal.
-        const recoveryOptions = { timeoutMs: options?.timeoutMs, retries: 0 };
+        const recoveryOptions = { timeoutMs: options?.timeoutMs, retries: 0, idempotencyKey: undefined };
         await new Promise((resolve) => setTimeout(resolve, 300));
         try {
             const recovered = (await renderRowIDs(avID, recoveryOptions)).filter((id) => !before.has(id));
@@ -662,10 +666,10 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
 
     // 块索引异步重建：梯级短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
         await new Promise((r) => setTimeout(r, 150 + attempt * 150));
         try {
-            added = (await renderRowIDs(avID, options)).filter((id) => !before.has(id));
+            added = (await renderRowIDs(avID, queryOptions)).filter((id) => !before.has(id));
             const hit = findHit(added);
             if (hit) return hit;
             if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
@@ -681,7 +685,8 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
  * 而非 getAttributeViewPrimaryKeyValues 返回的 PK value ID（两者是不同 ID 空间）。
  */
 async function renderRowIDs(avID: string, options?: RequestOptions): Promise<string[]> {
-    const d = await post<any>("/api/av/renderAttributeView", { id: avID }, options);
+    const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
+    const d = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200 }, queryOptions);
     return (d?.view?.rows ?? []).map((r: any) => r.id);
 }
 

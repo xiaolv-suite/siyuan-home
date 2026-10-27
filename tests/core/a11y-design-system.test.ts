@@ -66,4 +66,12 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(scssContent).toContain('@container lv-home (max-width: 640px)');
     expect(scssContent).toContain('@container lv-home (max-width: 400px)');
   });
+
+  it('tab-panel 顶栏主页签左右两侧具备对称弹性占位，实现完美水平居中', () => {
+    const tabPanelPath = path.resolve(__dirname, '../../src/panels/tab-panel.svelte');
+    const tabPanelContent = fs.readFileSync(tabPanelPath, 'utf8');
+    // 品牌区与 tabs 之间有 fn__flex-1 弹性占位，tabs 与右侧 actions 之间也有 fn__flex-1
+    expect(tabPanelContent).toMatch(/<\/div>\s*<span class="fn__flex-1"[^>]*><\/span>\s*<div class="lv-tabs"/);
+    expect(tabPanelContent).toMatch(/<\/div>\s*<span class="fn__flex-1"><\/span>\s*<!--/);
+  });
 });

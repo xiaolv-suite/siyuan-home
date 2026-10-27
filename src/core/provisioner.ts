@@ -694,3 +694,59 @@ export async function discoverAndAdoptAllLedgers(
 
     return report;
 }
+
+/**
+ * 实时自愈指定的列 ID 映射（解决写入时思源报错 key not found 的根本自愈通道）
+ * 1) 读取思源属性视图真实列清单；
+ * 2) 通过别名匹配真实存在的列 ID，校准并持久化；
+ * 3) 若思源中该列已被删除，自动补建列并更新 ID 映射。
+ */
+export async function healColumnMapping(
+    plugin: any,
+    moduleId: string,
+    colKey: string,
+): Promise<string | undefined> {
+    const ref = plugin?.settings?.dbRefs?.[moduleId];
+    if (!ref?.avId) return undefined;
+
+    try {
+        const { renderLedger, addAttributeViewColumn } = await import("./siyuan");
+        const av = await renderLedger(ref.avId);
+        const knownColumns: any[] = av?.columns ?? [];
+        const schemaCol = plugin.schemaCatalog?.[moduleId]?.columns?.find((c: any) => c.key === colKey);
+        const colName = (plugin.i18n?.[`field.${colKey}`] ?? schemaCol?.name ?? colKey) as string;
+        const colAliases = new Set([colName, colKey, ...(COMMON_COLUMN_ALIASES[colKey] ?? [])]);
+
+        // 1. 尝试在思源当前真实列中通过别名匹配已有列
+        const matched = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName));
+        if (matched?.id) {
+            const realId = String(matched.id);
+            ref.columns = { ...(ref.columns ?? {}), [colKey]: realId };
+            try {
+                const { saveSettings } = await import("./settings");
+                await saveSettings(plugin, plugin.settings);
+            } catch { /* soft */ }
+            return realId;
+        }
+
+        // 2. 若思源中连同名列都没有（被删除），则自动在思源属性视图中补建该列
+        const colType = schemaCol?.type ?? "text";
+        const memberAvId = moduleId === "members" ? undefined : plugin.settings?.dbRefs?.members?.avId;
+        const newKeyID = await addAttributeViewColumn(ref.avId, {
+            name: colName,
+            type: colType,
+            relationTargetAvID: colType === "relation" ? memberAvId : undefined,
+        }, { idempotencyKey: `heal:${ref.avId}:${colKey}:${Date.now().toString(36)}`, retries: 1 });
+
+        ref.columns = { ...(ref.columns ?? {}), [colKey]: newKeyID };
+        try {
+            const { saveSettings } = await import("./settings");
+            await saveSettings(plugin, plugin.settings);
+        } catch { /* soft */ }
+        return newKeyID;
+    } catch (e) {
+        console.warn(`[LvHome] healColumnMapping for ${moduleId}.${colKey} failed:`, e);
+        return undefined;
+    }
+}
+

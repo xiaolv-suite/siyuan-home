@@ -624,11 +624,30 @@
             }
             // 新建行身份确认存在延迟：setCell 失败受控重试（同格重写不会重复建行，triage 同款）
             const setCellSafe = async (key: string, value: unknown) => {
-                const keyID = r!.columns?.[key];
+                let keyID = r!.columns?.[key];
+                if (!keyID) {
+                    try {
+                        const { healColumnMapping } = await import("@/core/provisioner");
+                        keyID = await healColumnMapping(plugin, moduleId, key);
+                    } catch { /* soft */ }
+                }
                 if (!keyID) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(captureFields.find((field) => field.key === key) ?? { key, type: "text" })));
                 for (let attempt = 0; ; attempt++) {
-                    try { await setCell(r!.avId, keyID, itemID, value, { idempotencyKey: `${saveOperationKey}:cell:${key}` }); return; }
-                    catch (err) {
+                    try {
+                        await setCell(r!.avId, keyID, itemID, value, { idempotencyKey: `${saveOperationKey}:cell:${key}` });
+                        return;
+                    } catch (err) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        if (msg.includes("key not found")) {
+                            try {
+                                const { healColumnMapping } = await import("@/core/provisioner");
+                                const healedId = await healColumnMapping(plugin, moduleId, key);
+                                if (healedId && healedId !== keyID) {
+                                    keyID = healedId;
+                                    continue;
+                                }
+                            } catch { /* soft */ }
+                        }
                         if (attempt >= 2) throw err;
                         await new Promise((res) => setTimeout(res, 400));
                     }

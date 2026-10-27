@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setTransport, KernelError } from "@/core/siyuan";
 import {
     provisionModule, ensureNotebook, bindExistingDoc, discoverAndAdoptAllLedgers, isDocMissingError, DEFAULT_NOTEBOOK_NAME, getProvisioningReport,
+    healColumnMapping,
     type ProvisionOptions,
 } from "@/core/provisioner";
 import type { HomeSettings, DbRef } from "@/types";
@@ -407,5 +408,77 @@ describe("getProvisioningReport", () => {
             { moduleId: "certs", message: "column failed" },
             { moduleId: "medicine", message: "Attribute view unavailable" },
         ]);
+    });
+});
+
+describe("healColumnMapping (列 ID 失效与幽灵列实时自愈)", () => {
+    it("通过别名在思源真实列中找回正确的 keyID 并校准 settings", async () => {
+        const s = fakeKernel();
+        const avId = "20261021120000-avcars";
+        s.avColumns = [
+            { id: "col-real-energy", name: "能源类型" },
+            { id: "col-real-name", name: "名称" },
+        ];
+        const plugin: any = {
+            settings: {
+                dbRefs: {
+                    vehicles: {
+                        avId,
+                        columns: {
+                            energy_type: "20261023150723-h79zcxg", // 失效的旧 ID
+                        },
+                    },
+                },
+            },
+            schemaCatalog: {
+                vehicles: {
+                    columns: [
+                        { key: "energy_type", name: "能源类型", type: "select" },
+                    ],
+                },
+            },
+            i18n: {
+                "field.energy_type": "能源类型",
+            },
+        };
+
+        const healedKey = await healColumnMapping(plugin, "vehicles", "energy_type");
+        expect(healedKey).toBe("col-real-energy");
+        expect(plugin.settings.dbRefs.vehicles.columns.energy_type).toBe("col-real-energy");
+    });
+
+    it("思源中列彻底被删时自动在视图中补建列并更新 settings", async () => {
+        const s = fakeKernel();
+        const avId = "20261021120000-avcars";
+        s.avColumns = [
+            { id: "col-real-name", name: "名称" },
+        ];
+        const plugin: any = {
+            settings: {
+                dbRefs: {
+                    vehicles: {
+                        avId,
+                        columns: {
+                            energy_type: "20261023150723-h79zcxg", // 失效且思源里已无此列
+                        },
+                    },
+                },
+            },
+            schemaCatalog: {
+                vehicles: {
+                    columns: [
+                        { key: "energy_type", name: "能源类型", type: "select" },
+                    ],
+                },
+            },
+            i18n: {
+                "field.energy_type": "能源类型",
+            },
+        };
+
+        const healedKey = await healColumnMapping(plugin, "vehicles", "energy_type");
+        expect(healedKey).toBeDefined();
+        expect(healedKey).not.toBe("20261023150723-h79zcxg");
+        expect(plugin.settings.dbRefs.vehicles.columns.energy_type).toBe(healedKey);
     });
 });

@@ -465,14 +465,36 @@
             }
             const cols = plugin.settings.dbRefs[active]?.columns ?? ref.columns ?? {};
             const failed: string[] = [];
-            const tryCell = async (label: string, key: string | undefined, value: unknown) => {
-                if (!key) { failed.push(label); return; }
+            const tryCell = async (label: string, colKey: string, keyId: string | undefined, value: unknown) => {
                 if (value === null) { failed.push(label); return; }
+                let currentKey = keyId;
+                if (!currentKey) {
+                    try {
+                        const { healColumnMapping } = await import("@/core/provisioner");
+                        currentKey = await healColumnMapping(plugin, active, colKey);
+                    } catch { /* soft */ }
+                }
+                if (!currentKey) { failed.push(label); return; }
                 try {
-                    await setCell(ref!.avId!, key, itemID, value, {
-                        idempotencyKey: `${recordOperationKey}:cell:${key}`,
+                    await setCell(ref!.avId!, currentKey, itemID, value, {
+                        idempotencyKey: `${recordOperationKey}:cell:${colKey}`,
                     });
-                } catch {
+                } catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (msg.includes("key not found")) {
+                        try {
+                            const { healColumnMapping } = await import("@/core/provisioner");
+                            const healedKey = await healColumnMapping(plugin, active, colKey);
+                            if (healedKey && healedKey !== currentKey) {
+                                try {
+                                    await setCell(ref!.avId!, healedKey, itemID, value, {
+                                        idempotencyKey: `${recordOperationKey}:cell:${colKey}:healed`,
+                                    });
+                                    return;
+                                } catch { /* soft */ }
+                            }
+                        } catch { /* soft */ }
+                    }
                     failed.push(label);
                 }
             };
@@ -481,13 +503,13 @@
                 if (e.key !== "name" && (v === undefined || v === "" || v === false)) continue;
                 if (e.key === "name" && !(v && String(v).trim()) && pendingItemID) continue;
                 if (e.type === "number" && (v === undefined || isNaN(Number(v)))) continue;
-                await tryCell(t(`field.${e.key}`), cols[e.key], cellValue(e.type, e.key === "name" ? String(v ?? "").trim() : v));
+                await tryCell(t(`field.${e.key}`), e.key, cols[e.key], cellValue(e.type, e.key === "name" ? String(v ?? "").trim() : v));
             }
             for (const e of certificateScalarCols) {
                 const v = form[e.key];
                 if (v === undefined || v === "" || v === false) continue;
                 if (e.type === "number" && isNaN(Number(v))) continue;
-                await tryCell(t(`field.${e.key}`), cols[e.key], cellValue(e.type, v));
+                await tryCell(t(`field.${e.key}`), e.key, cols[e.key], cellValue(e.type, v));
             }
             if (quickAssetCols.length > 0) {
                 for (const target of quickAssetCols) {
@@ -513,7 +535,7 @@
                     certificateFiles = { ...certificateFiles, [target.key]: failedFiles };
                     if (uploaded.length === 0) continue;
                     uploadedCertificateFiles = { ...uploadedCertificateFiles, [target.key]: uploaded };
-                    await tryCell(t(`field.${target.key}`), cols[target.key], {
+                    await tryCell(t(`field.${target.key}`), target.key, cols[target.key], {
                         type: "mAsset",
                         mAsset: uploaded.map(({ name, content }) => ({ name, content })),
                     });
@@ -521,7 +543,7 @@
             }
             const statusCol = (plugin.schemaCatalog?.[active]?.columns ?? []).find((c: any) => c.key === "status");
             if (statusCol?.options?.length && (form.status === undefined || form.status === "")) {
-                await tryCell(t("field.status"), cols.status, selectCellValue(statusCol.default ?? statusCol.options[0]));
+                await tryCell(t("field.status"), "status", cols.status, selectCellValue(statusCol.default ?? statusCol.options[0]));
             }
             if (failed.length > 0) {
                 saveError = t("ledger.savePartial").replace("${fields}", failed.join(", "));

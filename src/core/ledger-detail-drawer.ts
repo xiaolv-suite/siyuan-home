@@ -1353,7 +1353,25 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                             row.cells[e.keyID] = nextCell;
                             changed++;
                             if (personKeyID && e.keyID === personKeyID) personChanged = true;
-                        } catch {
+                        } catch (err) {
+                            const msg = err instanceof Error ? err.message : String(err);
+                            if (msg.includes("key not found")) {
+                                try {
+                                    const { healColumnMapping } = await import("./provisioner");
+                                    const healedKey = await healColumnMapping(plugin, active, e.colKey);
+                                    if (healedKey && healedKey !== e.keyID) {
+                                        const { cellValue } = await import("./avcell");
+                                        const nextCell = cellValue(e.type, v);
+                                        await setCell(ref.avId!, healedKey, row.itemID, nextCell, {
+                                            idempotencyKey: `ledger:detail-edit:${row.itemID}:${healedKey}:${JSON.stringify(nextCell)}`,
+                                            retries: 1,
+                                        });
+                                        row.cells[healedKey] = nextCell;
+                                        changed++;
+                                        continue;
+                                    }
+                                } catch { /* fail to failed.push */ }
+                            }
                             failed.push(e.label);
                         }
                     }

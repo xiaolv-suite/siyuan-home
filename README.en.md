@@ -39,23 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.115
+## 🆕 What's new in v0.5.116
 
-This release introduces the Bento modular card system to the Overview dashboard:
+This release strengthens mobile responsive dialog guards across all ledger forms and charts:
 
-- **Feature (Bento Modular Dashboard Cards)**: Hero tile showcases the most urgent upcoming expiry with days-left countdown, assigned member, and quick action; paired with dual compact tiles for today's to-dos and profile review;
-- **Enhanced (Mobile Responsive Bento Grid)**: Automatically transforms into full-width hero card on top and symmetric 1:1 dual cards below on narrow/mobile viewports;
+- **Enhanced (Global Mobile Dialog Adaptation)**: Guarded all ledger dialogs (detail drawer, health charts, emergency cards, renewal chains) against horizontal clipping on ≤600px mobile screens; action buttons adapt to symmetric 2-column layout with 38px comfortable touch targets;
 - **Validation**: 92 test suites, **817 unit tests passing**, TypeScript, Svelte, i18n (1971 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.115)
+## 📦 Install (v0.5.116)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.115 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.115 package is the current GitHub release; local quality checks report 817 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.116 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.116 package is the current GitHub release; local quality checks report 817 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

@@ -24,7 +24,7 @@ export interface InlineEditOptions {
 
 export function beginInlineEdit(options: InlineEditOptions): void {
     if (typeof document === "undefined") return;
-    const { col, keyID, line, valueEl, row, ref, t, rawFromValueFn, showMessageFn, hasContactsBridge, onPickContact, onSaveSuccess } = options;
+    const { col, keyID, line, valueEl, row, ref, active, t, rawFromValueFn, showMessageFn, hasContactsBridge, onPickContact, onSaveSuccess } = options;
     const EDITABLE = new Set(["text", "number", "date", "checkbox", "select", "url"]);
     if (!EDITABLE.has(col.type) || line.dataset.lvEditing === "true") return;
 
@@ -128,11 +128,31 @@ export function beginInlineEdit(options: InlineEditOptions): void {
         control.disabled = true;
         try {
             const nextCell = cellValue(col.type, value);
-            await setCell(ref.avId!, keyID, row.itemID, nextCell, {
-                idempotencyKey: `ledger:inline:${row.itemID}:${keyID}:${Date.now()}`,
-                retries: 1,
-            });
-            row.cells[keyID] = nextCell;
+            let writeKey = keyID;
+            try {
+                await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
+                    idempotencyKey: `ledger:inline:${row.itemID}:${writeKey}:${Date.now()}`,
+                    retries: 1,
+                });
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                if (msg.includes("key not found")) {
+                    const { healColumnMapping } = await import("./provisioner");
+                    const healedKey = await healColumnMapping(ref, active, col.key);
+                    if (healedKey && healedKey !== writeKey) {
+                        writeKey = healedKey;
+                        await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
+                            idempotencyKey: `ledger:inline:${row.itemID}:${writeKey}:healed:${Date.now()}`,
+                            retries: 1,
+                        });
+                    } else {
+                        throw err;
+                    }
+                } else {
+                    throw err;
+                }
+            }
+            row.cells[writeKey] = nextCell;
             showMessageFn(t("ledger.editSaved"), 2500, "info");
             if (onSaveSuccess) await onSaveSuccess();
         } catch (error) {

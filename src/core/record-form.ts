@@ -6,6 +6,7 @@ import { optLabel } from "./format";
 
 export interface FormFieldInputBinding {
     keyID: string;
+    colKey: string;
     type: string;
     label: string;
     get: () => any;
@@ -87,6 +88,7 @@ export function renderEditableFormFields(options: RenderEditableFormFieldsOption
         container.appendChild(wrap);
         inputs.push({
             keyID,
+            colKey: col.key,
             type: col.type,
             label: colLabel(col),
             get: () => (control instanceof HTMLInputElement && control.type === "checkbox" ? control.checked : control.value),

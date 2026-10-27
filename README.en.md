@@ -39,24 +39,26 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.130
+## 🆕 What's new in v0.5.131
 
-This release modularizes the topbar toolbar into an independent component and introduces the personalized routine checkup engine, cutting `ledger.svelte` down to 1,126 lines (an 82.7% cumulative reduction):
+This release fixes the `key not found` attribute write deadlock with automatic column healing and restores symmetrical centering for the topbar navigation:
 
-- **Refactoring (Decoupled Topbar Toolbar & Filters)**: Extracted `src/panels/screens/ledger-toolbar.svelte`, encapsulating module selection, pinned modules, member/category filters, search box, density toggle, and more actions menu;
-- **Performance**: Main component `ledger.svelte` shrunk to **1,126 lines** (trimming over 5,370 lines from the initial monolith of ~6,500 lines);
-- **Feature (Personalized Routine Health Checkup Engine)**: Added `src/core/checkup.ts` to calculate routine checkups, age/gender screenings (breast/cervical/mammography for females, PSA for males, low-dose CT and GI endoscopy for 40+), and targeted follow-ups for hypertension, diabetes, and fatty liver;
-- **Validation**: 108 test suites, **855 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
+- **Fix (Attribute Write `key not found` Deadlock Root-Cause Healing)**:
+  - Added `healColumnMapping` engine in `src/core/provisioner.ts` to inspect real attribute view columns on `key not found` exceptions;
+  - Auto-reconciles stale column IDs using alias dictionaries or re-creates deleted columns, retrying writes with true IDs across `quick-capture`, `ledger-record-modal`, `ledger-detail-drawer`, and `inline-edit`;
+- **Enhancement (Topbar Tabbar Centering Layout)**:
+  - Restored symmetrical `<span class="fn__flex-1">` elastic spacers in `tab-panel.svelte`, centering the 4 main tabs (`Overview`, `Reminders`, `Ledgers`, `Members`) horizontally across desktop displays;
+- **Validation**: 108 test suites, **857 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.130)
+## 📦 Install (v0.5.131)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.130 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.130 package is the current GitHub release; local quality checks report 855 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.131 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.131 package is the current GitHub release; local quality checks report 857 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

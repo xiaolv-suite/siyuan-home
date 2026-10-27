@@ -2,8 +2,6 @@
     import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError, getOCRConfig, getImageOCRText, recognizeAsset } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
-    import { parseCsv } from "@/core/csv";
-    import { planImport, guessMapping } from "@/core/importer";
     import { buildCsv } from "@/core/csv";
     import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "@/core/idcard";
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
@@ -356,80 +354,22 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     async function openBindExistingDocModal() {
         const schema = plugin.schemaCatalog?.[active];
         if (!schema) return;
-        const dlg = new Dialog({
-            title: t("ledger.bindDocTitle"),
-            content: `
-                <div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px">
-                    <span class="lv-caption" style="line-height:1.6">${t("ledger.bindDocHint")}</span>
-                    <label style="display:flex;flex-direction:column;gap:4px">
-                        <span class="lv-caption">${t("ledger.bindDocTitle")}：</span>
-                        <input class="b3-text-field" id="lv-bind-doc-input" placeholder="siyuan://blocks/20261021... 或 ((20261021...))" style="width:100%" />
-                    </label>
-                    <div id="lv-bind-candidates" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
-                </div>
-                <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel">${t("cancel")}</button>
-                    <button class="b3-button" id="lv-bind-doc-ok">${t("save")}</button>
-                </div>
-            `,
-            width: "480px",
-        });
-        (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        const bindInput = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;
-        if (bindInput) {
-            bindInput.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-bind-doc-ok") as HTMLButtonElement)?.click();
+        try {
+            const { openBindExistingDocDialog } = await import("@/core/bind-dialog");
+            openBindExistingDocDialog({
+                active,
+                schema,
+                plugin,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                onSuccess: async () => {
+                    await load();
+                },
             });
+        } catch (e) {
+            showMessage(String(e), 5000, "error");
         }
-        void (async () => {
-            const listEl = dlg.element.querySelector("#lv-bind-candidates") as HTMLElement | null;
-            if (!listEl) return;
-            try {
-                const { sql } = await import("@/core/siyuan");
-                const modName = t(`module.${active}`);
-                const escActive = String(active).replace(/'/g, "''");
-                const escModName = String(modName).replace(/'/g, "''");
-                const rows = await sql<{ id: string; hpath: string }>(
-                    `SELECT id, hpath FROM blocks WHERE type='d' AND (hpath LIKE '%${escActive}%' OR hpath LIKE '%${escModName}%') ORDER BY updated DESC LIMIT 5`
-                );
-                if (rows.length === 0 || !dlg.element.isConnected) return;
-                listEl.innerHTML = `<span class="lv-caption" style="color:var(--lv-tx-3);margin-top:4px">💡 推荐候选文档（点击直接填入）：</span>`;
-                for (const r of rows) {
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = "b3-button b3-button--outline";
-                    btn.style.cssText = "font-size:12px;padding:4px 8px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%";
-                    btn.textContent = `📄 ${r.hpath}`;
-                    btn.onclick = () => {
-                        const inp = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;
-                        if (inp) {
-                            inp.value = r.id;
-                            inp.focus();
-                        }
-                    };
-                    listEl.appendChild(btn);
-                }
-            } catch { /* soft query */ }
-        })();
-        (dlg.element.querySelector("#lv-bind-doc-ok") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            const inputVal = (dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement).value.trim();
-            if (!inputVal) return;
-            this.disabled = true;
-            try {
-                const { bindExistingDoc } = await import("@/core/provisioner");
-                const { saveSettings } = await import("@/core/settings");
-                await bindExistingDoc(plugin.settings, active, inputVal, schema, {
-                    resolveName: (k: string) => t(`field.${k}`),
-                });
-                await saveSettings(plugin as any, plugin.settings);
-                dlg.destroy();
-                showMessage(t("ledger.bindDocSuccess").replace("${module}", t(`module.${active}`)), 3000, "info");
-                await load();
-            } catch (e) {
-                this.disabled = false;
-                showMessage(String(e), 5000, "error");
-            }
-        };
     }
 
     async function adjustRowQty(row: any, fieldKey: string, delta: number) {
@@ -1269,127 +1209,31 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     }
 
     // CSV import uses a schema-driven mapping wizard; core owns the planning logic.
-    function openCsvImport() {
+    async function openCsvImport() {
         if (!ref?.avId) return;
         if (plugin.runtime?.guestModeActive) {
             showMessage(t("guest.writeBlocked"), 4000, "info");
             return;
         }
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".csv,text/csv";
-        input.style.display = "none";
-        input.onchange = async () => {
-            const file = input.files?.[0];
-            if (!file) return;
-            let table: string[][];
-            try {
-                table = parseCsv(await file.text());
-            } catch (e) {
-                showMessage(t("ledger.importBadCsv") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
-                return;
-            }
-            if (table.length < 2) { showMessage(t("ledger.importBadCsv"), 5000, "error"); return; }
-            const headers = table[0];
+        try {
             const importableTypes = new Set(["text", "number", "date", "checkbox", "select"]);
-            const schemaCols: any[] = (plugin.schemaCatalog?.[active]?.columns ?? []).filter((c: any) => importableTypes.has(c.type));
-            const labelOf = (key: string) => (t(`field.${key}`) !== `field.${key}` ? t(`field.${key}`) : key);
-            let mapping = guessMapping(headers, schemaCols, labelOf);
-            const dlg = new Dialog({
-                title: t("ledger.importCsv"),
-                content: `<div class="b3-dialog__content" id="lv-csvimp-body" style="max-height:60vh;overflow:auto">
-<p class="lv-caption ft__on-surface">${t("ledger.importMapHint").replace("${file}", file.name).replace("${n}", String(table.length - 1))}</p>
-<div id="lv-csvimp-map"></div></div>
-<div class="b3-dialog__action"><span class="lv-caption" style="flex:1" id="lv-csvimp-stat"></span><button class="b3-button b3-button--cancel" id="lv-csvimp-close">${t("cancel")}</button><button class="b3-button" id="lv-csvimp-start">${t("ledger.importStart")}</button></div>`,
-                width: "560px",
+            const schemaCols = (plugin.schemaCatalog?.[active]?.columns ?? []).filter((c: any) => importableTypes.has(c.type));
+            const { openCsvImportDialog } = await import("@/core/csv-import-dialog");
+            openCsvImportDialog({
+                active,
+                ref: ref as any,
+                schemaCols,
+                t,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                onImportSuccess: async () => {
+                    await load();
+                    try { await plugin.refreshHub([active]); } catch { /* soft */ }
+                },
             });
-            const mapBox = dlg.element.querySelector("#lv-csvimp-map") as HTMLElement;
-            const selects: HTMLSelectElement[] = [];
-            headers.forEach((h, i) => {
-                const line = document.createElement("div");
-                line.className = "fn__flex";
-                line.style.cssText = "gap:8px;align-items:center;padding:3px 0;font-size:13px";
-                const label = document.createElement("span");
-                label.style.cssText = "flex:1;word-break:break-all";
-                label.textContent = h || `#${i + 1}`;
-                const sel = document.createElement("select");
-                sel.className = "b3-select";
-                sel.style.cssText = "width:200px;flex-shrink:0";
-                sel.add(new Option(t("ledger.importSkip"), ""));
-                for (const c of schemaCols) sel.add(new Option(labelOf(c.key), c.key));
-                sel.value = mapping[i] ?? "";
-                selects.push(sel);
-                line.append(label, sel);
-                mapBox.appendChild(line);
-            });
-            (dlg.element.querySelector("#lv-csvimp-close") as HTMLButtonElement).onclick = () => dlg.destroy();
-            (dlg.element.querySelector("#lv-csvimp-start") as HTMLButtonElement).onclick = async (event) => {
-                const startBtn = event.currentTarget as HTMLButtonElement;
-                if (startBtn.disabled) return;
-                mapping = Object.fromEntries(selects.map((s, i) => [i, s.value || undefined]));
-                const mappedCount = Object.values(mapping).filter(Boolean).length;
-                if (mappedCount === 0) { showMessage(t("ledger.importNoMap"), 4000, "error"); return; }
-                const plan = planImport(table, mapping, schemaCols, "name");
-                if (plan.rows.length === 0) { showMessage(t("ledger.importNoRows"), 4000, "error"); return; }
-                startBtn.disabled = true;
-                dlg.destroy();
-                confirm(
-                    t("ledger.importCsv"),
-                    t("ledger.importConfirm")
-                        .replace("${n}", String(plan.rows.length))
-                        .replace("${skip}", String(plan.skipped))
-                        .replace("${warnings}", String(plan.rows.reduce((n, row) => n + row.warnings.length, 0))),
-                    async () => {
-                        try {
-                            let ok = 0;
-                            const importOperationKey = `ledger-import:${active}:${file.name}:${file.size}:${file.lastModified}`;
-                            const failed: number[] = [];
-                            const partial: number[] = [];
-                            const pending: number[] = [];
-                            for (let i = 0; i < plan.rows.length; i++) {
-                                const row = plan.rows[i];
-                                let created = false;
-                                try {
-                                    const rowOperationKey = `${importOperationKey}:row:${i}`;
-                                    const itemID = await addDetachedRow(ref!.avId!, row.name, { idempotencyKey: rowOperationKey });
-                                    created = true;
-                                    for (const c of row.cells) {
-                                        if (ref!.columns![c.key]) await setCell(ref!.avId!, ref!.columns![c.key], itemID, cellValue(c.type, c.value), {
-                                            idempotencyKey: `${rowOperationKey}:cell:${c.key}`,
-                                        });
-                                    }
-                                    ok++;
-                                } catch (e) {
-                                    if (e instanceof RowIdentityPendingError) pending.push(i + 1);
-                                    else if (created) partial.push(i + 1);
-                                    else failed.push(i + 1);
-                                }
-                            }
-                            await load();
-                            if (loadError) {
-                                showMessage(t("ledger.importRefreshFailed").replace("${msg}", loadError), 6000, "error");
-                                return;
-                            }
-                            try {
-                                await plugin.refreshHub([active]); // Refresh only the active module.
-                            } catch (e) {
-                                showMessage(t("ledger.importRefreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                            }
-                            const failTxt = failed.length ? ` · ${t("ledger.importRowFail").replace("${n}", String(failed.length))} (#${failed.slice(0, 3).join(", #")}${failed.length > 3 ? "..." : ""})` : "";
-                            const partialTxt = partial.length ? ` · ${t("ledger.importPartial").replace("${n}", String(partial.length))} (#${partial.slice(0, 3).join(", #")}${partial.length > 3 ? "..." : ""})` : "";
-                            const pendingTxt = pending.length ? ` · ${t("ledger.importPending").replace("${n}", String(pending.length))} (#${pending.slice(0, 3).join(", #")}${pending.length > 3 ? "..." : ""})` : "";
-                            const warningRows = plan.rows.flatMap((row, i) => row.warnings.map((warning) => `#${i + 1} ${t(`field.${warning.key}`) !== `field.${warning.key}` ? t(`field.${warning.key}`) : warning.key}: ${warning.message}`));
-                            const warningTxt = warningRows.length ? ` · ${t("ledger.importWarnings").replace("${n}", String(warningRows.length))}: ${warningRows.slice(0, 3).join("; ")}${warningRows.length > 3 ? "..." : ""}` : "";
-                            const hasIssues = failed.length + partial.length + pending.length + warningRows.length > 0;
-                            showMessage(t("ledger.importDone").replace("${ok}", String(ok)).replace("${skip}", String(plan.skipped)) + failTxt + partialTxt + pendingTxt + warningTxt, 10000, hasIssues ? "error" : "info");
-                        } catch (e) {
-                            showMessage(t("ledger.importRefreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                        }
-                    },
-                );
-            };
-        };
-        input.click();
+        } catch (e) {
+            showMessage(String(e), 5000, "error");
+        }
     }
 
     async function load() {

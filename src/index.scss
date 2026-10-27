@@ -1165,3 +1165,37 @@ body.theme--dark .b3-dialog:has(.lv-home) {
         }
     }
 }
+
+// ── 21. 全局管家业务弹窗移动端自适应收敛 ─────────────────────────
+// 针对详情抽屉、分析图表、急救卡、换证链等硬编码像素宽度的弹窗，
+// 在 ≤600px 移动视口下强制自适应贴合视口，避免横向截断。
+@media (max-width: 600px) {
+    .b3-dialog:has([id^="lv-"]),
+    .b3-dialog:has(.lv-home),
+    .b3-dialog:has(#lv-detail-body) {
+        .b3-dialog__container {
+            width: calc(100vw - 16px) !important;
+            max-width: calc(100vw - 16px) !important;
+            max-height: calc(100dvh - 32px) !important;
+            margin: 8px auto !important;
+            box-sizing: border-box !important;
+        }
+        .b3-dialog__content,
+        #lv-detail-body {
+            max-height: calc(100dvh - 160px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        .b3-dialog__action {
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 14px;
+            .b3-button {
+                flex: 1 1 calc(50% - 6px);
+                min-height: 38px;
+                justify-content: center;
+                box-sizing: border-box;
+            }
+        }
+    }
+}

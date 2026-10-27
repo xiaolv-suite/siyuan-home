@@ -113,8 +113,8 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     const renderResults = (query: string) => {
         const matched = searchSpotlight(allItems, query, 30);
         statusEl.innerHTML = `
-            <span>${query ? `找到 ${matched.length} 项生活记录` : `已聚合 ${allItems.length} 项生活记录`}</span>
-            <span style="font-size:11px">Esc 退出 · 点击直达</span>
+            <span>${query ? t("spotlight.resultsCount").replace("${n}", String(matched.length)) : t("spotlight.totalIndexed").replace("${n}", String(allItems.length))}</span>
+            <span style="font-size:11px">${t("spotlight.hint")}</span>
         `;
         listEl.innerHTML = "";
 
@@ -122,7 +122,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             const safeQ = escapeHtml(query);
             listEl.innerHTML = `
                 <div style="text-align:center;padding:32px 0;color:var(--lv-tx-3);font-size:13px">
-                    未找到与 "${safeQ}" 匹配的生活记录
+                    ${t("spotlight.empty").replace("${q}", safeQ)}
                 </div>
             `;
             return;
@@ -151,14 +151,14 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             const copyRef = document.createElement("button");
             copyRef.className = "b3-button b3-button--text";
             copyRef.style.cssText = "font-size:11px;padding:1px 6px;line-height:1;color:var(--lv-tx-3)";
-            copyRef.title = "复制思源块引用 ((id \"title\")) (Alt+C)";
-            copyRef.textContent = "🔗 引用";
+            copyRef.title = `${t("ledger.copyBlockRef")} ((id "title")) (Alt+C)`;
+            copyRef.textContent = t("spotlight.copyRef");
             copyRef.onclick = async (e) => {
                 e.stopPropagation();
                 const blockRefText = `((${item.rowId} "${item.title}"))`;
                 try {
                     await navigator.clipboard.writeText(blockRefText);
-                    showMessage("已复制思源块引用", 2500, "info");
+                    showMessage(t("spotlight.refCopied"), 2500, "info");
                 } catch { /* soft fallback */ }
             };
 
@@ -192,6 +192,13 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                 if (e.key === "Enter") {
                     dlg.destroy();
                     onNavigateToTarget({ moduleId: item.moduleId, rowId: item.rowId });
+                } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    (card.nextElementSibling as HTMLElement | null)?.focus();
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    if (card.previousElementSibling) (card.previousElementSibling as HTMLElement).focus();
+                    else inp.focus();
                 } else if ((e.key === "c" || e.key === "C") && (e.altKey || e.metaKey)) {
                     e.preventDefault();
                     copyRef.click();
@@ -219,6 +226,12 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     inp.onkeydown = (e) => {
         if (e.key === "Escape") {
             dlg.destroy();
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            (listEl.firstElementChild as HTMLElement | null)?.focus();
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            (listEl.firstElementChild as HTMLElement | null)?.click();
         }
     };
 }

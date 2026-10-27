@@ -867,17 +867,28 @@ body.theme--dark .b3-dialog:has(.lv-home) {
 
 .b3-dialog--lvmobile {
     .b3-dialog__scrim { background: var(--b3-theme-background); }
-    // Dialog 自带标题栏会与面板内的品牌栏重复；关闭入口由面板顶栏提供，
-    // 这样移动端顶部只保留一层产品导航。
-    .b3-dialog__header { display: none; }
+    // Dialog 自带标题栏与关闭叉号会与面板内的品牌栏重复；关闭入口由面板顶栏提供，
+    // 强制彻底隐藏宿主自带的 header 与浮动 close 按钮，确保移动端沉浸且无重叠。
+    .b3-dialog__header,
+    .b3-dialog__close,
+    .b3-dialog__action[data-type="cancel"] {
+        display: none !important;
+    }
     .b3-dialog__container {
         width: 100vw !important;
         height: 100dvh !important;
-        max-width: none !important;
-        max-height: none !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        top: 0 !important;
+        left: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
+        inset: 0 !important;
         border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
         display: flex;
         flex-direction: column;
         .b3-dialog__content {
@@ -886,6 +897,20 @@ body.theme--dark .b3-dialog:has(.lv-home) {
             overflow: hidden;
             padding: 0 !important;
         }
+    }
+    // 移动端全屏弹窗内去除冗余的外层圆角与边框，使应用界面自然贴合屏幕边缘
+    .lv-home {
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        height: 100% !important;
+    }
+    .lv-tabbar {
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
     }
 }
 

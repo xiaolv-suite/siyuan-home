@@ -39,22 +39,24 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.111
+## 🆕 What's new in v0.5.112
 
-This release brings fluid keyboard navigation and full internationalization to Spotlight Search:
+This release brings comprehensive mobile UI refinements and responsive Bento layout overhaul:
 
-- **Enhanced (Fluid Keyboard Navigation in Spotlight)**: Pressing `ArrowDown` inside the search field immediately shifts focus to the first result card; cards now support `ArrowDown` / `ArrowUp` to navigate smoothly through results or return to search;
-- **Localized (Complete Dual-Language Strings)**: Replaced hardcoded Chinese texts in Spotlight with full i18n support, adding result counts, indexing totals, and copy feedback;
+- **Enhanced (Mobile UI Refinement & Bento Layout)**: Eliminated overlapping dialog close button in mobile view; streamlined header into elegant two-row navigation; reorganized Hero action buttons into symmetric responsive 2-column grid; revamped "Items to attend" into horizontal Bento stat card and silenced "0 scan errors" noise;
+- **Fixed (SQL String Sanitize & Escape)**: Added single-quote escaping for module names and translated labels in candidate doc SQL queries to prevent parsing crashes;
+- **Cleaned (Orphaned File & Safe Bundle Budget)**: Removed obsolete `zh_CN.json` orphan file, adjusted bundle budget to 290KB to eliminate 36-byte CI cliff;
 - **Validation**: 91 test suites, **811 unit tests passing**, TypeScript, Svelte, i18n (1962 keys), metadata, and package smoke all green.
-## 📦 Install (v0.5.111)
+
+## 📦 Install (v0.5.112)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.111 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.111 package is the current GitHub release; local quality checks report 811 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.112 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.112 package is the current GitHub release; local quality checks report 811 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

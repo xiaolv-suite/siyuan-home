@@ -417,8 +417,12 @@
     <div class="lv-hero-copy">
         <div class="lv-hero-meta" role="status" aria-label={t("dash.stripLabel")}>
             <span>{dateLine}{scanStale ? ` · ${t("dash.stale")}` : ""}</span>
-            <span><strong>{t("dash.stripScope")}</strong> {scopeLabel}</span>
-            <span><strong>{t("dash.stripErrors")}</strong> {scanErrors.length}</span>
+            {#if memberFilter}
+                <span><strong>{t("dash.stripScope")}</strong> {scopeLabel}</span>
+            {/if}
+            {#if scanErrors.length > 0}
+                <span class="lv-badge red"><strong>{t("dash.stripErrors")}</strong> {scanErrors.length}</span>
+            {/if}
         </div>
         <h1>{greet}，{t("dash.heroTitle")}</h1>
         <p class="lv-hero-lead">

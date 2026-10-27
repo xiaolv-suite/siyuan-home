@@ -449,8 +449,10 @@
             try {
                 const { sql } = await import("@/core/siyuan");
                 const modName = t(`module.${active}`);
+                const escActive = String(active).replace(/'/g, "''");
+                const escModName = String(modName).replace(/'/g, "''");
                 const rows = await sql<{ id: string; hpath: string }>(
-                    `SELECT id, hpath FROM blocks WHERE type='d' AND (hpath LIKE '%${active}%' OR hpath LIKE '%${modName}%') ORDER BY updated DESC LIMIT 5`
+                    `SELECT id, hpath FROM blocks WHERE type='d' AND (hpath LIKE '%${escActive}%' OR hpath LIKE '%${escModName}%') ORDER BY updated DESC LIMIT 5`
                 );
                 if (rows.length === 0 || !dlg.element.isConnected) return;
                 listEl.innerHTML = `<span class="lv-caption" style="color:var(--lv-tx-3);margin-top:4px">💡 推荐候选文档（点击直接填入）：</span>`;

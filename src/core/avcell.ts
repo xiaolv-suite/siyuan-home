@@ -55,3 +55,21 @@ export function cellContentText(cell: AvCellLike | undefined | null): string {
     return "";
 }
 
+/** 构造思源单元格写入值对象 */
+export function cellValue(type: string, v: unknown): unknown | null {
+    switch (type) {
+        case "select":
+            return typeof v === "string" ? selectCellValue(v) : null;
+        case "checkbox":
+            return { type: "checkbox", checkbox: { checked: Boolean(v) } };
+        case "number":
+            return typeof v === "number" && Number.isFinite(v) ? { type: "number", number: { content: v } } : null;
+        case "date":
+            return typeof v === "string" && v ? { type: "date", date: { content: v, isNotEmpty: true } } : null;
+        case "text":
+        default:
+            return typeof v === "string" ? { type: "text", text: { content: v } } : null;
+    }
+}
+
+

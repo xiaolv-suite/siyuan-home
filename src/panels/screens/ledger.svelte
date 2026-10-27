@@ -1,7 +1,6 @@
 <script lang="ts">
     import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError, getOCRConfig, getImageOCRText, recognizeAsset } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
-    import { buildShoppingList } from "@/core/shopping";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { parseCsv } from "@/core/csv";
     import { planImport, guessMapping } from "@/core/importer";
@@ -33,11 +32,9 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
     const flexBetweenCenterGap8Css = "display:flex;align-items:center;justify-content:space-between;gap:8px";
     const sectionHeaderCss = `${flexBetweenCenterGap8Css};margin-bottom:8px`;
-    const pad12Mb10Css = "padding:12px;margin-bottom:10px";
     const sectionTitleCss = "font-weight:600;font-size:12px";
     const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
-    const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
     const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
     const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
     const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
@@ -69,7 +66,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const fs12Pad310Css = "font-size:12px;padding:3px 10px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
-    import { uiIcon } from "@/ui/icons";
     import { panelSession, type TableDensity } from "../panel-session";
     import { maskValueForGuest, createDefaultGuestConfig } from "@/core/guest-mode";
     import { getGroupedModules } from "@/core/modules";

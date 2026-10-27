@@ -14,6 +14,7 @@
     import { assetHref, isImageAsset } from "@/core/assets";
     import type { ActivityTarget } from "@/core/activity";
     import LedgerRecordModal from "./ledger-record-modal.svelte";
+    import LedgerToolbar from "./ledger-toolbar.svelte";
     const fs12Pad310Css = "font-size:12px;padding:3px 10px";
     const pad36Fs12Css = "padding:3px 6px;font-size:12px";
     import { onDestroy } from "svelte";
@@ -42,7 +43,6 @@
     let avCols: any[] = $state([]);
     let loading = $state(false);
     let loadError = $state("");
-    let ledgerMoreDetails: HTMLDetailsElement | undefined = $state();
     let loadRequest = 0;
     let loadController: AbortController | undefined;
     let rebuilding = $state(false);
@@ -456,11 +456,6 @@
         searchText = "";
     }
 
-    function switchLedger(event: Event) {
-        const next = (event.currentTarget as HTMLSelectElement).value;
-        switchLedgerTo(next);
-    }
-
     // CSV export, archive manifest & QR labels print (326波：解耦至 core/ledger-export.ts)
     async function printLabels() {
         if (!ref?.avId || !ref.docId || printing) return;
@@ -564,9 +559,33 @@
         };
     }
 
-    const openEnergyDashboard = () => import("@/core/ledger-modals").then((m) => m.openEnergyDashboardModal(getModalContext()));
-    const openGrowthChart = () => import("@/core/ledger-modals").then((m) => m.openGrowthChartModal(getModalContext()));
-    const openVaccineScheduleModal = () => import("@/core/ledger-modals").then((m) => m.openVaccineScheduleModal(getModalContext()));
+    function handleToolbarModal(action: string) {
+        const ctx = getModalContext();
+        import("@/core/ledger-modals").then((m) => {
+            switch (action) {
+                case "energy": return m.openEnergyDashboardModal(ctx);
+                case "growth": return m.openGrowthChartModal(ctx);
+                case "vaccine": return m.openVaccineScheduleModal(ctx);
+                case "shopping": return m.openShoppingListModal(ctx);
+                case "emergency-kit": return m.openEmergencyKitModal(ctx);
+                case "store-mode": return m.openStoreModeModal(ctx);
+                case "location-index": return m.openLocationIndexModal(ctx);
+                case "block-ingest": return m.openBlockIngestModal(ctx);
+                case "expense-trend": return m.openExpenseTrendModal(ctx);
+                case "favors-report": return m.openFavorsReportModal(ctx);
+                case "bookmarks-check": return m.openBookmarksCheckModal(ctx);
+                case "subscription-stats": return m.openSubscriptionStatsModal(ctx);
+                case "asset-valuation": return m.openAssetValuationModal(ctx);
+                case "media-report": return m.openMediaReportModal(ctx);
+                case "meal-plan": return m.openMealPlanModal(ctx);
+                case "medicine-supply": return m.openMedicineSupplyModal(ctx);
+                case "utility-tiers": return m.openUtilityTiersModal(ctx);
+                case "waste-schedule": return m.openWasteScheduleModal(ctx);
+                case "rewards-settle": return m.openRewardsLedgerModal(ctx);
+                case "csv-import": return m.openCsvImportModal(ctx);
+            }
+        });
+    }
 
     async function rebuildLedger() {
         rebuilding = true;
@@ -588,26 +607,6 @@
             rebuilding = false;
         }
     }
-
-    const openShoppingList = () => import("@/core/ledger-modals").then((m) => m.openShoppingListModal(getModalContext()));
-    const openFavorsReport = () => import("@/core/ledger-modals").then((m) => m.openFavorsReportModal(getModalContext()));
-    const openBookmarksCheck = () => import("@/core/ledger-modals").then((m) => m.openBookmarksCheckModal(getModalContext()));
-    const openSubscriptionStats = () => import("@/core/ledger-modals").then((m) => m.openSubscriptionStatsModal(getModalContext()));
-    const openAssetValuationModal = () => import("@/core/ledger-modals").then((m) => m.openAssetValuationModal(getModalContext()));
-    const openMediaReport = () => import("@/core/ledger-modals").then((m) => m.openMediaReportModal(getModalContext()));
-
-    const openMealPlanModal = () => import("@/core/ledger-modals").then((m) => m.openMealPlanModal(getModalContext()));
-    const openMedicineSupplyModal = () => import("@/core/ledger-modals").then((m) => m.openMedicineSupplyModal(getModalContext()));
-    const openWasteScheduleModal = () => import("@/core/ledger-modals").then((m) => m.openWasteScheduleModal(getModalContext()));
-    const openRewardsLedgerModal = () => import("@/core/ledger-modals").then((m) => m.openRewardsLedgerModal(getModalContext()));
-    const openExpenseTrendModal = () => import("@/core/ledger-modals").then((m) => m.openExpenseTrendModal(getModalContext()));
-
-    const openUtilityTiersModal = () => import("@/core/ledger-modals").then((m) => m.openUtilityTiersModal(getModalContext()));
-    const openLocationIndexModal = () => import("@/core/ledger-modals").then((m) => m.openLocationIndexModal(getModalContext()));
-    const openBlockIngestModal = () => import("@/core/ledger-modals").then((m) => m.openBlockIngestModal(getModalContext()));
-    const openStoreModeModal = () => import("@/core/ledger-modals").then((m) => m.openStoreModeModal(getModalContext()));
-    const openEmergencyKitModal = () => import("@/core/ledger-modals").then((m) => m.openEmergencyKitModal(getModalContext()));
-    const openCsvImport = () => import("@/core/ledger-modals").then((m) => m.openCsvImportModal(getModalContext()));
 
     async function load() {
         const avID = ref?.avId;
@@ -678,7 +677,7 @@
     }
     $effect(() => { void version; void active; void plugin.scan?.scannedAt; load(); });
     $effect(() => {
-        const handler = () => void openLocationIndexModal();
+        const handler = () => void handleToolbarModal("location-index");
         window.addEventListener("siyuan-home:open-location", handler);
         return () => window.removeEventListener("siyuan-home:open-location", handler);
     });
@@ -861,136 +860,38 @@
     }
 </script>
 
-<div class="lv-toolbar lv-ledger-toolbar" style="margin:0 0 14px">
-    {#if ledgers.length > 0}
-        <!-- Switching modules clears the previous search query. Grouped by category. -->
-        <select class="b3-select" value={active} onchange={switchLedger}>
-            {#each groupedLedgers as g (g.groupId)}
-                <optgroup label={g.groupLabel}>
-                    {#each g.modules as l (l.id)}
-                        <option value={l.id}>{t(`module.${l.id}`)}{plugin.settings.dbRefs?.[l.id]?.avId ? "" : ` (${t("diag.missing")})`}</option>
-                    {/each}
-                </optgroup>
-            {/each}
-        </select>
-    {:else}
-        <div class="lv-ledger-no-modules" role="status">
-            <span>{t("ledger.noEnabledModules")}</span>
-            <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
-        </div>
-    {/if}
-    <span class="fn__flex-1"></span>
-    {#if rebuilding}
-        <span class="lv-caption">{t("diag.rebuilding")}</span>
-    {:else if ledgers.length === 0}
-        <span class="lv-caption">{t("ledger.noEnabledModulesHint")}</span>
-    {:else if !ref?.avId}
-        <button class="b3-button" onclick={rebuildLedger}>{t("ledger.rebuild")}</button>
-    {:else}
-        <div class="lv-search-box" style="position:relative;display:inline-flex;align-items:center">
-            <input class="b3-text-field" style="width:min(240px, 100%);padding-right:48px" type="search" placeholder={t("ledger.search")}
-                bind:value={searchText}
-                oninput={(event) => { panelMemory.ledgerSearch = event.currentTarget.value; }}
-                onkeydown={(event) => { if (event.key === "Escape") { searchText = ""; panelMemory.ledgerSearch = ""; } }}
-                title={t("ledger.search")} />
-            {#if searchText}
-                <span class="lv-badge {filteredRows.length > 0 ? 'blue' : 'orange'}" style="position:absolute;right:22px;font-size:10.5px;padding:1px 5px;pointer-events:none;opacity:0.85">
-                    {filteredRows.length}
-                </span>
-                <button class="b3-button b3-button--text" style="position:absolute;right:2px;padding:2px 5px;font-size:11px;color:var(--lv-tx-3);cursor:pointer"
-                    title={t("clear")} onclick={() => { searchText = ""; panelMemory.ledgerSearch = ""; }}>✕</button>
-            {/if}
-        </div>
-        <button class="b3-button b3-button--outline lv-density-btn"
-            title={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-            aria-label={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-            onclick={toggleDensity}>
-            {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-        </button>
-        <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>＋ {t("ledger.newRecord")}</button>
-        <details class="lv-ledger-more" bind:this={ledgerMoreDetails}>
-            <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-            <div class="lv-ledger-more__menu" role="menu" tabindex="-1" onclick={() => { if (ledgerMoreDetails) ledgerMoreDetails.open = false; }}>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
-                    disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportCsv}>{exporting ? t("ledger.saving") : t("ledger.exportCsv")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
-                    disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportIcs}>{exporting ? t("ledger.saving") : t("ledger.exportIcs")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
-                    disabled={filteredRows.length === 0 || exporting || printing} aria-busy={exporting} onclick={exportArchiveManifest}>{t("ledger.exportArchive")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.printLabels")}
-                    disabled={filteredRows.length === 0 || printing || exporting} aria-busy={printing} onclick={printLabels}>{printing ? t("ledger.saving") : t("ledger.printLabels")}</button>
-                {#if active === "vehicles"}<button class="b3-button b3-button--outline" onclick={openEnergyDashboard}>{t("fuel.dashboardButton")}</button>{/if}
-                {#if active === "parenting"}
-                    <button class="b3-button b3-button--outline" onclick={openGrowthChart}>{t("ledger.growthChart")}</button>
-                    <button class="b3-button b3-button--outline" onclick={openVaccineScheduleModal}>{t("ledger.vaccineSchedule")}</button>
-                {/if}
-                {#if active === "stock"}<button class="b3-button b3-button--outline" onclick={openShoppingList}>{t("ledger.shoppingList")}</button>{/if}
-                {#if active === "stock"}<button class="b3-button b3-button--outline" onclick={openEmergencyKitModal}>{t("ledger.emergencyKit")}</button>{/if}
-                {#if active === "shopping"}<button class="b3-button b3-button--outline" onclick={openStoreModeModal}>{t("ledger.storeMode")}</button>{/if}
-                <button class="b3-button b3-button--outline" onclick={openLocationIndexModal}>{t("ledger.locSearch")}</button>
-                <button class="b3-button b3-button--outline" onclick={openBlockIngestModal}>{t("capture.ingestAction")}</button>
-                {#if ref?.columns?.amount}<button class="b3-button b3-button--outline" onclick={openExpenseTrendModal}>{t("ledger.expenseTrend")}</button>{/if}
-                {#if active === "favors"}<button class="b3-button b3-button--outline" onclick={openFavorsReport}>{t("ledger.favorsReport")}</button>{/if}
-                {#if active === "bookmarks"}<button class="b3-button b3-button--outline" onclick={openBookmarksCheck}>{t("ledger.checkBookmarks")}</button>{/if}
-                {#if active === "memberships"}<button class="b3-button b3-button--outline" onclick={openSubscriptionStats}>{t("ledger.subscriptionStats")}</button>{/if}
-                {#if active === "assets-real"}<button class="b3-button b3-button--outline" onclick={openAssetValuationModal}>{t("ledger.assetValuationReport")}</button>{/if}
-                {#if active === "media"}<button class="b3-button b3-button--outline" onclick={openMediaReport}>{t("ledger.mediaReport")}</button>{/if}
-                {#if active === "food"}<button class="b3-button b3-button--outline" onclick={openMealPlanModal}>{t("ledger.mealPlan")}</button>{/if}
-                {#if active === "medicine"}<button class="b3-button b3-button--outline" onclick={openMedicineSupplyModal}>{t("ledger.medicineSupply")}</button>{/if}
-                {#if active === "house"}<button class="b3-button b3-button--outline" onclick={openUtilityTiersModal}>{t("ledger.utilityTiers")}</button>{/if}
-                {#if active === "house" || active === "chores"}<button class="b3-button b3-button--outline" onclick={openWasteScheduleModal}>{t("ledger.wasteSchedule")}</button>{/if}
-                {#if active === "chores"}<button class="b3-button b3-button--outline" onclick={openRewardsLedgerModal}>{t("ledger.rewardsSettle")}</button>{/if}
-                {#if active !== "members" && active !== "adhoc"}<button class="b3-button b3-button--outline" disabled={printing || exporting} onclick={openCsvImport}>{t("ledger.importCsv")}</button>{/if}
-                <button class="b3-button b3-button--outline" disabled={!ref?.docId}
-                    onclick={() => plugin.showTabDocs(ref?.docId)}>{t("ledger.openDoc")} →</button>
-            </div>
-        </details>
-    {/if}
-</div>
-
-{#if pinnedLedgers.length > 1}
-    <div class="lv-ledger-pinned-bar" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:-6px 0 10px">
-        <span class="lv-caption" style="font-size:11px;color:var(--lv-tx-3);margin-right:2px">📌</span>
-        {#each pinnedLedgers as pid (pid)}
-            <button type="button" class="lv-preset-tag" class:active={active === pid}
-                onclick={() => switchLedgerTo(pid)}>
-                {t(`module.${pid}`)}
-            </button>
-        {/each}
-    </div>
-{/if}
-
-{#if (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
-    <div class="lv-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:11.5px">
-        {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-            <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
-                <span class="lv-caption" style="font-size:11px;margin-right:2px">👤</span>
-                <button type="button" class="lv-preset-tag" class:active={!filterMemberId} onclick={() => { filterMemberId = ""; }}>{t("ledger.allMembers")}</button>
-                {#each plugin.settings.members ?? [] as m (m.id)}
-                    {#if m.avItemId}
-                        <button type="button" class="lv-preset-tag" class:active={filterMemberId === m.avItemId} onclick={() => { filterMemberId = filterMemberId === m.avItemId ? "" : m.avItemId; }}>
-                            {m.name}
-                        </button>
-                    {/if}
-                {/each}
-            </div>
-        {/if}
-        {#if categoryCol && availableCategories.length > 0}
-            <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
-                <span class="lv-caption" style="font-size:11px;margin-right:2px">🏷️</span>
-                <button type="button" class="lv-preset-tag" class:active={!filterCategory} onclick={() => { filterCategory = ""; }}>{t("ledger.allCategories")}</button>
-                {#each availableCategories as catVal (catVal)}
-                    <button type="button" class="lv-preset-tag" class:active={filterCategory === catVal} onclick={() => { filterCategory = filterCategory === catVal ? "" : catVal; }}>
-                        {optLabel(t, "category", catVal)}
-                    </button>
-                {/each}
-            </div>
-        {/if}
-    </div>
-{/if}
-
+<LedgerToolbar
+    {plugin}
+    bind:active
+    {ledgers}
+    {groupedLedgers}
+    {pinnedLedgers}
+    {ref}
+    {rebuilding}
+    filteredRowsCount={filteredRows.length}
+    filteredRowsEmpty={filteredRows.length === 0}
+    bind:searchText
+    bind:tableDensity
+    {memberCol}
+    bind:filterMemberId
+    {categoryCol}
+    {availableCategories}
+    bind:filterCategory
+    {exporting}
+    {printing}
+    {t}
+    onSwitchLedger={switchLedgerTo}
+    onOpenNewRecord={openNewRecord}
+    onToggleDensity={toggleDensity}
+    onSearchInput={(val) => { panelMemory.ledgerSearch = val; }}
+    onSearchClear={() => { panelMemory.ledgerSearch = ""; }}
+    onRebuildLedger={rebuildLedger}
+    onExportCsv={exportCsv}
+    onExportIcs={exportIcs}
+    onExportArchiveManifest={exportArchiveManifest}
+    onPrintLabels={printLabels}
+    onOpenModal={handleToolbarModal}
+/>
 {#if savedModule}
     <div class="lv-record-save-status" role="status">
         {t("ledger.newRecordSaved").replace("${name}", savedRecordName)} · {t("ledger.savedTo").replace("${module}", t(`module.${savedModule}`) !== `module.${savedModule}` ? t(`module.${savedModule}`) : savedModule)}
@@ -1076,7 +977,7 @@
                 <div style="display:flex;gap:8px;margin-top:6px;align-items:center;justify-content:center;flex-wrap:wrap">
                     <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
                     {#if active !== "members" && active !== "adhoc"}
-                        <button class="b3-button b3-button--outline" onclick={openCsvImport} disabled={rebuilding}>📥 {t("ledger.importCsv")}</button>
+                        <button class="b3-button b3-button--outline" onclick={() => handleToolbarModal("csv-import")} disabled={rebuilding}>📥 {t("ledger.importCsv")}</button>
                     {/if}
                 </div>
             </div>

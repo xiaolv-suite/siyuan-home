@@ -140,7 +140,10 @@
 
     async function copyDayTasks() {
         if (dayItems.length === 0) return;
-        const text = dayItems.map((r) => formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id)).join("\n");
+        const text = dayItems.map((r) => {
+            const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
+            return formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
+        }).join("\n");
         try {
             await navigator.clipboard.writeText(text);
             showMessage(t("hub.batchTasksCopied").replace("${n}", String(dayItems.length)), 2500, "info");
@@ -150,7 +153,8 @@
     }
 
     async function copySingleTask(r: Reminder) {
-        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id);
+        const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
+        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
         try {
             await navigator.clipboard.writeText(text);
             showMessage(t("hub.taskBlockCopied"), 2500, "info");

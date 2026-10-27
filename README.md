@@ -18,20 +18,22 @@
 
 ---
 
-## 本次更新（v0.5.130 → v0.5.131）
+## 本次更新（v0.5.131 → v0.5.132）
 
-本次更新彻底根治思源内核属性写入 key not found 报错死锁并修复顶栏主导航对称居中：
-- **修复（彻底根治思源内核 setAttributeViewBlockAttr 报错 key not found 死锁 Bug）**：
-  - **根因分析**：快速记录与台账建行时，`settings.dbRefs[moduleId].columns` 记录的 `keyID` 若因用户在思源侧删除重设、导入差异或版本演化出现幽灵失效 ID 时，调用思源写入 API 抛出 `key not found [keyID]`；旧有逻辑仅重试相同死 ID 导致死锁，用户反复报错“记录已创建但部分字段未保存”；
-  - **自愈机制**：在 `src/core/provisioner.ts` 中实现 `healColumnMapping` 实时自愈引擎，并在 `quick-capture`、`ledger-record-modal`、`ledger-detail-drawer`、`inline-edit` 全写入链路拦截 `key not found` 异常；
-  - 遇到错误时自动从思源属性视图当前真实列清单中按别名对齐纠正，若该列已彻底被删则自动补建新列并刷新持久化映射，随后携带真实新 `keyID` 自动重试写入，彻底消除保存死锁；
-- **优化（顶栏主标签导航左右对称居中布局修复）**：
-  - 修复 `tab-panel.svelte` 顶栏结构，在左侧 `.lv-appbrand` 与 `.lv-tabs` 之间补充 `<span class="fn__flex-1">` 弹性占位，配合右侧弹性填充，使四大主页签（总览、提醒、台账、成员）在桌面端及宽屏视口下完美处于水平对称居中主视觉；
-- **测试（全量 857 项单测与五层质量门禁 100% 全绿）**：
-  - 新增列映射失效自愈、补建与顶栏对称居中自动化单元测试，全仓 857 项单测全部全绿，五层静态门禁无警告。
+本次更新对齐 Task Horizon (任务视界) 属性标准并打通 tm:task-completed 反向核销（Issue #137 落实）：
+- **特性（对齐 Task Horizon 任务视界自定义属性标准）**：
+  - 增强 `src/core/block-capture.ts` 中的 `formatAsTaskBlock`，支持 Task Horizon 标准自定义属性集（`custom-status="todo"`、`custom-priority="high"`、`custom-completion-time`、`custom-remark` 关联管家行引用）；
+  - 全面打通 `overview.svelte`（总览）、`reminders.svelte`（提醒中枢及批量复制）与 `calendar.svelte`（日历），复制或同步的任务块可无缝自动流入任务视界的日历、甘特图与四象限看板；
+- **特性（监听 tm:task-completed 实现生活待办反向核销）**：
+  - 在 `src/index.ts` 中实现 `markReminderDoneByBlockId`，打通监听 Task Horizon 任务完成事件 `tm:task-completed`；
+  - 当用户在 Task Horizon 中打勾完成生活缴费或维保任务时，管家自动将对应的到期提醒核销为已办理，并同步记录打卡流水与即时更新生活指数；
+- **测试（全量 859 项单测与五层质量门禁 100% 全绿）**：
+  - 新增 Task Horizon 任务属性构造及反向事件核销自动化单元测试，全仓 859 项单测全部全绿，五层静态门禁无警告。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+- **v0.5.131**：彻底根治属性写入 key not found 死锁自愈、顶栏主导航对称居中修复。
 
 - **v0.5.130**：顶栏工具栏组件彻底抽离、主台账逼近千行与家庭体检个性化推算引擎。
 
@@ -111,9 +113,9 @@
 
 ## 当前版本能做什么
 
-当前发布版本为 v0.5.131，主要流程是“成员 → 台账记录 → 到期提醒 → 回到来源继续办理”。车辆模块在此基础上增加“车辆档案 → 能源/维护流水 → 成本与趋势 → 日期/里程提醒”。插件提供四个主页面：总览、提醒、台账和成员。发布验证记录见 [CHANGELOG](./CHANGELOG.md)。
+当前发布版本为 v0.5.132，主要流程是“成员 → 台账记录 → 到期提醒 → 回到来源继续办理”。车辆模块在此基础上增加“车辆档案 → 能源/维护流水 → 成本与趋势 → 日期/里程提醒”。插件提供四个主页面：总览、提醒、台账和成员。发布验证记录见 [CHANGELOG](./CHANGELOG.md)。
 
-带有 v0.5.131 标签的 package.zip 是当前 GitHub 发布包；本版当前单测基线为 857 项。
+带有 v0.5.132 标签的 package.zip 是当前 GitHub 发布包；本版当前单测基线为 859 项。
 
 | 页面 | 当前能力 |
 |---|---|

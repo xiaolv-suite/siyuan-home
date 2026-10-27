@@ -175,5 +175,15 @@ describe("core/block-capture 思源块内容与笔记智能速记（301波）", 
             expect(formatAsTaskBlock("随手备忘", "2026-11-05"))
                 .toBe("- [ ] 随手备忘 · 到期: 2026-11-05");
         });
+
+        it("支持对齐 Task Horizon (任务视界) 标准自定义属性集", () => {
+            const task = formatAsTaskBlock("缴纳车险", "2026-11-20", "row-veh-123", {
+                moduleName: "车辆档案",
+                priority: "high",
+            });
+            expect(task).toBe(
+                "- [ ] 缴纳车险 · 车辆档案 {: custom-status=\"todo\" custom-priority=\"high\" custom-completion-time=\"2026-11-20\" custom-remark=\"(( row-veh-123 '缴纳车险' ))\" }"
+            );
+        });
     });
 });

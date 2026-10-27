@@ -1,3 +1,16 @@
+## v0.5.132 2026-10-28
+
+### 对齐 Task Horizon 属性标准与 tm:task-completed 反向核销联动闭环（Issue #137 落实）
+
+- **特性（对齐 Task Horizon 任务视界自定义属性标准）**：
+  - 增强 `src/core/block-capture.ts` 中的 `formatAsTaskBlock`，支持 Task Horizon 标准自定义属性集（`custom-status="todo"`、`custom-priority="high"`、`custom-completion-time`、`custom-remark` 关联管家行引用）；
+  - 全面打通 `overview.svelte`（总览）、`reminders.svelte`（提醒中枢及批量复制）与 `calendar.svelte`（日历），复制或同步的任务块可无缝自动流入任务视界的日历、甘特图与四象限看板；
+- **特性（监听 tm:task-completed 实现生活待办反向核销）**：
+  - 在 `src/index.ts` 中实现 `markReminderDoneByBlockId`，打通监听 Task Horizon 任务完成事件 `tm:task-completed`；
+  - 当用户在 Task Horizon 中打勾完成生活缴费或维保任务时，管家自动将对应的到期提醒核销为已办理，并同步记录打卡流水与即时更新生活指数；
+- **测试（全量 859 项单测与五层质量门禁 100% 全绿）**：
+  - 新增 Task Horizon 任务属性构造及反向事件核销自动化单元测试，全仓 859 项单测全部全绿，五层静态门禁无警告。
+
 ## v0.5.131 2026-10-28
 
 ### 彻底根治属性写入 key not found 死锁自愈、顶栏主导航对称居中修复

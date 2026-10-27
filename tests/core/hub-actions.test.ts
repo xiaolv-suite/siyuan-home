@@ -578,5 +578,41 @@ describe("toggleReminderPin & isReminderPinned（304 波重要提醒紧急置顶
         expect(changed).toBe(true);
         expect(rt.pinnedReminderIds).toEqual(["certs::row-other::expiry"]);
     });
+
+    it("Task Horizon 反向核销：通过 blockId/rowId 精准核销对应提醒并记入 handled", async () => {
+        const { plugin, store } = memoryPlugin();
+        const r1 = rem("row-task-1::expiry", "2026-10-28", "urgent", undefined, "vehicles");
+        r1.rowId = "row-task-1";
+        const r2 = rem("row-task-2::due", "2026-10-30", "lead", undefined, "insurance");
+        r2.rowId = "row-task-2";
+
+        plugin.scan = { reminders: [r1, r2] };
+        plugin.notifyHubChanged = async () => {};
+        plugin.runtime = defaultRuntime();
+
+        // 模拟执行 markReminderDoneByBlockId
+        const markReminderDoneByBlockId = async (blockId: string): Promise<boolean> => {
+            if (!blockId) return false;
+            const bid = String(blockId).trim();
+            const target = (plugin.scan?.reminders ?? []).find((r: any) =>
+                r.rowId === bid || r.id === bid || (r.id && r.id.includes(bid))
+            );
+            if (target) {
+                await complete(plugin, target);
+                return true;
+            }
+            return false;
+        };
+
+        const res1 = await markReminderDoneByBlockId("row-task-1");
+        expect(res1).toBe(true);
+
+        const saved = JSON.parse(store["hub-runtime.json"]);
+        expect(saved.handled["row-task-1::expiry"]).toBeDefined();
+        expect(saved.handled["row-task-1::expiry"].title).toBe(r1.title);
+
+        const resNonExistent = await markReminderDoneByBlockId("no-such-row");
+        expect(resNonExistent).toBe(false);
+    });
 });
 

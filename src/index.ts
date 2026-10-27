@@ -55,6 +55,7 @@ export default class LvHomePlugin extends Plugin {
     private disposeLvHomeBridge?: () => void;
     /** EC21：lv-exam:stats 监听（window CustomEvent，非 eventBus） */
     private examStatsHandler?: (e: Event) => void;
+    private taskHorizonCompletedHandler?: (e: Event) => void;
     /** EC09/EC10：打卡集成事件监听（window CustomEvent） */
     private checkinEventHandler?: (e: Event) => void;
     /** Epoch 6：小驴闪卡复习事件监听（window CustomEvent） */
@@ -732,6 +733,17 @@ export default class LvHomePlugin extends Plugin {
         for (const evt of ["checkin:event-recorded", "checkin:event-deleted", "checkin:item-updated"]) {
             window.addEventListener(evt, this.checkinEventHandler);
         }
+        // 联动 Task Horizon：监听任务完成事件，自动反向核销生活待办并刷新提醒
+        this.taskHorizonCompletedHandler = (e: Event) => {
+            const detail = (e as CustomEvent).detail as Record<string, unknown> | undefined;
+            if (!detail) return;
+            const targetBlockId = detail.blockId || detail.id || detail.taskBlockId;
+            if (targetBlockId) {
+                void this.markReminderDoneByBlockId(String(targetBlockId));
+            }
+            this.emitHubChanged();
+        };
+        window.addEventListener("tm:task-completed", this.taskHorizonCompletedHandler);
         // 启动时拉取一次（打卡可能先于管家加载；SPA 中 load 已触发，用延迟替代）
         this.scheduleTimeout(() => this.pullCheckinSummary(), 5000);
     }
@@ -1275,6 +1287,22 @@ export default class LvHomePlugin extends Plugin {
     }
 
     // ── 提醒动作（B4 + H05/H07，转发 actions.ts；动作后 notifyHubChanged 即时刷新）──
+    /**
+     * 联动 Task Horizon（任务视界）：根据 blockId（或 rowId / id）反向核销管家待办事项
+     */
+    async markReminderDoneByBlockId(blockId: string): Promise<boolean> {
+        if (!blockId) return false;
+        const bid = String(blockId).trim();
+        const target = (this.scan?.reminders ?? []).find((r: any) =>
+            r.rowId === bid || r.id === bid || (r.id && r.id.includes(bid))
+        );
+        if (target) {
+            await this.complete(target);
+            return true;
+        }
+        return false;
+    }
+
     async complete(r: any) {
         await complete(this, r);
         // 事务完成联动打卡（Epoch 6 联邦规范）
@@ -1429,6 +1457,8 @@ export default class LvHomePlugin extends Plugin {
             }
             this.checkinEventHandler = undefined;
         }
+        if (this.taskHorizonCompletedHandler) window.removeEventListener("tm:task-completed", this.taskHorizonCompletedHandler);
+        this.taskHorizonCompletedHandler = undefined;
         // EC03/v0.3：服务桥卸载（delete window.LvHome）
         if (this.disposeLvHomeBridge) this.disposeLvHomeBridge();
         this.disposeLvHomeBridge = undefined;

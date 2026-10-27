@@ -252,3 +252,53 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
     }
 }
 
+export interface ShoppingBatchStockInDraft {
+    name: string;
+    qty: number;
+    price?: number;
+    channel?: string;
+    category?: string;
+    sourceRowId: string;
+}
+
+/**
+ * 从选定的 shopping 台账行构建批量转入 stock 囤货库的草稿数据（shopping → stock 全闭环）
+ */
+export function buildBatchStockInFromShopping(
+    selectedRows: readonly any[],
+    shoppingCols: Record<string, string>
+): ShoppingBatchStockInDraft[] {
+    const drafts: ShoppingBatchStockInDraft[] = [];
+    for (const r of selectedRows) {
+        const nameCell = shoppingCols.name ? r.cells?.[shoppingCols.name] : undefined;
+        const name = String(nameCell?.text?.content || nameCell?.block?.content || "").trim();
+        if (!name) continue;
+
+        const qtyCell = shoppingCols.qty ? r.cells?.[shoppingCols.qty] : undefined;
+        const qty = typeof qtyCell?.number?.content === "number" && qtyCell.number.content > 0
+            ? qtyCell.number.content
+            : 1;
+
+        const priceCol = shoppingCols.price || shoppingCols.amount;
+        const priceCell = priceCol ? r.cells?.[priceCol] : undefined;
+        const price = typeof priceCell?.number?.content === "number" ? priceCell.number.content : undefined;
+
+        const channelCell = shoppingCols.channel ? r.cells?.[shoppingCols.channel] : undefined;
+        const channel = String(channelCell?.text?.content || "").trim() || undefined;
+
+        const catCell = shoppingCols.category ? r.cells?.[shoppingCols.category] : undefined;
+        const cat = String(catCell?.select?.content || "").trim() || undefined;
+
+        drafts.push({
+            name,
+            qty,
+            price,
+            channel,
+            category: cat,
+            sourceRowId: r.itemID,
+        });
+    }
+    return drafts;
+}
+
+

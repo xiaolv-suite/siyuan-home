@@ -164,3 +164,96 @@ export function evaluatePetSummary(
         hasSoon: vaccine.urgency === "soon" || deworm.urgency === "soon",
     };
 }
+
+export interface RoutineCareScheduleItem {
+    type: "ext_deworm" | "int_deworm" | "vaccine";
+    name: string;
+    intervalDays: number;
+    lastDate?: string;
+    nextDueDate?: string;
+    daysLeft?: number;
+    urgency: CareUrgency;
+    label: string;
+}
+
+export interface PetRoutineScheduleReport {
+    items: RoutineCareScheduleItem[];
+    overdueCount: number;
+    dueSoonCount: number;
+    allGood: boolean;
+}
+
+function addDaysToYmd(ymd: string, days: number): string | undefined {
+    const p = parseYmd(ymd);
+    if (!p) return undefined;
+    const d = new Date(p.y, p.m - 1, p.d);
+    d.setDate(d.getDate() + days);
+    return localDateKey(d);
+}
+
+/**
+ * 依据上次处理日期自动推算体外驱虫(30天)、体内驱虫(90天)与核心免疫(365天)日程
+ */
+export function calculatePetRoutineSchedule(options: {
+    lastExtDewormDate?: string;
+    lastIntDewormDate?: string;
+    lastVaccineDate?: string;
+    today?: string;
+}): PetRoutineScheduleReport {
+    const { lastExtDewormDate, lastIntDewormDate, lastVaccineDate, today = localDateKey(new Date()) } = options;
+
+    const items: RoutineCareScheduleItem[] = [];
+
+    // 1. 体外驱虫（月驱，30天）
+    const extNext = lastExtDewormDate ? addDaysToYmd(lastExtDewormDate, 30) : undefined;
+    const extEval = evaluateCareItem("deworm", extNext, today, 5);
+    items.push({
+        type: "ext_deworm",
+        name: "体外驱虫（跳蚤/蜱虫）",
+        intervalDays: 30,
+        lastDate: lastExtDewormDate,
+        nextDueDate: extNext,
+        daysLeft: extEval.daysDiff,
+        urgency: extEval.urgency,
+        label: extEval.label,
+    });
+
+    // 2. 体内驱虫（季驱，90天）
+    const intNext = lastIntDewormDate ? addDaysToYmd(lastIntDewormDate, 90) : undefined;
+    const intEval = evaluateCareItem("deworm", intNext, today, 7);
+    items.push({
+        type: "int_deworm",
+        name: "体内驱虫（线虫/绦虫）",
+        intervalDays: 90,
+        lastDate: lastIntDewormDate,
+        nextDueDate: intNext,
+        daysLeft: intEval.daysDiff,
+        urgency: intEval.urgency,
+        label: intEval.label,
+    });
+
+    // 3. 核心免疫（年免，365天）
+    const vacNext = lastVaccineDate ? addDaysToYmd(lastVaccineDate, 365) : undefined;
+    const vacEval = evaluateCareItem("vaccine", vacNext, today, 14);
+    items.push({
+        type: "vaccine",
+        name: "核心疫苗与狂犬免疫",
+        intervalDays: 365,
+        lastDate: lastVaccineDate,
+        nextDueDate: vacNext,
+        daysLeft: vacEval.daysDiff,
+        urgency: vacEval.urgency,
+        label: vacEval.label,
+    });
+
+    const overdueCount = items.filter((i) => i.urgency === "overdue").length;
+    const dueSoonCount = items.filter((i) => i.urgency === "soon").length;
+
+    return {
+        items,
+        overdueCount,
+        dueSoonCount,
+        allGood: overdueCount === 0 && dueSoonCount === 0,
+    };
+}
+

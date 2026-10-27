@@ -212,6 +212,29 @@ export function calculateAssetValuationStats(
 }
 
 /**
+ * 快速判断某单件资产的折旧健康度
+ */
+export function getAssetDepreciationHealth(amount?: number, dateStr?: string): {
+    hasDepreciation: boolean;
+    netValue?: number;
+    statusLabel?: string;
+    status?: string;
+} {
+    if (!amount || amount <= 0 || !dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return { hasDepreciation: false };
+    }
+    const dep = calculateAssetDepreciation({ initialCost: amount, purchaseDate: dateStr });
+    if (!dep) return { hasDepreciation: false };
+    return {
+        hasDepreciation: true,
+        netValue: dep.currentNetValue,
+        statusLabel: dep.statusLabel,
+        status: dep.status,
+    };
+}
+
+
+/**
  * 将购物（shopping）台账行映射为实物资产（assets-real）建档草稿
  */
 export function mapShoppingToAssetReal(

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { calculateAssetValuationStats, mapShoppingToAssetReal, openAssetValuationDialog } from "@/core/valuation";
+import {
+    calculateAssetValuationStats,
+    mapShoppingToAssetReal,
+    openAssetValuationDialog,
+    getAssetDepreciationHealth,
+} from "@/core/valuation";
 import type { AvRow } from "@/core/siyuan";
 import type { RowLogs } from "@/core/rowlog";
 
@@ -165,5 +170,15 @@ describe("valuation.mapShoppingToAssetReal（购物转实物资产建档映射�
                 showMessageFn: vi.fn(),
             });
         }).not.toThrow();
+    });
+
+    it("getAssetDepreciationHealth 单件资产折旧健康度快速测算", () => {
+        const res = getAssetDepreciationHealth(10000, "2024-10-27");
+        expect(res.hasDepreciation).toBe(true);
+        expect(res.netValue).toBeDefined();
+        expect(res.statusLabel).toBeDefined();
+
+        expect(getAssetDepreciationHealth(0, "2024-10-27").hasDepreciation).toBe(false);
+        expect(getAssetDepreciationHealth(10000, "").hasDepreciation).toBe(false);
     });
 });

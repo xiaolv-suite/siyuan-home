@@ -1,7 +1,6 @@
 <script lang="ts">
     import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError, getOCRConfig, getImageOCRText, recognizeAsset } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
-    import { buildShoppingList } from "@/core/shopping";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { parseCsv } from "@/core/csv";
     import { planImport, guessMapping } from "@/core/importer";
@@ -33,11 +32,9 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
     const flexBetweenCenterGap8Css = "display:flex;align-items:center;justify-content:space-between;gap:8px";
     const sectionHeaderCss = `${flexBetweenCenterGap8Css};margin-bottom:8px`;
-    const pad12Mb10Css = "padding:12px;margin-bottom:10px";
     const sectionTitleCss = "font-weight:600;font-size:12px";
     const subCardBoxCss = "min-width:0;padding:8px;border-radius:8px;background:var(--lv-surface-2);border:1px solid var(--lv-line)";
     const subCardValCss = "font-size:14px;overflow-wrap:anywhere";
-    const metricCardCss = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
     const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
     const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
     const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
@@ -69,7 +66,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const fs12Pad310Css = "font-size:12px;padding:3px 10px";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
-    import { uiIcon } from "@/ui/icons";
     import { panelSession, type TableDensity } from "../panel-session";
     import { maskValueForGuest, createDefaultGuestConfig } from "@/core/guest-mode";
     import { getGroupedModules } from "@/core/modules";
@@ -824,98 +820,22 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     async function openEnergyDashboard() {
         const sourceRef = ref;
         if (!sourceRef?.avId || active !== "vehicles") return;
-        const dlg = new Dialog({
-            title: t("fuel.dashboardTitle"),
-            content: `<div class="b3-dialog__content b3-dialog__content--wrap" id="lv-fuel-dashboard" style="max-height:68vh;overflow:auto"></div>`,
-            width: "620px",
-        });
-        dlg.element.classList.add("lv-energy-dialog");
-        const body = dlg.element.querySelector("#lv-fuel-dashboard") as HTMLElement;
-        const loading = document.createElement("div");
-        loading.className = "ft__on-surface";
-        loading.textContent = t("fuel.loading");
-        body.appendChild(loading);
         try {
-            const result = await renderLedgerAll(sourceRef.avId);
-            if (!result.complete) throw new Error(t("ledger.loadIncomplete"));
-            if (ref?.avId !== sourceRef.avId) { dlg.destroy(); return; }
-            const cols = sourceRef.columns ?? {};
-            const vehicles = result.rows;
-            body.replaceChildren();
-            const intro = document.createElement("p");
-            intro.className = "ft__on-surface";
-            intro.style.cssText = "font-size:12px;line-height:1.65;margin:0 0 10px";
-            intro.textContent = t("fuel.dashboardHint");
-            body.appendChild(intro);
-            if (vehicles.length === 0) {
-                const empty = document.createElement("div");
-                empty.className = "lv-empty";
-                const icon = document.createElement("div"); icon.className = "eic"; icon.innerHTML = uiIcon("car");
-                const title = document.createElement("b"); title.textContent = t("fuel.noVehicles");
-                const hint = document.createElement("span"); hint.textContent = t("fuel.noVehiclesHint");
-                const add = document.createElement("button"); add.className = "b3-button"; add.textContent = `+ ${t("fuel.addVehicle")}`;
-                add.onclick = () => { dlg.destroy(); openNewRecord(); };
-                empty.append(icon, title, hint, add);
-                body.appendChild(empty);
-                return;
-            }
-            const logs = await loadRowLogs(plugin as any);
-            const vehicleType = (row: any) => selectCellContent(row.cells?.[cols.energy_type ?? ""]) ?? "gasoline";
-            const miniStat = (label: string, value: string) => {
-                const item = document.createElement("div");
-                item.style.cssText = metricCardCss;
-                const name = document.createElement("span"); name.className = "ft__on-surface"; name.style.fontSize = "11px"; name.textContent = label;
-                const val = document.createElement("b"); val.style.cssText = subCardValCss; val.textContent = value;
-                item.append(name, val);
-                return item;
-            };
-            for (const vehicle of vehicles) {
-                const card = document.createElement("section");
-                card.className = "lv-card";
-                card.style.cssText = pad12Mb10Css;
-                const head = document.createElement("div");
-                head.style.cssText = "display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px";
-                const title = document.createElement("b");
-                title.style.fontSize = "14px";
-                title.textContent = cellText(vehicle.cells?.[cols.name ?? ""], "name") || t("ledger.unnamed");
-                const plate = document.createElement("span");
-                plate.className = "ft__on-surface";
-                plate.style.fontSize = "12px";
-                plate.textContent = cellText(vehicle.cells?.[cols.plate ?? ""]);
-                head.append(title, plate);
-                const records = getEntries<EnergyRecord>(logs, sourceRef.avId, vehicle.itemID, "fuelings")
-                    .concat(getEntries<EnergyRecord>(logs, sourceRef.avId, vehicle.itemID, "chargings"));
-                const fuel = calculateEnergyStats(records, "fuel");
-                const charge = calculateEnergyStats(records, "charging");
-                const hybrid = vehicleType(vehicle) === "hybrid";
-                const grid = document.createElement("div");
-                grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:6px";
-                const consumption = (stats: ReturnType<typeof calculateEnergyStats>, suffix: string) =>
-                    stats.consumptionPer100Km !== undefined ? `${stats.consumptionPer100Km.toFixed(2)} ${suffix}/100km${stats.method === "estimated" ? ` · ${t("fuel.estimated")}` : ""}` : "—";
-                const cost = (stats: ReturnType<typeof calculateEnergyStats>) => stats.costPer100Km !== undefined
-                    ? `${formatAmount(stats.costPer100Km / 100)} ${t("fuel.currencyPerKm")}` : "—";
-                grid.append(
-                    miniStat(t("fuel.fuelConsumption"), fuel.recordCount ? hybrid ? `${fuel.totalQuantity.toFixed(1)} L · ${t("fuel.totalRecorded")}` : consumption(fuel, "L") : "—"),
-                    miniStat(t("fuel.fuelCostPerKm"), fuel.recordCount ? hybrid ? t("fuel.hybridNoRate") : cost(fuel) : "—"),
-                    miniStat(t("fuel.chargeConsumption"), charge.recordCount ? hybrid ? `${charge.totalQuantity.toFixed(1)} kWh · ${t("fuel.totalRecorded")}` : consumption(charge, "kWh") : "—"),
-                    miniStat(t("fuel.chargeCostPerKm"), charge.recordCount ? hybrid ? t("fuel.hybridNoRate") : cost(charge) : "—"),
-                    miniStat(t("fuel.fuelRecordedSpending"), fuel.costRecordCount === 0 ? t("fuel.costUnknown") : `${formatAmount(fuel.totalCost)} ${t("fuel.currency")}${fuel.costRecordCount < fuel.recordCount ? ` · ${t("fuel.subtotal")}` : ""}`),
-                    miniStat(t("fuel.chargeRecordedSpending"), charge.costRecordCount === 0 ? t("fuel.costUnknown") : `${formatAmount(charge.totalCost)} ${t("fuel.currency")}${charge.costRecordCount < charge.recordCount ? ` · ${t("fuel.subtotal")}` : ""}`),
-                );
-                const action = document.createElement("button");
-                action.className = "b3-button b3-button--text";
-                action.style.cssText = "margin-top:6px;padding:4px 0";
-                action.textContent = `${t("fuel.openVehicle")} →`;
-                action.onclick = () => { dlg.destroy(); openDetail(vehicle); };
-                card.append(head, grid, action);
-                body.appendChild(card);
-            }
+            const { openEnergyDashboardDialog } = await import("@/core/fuel");
+            await openEnergyDashboardDialog({
+                sourceRef,
+                t,
+                plugin,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+                selectContentFn: selectCellContent,
+                onOpenNewRecord: openNewRecord,
+                onOpenVehicleDetail: openDetail,
+            });
         } catch (error) {
-            body.replaceChildren();
-            const message = document.createElement("div");
-            message.className = "lv-record-error";
-            message.textContent = t("ledger.readFailed").replace("${msg}", error instanceof Error ? error.message : String(error));
-            body.appendChild(message);
+            showMessage(t("ledger.readFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
         }
     }
 
@@ -992,88 +912,15 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
                 showMessage(t("ledger.loadIncomplete"), 5000, "error");
                 return;
             }
-            const items = buildShoppingList(all.rows, {
-                nameKey: ref.columns.name, qtyKey: ref.columns.qty, thresholdKey: ref.columns.low_stock_at,
+            const { openLowStockShoppingDialog } = await import("@/core/shopping");
+            openLowStockShoppingDialog({
+                ref: ref as any,
+                allRows: all.rows,
+                t,
+                plugin,
+                DialogCls: Dialog,
+                showMessageFn: showMessage,
             });
-            const dlg = new Dialog({
-                title: t("ledger.shoppingList"),
-                content: `<div class="b3-dialog__content" id="lv-shop-body" style="max-height:60vh;overflow:auto"></div>
-<div class="b3-dialog__action"><span class="lv-caption" id="lv-shop-total" style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-shop-close">${t("cancel")}</button><button class="b3-button b3-button--text" id="lv-shop-copy" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopCopy")}</button><button class="b3-button" id="lv-shop-write" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopWriteToLedger")}</button></div>`,
-                width: "560px",
-            });
-        const body = dlg.element.querySelector("#lv-shop-body") as HTMLElement;
-        if (items.length === 0) {
-            const none = document.createElement("div");
-            none.className = "ft__on-surface";
-            none.style.cssText = "font-size:13px;padding:8px 0";
-            none.textContent = t("ledger.shopEmpty");
-            body.appendChild(none);
-        }
-        const qtyInputs: HTMLInputElement[] = [];
-        for (const it of items) {
-            const line = document.createElement("div");
-            line.className = "fn__flex";
-            line.style.cssText = "gap:8px;align-items:center;padding:4px 0;font-size:13px";
-            const label = document.createElement("span");
-            label.style.cssText = "flex:1;word-break:break-all";
-            label.textContent = it.name;
-            const meta = document.createElement("span");
-            meta.className = "lv-caption";
-            meta.style.cssText = "flex-shrink:0";
-            meta.textContent = t("ledger.shopExisting").replace("${q}", String(it.qty)).replace("${t2}", String(it.threshold));
-            const input = document.createElement("input");
-            input.type = "number";
-            input.className = "b3-text-field";
-            input.style.cssText = "width:74px;flex-shrink:0";
-            input.min = "1";
-            input.value = String(it.suggest);
-            input.title = t("ledger.shopBuy");
-            qtyInputs.push(input);
-            line.append(label, meta, input);
-            body.appendChild(line);
-        }
-        const total = dlg.element.querySelector("#lv-shop-total") as HTMLElement;
-        total.textContent = t("ledger.shopTotal").replace("${n}", String(items.length));
-        (dlg.element.querySelector("#lv-shop-close") as HTMLButtonElement).onclick = () => dlg.destroy();
-        (dlg.element.querySelector("#lv-shop-copy") as HTMLButtonElement).onclick = async () => {
-            const lines = items
-                .map((it, i) => `${it.name} ×${Math.max(1, Math.floor(Number(qtyInputs[i].value) || 1))}`)
-                .join("\n");
-            const text = `${t("ledger.shoppingList")} · ${localDateKey(new Date())}\n${lines}`;
-            try {
-                await navigator.clipboard.writeText(text);
-                showMessage(t("ledger.shopCopied"), 2500, "info");
-            } catch {
-                showMessage(t("ledger.shopCopyFailed"), 4000, "error");
-            }
-        };
-        const writeBtn = dlg.element.querySelector("#lv-shop-write") as HTMLButtonElement | null;
-        if (writeBtn) {
-            writeBtn.onclick = async () => {
-                const shoppingRef = plugin.settings.dbRefs?.["shopping"];
-                if (!shoppingRef?.avId || !shoppingRef.columns?.name) {
-                    showMessage(t("capture.ledgerUnavailable").replace("${module}", t("module.shopping")), 5000, "info");
-                    return;
-                }
-                writeBtn.disabled = true;
-                try {
-                    const { addDetachedRow, setCell } = await import("@/core/siyuan");
-                    for (let i = 0; i < items.length; i++) {
-                        const it = items[i];
-                        const buyQty = Math.max(1, Math.floor(Number(qtyInputs[i].value) || 1));
-                        const rowId = await addDetachedRow(shoppingRef.avId, it.name, { idempotencyKey: `stock:to-shop:${it.name}:${Date.now()}` });
-                        if (shoppingRef.columns.qty) {
-                            await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty } });
-                        }
-                    }
-                    dlg.destroy();
-                    showMessage(t("ledger.shopWritten"), 3000, "info");
-                } catch (e) {
-                    writeBtn.disabled = false;
-                    showMessage(String(e), 5000, "error");
-                }
-            };
-        }
         } catch (e) {
             showMessage(t("ledger.shoppingFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
         }

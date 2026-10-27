@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateEnergyStats, normalizeEnergyRecords, type EnergyRecord } from "@/core/fuel";
+import { calculateEnergyStats, normalizeEnergyRecords, openEnergyDashboardDialog, type EnergyRecord } from "@/core/fuel";
 
 const fuel = (date: string, odometer: number, quantity: number, totalCost: number, full = false): EnergyRecord => ({
     kind: "fuel", date, odometer, quantity, totalCost, full,
@@ -98,6 +98,19 @@ describe("fuel statistics", () => {
         const stats = calculateEnergyStats(records, "fuel");
         expect(stats.warnings).toContain("non_increasing_odometer");
         expect(stats.intervals).toHaveLength(0);
+    });
+
+    it("openEnergyDashboardDialog 安全容错调用", async () => {
+        await expect(openEnergyDashboardDialog({
+            sourceRef: { avId: "av-vehicle", columns: {} },
+            t: (k) => k,
+            plugin: {},
+            DialogCls: class {} as any,
+            showMessageFn: () => {},
+            renderLedgerAllFn: async () => ({ complete: true, rows: [] }),
+            cellTextFn: () => "",
+            selectContentFn: () => undefined,
+        })).resolves.not.toThrow();
     });
 });
 

@@ -2,7 +2,7 @@
  * 囤货采购建议单测（16 组/188 波）：H15 同口径（缺列不评估）、qty≤阈值、建议量下限 1、名称排序。
  */
 import { describe, it, expect } from "vitest";
-import { buildShoppingList } from "@/core/shopping";
+import { buildShoppingList, openLowStockShoppingDialog } from "@/core/shopping";
 import type { AvRow } from "@/core/siyuan";
 
 const KEYS = { nameKey: "k_name", qtyKey: "k_qty", thresholdKey: "k_low" };
@@ -40,5 +40,18 @@ describe("buildShoppingList", () => {
             KEYS,
         );
         expect(list).toHaveLength(0);
+    });
+
+    it("openLowStockShoppingDialog 安全容错调用", () => {
+        expect(() => {
+            openLowStockShoppingDialog({
+                ref: { avId: "av-stock", columns: { name: "name", qty: "qty", low_stock_at: "low" } },
+                allRows: [],
+                t: (k) => k,
+                plugin: {},
+                DialogCls: class {} as any,
+                showMessageFn: () => {},
+            });
+        }).not.toThrow();
     });
 });

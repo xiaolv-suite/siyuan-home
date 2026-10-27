@@ -39,23 +39,24 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.127
+## 🆕 What's new in v0.5.128
 
-This release modularizes export & label printing, introduces full-ledger iCalendar (.ics) exports, and trims over 3,000 lines from `ledger.svelte`:
+This release completely decouples the New Record Form into an independent component, bringing `ledger.svelte` down to 2,734 lines:
 
-- **Refactoring (Decoupled Export & QR Label Printing)**: Extracted CSV export, archive manifest generation, and batch QR print page builder into `src/core/ledger-export.ts`, reducing `ledger.svelte` to ~3,490 lines (accumulating over 3,000 lines trimmed);
-- **Feature (Full-Ledger iCalendar .ics Export)**: Enhanced `src/core/ics.ts` to export all dated items (certs expiry, vehicle maintenance, house payments, schooling) to standard RFC 5545 `.ics` calendar files for Apple Calendar, Google Calendar, and Outlook;
-- **Validation**: 105 test suites, **843 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
+- **Refactoring (Independent New Record Form Modal Component)**: Extracted `src/panels/screens/ledger-record-modal.svelte`, packaging dynamic field generation, quick templates, Chinese ID validation, and batch attachment uploads;
+- **Performance**: Main component `ledger.svelte` dropped from 3,500 lines to **2,734 lines** (accumulating over 3,760 lines trimmed across all phases, a **58% total reduction**);
+- **Feature (Contract Renewal & Notice Window Engine)**: Added calculation in `src/core/contracts.ts` for lease/service agreement notice period deadlines (30d/60d advance notice);
+- **Validation**: 105 test suites, **846 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.127)
+## 📦 Install (v0.5.128)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.127 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.127 package is the current GitHub release; local quality checks report 843 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.128 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.128 package is the current GitHub release; local quality checks report 846 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

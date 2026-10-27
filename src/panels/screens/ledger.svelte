@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError } from "@/core/siyuan";
+    import { renderLedgerAll, addDetachedRow, setCell } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { renderEditableFormFields } from "@/core/record-form";
@@ -14,13 +14,13 @@
     import { ensurePinyin, pinyinReady, searchMatch } from "@/core/pinyin";
     import { openContactPicker, getContactsBridge } from "@/libs/contact-picker";
     import { COMMON_COLUMN_ALIASES } from "@/core/provisioner";
-    import { getCertificateProfile, getCertificateReminderField } from "@/core/schema";
+    import { getCertificateProfile } from "@/core/schema";
     import type { ColumnDef } from "@/core/schema";
-    import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
     import { assetHref, isImageAsset } from "@/core/assets";
     import { createVehicleActionQueue, type VehicleQuickAction } from "@/core/vehicle";
     import type { LogKind } from "@/core/rowlog";
     import { rowLogActivityId, type ActivityTarget } from "@/core/activity";
+    import LedgerRecordModal from "./ledger-record-modal.svelte";
     /** 312 波：抽屉内子记录行样式（原 4 处重复字面量收敛） */
     const substRowCss = "padding:2px 0;font-size:12.5px";
     const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
@@ -51,8 +51,7 @@
     import { panelSession, type TableDensity } from "../panel-session";
     import { maskValueForGuest, createDefaultGuestConfig } from "@/core/guest-mode";
     import { getGroupedModules } from "@/core/modules";
-    import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
-    import { smartExtractFieldsFromTitle } from "@/core/block-capture";
+    import { getQuickTemplates } from "@/core/quick-templates";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
@@ -226,31 +225,6 @@
     });
 
     const currentLedgerTemplates = $derived(getQuickTemplates(active));
-
-    function applyLedgerTemplate(tpl: QuickRecordTemplate) {
-        for (const [k, v] of Object.entries(tpl.values)) {
-            form[k] = v;
-        }
-        if (active === "certs" && tpl.values.category) {
-            handleCertificateCategoryChange(String(tpl.values.category));
-        }
-    }
-
-    function handleNewRecordNameBlur() {
-        if (!form.name || typeof form.name !== "string") return;
-        const res = smartExtractFieldsFromTitle(form.name);
-        if (res.cleanTitle !== form.name) {
-            form.name = res.cleanTitle;
-            const dateCol = schemaCols.find((c) => c.type === "date" && ["expiry", "due", "date"].includes(c.key));
-            if (dateCol && res.extractedDate && !form[dateCol.key]) {
-                form[dateCol.key] = res.extractedDate;
-            }
-            const numCol = schemaCols.find((c) => c.type === "number" && ["amount", "price", "deposit"].includes(c.key));
-            if (numCol && res.extractedAmount !== undefined && !form[numCol.key]) {
-                form[numCol.key] = res.extractedAmount;
-            }
-        }
-    }
 
     async function openBatchMemberModal() {
         if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
@@ -499,12 +473,7 @@
     const pinnedLedgers = $derived(PINNED_MODULES.filter((id) => ledgers.some((l) => l.id === id)).slice(0, 5));
 
     function switchLedgerTo(next: string) {
-        const hasDraft = hasAnyInput
-            || !!pendingItemID
-            || identityPending
-            || Object.values(certificateFiles).some((files) => files.length > 0)
-            || Object.values(uploadedCertificateFiles).some((files) => files.length > 0);
-        if (next !== active && hasDraft) {
+        if (next !== active && newRecordOpen) {
             showMessage(t("ledger.draftModuleSwitchBlocked"), 5000, "info");
             return;
         }
@@ -513,8 +482,6 @@
         filterMemberId = "";
         filterCategory = "";
         selectedItemIds = [];
-        validationAttempted = false;
-        saveError = "";
         plugin.activeLedger = active;
         searchText = "";
     }
@@ -748,337 +715,32 @@
 
     // Keep the fast path small, while exposing every supported schema field in
     // the expandable section below. Writes still follow the declared cell type.
-    const captureCols = $derived.by(() => {
-        return getCaptureFields(plugin.schemaCatalog?.[active]);
-    });
-    const schemaCols = $derived(plugin.schemaCatalog?.[active]?.columns ?? []);
     const missingSchemaCols = $derived.by(() => {
         if (!ref?.columns || avCols.length === 0) return [] as ColumnDef[];
         const existingIds = new Set(avCols.map((c: any) => c?.id));
-        return schemaCols.filter((sc) => {
+        const schemaCols = plugin.schemaCatalog?.[active]?.columns ?? [];
+        return schemaCols.filter((sc: any) => {
             const registeredId = ref.columns?.[sc.key];
             return !registeredId || !existingIds.has(registeredId);
         });
     });
-    const supportableCols = $derived(getFormFields(plugin.schemaCatalog?.[active]).filter((field) =>
-        !(active === "certs" && field.key.startsWith("x_cert_"))
-        && !(field.type === "relation" && field.key !== "member")));
-    const captureKeys = $derived(new Set(captureCols.map((field) => field.key)));
-    const additionalCols = $derived(supportableCols.filter((field) =>
-        !captureKeys.has(field.key)
-        && !(active === "certs" && (field.key.startsWith("x_cert_")
-            || ["holder_no", "issue_date", "issuance_rule", "store_place", "location", "copy_location", "note", "due"].includes(field.key)))));
-    const unsupportedCols = $derived(schemaCols.filter((field) =>
-        ["asset", "mSelect"].includes(field.type)
-        || (field.type === "relation" && field.key !== "member")));
-    const unsupportedCount = $derived(unsupportedCols.length);
-    // Form values are keyed by schema key.
-    let form: Record<string, any> = $state({});
-    let nameInput: HTMLInputElement | undefined = $state();
+
+    let recordModalRef: any;
     let newRecordOpen = $state(false);
-    let closeAfterSave = $state(true);
-    let newRecordTrigger: HTMLElement | null = null;
     let savedDocId = $state("");
     let savedRecordName = $state("");
-    const certificateProfile = $derived(active === "certs" && form.category ? getCertificateProfile(String(form.category)) : null);
-    const certificateScalarCols = $derived.by(() => {
-        if (!certificateProfile) return [] as { key: string; type: string; options?: string[] }[];
-        const schemaCols: any[] = plugin.schemaCatalog?.certs?.columns ?? [];
-        const keys = new Set(["x_cert_holder_name", "holder_no", "x_cert_id_number", "issue_date", "x_cert_valid_from", "issuance_rule", "store_place", "location", "copy_location", "note", ...certificateProfile.fieldKeys]);
-        if (!getCertificateReminderField(certificateProfile.category)) keys.add("due");
-        if (certificateProfile.category === "id") keys.delete("holder_no");
-        return schemaCols.filter((col: any) => keys.has(col.key) && col.type !== "mAsset")
-            .map((col: any) => ({ key: col.key, type: col.type, options: col.options }));
-    });
-    // R7 资料强化：身份证号实时校验（输入非空才解析；校验通过且性别未填时自动回填）
-    const idcardCheck = $derived.by(() => {
-        const v = String(form.x_cert_id_number ?? "").trim();
-        return v ? parseIdNumber(v) : null;
-    });
-    $effect(() => {
-        const check = idcardCheck;
-        if (check?.ok && check.sex && !form.x_cert_id_gender) form.x_cert_id_gender = check.sex;
-    });
-    const certificateAssetCols = $derived.by(() => active === "certs"
-        ? [
-            ...schemaCols.filter((col) => col.key === "attachments" && col.type === "mAsset"),
-            ...(certificateProfile?.columns.filter((col) => col.type === "mAsset") ?? []),
-        ]
-        : []);
-    const quickAssetCols = $derived.by(() => {
-        const seen = new Set<string>();
-        const out: { key: string; type: string; labelKey?: string }[] = [];
-        const genericAssetCols = schemaCols.filter((entry) => entry.type === "mAsset" && !entry.key.startsWith("x_cert_"));
-        for (const col of [...genericAssetCols, ...certificateAssetCols]) {
-            if (seen.has(col.key)) continue;
-            seen.add(col.key);
-            out.push({ key: col.key, type: "mAsset", labelKey: col.labelKey });
-        }
-        return out;
-    });
-    // Keep local files across partial failures; successful uploads are cached by asset path.
-    let certificateFiles: Record<string, File[]> = $state({});
-    let uploadedCertificateFiles: Record<string, { name: string; content: string }[]> = $state({});
-    const attachmentWriteKeys = new Map<string, { signature: string; key: string }>();
-    let lastCertificateCategory = $state("");
-    function fileFingerprint(file: File): string {
-        return `${file.name}:${file.size}:${file.lastModified}`;
-    }
-    /** Generate one stable operation id for a user action and its retries. */
-    function newOperationKey(prefix: string): string {
-        try { return `${prefix}:${crypto.randomUUID()}`; }
-        catch { return `${prefix}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
-    }
-    function setCertificateFiles(key: string, files: File[]) {
-        const vehiclePhoto = active === "vehicles" && key === "attachments";
-        if (vehiclePhoto) {
-            const invalid = files.filter((file) => !file.type.startsWith("image/") || file.size > 5 * 1024 * 1024);
-            if (invalid.length) showMessage(t("vehicle.photoInvalid"), 4500, "error");
-            files = files.filter((file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024).slice(0, 1);
-        }
-        const previous = certificateFiles[key] ?? [];
-        const seen = new Set(previous.map(fileFingerprint));
-        const unique = files.filter((file) => {
-            const fingerprint = fileFingerprint(file);
-            if (seen.has(fingerprint)) return false;
-            seen.add(fingerprint);
-            return true;
-        });
-        certificateFiles = { ...certificateFiles, [key]: [...previous, ...unique] };
-    }
-    async function removeCertificateFile(key: string, source: "local" | "uploaded", index: number, confirmed = false) {
-        // Removing an already-uploaded asset writes immediately to the kernel;
-        // require an explicit confirmation so a misclick cannot lose it.
-        if (source === "uploaded" && !confirmed) {
-            confirm(t("ledger.removeAttachment"), t("ledger.removeAttachmentConfirm"), () => {
-                void removeCertificateFile(key, source, index, true);
-            });
-            return;
-        }
-        if (source === "local") {
-            certificateFiles = { ...certificateFiles, [key]: (certificateFiles[key] ?? []).filter((_, i) => i !== index) };
-        } else {
-            const next = (uploadedCertificateFiles[key] ?? []).filter((_, i) => i !== index);
-            if (pendingItemID && ref?.avId && ref.columns?.[key]) {
-                try {
-                    const signature = JSON.stringify(next.map(({ name, content }) => ({ name, content })));
-                    const slot = `${pendingItemID}:${key}`;
-                    let operation = attachmentWriteKeys.get(slot);
-                    if (!operation || operation.signature !== signature) {
-                        operation = { signature, key: newOperationKey(`ledger:${pendingItemID}:attachment:${key}`) };
-                        attachmentWriteKeys.set(slot, operation);
-                    }
-                    await setCell(ref.avId, ref.columns[key], pendingItemID, {
-                        type: "mAsset",
-                        mAsset: next.map(({ name, content }) => ({ name, content })),
-                    }, { idempotencyKey: operation.key, retries: 1 });
-                    attachmentWriteKeys.delete(slot);
-                } catch (e) {
-                    showMessage(t("ledger.attachmentRemoveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                    return;
-                }
-            }
-            uploadedCertificateFiles = { ...uploadedCertificateFiles, [key]: next };
-        }
-    }
-    function selectedFileText(key: string): string {
-        const count = (certificateFiles[key]?.length ?? 0) + (uploadedCertificateFiles[key]?.length ?? 0);
-        return count > 0 ? t("ledger.selectedFiles").replace("${n}", String(count)) : t("ledger.chooseAttachment");
-    }
-    function handleCertificateCategoryChange(category: string) {
-        const hasDraft = active === "certs" && (
-            Object.entries(form).some(([key, value]) => key !== "category" && value !== undefined && value !== "" && value !== false)
-            || Object.values(certificateFiles).some((files) => files.length > 0)
-            || Object.values(uploadedCertificateFiles).some((files) => files.length > 0)
-            || !!pendingItemID
-        );
-        if (lastCertificateCategory && category !== lastCertificateCategory && hasDraft) {
-            showMessage(t("ledger.categoryChangeBlocked"), 5000, "error");
-            form = { ...form, category: lastCertificateCategory };
-            return;
-        }
-        lastCertificateCategory = category;
-        const keep = new Set(["name", "member", "expiry", "status", "x_cert_holder_name", "holder_no", "issue_date", "x_cert_valid_from", "issuance_rule", "store_place", "location", "copy_location", "note"]);
-        form = { ...Object.fromEntries(Object.entries(form).filter(([key]) => keep.has(key))), category };
-        certificateFiles = Object.fromEntries(Object.entries(certificateFiles).filter(([key]) => key === "attachments"));
-        uploadedCertificateFiles = Object.fromEntries(Object.entries(uploadedCertificateFiles).filter(([key]) => key === "attachments"));
-    }
-            // Saving prevents double submits; retries preserve the item ID and form values.
-    let saving = $state(false);
-    let saveError = $state("");
-    let validationAttempted = $state(false);
-    let identityPending = $state(false); // 行已提交但身份未确认（D02）：禁止自动重试，防重复建行
-    let savedModule = $state(""); // Brief save confirmation state.
-    let pendingItemID = $state<string | null>(null);
-    /** Stable key for one new-row submission. Retries after a timeout reuse it
-     * so addAttributeViewBlocks cannot create a second detached row. */
-    let recordOperationKey = $state<string | null>(null);
-    // Keep the duplicate-name confirmation single-flight.  The host confirm
-    // dialog is asynchronous while the form remains mounted, so without this
-    // guard a rapid double click could open multiple dialogs and create rows
-    // more than once after each confirmation.
-    let duplicateConfirmPending = $state(false);
+    let savedModule = $state("");
 
-    function onNewRecordKeydown(event: KeyboardEvent) {
-        if (!newRecordOpen) {
-            if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
-                const target = event.target as HTMLElement | null;
-                const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
-                if (!isInput) {
-                    event.preventDefault();
-                    const searchEl = document.querySelector<HTMLInputElement>(".lv-ledger-toolbar input[type='search']");
-                    searchEl?.focus();
-                }
-            }
-            return;
-        }
-        // The host duplicate-confirm dialog owns keyboard focus while it is open.
-        if (duplicateConfirmPending) return;
-        if (event.key === "Tab" && saving) {
-            // The form controls are disabled while saving. Keep keyboard focus
-            // inside the modal instead of allowing Tab to escape to the page.
-            event.preventDefault();
-            document.querySelector<HTMLElement>(".lv-record-modal.open[role='dialog']")?.focus();
-            return;
-        }
-        if (saving) return;
-        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-            event.preventDefault();
-            if (canSubmitNewRecord) void saveNewRecord(event.altKey);
-            return;
-        }
-        if (event.key === "Escape") {
-            event.preventDefault();
-            closeNewRecord();
-            return;
-        }
-        if (event.key !== "Tab") return;
-        const sheet = document.querySelector(".lv-record-modal.open .lv-record-sheet");
-        if (!sheet) return;
-        const focusables = Array.from(sheet.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-            .filter((element) => !element.hasAttribute("disabled") && element.getClientRects().length > 0);
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    }
+    const fieldLabel = (key: string): string => t(`field.${key}`) !== `field.${key}` ? t(`field.${key}`) : key;
 
-    function fieldLabel(key: string): string {
-        return t(`field.${key}`) !== `field.${key}` ? t(`field.${key}`) : key;
-    }
-    function fieldMetaText(key: string | undefined): string {
-        if (!key) return "";
-        const value = t(key);
-        return value === key ? "" : value;
-    }
-    function fieldMetaPlaceholder(field: ColumnDef): string {
-        return getFieldPlaceholder(field, active, t);
-    }
-    function captureValidationMessage(field: ColumnDef, issue: CaptureInputError): string {
-        return t(`capture.validation.${issue}`)
-            .replace("${field}", fieldLabel(field.key))
-            .replace("${min}", String(field.min ?? ""))
-            .replace("${max}", String(field.max ?? ""));
-    }
-    function formFieldError(field: ColumnDef): string {
-        if (!validationAttempted) return "";
-        const issue = validateCaptureInput(field, form[field.key]);
-        if (issue) return captureValidationMessage(field, issue);
-        if (field.type === "relation") {
-            const relationID = String(form[field.key] ?? "").trim();
-            if (relationID && !(plugin.settings.members ?? []).some((member) => member.avItemId === relationID)) return t("members.notLinked");
-        }
-        return "";
-    }
-    function focusCaptureField(key: string) {
-        const control = document.getElementById(`lv-new-${key}`);
-        const collapsed = control?.closest("details");
-        if (collapsed instanceof HTMLDetailsElement) collapsed.open = true;
-        requestAnimationFrame(() => control?.focus());
-    }
-
-    function openNewRecord() {
-        if (!ref?.avId) {
-            showMessage(t("ledger.notProvisionedHint"), 4500, "info");
-            return;
-        }
-        newRecordTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        validationAttempted = false;
-        saveError = "";
-        newRecordOpen = true;
-        requestAnimationFrame(() => nameInput?.focus());
-    }
-
-    function restoreNewRecordFocus() {
-        const trigger = newRecordTrigger;
-        newRecordTrigger = null;
-        requestAnimationFrame(() => {
-            if (trigger?.isConnected && !trigger.closest("[inert]")) trigger.focus();
-        });
-    }
-
-    function closeNewRecord() {
-        if (saving) return;
-        newRecordOpen = false;
-        restoreNewRecordFocus();
-    }
-
-    function openPendingLedger() {
-        if (!ref?.docId) return;
-        closeNewRecord();
-        plugin.showTabDocs(ref.docId);
-    }
-
-    function discardUncertainDraft() {
-        resetForm();
-        showMessage(t("ledger.uncertainDraftDiscarded"), 6000, "error");
-    }
-
-    function clearNewRecord() {
-        if (pendingItemID) {
-            void discardPartialRecord();
-            return;
-        }
-        if (!hasAnyInput) {
-            resetForm();
-            return;
-        }
-        confirm(t("ledger.clearDraft"), t("ledger.clearDraftConfirm"), () => resetForm());
-    }
-
-    async function discardPartialRecord() {
-        if (!pendingItemID || !ref?.avId || saving || identityPending) return;
-        confirm(t("ledger.discardPartial"), t("ledger.discardPartialConfirm"), async () => {
-            saving = true;
-            try {
-                const { removeLedgerRows } = await import("@/core/siyuan");
-                await removeLedgerRows(ref!.avId!, [pendingItemID!], { idempotencyKey: `ledger:discard:${pendingItemID}` });
-                resetForm();
-                await load();
-                try { await plugin.refreshHub([active]); } catch { /* cleanup succeeded; refresh is best effort */ }
-                showMessage(t("ledger.discardPartialDone"), 3000, "info");
-            } catch (e) {
-                showMessage(t("ledger.discardPartialFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-            } finally {
-                saving = false;
-            }
-        });
-    }
-
-    function saveNewRecord(continueAfter: boolean) {
-        if (saving) return;
-        identityPending = false;
-        closeAfterSave = !continueAfter;
-        void createRow();
+    function openNewRecord(initialForm?: Record<string, any>) {
+        recordModalRef?.openNewRecordModal(initialForm);
     }
 
     function cellValue(type: string, v: any): unknown | null {
         switch (type) {
             case "select": return selectCellValue(v);
             case "relation": {
-                // Relations currently target the members ledger. Disabled options may still exist in stale drafts.
-                // Validate the selected row ID again before writing it.
                 const relationID = typeof v === "string" ? v.trim() : "";
                 const linked = relationID && (plugin.settings.members ?? []).some((m) => m.avItemId === relationID);
                 return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
@@ -1089,22 +751,6 @@
             case "checkbox": return { type: "checkbox", checkbox: { checked: !!v } };
             default: return { type: "text", text: { content: String(v) } };
         }
-    }
-    const hasAnyInput = $derived(supportableCols.some((e) => {
-        const v = form[e.key];
-        return e.key === "name" ? !!(v && String(v).trim()) : v !== undefined && v !== "" && v !== false;
-    }) || certificateScalarCols.some((e) => form[e.key] !== undefined && form[e.key] !== "" && form[e.key] !== false)
-        || quickAssetCols.some((e) => (certificateFiles[e.key]?.length ?? 0) > 0 || (uploadedCertificateFiles[e.key]?.length ?? 0) > 0));
-    // A name is required whenever any other field has been entered.
-    const nameMissing = $derived(hasAnyInput && !(form.name && String(form.name).trim()));
-    const canSubmitNewRecord = $derived(!saving && !nameMissing && !(active === "certs" && !form.category));
-
-    function resetForm() {
-        form = {};
-        lastCertificateCategory = "";
-        certificateFiles = {};
-        uploadedCertificateFiles = {};
-        saveError = ""; validationAttempted = false; identityPending = false; pendingItemID = null; recordOperationKey = null;
     }
 
     /** Format a cell for both the table and the detail drawer. */
@@ -2618,8 +2264,7 @@
                     }
                 }
                 dlg.destroy();
-                openNewRecord();
-                form = copiedValues;
+                openNewRecord(copiedValues);
                 showMessage(t("ledger.duplicateSuccess").replace("${name}", cloneName || rowName), 3000, "info");
             };
         }
@@ -2686,210 +2331,6 @@
                 if (followupErrors.length) showMessage(t("ledger.delFollowupFailed").replace("${msg}", followupErrors.join("; ")), 6000, "error");
             });
         };
-    }
-
-    async function createRow() {
-        if (!ref?.avId || saving || identityPending || duplicateConfirmPending) return;
-        // 297 波：访客模式写保护拦截
-        if (plugin.runtime?.guestModeActive) {
-            showMessage(t("guest.writeBlocked"), 4000, "info");
-            return;
-        }
-        validationAttempted = true;
-        if (!hasAnyInput) {
-            nameInput?.focus();
-            showMessage(t("ledger.nameRequired"), 4000, "info");
-            return;
-        }
-        // Name validation prevents unnamed rows when other fields are present.
-        if (nameMissing) {
-            saveError = t("ledger.nameRequired");
-            showMessage(saveError, 4000, "error");
-            return;
-        }
-        if (active === "certs" && !String(form.category ?? "").trim()) {
-            saveError = t("ledger.categoryRequired");
-            showMessage(saveError, 4000, "info");
-            return;
-        }
-        if (active === "certs" && form.x_cert_id_number && idcardCheck && !idcardCheck.ok) {
-            saveError = t("ledger.idcardBad").replace("${reason}", t(`ledger.idcardReason.${idcardCheck.reason ?? "format"}`));
-            focusCaptureField("x_cert_id_number");
-            showMessage(saveError, 4500, "error");
-            return;
-        }
-        for (const field of supportableCols) {
-            const error = formFieldError(field);
-            if (!error) continue;
-            saveError = error;
-            focusCaptureField(field.key);
-            showMessage(saveError, 4500, "error");
-            return;
-        }
-        // D24（UG04 数据质量）：同名行确认——对照已加载行（render 窗口）提示同名数，确认可继续；D06 成员同名确认同款交互
-        const dupName = String(form.name ?? "").trim();
-        const nameKey = ref.columns?.name;
-        if (dupName && !pendingItemID && nameKey) {
-            const dupCount = rows.filter((r) => cellText(r.cells[nameKey]) === dupName).length;
-            if (dupCount > 0) {
-                duplicateConfirmPending = true;
-                confirm(
-                    t("ledger.dupTitle"),
-                    t("ledger.dupBody").replace("${name}", dupName).replace("${n}", String(dupCount)),
-                    () => { duplicateConfirmPending = false; void doCreateRow(); },
-                    () => { duplicateConfirmPending = false; },
-                );
-                return;
-            }
-        }
-        await doCreateRow();
-    }
-
-    async function doCreateRow() {
-        if (!ref?.avId || saving) return;
-        const hadIdentityPending = identityPending;
-        identityPending = false;
-        saving = true;
-        saveError = "";
-        if (missingSchemaCols.length > 0 && ref?.avId) {
-            try { await plugin.repairModule?.(active); } catch { /* soft heal */ }
-        }
-        if (!recordOperationKey) {
-            try { recordOperationKey = `ledger:${crypto.randomUUID()}`; }
-            catch { recordOperationKey = `ledger:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
-        }
-        try {
-            // 重试路径：部分字段失败或先前待确认时，复用/回查已建行（补写同一行，不重复建行）
-            let itemID = pendingItemID;
-            if (!itemID && hadIdentityPending) {
-                try {
-                    const all = await renderLedgerAll(ref.avId, 50);
-                    const nameCol = ref.columns?.name;
-                    const title = String(form.name ?? "").trim();
-                    if (nameCol && title) {
-                        const matched = all.rows.find((row) => {
-                            const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
-                            return val === title;
-                        });
-                        if (matched) {
-                            itemID = matched.itemID;
-                            pendingItemID = itemID;
-                        }
-                    }
-                } catch { /* soft reconciliation */ }
-            }
-            if (!itemID) {
-                itemID = await addDetachedRow(ref.avId, String(form.name ?? "").trim() || t("ledger.unnamed"), {
-                    idempotencyKey: `${recordOperationKey}:row`,
-                });
-                pendingItemID = itemID;
-            }
-            const cols = plugin.settings.dbRefs[active]?.columns ?? ref.columns ?? {};
-            const failed: string[] = [];
-            const tryCell = async (label: string, key: string | undefined, value: unknown) => {
-                if (!key) {
-                    failed.push(label);
-                    return;
-                }
-                // Null means final type validation failed; do not write an empty relation.
-                if (value === null) {
-                    failed.push(label);
-                    return;
-                }
-                try {
-                    await setCell(ref.avId!, key, itemID, value, {
-                        idempotencyKey: `${recordOperationKey}:cell:${key}`,
-                    });
-                } catch {
-                    failed.push(label); // Preserve the field value for retry.
-                }
-            };
-            for (const e of supportableCols) {
-                const v = form[e.key];
-                if (e.key !== "name" && (v === undefined || v === "" || v === false)) continue;
-                if (e.key === "name" && !(v && String(v).trim()) && pendingItemID) continue; // Do not overwrite a name on retry.
-                if (e.type === "number" && (v === undefined || isNaN(Number(v)))) continue;
-                await tryCell(t(`field.${e.key}`), cols[e.key], cellValue(e.type, e.key === "name" ? String(v ?? "").trim() : v));
-            }
-            for (const e of certificateScalarCols) {
-                const v = form[e.key];
-                if (v === undefined || v === "" || v === false) continue;
-                if (e.type === "number" && isNaN(Number(v))) continue;
-                await tryCell(t(`field.${e.key}`), cols[e.key], cellValue(e.type, v));
-            }
-            // Image attachments are uploaded before mAsset references are written.
-            // Successful uploads remain cached so retries do not duplicate them.
-            if (quickAssetCols.length > 0) {
-                for (const target of quickAssetCols) {
-                    const previous = uploadedCertificateFiles[target.key] ?? [];
-                    const uploaded = [...previous];
-                    const failedFiles: File[] = [];
-                    if (!cols[target.key]) {
-                        failed.push(t(`field.${target.key}`));
-                        continue;
-                    }
-                    for (const file of certificateFiles[target.key] ?? []) {
-                        try {
-                            const { uploadAsset } = await import("@/core/siyuan");
-                            const { name, path } = await uploadAsset(file, "/assets/siyuan-home/", {
-                                idempotencyKey: `${recordOperationKey}:asset:${target.key}:${fileFingerprint(file)}`,
-                            });
-                            uploaded.push({ name, content: path });
-                        } catch (e) {
-                            failed.push(`${t(`field.${target.key}`)}: ${file.name} (${e instanceof Error ? e.message : String(e)})`);
-                            failedFiles.push(file);
-                        }
-                    }
-                    certificateFiles = { ...certificateFiles, [target.key]: failedFiles };
-                    if (uploaded.length === 0) continue;
-                    uploadedCertificateFiles = { ...uploadedCertificateFiles, [target.key]: uploaded };
-                    await tryCell(t(`field.${target.key}`), cols[target.key], {
-                        type: "mAsset",
-                        mAsset: uploaded.map(({ name, content }) => ({ name, content })),
-                    });
-                }
-            }
-            // Fill the schema default status, falling back to the first enum option.
-            const statusCol = (plugin.schemaCatalog?.[active]?.columns ?? []).find((c: any) => c.key === "status");
-            if (statusCol?.options?.length && (form.status === undefined || form.status === "")) {
-                await tryCell(t("field.status"), cols.status, selectCellValue(statusCol.default ?? statusCol.options[0]));
-            }
-            if (failed.length > 0) {
-                // Preserve input and item ID so a retry updates the same row.
-                saveError = t("ledger.savePartial").replace("${fields}", failed.join(", "));
-                const { coalescedNotify } = await import("@/libs/notify-queue");
-                coalescedNotify("ledger-save-error", () => showMessage(saveError, 6000, "error"));
-            } else {
-                savedRecordName = String(form.name ?? "").trim();
-                savedDocId = ref.docId ?? "";
-                resetForm();
-                // Brief save confirmation keeps the user in the recording flow.
-                savedModule = active;
-                setTimeout(() => { savedModule = ""; }, 8000);
-                if (closeAfterSave) {
-                    newRecordOpen = false;
-                    restoreNewRecordFocus();
-                }
-            }
-            await load();
-            try {
-                await plugin.refreshHub([active]); // Refresh only the active module.
-            } catch (e) {
-                showMessage(t("ledger.refreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-            }
-        } catch (e) {
-            recordOperationKey = null;
-            if (e instanceof RowIdentityPendingError) {
-                // D02：行已提交但身份未确认——不自动重试（会重复建行），提示人工核对
-                identityPending = true;
-                saveError = t("ledger.savePending");
-            } else {
-                saveError = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
-            }
-            showMessage(saveError, 6000, "error");
-        } finally {
-            saving = false;
-        }
     }
 
     function vehicleImageHref(row: any): string {
@@ -3066,247 +2507,27 @@
     </div>
 {/if}
 
-<div class="lv-mask" class:open={newRecordOpen} aria-hidden="true" onclick={closeNewRecord}></div>
-<svelte:window onkeydown={onNewRecordKeydown} />
-<div class="lv-modal lv-record-modal" class:open={newRecordOpen} role="dialog" aria-modal="true" aria-labelledby="lv-new-record-title" aria-busy={saving || duplicateConfirmPending} tabindex="-1" inert={!newRecordOpen || duplicateConfirmPending}>
-    <div class="lv-sheet lv-record-sheet">
-        <div class="lv-sheet-head">
-            <div class="lv-record-title">
-                <b id="lv-new-record-title">{t("ledger.newRecordTitle").replace("${module}", t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active)}</b>
-                <span>{t("ledger.newRecordIntro")}</span>
-            </div>
-            <button class="lv-iconbtn" aria-label={t("ledger.closeKeepDraft")} title={t("ledger.closeKeepDraft")} onclick={closeNewRecord} disabled={saving}><UiIcon name="close" size={16} /></button>
-        </div>
-        <div class="lv-sheet-body lv-record-body">
-            <section class="lv-record-section">
-                <h3>{t("ledger.newRecordBasic")}</h3>
-                {#if currentLedgerTemplates.length > 0}
-                    <div class="lv-template-bar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;font-size:11.5px;margin-bottom:12px">
-                        <span class="lv-caption" style="color:var(--lv-tx-3);font-size:11px">✨ {t("capture.frequentTemplates")}:</span>
-                        {#each currentLedgerTemplates as tpl (tpl.id)}
-                            <button type="button" class="lv-preset-tag" onclick={() => applyLedgerTemplate(tpl)} disabled={saving} style="font-size:11.5px;padding:2px 8px">
-                                {#if tpl.icon}<span>{tpl.icon}</span>{/if}
-                                <span>{tpl.label}</span>
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
-                <div class="lv-record-grid">
-                    {#each captureCols as e (e.key)}
-                        <div class="lv-record-field" class:lv-record-field-wide={e.key === "name" || e.type === "url"}>
-                            {#if e.type !== "checkbox"}<label for="lv-new-{e.key}">{fieldLabel(e.key)}{e.required || (active === "certs" && e.key === "category") ? " *" : ""}</label>{/if}
-                            {#if e.type === "select"}
-                                <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} onfocus={active === "certs" && e.key === "category" ? () => { lastCertificateCategory = String(form.category ?? ""); } : undefined} onchange={active === "certs" && e.key === "category" ? (event) => handleCertificateCategoryChange((event.currentTarget as HTMLSelectElement).value) : undefined} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                    <option value="">{fieldLabel(e.key)}</option>
-                                    {#each e.options ?? [] as opt (opt)}
-                                        <option value={opt}>{t(`field.${e.key}.opt.${opt}`) !== `field.${e.key}.opt.${opt}` ? t(`field.${e.key}.opt.${opt}`) : opt}</option>
-                                    {/each}
-                                </select>
-                            {:else if e.type === "relation"}
-                                <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                    <option value="">{fieldLabel(e.key)}: {t("members.all")}</option>
-                                    {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
-                                        <option value={m.avItemId ?? ""} disabled={!m.avItemId}>{m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}</option>
-                                    {/each}
-                                </select>
-                            {:else if e.type === "date"}
-                                <input id="lv-new-{e.key}" class="b3-text-field" type="date" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                <div class="lv-preset-tags">
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); form[e.key] = localDateKey(d); }}>{t("capture.presetToday")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 1); form[e.key] = localDateKey(d); }}>{t("capture.presetTomorrow")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 7); form[e.key] = localDateKey(d); }}>{t("capture.presetNextWeek")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 30); form[e.key] = localDateKey(d); }}>{t("capture.presetNextMonth")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 365); form[e.key] = localDateKey(d); }}>{t("capture.presetNextYear")}</button>
-                                </div>
-                            {:else if e.type === "number"}
-                                <input id="lv-new-{e.key}" class="b3-text-field" type="number" min={e.min} max={e.max} step={e.step ?? "any"} placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                            {:else if e.type === "url"}
-                                <input id="lv-new-{e.key}" class="b3-text-field" type="url" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                            {:else if e.type === "checkbox"}
-                                <label class="lv-record-check"><input id="lv-new-{e.key}" type="checkbox" class="b3-switch" bind:checked={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />{fieldLabel(e.key)}{e.required ? " *" : ""}</label>
-                            {:else if e.key === "name"}
-                                <input bind:this={nameInput} id="lv-new-{e.key}" class="b3-text-field" type="text" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} onblur={handleNewRecordNameBlur} onkeydown={(event: KeyboardEvent) => { if (event.key === "Enter" && !event.isComposing) saveNewRecord(false); }} />
-                            {:else if ["note", "violations", "diagnosis"].includes(e.key)}
-                                <textarea id="lv-new-{e.key}" class="b3-text-field lv-record-textarea" rows="3" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}></textarea>
-                            {:else}
-                                <input id="lv-new-{e.key}" class="b3-text-field" type="text" list={columnSuggestions[e.key] ? `lv-datalist-${e.key}` : undefined} placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                {#if columnSuggestions[e.key]}
-                                    <datalist id="lv-datalist-{e.key}">
-                                        {#each columnSuggestions[e.key] as suggestion (suggestion)}
-                                            <option value={suggestion}></option>
-                                        {/each}
-                                    </datalist>
-                                {/if}
-                                {#if e.key === "location" || e.key === "store_place" || e.key === "copy_location"}
-                                    <div class="lv-preset-tags">
-                                        {#each dynamicLocations as loc (loc)}
-                                            <button type="button" class="lv-preset-tag" onclick={() => { form[e.key] = loc; }}>{loc}</button>
-                                        {/each}
-                                    </div>
-                                {/if}
-                            {/if}
-                            {#if fieldMetaText(e.helpKey) || fieldMetaText(e.unitKey)}
-                                <small class="lv-capture-field-hint">
-                                    {fieldMetaText(e.helpKey)}{#if fieldMetaText(e.helpKey) && fieldMetaText(e.unitKey)} · {/if}{#if fieldMetaText(e.unitKey)}{t("capture.unitLabel")}：{fieldMetaText(e.unitKey)}{/if}
-                                </small>
-                            {/if}
-                            {#if formFieldError(e)}<small class="lv-record-field-error" id="lv-new-{e.key}-error" role="alert">{formFieldError(e)}</small>{/if}
-                        </div>
-                    {/each}
-                </div>
-            </section>
-
-            {#if additionalCols.length > 0}
-                <details class="lv-record-more">
-                    <summary>{t("ledger.additionalFields")} <span>{additionalCols.length}</span></summary>
-                    <section class="lv-record-section lv-record-section--nested">
-                        <div class="lv-record-grid">
-                            {#each additionalCols as e (e.key)}
-                                <div class="lv-record-field" class:lv-record-field-wide={e.key === "name" || e.type === "url" || ["note", "violations", "diagnosis"].includes(e.key)}>
-                                    {#if e.type !== "checkbox"}<label for="lv-new-{e.key}">{fieldLabel(e.key)}{e.required ? " *" : ""}</label>{/if}
-                                    {#if e.type === "select"}
-                                        <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                            <option value="">{fieldLabel(e.key)}</option>
-                                            {#each e.options ?? [] as opt (opt)}<option value={opt}>{t(`field.${e.key}.opt.${opt}`) !== `field.${e.key}.opt.${opt}` ? t(`field.${e.key}.opt.${opt}`) : opt}</option>{/each}
-                                        </select>
-                                    {:else if e.type === "relation"}
-                                        <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                            <option value="">{fieldLabel(e.key)}: {t("members.all")}</option>
-                                            {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}<option value={m.avItemId ?? ""} disabled={!m.avItemId}>{m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}</option>{/each}
-                                        </select>
-                                    {:else if e.type === "date"}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="date" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                    {:else if e.type === "number"}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="number" min={e.min} max={e.max} step={e.step ?? "any"} placeholder={fieldMetaText(e.placeholderKey) || fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                    {:else if e.type === "url"}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="url" placeholder={fieldMetaText(e.placeholderKey) || fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                    {:else if e.type === "checkbox"}
-                                        <label class="lv-record-check"><input id="lv-new-{e.key}" type="checkbox" class="b3-switch" bind:checked={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />{fieldLabel(e.key)}{e.required ? " *" : ""}</label>
-                                    {:else if ["note", "violations", "diagnosis"].includes(e.key)}
-                                        <textarea id="lv-new-{e.key}" class="b3-text-field lv-record-textarea" rows="3" placeholder={fieldMetaText(e.placeholderKey) || fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}></textarea>
-                                    {:else}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="text" placeholder={fieldMetaText(e.placeholderKey) || fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
-                                    {/if}
-                                    {#if fieldMetaText(e.helpKey) || fieldMetaText(e.unitKey)}<small class="lv-capture-field-hint">{fieldMetaText(e.helpKey)}{#if fieldMetaText(e.helpKey) && fieldMetaText(e.unitKey)} · {/if}{#if fieldMetaText(e.unitKey)}{t("capture.unitLabel")}：{fieldMetaText(e.unitKey)}{/if}</small>{/if}
-                                    {#if formFieldError(e)}<small class="lv-record-field-error" id="lv-new-{e.key}-error" role="alert">{formFieldError(e)}</small>{/if}
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                </details>
-            {/if}
-
-            {#if active === "certs"}
-                {#if !form.category}
-                    <div class="lv-record-next" role="status">{t("ledger.chooseCategoryFirst")}</div>
-                {:else}
-                    <section class="lv-record-section">
-                        <h3>{t("ledger.newRecordDetails")}</h3>
-                        <div class="lv-record-grid">
-                            {#each certificateScalarCols as e (e.key)}
-                                <div class="lv-record-field" class:lv-record-field-wide={e.key === "x_cert_id_number" || e.key === "note"}>
-                                    <label for="lv-new-{e.key}">{fieldLabel(e.key)}</label>
-                                    {#if e.type === "select"}
-                                        <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending}>
-                                            <option value="">{fieldLabel(e.key)}</option>
-                                            {#each e.options ?? [] as opt (opt)}<option value={opt}>{t(`field.${e.key}.opt.${opt}`) !== `field.${e.key}.opt.${opt}` ? t(`field.${e.key}.opt.${opt}`) : opt}</option>{/each}
-                                        </select>
-                                    {:else if e.type === "date"}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="date" bind:value={form[e.key]} disabled={saving || identityPending} />
-                                    {:else if e.key === "x_cert_id_number"}
-                                        <div class="lv-record-field-stack">
-                                            <input id="lv-new-{e.key}" class="b3-text-field lv-sensitive-input" type="text" inputmode="numeric" autocomplete="off" placeholder={fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} />
-                                            {#if idcardCheck}
-                                                {#if idcardCheck.ok}<span class="lv-caption lv-valid" role="status">{t("ledger.idcardValid").replace("${birth}", idcardCheck.birth ?? "").replace("${sex}", t(`ledger.idcardGender.${idcardCheck.sex}`))}</span>
-                                                {:else}<span class="lv-caption lv-warn" role="alert">{t("ledger.idcardBad").replace("${reason}", t(`ledger.idcardReason.${idcardCheck.reason ?? "format"}`))}</span>{/if}
-                                            {/if}
-                                        </div>
-                                    {:else}
-                                        <input id="lv-new-{e.key}" class="b3-text-field" type="text" placeholder={fieldLabel(e.key)} bind:value={form[e.key]} disabled={saving || identityPending} />
-                                    {/if}
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                    {#if quickAssetCols.length > 0}
-                        <section class="lv-record-section">
-                            <h3>{t("ledger.newRecordAttachments")}</h3>
-                            <div class="lv-record-assets">
-                                {#each quickAssetCols as e (e.key)}
-                                    <label class="b3-button b3-button--outline lv-record-upload">
-                                        <input type="file" accept="image/*,.pdf" multiple={e.key === "attachments"} capture={e.key === "attachments" ? undefined : "environment"} aria-label={fieldLabel(e.key)} onchange={(event) => { const input = event.currentTarget as HTMLInputElement; setCertificateFiles(e.key, Array.from(input.files ?? [])); input.value = ""; }} disabled={saving || identityPending} />
-                                        {fieldLabel(e.key)} · {selectedFileText(e.key)}
-                                    </label>
-                                    {#each certificateFiles[e.key] ?? [] as file, index (`${e.key}-local-${index}`)}
-                                        <span class="lv-record-file">{file.name}<button class="b3-button b3-button--text" aria-label={t("ledger.removeAttachment")} title={t("ledger.removeAttachment")} onclick={() => removeCertificateFile(e.key, "local", index)} disabled={saving}>×</button></span>
-                                    {/each}
-                                    {#each uploadedCertificateFiles[e.key] ?? [] as file, index (`${e.key}-uploaded-${index}`)}
-                                        <span class="lv-record-file">{file.name}<button class="b3-button b3-button--text" aria-label={t("ledger.removeAttachment")} title={t("ledger.removeAttachment")} onclick={() => removeCertificateFile(e.key, "uploaded", index)} disabled={saving}>×</button></span>
-                                    {/each}
-                                {/each}
-                                <span class="lv-caption">{t("ledger.photoUploadTip")}</span>
-                            </div>
-                        </section>
-                    {/if}
-                {/if}
-            {/if}
-            {#if active === "vehicles" && quickAssetCols.length > 0}
-                <section class="lv-record-section">
-                    <h3>{t("vehicle.photoTitle")}</h3>
-                    <div class="lv-record-assets">
-                        {#each quickAssetCols as e (e.key)}
-                            <label class="b3-button b3-button--outline lv-record-upload">
-                                <input type="file" accept="image/*" multiple={false} aria-label={t("vehicle.photoTitle")} onchange={(event) => { const input = event.currentTarget as HTMLInputElement; setCertificateFiles(e.key, Array.from(input.files ?? [])); input.value = ""; }} disabled={saving || identityPending} />
-                                {t("vehicle.photoChoose")} · {selectedFileText(e.key)}
-                            </label>
-                            {#each certificateFiles[e.key] ?? [] as file, index (`vehicle-photo-local-${index}`)}
-                                <span class="lv-record-file">{file.name}<button class="b3-button b3-button--text" aria-label={t("ledger.removeAttachment")} title={t("ledger.removeAttachment")} onclick={() => removeCertificateFile(e.key, "local", index)} disabled={saving}>×</button></span>
-                            {/each}
-                        {/each}
-                        <span class="lv-caption">{t("vehicle.photoHint")}</span>
-                    </div>
-                </section>
-            {/if}
-            {#if active !== "certs" && active !== "vehicles" && quickAssetCols.length > 0}
-                <section class="lv-record-section">
-                    <h3>{t("ledger.newRecordAttachments")}</h3>
-                    <div class="lv-record-assets">
-                        {#each quickAssetCols as e (e.key)}
-                            <label class="b3-button b3-button--outline lv-record-upload">
-                                <input type="file" accept="image/*,.pdf" multiple aria-label={fieldLabel(e.key)} onchange={(event) => { const input = event.currentTarget as HTMLInputElement; setCertificateFiles(e.key, Array.from(input.files ?? [])); input.value = ""; }} disabled={saving || identityPending} />
-                                {fieldLabel(e.key)} · {selectedFileText(e.key)}
-                            </label>
-                            {#each certificateFiles[e.key] ?? [] as file, index (`generic-asset-local-${e.key}-${index}`)}
-                                <span class="lv-record-file">{file.name}<button class="b3-button b3-button--text" aria-label={t("ledger.removeAttachment")} title={t("ledger.removeAttachment")} onclick={() => removeCertificateFile(e.key, "local", index)} disabled={saving}>×</button></span>
-                            {/each}
-                            {#each uploadedCertificateFiles[e.key] ?? [] as file, index (`generic-asset-uploaded-${e.key}-${index}`)}
-                                <span class="lv-record-file">{file.name}<button class="b3-button b3-button--text" aria-label={t("ledger.removeAttachment")} title={t("ledger.removeAttachment")} onclick={() => removeCertificateFile(e.key, "uploaded", index)} disabled={saving}>×</button></span>
-                            {/each}
-                        {/each}
-                        <span class="lv-caption">{t("ledger.photoUploadTip")}</span>
-                    </div>
-                </section>
-            {/if}
-            {#if unsupportedCount > 0}
-                <div class="lv-record-next" role="note">
-                    <span>{t("ledger.unsupportedInForm").replace("${fields}", unsupportedCols.map((field) => fieldLabel(field.key)).join("、"))}</span>
-                    <button class="b3-button b3-button--outline" onclick={() => plugin.showTabDocs(ref?.docId)} disabled={!ref?.docId}>{t("ledger.openDoc")} →</button>
-                </div>
-            {/if}
-            {#if saveError}<div class="lv-record-error" role="alert">{saveError}</div>{:else if nameMissing}<div class="lv-record-error lv-record-warning" role="status">{t("ledger.nameRequired")}</div>{:else if active === "certs" && !form.category}<div class="lv-record-error lv-record-warning" role="status">{t("ledger.categoryRequired")}</div>{/if}
-        </div>
-        <div class="lv-sheet-foot lv-record-foot">
-            {#if identityPending}
-                <button class="lv-btn ghost" onclick={openPendingLedger}>{t("ledger.checkPending")}</button>
-                <button class="lv-btn ghost" onclick={discardUncertainDraft}>{t("ledger.discardUncertain")}</button>
-            {/if}
-            <button class="b3-button b3-button--text" onclick={clearNewRecord} disabled={saving}>{pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}</button>
-            <span class="fn__flex-1"></span>
-            <button class="lv-btn" onclick={() => saveNewRecord(true)} disabled={!canSubmitNewRecord}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}</button>
-            <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => saveNewRecord(false)} disabled={!canSubmitNewRecord}>{saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}</button>
-        </div>
-    </div>
-</div>
+<LedgerRecordModal
+    bind:this={recordModalRef}
+    bind:open={newRecordOpen}
+    {plugin}
+    {active}
+    {ref}
+    {rows}
+    {avCols}
+    {dynamicLocations}
+    {columnSuggestions}
+    {currentLedgerTemplates}
+    {t}
+    onRecordSaved={async ({ docId, name, module }) => {
+        savedRecordName = name;
+        savedDocId = docId ?? "";
+        savedModule = module;
+        setTimeout(() => { savedModule = ""; }, 8000);
+        await load();
+        try { await plugin.refreshHub([active]); } catch { /* soft */ }
+    }}
+/>
 
 {#if loading}
     <div class="lv-card" style="padding:20px"><div class="lv-skel" style="height:16px;width:60%"></div></div>

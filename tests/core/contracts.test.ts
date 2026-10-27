@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchHouseContracts } from "@/core/contracts";
+import { matchHouseContracts, calculateContractRenewalWindow } from "@/core/contracts";
 import type { AvRow } from "@/core/siyuan";
 
 describe("contracts.matchHouseContracts（§16 房屋保修联动核对）", () => {
@@ -79,5 +79,45 @@ describe("contracts.matchHouseContracts（§16 房屋保修联动核对）", () 
         expect(matches).toHaveLength(1);
         expect(matches[0].warrantyStatus).toBe("unknown");
         expect(matches[0].daysLeft).toBeUndefined();
+    });
+
+    it("calculateContractRenewalWindow 准确测算提前30天解约通知截止日与阶段", () => {
+        const today = "2026-10-27";
+
+        // 1. 履行中：2027-01-31 到期，提前30天为 2027-01-01（距通知截止日还有66天）
+        const inForce = calculateContractRenewalWindow({
+            expiryDate: "2027-01-31",
+            noticeDays: 30,
+            today,
+        });
+        expect(inForce?.phase).toBe("in_force");
+        expect(inForce?.noticeDeadlineDate).toBe("2027-01-01");
+        expect(inForce?.daysUntilDeadline).toBe(66);
+
+        // 2. 最后解约通知窗口：2026-11-30 到期，提前30天截止日为 2026-10-31（距截止日仅剩 4 天）
+        const noticeWindow = calculateContractRenewalWindow({
+            expiryDate: "2026-11-30",
+            noticeDays: 30,
+            today,
+        });
+        expect(noticeWindow?.phase).toBe("notice_window");
+        expect(noticeWindow?.daysUntilDeadline).toBe(4);
+        expect(noticeWindow?.phaseLabel).toContain("解约");
+
+        // 3. 错过通知期：2026-11-10 到期，提前30天截止日为 2026-10-11（已过截止日）
+        const missed = calculateContractRenewalWindow({
+            expiryDate: "2026-11-10",
+            noticeDays: 30,
+            today,
+        });
+        expect(missed?.phase).toBe("expiring_soon");
+
+        // 4. 已终止：2026-09-01 到期
+        const expired = calculateContractRenewalWindow({
+            expiryDate: "2026-09-01",
+            noticeDays: 30,
+            today,
+        });
+        expect(expired?.phase).toBe("expired");
     });
 });

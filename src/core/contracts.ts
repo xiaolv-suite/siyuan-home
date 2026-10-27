@@ -161,3 +161,76 @@ export function matchHouseContracts(
         return a.title.localeCompare(b.title);
     });
 }
+
+export interface ContractRenewalAnalysis {
+    expiryDate: string;
+    noticeDays: number;
+    noticeDeadlineDate: string;
+    daysUntilDeadline: number;
+    daysUntilExpiry: number;
+    phase: "in_force" | "notice_window" | "expiring_soon" | "expired";
+    phaseLabel: string;
+    actionHint: string;
+}
+
+function subDaysFromYmd(ymd: string, days: number): string | undefined {
+    const parts = ymd.split("-").map(Number);
+    if (parts.length < 3 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1]) || !Number.isFinite(parts[2])) {
+        return undefined;
+    }
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() - days);
+    return localDateKey(d);
+}
+
+/**
+ * 推算合同自动续约与解约通知窗口（租房提前30天/物业提前60天等）
+ */
+export function calculateContractRenewalWindow(options: {
+    expiryDate: string;
+    noticeDays?: number;
+    today?: string;
+}): ContractRenewalAnalysis | null {
+    const { expiryDate, noticeDays = 30, today = localDateKey(new Date()) } = options;
+    if (!expiryDate || !/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) return null;
+
+    const noticeDeadlineDate = subDaysFromYmd(expiryDate, noticeDays);
+    if (!noticeDeadlineDate) return null;
+
+    const daysUntilExpiry = parseDaysLeft(expiryDate, today);
+    const daysUntilDeadline = parseDaysLeft(noticeDeadlineDate, today);
+
+    let phase: ContractRenewalAnalysis["phase"];
+    let phaseLabel: string;
+    let actionHint: string;
+
+    if (daysUntilExpiry < 0) {
+        phase = "expired";
+        phaseLabel = "已到期终止";
+        actionHint = "合同已过约定终止日，请确认是否已退还押金或完成交割。";
+    } else if (daysUntilDeadline < 0) {
+        phase = "expiring_soon";
+        phaseLabel = "错过通知期";
+        actionHint = `已错过提前 ${noticeDays} 天通知期，若有自动续约条款可能已生效，请尽快与对方核对。`;
+    } else if (daysUntilDeadline <= 15) {
+        phase = "notice_window";
+        phaseLabel = "最后解约窗口";
+        actionHint = `距最后解约通知截止日仅剩 ${daysUntilDeadline} 天，如不续约需立即通知对方。`;
+    } else {
+        phase = "in_force";
+        phaseLabel = "履约正常";
+        actionHint = `合同履行中，将于 ${noticeDeadlineDate} 进入提前 ${noticeDays} 天解约/续约决策期。`;
+    }
+
+    return {
+        expiryDate,
+        noticeDays,
+        noticeDeadlineDate,
+        daysUntilDeadline,
+        daysUntilExpiry,
+        phase,
+        phaseLabel,
+        actionHint,
+    };
+}
+

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError, isKernelError } from "@/core/siyuan";
+    import { renderLedgerAll, addDetachedRow, setCell, RowIdentityPendingError } from "@/core/siyuan";
     import { generateQRDataUrl, blockDeepLink } from "@/core/qr";
     import { AMOUNT_KEYS, formatAmount, optLabel, optLabelText } from "@/core/format";
     import { renderEditableFormFields } from "@/core/record-form";
@@ -19,7 +19,7 @@
     import { getCertificateProfile, getCertificateReminderField } from "@/core/schema";
     import type { ColumnDef } from "@/core/schema";
     import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
-    import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "@/core/assets";
+    import { assetHref, isImageAsset } from "@/core/assets";
     import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "@/core/fuel";
 import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     import { calculateMaintenanceStats, calculateVehicleCostSummary, createVehicleActionQueue, type MaintenanceRecord, type VehicleQuickAction } from "@/core/vehicle";
@@ -51,7 +51,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
     const dangerAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
     const warnAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
     const flex1Min180Css = "flex:1;min-width:180px;overflow-wrap:anywhere";
-    const pad24Fs12Css = "padding:2px 4px;font-size:12px";
     const pad06Fs12Css = "padding:0 6px;font-size:12px";
     const pad36Fs12Css = "padding:3px 6px;font-size:12px";
     const fs11Lh16Css = "font-size:11px;line-height:1.6";
@@ -1849,10 +1848,6 @@ import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "@/core/chart";
         function inlineEditHint(): string {
             const translated = t("ledger.inlineEditHint");
             return translated === "ledger.inlineEditHint" ? "点击字段值即可编辑" : translated;
-        }
-        function inlineValue(value: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): any {
-            if (value instanceof HTMLInputElement && value.type === "checkbox") return value.checked;
-            return value.value;
         }
         function beginInlineEdit(col: any, keyID: string, line: HTMLElement, valueEl: HTMLElement) {
             import("@/core/inline-edit").then(({ beginInlineEdit: runInlineEdit }) => {

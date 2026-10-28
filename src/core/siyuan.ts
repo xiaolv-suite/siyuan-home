@@ -35,7 +35,7 @@ type Transport = (endpoint: string, payload: object, options?: TransportOptions)
 
 let transport: Transport | null = null;
 const inFlight = new Map<string, Promise<IRawResponse>>();
-const REQUEST_TIMEOUT_MS = 15_000;
+export const REQUEST_TIMEOUT_MS = 15_000;
 const READ_RETRY_ENDPOINTS = new Set([
     "/api/query/sql",
     "/api/notebook/lsNotebooks",
@@ -47,7 +47,7 @@ const READ_RETRY_ENDPOINTS = new Set([
     "/api/asset/getImageOCRText",
 ]);
 const MAX_RETRIES = 2;
-const IDEMPOTENCY_TTL_MS = 60_000;
+export const IDEMPOTENCY_TTL_MS = 60_000;
 const completedIdempotent = new Map<string, { expiresAt: number; fingerprint: string; response: IRawResponse }>();
 const latestVersions = new Map<string, number>();
 
@@ -129,7 +129,7 @@ async function defaultTransport(endpoint: string, payload: object, options?: Tra
     return fetchSyncPost(endpoint, payload, undefined, undefined, options?.signal) as unknown as Promise<IRawResponse>;
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, endpoint: string, signal?: AbortSignal, onTimeout?: () => void, mayHaveReachedServer?: () => boolean): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, endpoint: string, signal?: AbortSignal, onTimeout?: () => void, mayHaveReachedServer?: () => boolean): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let abortListener: (() => void) | undefined;
     try {
@@ -154,7 +154,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, endpoint: 
 }
 
 /** Wait between retry attempts while still honoring caller cancellation. */
-async function waitForRetryBackoff(ms: number, endpoint: string, signal?: AbortSignal): Promise<void> {
+export async function waitForRetryBackoff(ms: number, endpoint: string, signal?: AbortSignal): Promise<void> {
     if (signal?.aborted) throw new RequestAbortedError(endpoint);
     await new Promise<void>((resolve, reject) => {
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -228,7 +228,7 @@ export function isWriteResultUnknown(e: unknown): boolean {
     return typeof DOMException !== "undefined" && e instanceof DOMException && (e.name === "AbortError" || e.name === "TimeoutError");
 }
 
-function looksLikeAuthFailure(res: IRawResponse): boolean {
+export function looksLikeAuthFailure(res: IRawResponse): boolean {
     const msg = String(res.msg ?? "").toLowerCase();
     return res.code === 401
         || /unauthori[sz]ed|token.{0,24}(expired|invalid|失效|过期)|(?:expired|invalid).{0,24}token|session.{0,24}(expired|invalid)|not authenticated|login required|登录已失效|未登录|会话失效|鉴权失败/.test(msg);
@@ -239,7 +239,7 @@ function looksLikePermissionFailure(res: IRawResponse): boolean {
     return res.code === 403 || /forbidden|permission denied|insufficient privilege|无权限|没有权限|权限不足/.test(msg);
 }
 
-function dispatchAuthExpired(endpoint: string, msg: string): void {
+export function dispatchAuthExpired(endpoint: string, msg: string): void {
     if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") return;
     try {
         const currentLocation = typeof location !== "undefined"
@@ -395,7 +395,7 @@ export async function request<T = any>(endpoint: string, payload: object, option
     return value;
 }
 
-async function post<T = any>(endpoint: string, payload: object, options?: RequestOptions): Promise<T> {
+export async function post<T = any>(endpoint: string, payload: object, options?: RequestOptions): Promise<T> {
     return request<T>(endpoint, payload, options);
 }
 
@@ -695,169 +695,16 @@ export async function removeLedgerRows(avID: string, rowIDs: string[], options?:
     await post("/api/av/removeAttributeViewBlocks", { avID, srcIDs: rowIDs }, options);
 }
 
-// ── 附件（asset，A2c）────────────────────────────────────────
-
-type UploadTransport = (formData: FormData, options?: TransportOptions) => Promise<IRawResponse>;
-
-let uploadTransport: UploadTransport | null = null;
-const uploadInFlight = new Map<string, { fingerprint: string; promise: Promise<IRawResponse> }>();
-const uploadCompleted = new Map<string, { expiresAt: number; fingerprint: string; response: IRawResponse }>();
-
-/** 测试注入点：替换底层上传传输（默认 fetch multipart；fetchSyncPost 不支持 FormData） */
-export function setUploadTransport(t: UploadTransport | null): void {
-    uploadTransport = t;
-    uploadInFlight.clear();
-    uploadCompleted.clear();
-}
-
-async function defaultUploadTransport(formData: FormData, options?: TransportOptions): Promise<IRawResponse> {
-    // 严禁传递包含非 ASCII 字符的自定义 Header，避免浏览器 Headers 构造抛出 non ISO-8859-1 异常
-    const res = await fetch("/api/asset/upload", { method: "POST", body: formData, signal: options?.signal });
-    if (res.status === 401 || res.status === 403) return { code: res.status, msg: "token expired" };
-    return (await res.json()) as IRawResponse;
-}
-
-/**
- * 上传文件到思源 assets（A2c），返回 { name, path } 供 asset/mAsset 列写入。
- * [待实测] 端点 /api/asset/upload 与响应 succMap 形态以 3.8.x 实例为准（实机回归第一项）。
- */
-export async function uploadAsset(file: File, assetsPath = "/assets/siyuan-home/", options?: RequestOptions): Promise<{ name: string; path: string }> {
-    const formData = new FormData();
-    // E6/192 波：内核要求的字段名是 file[]（endpoints 脚本实证；此前 "file" 在真机 succMap 为空——活体套件抓到的第二个潜在 bug）
-    formData.append("file[]", file);
-    formData.append("assetsPath", assetsPath);
-    const idempotencyKey = options?.idempotencyKey?.trim();
-    const uploadKey = idempotencyKey ? `asset.upload:${idempotencyKey}` : undefined;
-    const uploadFingerprint = `${assetsPath}\u0000${file.name}\u0000${file.size}\u0000${file.lastModified}\u0000${file.type}`;
-    if (uploadKey) {
-        const done = uploadCompleted.get(uploadKey);
-        if (done && done.expiresAt > Date.now()) {
-            if (done.fingerprint !== uploadFingerprint) throw new KernelError("asset.upload", -409, "idempotency key was already used with a different file");
-            const succMap = done.response.data?.succMap ?? {};
-            const entry = Object.entries(succMap as Record<string, string>)[0];
-            if (entry) return { name: entry[0], path: entry[1] };
-        }
-        const active = uploadInFlight.get(uploadKey);
-        if (active) {
-            if (active.fingerprint !== uploadFingerprint) throw new KernelError("asset.upload", -409, "idempotency key was already used with a different file");
-            const response = await active.promise;
-            const succMap = response.data?.succMap ?? {};
-            const entry = Object.entries(succMap as Record<string, string>)[0];
-            if (entry) return { name: entry[0], path: entry[1] };
-        }
-    }
-    let callerAborted = options?.signal?.aborted ?? false;
-    const attemptControllers = new Set<AbortController>();
-    const onAbort = () => {
-        callerAborted = true;
-        for (const controller of attemptControllers) controller.abort();
-    };
-    if (options?.signal && !callerAborted) options.signal.addEventListener("abort", onAbort, { once: true });
-    let res: IRawResponse;
-    const run = async (): Promise<IRawResponse> => {
-        // Upload responses do not carry a server-supported idempotency
-        // contract. Keep local in-flight/completed deduplication, but never
-        // replay a timed-out upload that may already have created an asset.
-        const retries = 0;
-        let lastError: unknown;
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            if (callerAborted) throw new RequestAbortedError("asset.upload");
-            const controller = new AbortController();
-            attemptControllers.add(controller);
-            let timedOut = false;
-            try {
-                const upload = (uploadTransport ?? defaultUploadTransport)(formData, {
-                    signal: controller.signal,
-                    idempotencyKey,
-                });
-                return await withTimeout(upload, Math.max(1, options?.timeoutMs ?? REQUEST_TIMEOUT_MS), "asset.upload", controller.signal, () => {
-                    timedOut = true;
-                    controller.abort();
-                });
-            } catch (error) {
-                lastError = error;
-                if (callerAborted || (controller.signal.aborted && !timedOut) || error instanceof RequestAbortedError || attempt >= retries) throw error;
-                await waitForRetryBackoff(180 * (attempt + 1), "asset.upload", options?.signal);
-            } finally {
-                attemptControllers.delete(controller);
-            }
-        }
-        throw lastError;
-    };
-    let currentUploadPromise: Promise<IRawResponse> | undefined;
-    try {
-        if (uploadKey) {
-            const active = run();
-            currentUploadPromise = active;
-            uploadInFlight.set(uploadKey, { fingerprint: uploadFingerprint, promise: active });
-            res = await active;
-            if (res.code === 0) uploadCompleted.set(uploadKey, { expiresAt: Date.now() + IDEMPOTENCY_TTL_MS, fingerprint: uploadFingerprint, response: res });
-        } else {
-            res = await run();
-        }
-    } catch (error) {
-        if (callerAborted || error instanceof RequestAbortedError) throw error;
-        if (isWriteResultUnknown(error)) {
-            throw new KernelError("asset.upload", -408, "upload result is unknown; check the asset list before retrying");
-        }
-        throw error;
-    } finally {
-        if (uploadKey) {
-            const active = uploadInFlight.get(uploadKey);
-            // Only remove our own in-flight entry; a newer caller may already
-            // have replaced it after a timeout or cancellation.
-            if (active?.promise === currentUploadPromise) uploadInFlight.delete(uploadKey);
-        }
-        if (options?.signal) options.signal.removeEventListener("abort", onAbort);
-    }
-    if (callerAborted) throw new RequestAbortedError("asset.upload");
-    if (!res || typeof res.code !== "number") throw new KernelError("asset.upload", -1, "malformed response envelope");
-    if (res.code !== 0) {
-        if (looksLikeAuthFailure(res)) {
-            dispatchAuthExpired("asset.upload", res.msg ?? "登录状态已失效");
-            throw new AuthExpiredError("asset.upload", res.code, res.msg ?? "登录状态已失效");
-        }
-        throw new KernelError("asset.upload", res.code, res.msg ?? "upload failed");
-    }
-    const succMap = res.data?.succMap ?? {};
-    const entry = Object.entries(succMap as Record<string, string>)[0];
-    if (!entry) throw new KernelError("asset.upload", -3, "no file in succMap");
-    return { name: entry[0], path: entry[1] };
-}
-
-// ── OCR（手动识别使用思源当前设备的 OCR 配置；不改变自动识别开关）──
-
-export interface OCRConfigData {
-    config: {
-        provider: string;
-        model: string;
-        auto: boolean;
-        aiModelId?: string;
-    };
-    providers: { id: string; available: boolean }[];
-    models: { id: string; name: string; builtIn: boolean }[];
-    aiModels: { id: string; name: string; provider: string }[];
-}
-
-/** 获取当前设备 OCR 设置；旧内核不支持时由调用方提供升级/设置指引。 */
-export function getOCRConfig(options?: RequestOptions): Promise<OCRConfigData> {
-    return post<OCRConfigData>("/api/asset/getOCRConfig", {}, options);
-}
-
-/** 读取资源已保存的 OCR 文本，不触发识别。 */
-export async function getImageOCRText(path: string, options?: RequestOptions): Promise<string> {
-    const data = await post<{ text?: string }>("/api/asset/getImageOCRText", { path }, options);
-    return typeof data?.text === "string" ? data.text : "";
-}
-
-/** 按当前思源 OCR 提供商识别图片；内核会保存结果并更新 OCR 索引。 */
-export async function recognizeAsset(path: string, options?: RequestOptions): Promise<{ text: string; ocrJSON: Record<string, string>[] }> {
-    const data = await post<{ text?: string; ocrJSON?: Record<string, string>[] }>("/api/asset/ocr", { path }, options);
-    return {
-        text: typeof data?.text === "string" ? data.text : "",
-        ocrJSON: Array.isArray(data?.ocrJSON) ? data.ocrJSON : [],
-    };
-}
+// ── 附件上传与 OCR 智能识别（A2c / OCR）───────────────────────
+export {
+    type UploadTransport,
+    setUploadTransport,
+    uploadAsset,
+    type OCRConfigData,
+    getOCRConfig,
+    getImageOCRText,
+    recognizeAsset,
+} from "./siyuan-asset-ocr";
 
 /** 单元格写值（value 按列类型：{type:"text",text:{content}} / {type:"date",date:{content,isNotEmpty}} / {type:"relation",relation:{blockIDs}} …）。
  * 217 波：迁移到文档化公开端点 setAttributeViewBlockAttr（itemID=render row.id，D02 一致）——

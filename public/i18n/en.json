@@ -1617,6 +1617,8 @@
     "ledger.recordAllergyIntro": "Save \"${food}\" as an allergy record in Health ledger for family tracking.",
     "ledger.recordAllergyReactionPlaceholder": "Enter reaction symptoms (e.g. skin rash, diarrhea)",
     "ledger.recordAllergySaved": "Allergy record saved to Health ledger",
+    "ledger.recordAllergyDone": "Allergy record saved to Health ledger",
+    "ledger.recordAllergyFailed": "Failed to save allergy record: ${msg}",
     "ledger.favorsReport": "Favors report",
     "ledger.favorsYearAll": "All years",
     "ledger.favorsInTotal": "Total received",

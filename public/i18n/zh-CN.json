@@ -1617,6 +1617,8 @@
     "ledger.recordAllergyIntro": "将食材「${food}」作为过敏源存入健康管理台账，便于家庭成员长期对照。",
     "ledger.recordAllergyReactionPlaceholder": "输入过敏症状（如：嘴角发红、皮疹、腹泻）",
     "ledger.recordAllergySaved": "已成功存入健康过敏档案",
+    "ledger.recordAllergyDone": "已成功存入健康过敏档案",
+    "ledger.recordAllergyFailed": "存入健康过敏档案失败：${msg}",
     "ledger.favorsReport": "人情往来报告",
     "ledger.favorsYearAll": "全量累计",
     "ledger.favorsInTotal": "收礼总额",

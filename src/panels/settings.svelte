@@ -3,7 +3,7 @@
     import { confirm } from "@/libs/dialog";
     import { listNotebooks } from "@/core/siyuan";
     import { MODULE_GROUPS, modulesByGroup, BUILT_IN_MODULES } from "@/core/modules";
-    import { newMember, saveSettings, normalizeCheckinBindings, errText } from "@/core/settings";
+    import { newMember, saveSettings, normalizeCheckinBindings } from "@/core/settings";
     import type { ProvisioningReport } from "@/core/provisioner";
     import type { HomeSettings, MemberRole, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
     import { formatLocalDateTime } from "@/core/date-display";
@@ -311,373 +311,87 @@
         plugin.loadData?.("settings.pre-import.json").then((v: unknown) => { preImportBackupExists = !!v; }).catch(() => undefined);
     });
 
-    function exportSettings() {
-        // G1：设置文件含成员档案/台账引用/提醒运行态——导出前提示保管责任
-        confirm(t("settings.exportWarningTitle"), t("settings.exportWarningBody"), () => {
-            const payload = JSON.stringify(plugin.settings, null, 2);
-            const blob = new Blob([payload], { type: "application/json" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `siyuan-home-settings-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        });
-    }
-
-    // UG02：脱敏诊断包——确认框声明内容与残余风险，本地组装下载
-    function exportDiagnostics() {
+    const exportSettings = () => import("@/core/settings-maintenance").then((m) => m.exportSettingsJson(plugin, t));
+    const exportDiagnostics = () => {
         if (exportingDiagnostics) return;
-        const diag = plugin.getDiagnostics?.();
-        if (!diag) { showMessage(t("settings.diagExportNone"), 3000, "error"); return; }
-        confirm(t("settings.diagExport"), t("settings.diagExportBody"), () => {
-            exportingDiagnostics = true;
-            import("@/core/diagnostics").then(({ buildDiagnosticPackage }) => {
-                const payload = buildDiagnosticPackage({
-                    diag,
-                    enabledModules: [...(plugin.settings.enabledModules ?? [])],
-                    platform: navigator.userAgent,
-                    generatedAt: new Date().toISOString(),
-                });
-                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `siyuan-home-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                showMessage(t("settings.diagExportDone"), 3000, "info");
-            }).catch((error) => {
-                showMessage(`${settingHint("诊断包导出失败", "Diagnostics export failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 5000, "error");
-            }).finally(() => {
-                exportingDiagnostics = false;
-            });
-        });
-    }
-
-    // D06 收尾：同名歧义人工选择对话框——按候选摘要单选，保存写 avItemId（DOM 构建用户内容，不走 HTML 模板——19 组安全）
-    function openAmbiguityDialog(ambiguous: { memberId: string; member: string; candidates: { id: string; summary: string }[] }[]) {
-        const picks: Record<number, string> = {};
-        const dlg = new Dialog({
-            title: t("diag.ambigTitle"),
-            content: `<div class="b3-dialog__content" id="lv-ambig-body" style="max-height:60vh;overflow:auto"></div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ambig-cancel">${t("cancel")}</button><button class="b3-button" id="lv-ambig-ok">${t("save")}</button></div>`,
-            width: "520px",
-        });
-        const body = dlg.element.querySelector("#lv-ambig-body") as HTMLElement;
-        let applyingAmbiguity = false;
-        ambiguous.forEach((a, ai) => {
-            const head = document.createElement("div");
-            head.className = "ft__on-surface";
-            head.style.cssText = "margin-top:10px;font-size:12px";
-            head.textContent = a.member;
-            body.appendChild(head);
-            for (const c of a.candidates) {
-                const line = document.createElement("label");
-                line.style.cssText = "display:flex;gap:6px;align-items:center;padding:2px 0 2px 14px;font-size:13px";
-                const radio = document.createElement("input");
-                radio.type = "radio";
-                radio.name = `lv-ambig-${ai}`;
-                radio.value = c.id;
-                radio.onchange = () => { picks[ai] = c.id; };
-                const sp = document.createElement("span");
-                sp.textContent = c.summary || t("diag.ambigNoInfo");
-                line.append(radio, sp);
-                body.appendChild(line);
-            }
-        });
-        (dlg.element.querySelector("#lv-ambig-cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        const ambiguityOk = dlg.element.querySelector("#lv-ambig-ok") as HTMLButtonElement;
-        ambiguityOk.onclick = async () => {
-            if (applyingAmbiguity) return;
-            applyingAmbiguity = true;
-            ambiguityOk.disabled = true;
-            const previous = cloneSettings(plugin.settings);
-            let applied = 0;
-            try {
-                ambiguous.forEach((a, ai) => {
-                    const pick = picks[ai];
-                    if (!pick) return;
-                    const m = plugin.settings.members.find((x) => x.id === a.memberId);
-                    if (m) {
-                        m.avItemId = pick;
-                        m.avRowCreatePending = undefined;
-                        m.syncError = undefined;
-                        applied++;
-                    }
-                });
-                dlg.destroy();
-                if (applied > 0) {
-                    await import("@/core/settings").then((m) => m.saveSettings(plugin as any, plugin.settings));
-                    try {
-                        await plugin.refreshHub?.(undefined, true);
-                    } catch (error) {
-                        showMessage(`${t("diag.ambigDone").replace("${n}", String(applied))} (${settingHint("刷新失败", "refresh failed")}: ${error instanceof Error ? error.message : String(error)})`, 6000, "error");
-                        return;
-                    }
-                }
-                showMessage(t("diag.ambigDone").replace("${n}", String(applied)), 3000, "info");
-            } catch (error) {
-                plugin.settings = previous;
-                showMessage(`${t("settings.saveFailed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
-                dlg.destroy();
-            } finally {
-                applyingAmbiguity = false;
-            }
-        };
-    }
-
-    async function runBackfillMemberLinks() {
+        exportingDiagnostics = true;
+        import("@/core/settings-maintenance").then((m) => m.exportDiagnosticsPackage(plugin, t, showMessage)).finally(() => { exportingDiagnostics = false; });
+    };
+    const previewDiagnostics = () => {
+        import("@/core/settings-maintenance").then((m) => m.openDiagnosticsPreviewDialog(plugin, t, Dialog, showMessage));
+    };
+    const runBackfillMemberLinks = async () => {
         if (diagnosticsBusy) return;
         diagnosticsBusy = "backfill";
-        const previous = cloneSettings(plugin.settings);
         try {
-            const { backfillMemberLinks } = await import("@/core/members");
-            const res = await backfillMemberLinks(plugin as any, plugin.settings);
-            // D06：回填结果四态——唯一回填 / 同名歧义待人工 / 无匹配 / 失效关联已清除
-            showMessage(t("diag.backfillResult")
-                .replace("${n}", String(res.linked.length))
-                .replace("${amb}", String(res.ambiguous.length))
-                .replace("${stale}", String(res.stale.length)), 6000, "info");
-            // Backfill changes the settings-side avItemId mapping used by all
-            // providers to derive memberId. Refresh only when the mapping
-            // actually changed so overview/reminders pick up ownership now.
-            if (res.linked.length > 0 || res.stale.length > 0) {
-                // The mapping has already been persisted by backfillMemberLinks.
-                // A transient scan failure must not roll the in-memory settings
-                // back to a snapshot that disagrees with disk.
-                try {
-                    await plugin.refreshHub?.(undefined, true);
-                } catch (refreshError) {
-                    showMessage(`${settingHint("关联已保存，但提醒刷新失败", "Links saved, but reminder refresh failed")}${refreshError instanceof Error ? ` (${refreshError.message})` : ""}`, 6000, "error");
-                }
-            }
-            if (res.ambiguous.length > 0) openAmbiguityDialog(res.ambiguous);
-        } catch (error) {
-            plugin.settings = previous;
-            showMessage(`${settingHint("成员关联回填失败", "Member link backfill failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+            const { executeBackfillMemberLinks } = await import("@/core/settings-maintenance");
+            await executeBackfillMemberLinks(plugin, t, Dialog, showMessage);
         } finally {
             diagnosticsBusy = null;
         }
-    }
-
-    async function runDuplicateCheck() {
+    };
+    const runDuplicateCheck = async () => {
         if (diagnosticsBusy) return;
         diagnosticsBusy = "duplicates";
         try {
-            const { findDuplicateLedgers } = await import("@/core/provisioner");
-            const dups = await findDuplicateLedgers(plugin.settings);
-            showMessage(dups.length === 0 ? t("diag.dupNone") : t("diag.dupFound").replace("${n}", String(dups.length)) + ": " + dups.map((d) => d.hpath).join(", "), 6000, dups.length ? "error" : "info");
-        } catch (error) {
-            showMessage(`${settingHint("重复台账检测失败", "Duplicate ledger check failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+            const { executeDuplicateLedgerCheck } = await import("@/core/settings-maintenance");
+            await executeDuplicateLedgerCheck(plugin, t, showMessage);
         } finally {
             diagnosticsBusy = null;
         }
-    }
-
-    async function runDeepHealthCheck() {
+    };
+    const runDeepHealthCheck = async () => {
         if (diagnosticsBusy) return;
         diagnosticsBusy = "health";
         try {
-            const { runHealthCheck } = await import("@/core/health");
-            const report = await runHealthCheck(plugin.settings, plugin.schemaCatalog ?? {});
-            const bad = report.modules.filter((m) => !m.ok);
-            const detail = bad.map((m) => `${t(`module.${m.moduleId}`)}: ${m.error ?? t("diag.healthMissingCols").replace("${n}", String(m.missingColumns?.length ?? 0))}`).join("；");
-            showMessage(
-                (detail
-                    ? t("diag.healthSummaryBad").replace("${ok}", String(report.modules.length - bad.length)).replace("${total}", String(report.modules.length)).replace("${detail}", detail)
-                    : t("diag.healthSummary").replace("${total}", String(report.modules.length))),
-                7000, bad.length ? "error" : "info");
-        } catch (error) {
-            showMessage(`${settingHint("健康检查失败", "Health check failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+            const { executeDeepHealthCheck } = await import("@/core/settings-maintenance");
+            await executeDeepHealthCheck(plugin, t, showMessage);
         } finally {
             diagnosticsBusy = null;
         }
-    }
-
-    async function rebuildAllLedgers() {
+    };
+    const rebuildAllLedgers = async () => {
         if (diagnosticsBusy) return;
         diagnosticsBusy = "rebuild";
         try {
-            await plugin.adoptHistoryLedgers?.();
-            const report = await plugin.ensureCoreLedgers();
-            try {
-                await plugin.refreshHub?.(undefined, true);
-            } catch (error) {
-                showMessage(`${t("ledger.rebuildRefreshFailed").replace("${msg}", errText(error))}`, 6000, "error");
-                return;
-            }
-            if (report.issues.length > 0) {
-                const modules = report.issues.map(({ moduleId }) => t(`module.${moduleId}`)).join(", ");
-                showMessage(t("ledger.rebuildPartial").replace("${modules}", modules), 7000, "error");
-            } else {
-                showMessage(t("diag.rebuildAllDone"), 3000, "info");
-            }
-        } catch (error) {
-            showMessage(`${t("ledger.rebuildFailed").replace("${msg}", errText(error))}`, 6000, "error");
+            const { executeRebuildAllLedgers } = await import("@/core/settings-maintenance");
+            await executeRebuildAllLedgers(plugin, t, showMessage);
         } finally {
             diagnosticsBusy = null;
         }
-    }
-
-    async function runAdoptHistoryLedgers() {
+    };
+    const runAdoptHistoryLedgers = async () => {
         if (diagnosticsBusy) return;
         diagnosticsBusy = "adopt";
         try {
-            const report = await plugin.adoptHistoryLedgers?.();
-            try {
-                await plugin.refreshHub?.(undefined, true);
-            } catch { /* ignore */ }
-            if (report && report.adoptedCount > 0) {
-                showMessage(t("diag.adoptHistoryDone").replace("${n}", String(report.adoptedCount)).replace("${modules}", report.adoptedModules.join("、")), 7000, "info");
-            } else {
-                showMessage(t("diag.adoptHistoryNone"), 4000, "info");
-            }
-        } catch (e) {
-            showMessage(errText(e), 5000, "error");
+            const { executeAdoptHistoryLedgers } = await import("@/core/settings-maintenance");
+            await executeAdoptHistoryLedgers(plugin, t, showMessage);
         } finally {
             diagnosticsBusy = null;
         }
-    }
-
-    async function rerunOnboarding() {
+    };
+    const rerunOnboarding = async () => {
         if (rerunBusy || saving || migrationBusy || demoBusy) return;
         rerunBusy = true;
-        const previous = cloneSettings(plugin.settings);
         try {
-            const next = { ...previous, onboarded: false };
-            await persistReplacement(next);
-            try {
-                await plugin.refreshHub?.(undefined, true);
-            } catch (error) {
-                // The setting is already persisted and broadcast; keep it rather
-                // than reverting disk and memory to two different states.
-                showMessage(`${settingHint("引导已重置，但提醒刷新失败", "Onboarding reset, but reminder refresh failed")} (${error instanceof Error ? error.message : String(error)})`, 6000, "error");
-                return;
-            }
-            showMessage(t("wiz.rerunHint"), 3000, "info");
-        } catch (error) {
-            // persistReplacement restores the in-memory snapshot when the write
-            // itself fails; retain the explicit assignment for non-standard test
-            // doubles that reject before entering its helper.
-            plugin.settings = previous;
-            showMessage(`${settingHint("重置引导失败", "Unable to reset onboarding")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+            const { executeRerunOnboarding } = await import("@/core/settings-maintenance");
+            await executeRerunOnboarding(plugin, t, showMessage, persistReplacement);
         } finally {
             rerunBusy = false;
         }
-    }
-
-    async function restorePreImport() {
+    };
+    const restorePreImport = async () => {
         if (migrationBusy || saving) return;
-        confirm(t("settings.restoreTitle"), t("settings.restoreBody"), async () => {
-            if (migrationBusy || saving) return;
-            migrationBusy = true;
-            migrationAction = "restore";
-            try {
-                const backup = await plugin.loadData?.("settings.pre-import.json");
-                if (!backup || !Array.isArray((backup as any).enabledModules) || !Array.isArray((backup as any).members)
-                    || !(backup as any).dbRefs || typeof (backup as any).dbRefs !== "object") {
-                    throw new Error("invalid pre-import settings backup");
-                }
-                await persistReplacement(backup as HomeSettings);
-                let followupError: unknown;
-                let provisioningWarning = "";
-                try {
-                    provisioningWarning = describeProvisioningIssues(await plugin.ensureCoreLedgers?.());
-                    await plugin.refreshHub?.(undefined, true);
-                } catch (error) {
-                    followupError = error;
-                }
-                const warnings = [
-                    provisioningWarning,
-                    followupError ? `${settingHint("后续刷新失败", "follow-up refresh failed")}: ${followupError instanceof Error ? followupError.message : String(followupError)}` : "",
-                ].filter(Boolean);
-                showMessage(
-                    warnings.length > 0
-                        ? `${t("settings.restoreDone")}（${warnings.join("；")}）`
-                        : t("settings.restoreDone"),
-                    warnings.length > 0 ? 7000 : 3000,
-                    warnings.length > 0 ? "error" : "info",
-                );
-            } catch (e) {
-                const prefix = (e as Error & { settingsPersistFailed?: boolean }).settingsPersistFailed
-                    ? t("settings.saveFailed") : settingHint("恢复失败", "Restore failed");
-                showMessage(`${prefix}${e instanceof Error ? ` (${e.message})` : ""}`, 5000, "error");
-            } finally {
-                migrationBusy = false;
-                migrationAction = null;
-            }
-        });
-    }
-
-    async function importSettings(e: Event) {
+        const { executeRestorePreImport } = await import("@/core/settings-maintenance");
+        await executeRestorePreImport(plugin, t, showMessage, persistReplacement);
+    };
+    const importSettings = async (e: Event) => {
         const file = (e.target as HTMLInputElement).files?.[0];
-        (e.target as HTMLInputElement).value = ""; // 允许重复选择同一文件
+        (e.target as HTMLInputElement).value = "";
         if (!file) return;
-        try {
-            const data = JSON.parse(await file.text());
-            // 形状校验（33.2：坏文件拒绝导入，不覆盖当前设置）
-            if (!Array.isArray(data?.enabledModules) || !Array.isArray(data?.members) || !data?.dbRefs || typeof data.dbRefs !== "object") {
-                throw new Error("invalid settings shape");
-            }
-            confirm(t("settings.importTitle"), t("settings.importBody").replace("${file}", file.name), async () => {
-                if (migrationBusy || saving) return;
-                migrationBusy = true;
-                migrationAction = "import";
-                try {
-                    // UG03/DL07：覆盖前自动备份当前设置（可经"恢复导入前设置"一键回滚）
-                    let backupError: unknown;
-                    try {
-                        if (!plugin.saveData) throw new Error("settings backup storage unavailable");
-                        await plugin.saveData("settings.pre-import.json", cloneSettings(plugin.settings));
-                        preImportBackupExists = true;
-                    } catch (error) {
-                        backupError = error;
-                    }
-                    // 24 组/16 轮：导入归一化——未知模块剔除进报告、成员字段修复，不再静默丢弃
-                    const { normalizeImportedSettings } = await import("@/core/settings");
-                    const norm = normalizeImportedSettings(data);
-                    try {
-                        await persistReplacement(norm.settings);
-                    } catch (error) {
-                        throw Object.assign(error instanceof Error ? error : new Error(String(error)), { settingsPersistFailed: true });
-                    }
-                    let followupError: unknown;
-                    let provisioningWarning = "";
-                    try {
-                        provisioningWarning = describeProvisioningIssues(await plugin.ensureCoreLedgers?.());
-                        await plugin.refreshHub?.(undefined, true);
-                    } catch (error) {
-                        followupError = error;
-                    }
-                    const result = norm.droppedModules.length > 0 || norm.repairedMembers > 0
-                        ? t("settings.importNormalized")
-                            .replace("${m}", String(norm.droppedModules.length))
-                            .replace("${r}", String(norm.repairedMembers))
-                        : t("settings.importDone");
-                    const warnings: string[] = [];
-                    if (backupError) warnings.push(`${settingHint("导入前备份失败", "pre-import backup failed")}: ${backupError instanceof Error ? backupError.message : String(backupError)}`);
-                    if (provisioningWarning) warnings.push(provisioningWarning);
-                    if (followupError) warnings.push(`${settingHint("后续刷新失败", "follow-up refresh failed")}: ${followupError instanceof Error ? followupError.message : String(followupError)}`);
-                    showMessage(
-                        warnings.length > 0
-                            ? `${result} (${warnings.join("; ")})`
-                            : result,
-                        warnings.length > 0 ? 7000 : (norm.droppedModules.length || norm.repairedMembers ? 6000 : 3000),
-                        warnings.length > 0 ? "error" : "info",
-                    );
-                }
-                catch (err) {
-                    const prefix = (err as Error & { settingsPersistFailed?: boolean }).settingsPersistFailed
-                        ? t("settings.saveFailed") : t("settings.importBad");
-                    showMessage(`${prefix}${err instanceof Error ? ` (${err.message})` : ""}`, 6000, "error");
-                } finally {
-                    migrationBusy = false;
-                    migrationAction = null;
-                }
-            });
-        } catch (err) {
-            showMessage(`${t("settings.importBad")}${err instanceof Error ? ` (${err.message})` : ""}`, 5000, "error");
-        }
-    }
+        const { executeImportSettings } = await import("@/core/settings-maintenance");
+        await executeImportSettings(file, plugin, t, showMessage, persistReplacement);
+    };
 
     async function save() {
         if (saving || migrationBusy) return;
@@ -754,62 +468,29 @@
         }
     }
 
-    async function generateDemo() {
+    const generateDemo = async () => {
         if (demoBusy || saving || migrationBusy) return;
         demoBusy = true;
         demoAction = "generate";
         try {
-            const { generateDemoData } = await import("@/core/demo");
-            const res = await generateDemoData(plugin as any, plugin.settings, plugin.schemaCatalog ?? {});
-            if (res.alreadyPresent) {
-                showMessage(t("settings.demoExists"), 4000, "info");
-                return;
-            }
-            let refreshError: unknown;
-            try { await plugin.refreshHub?.(undefined, true); }
-            catch (e) { refreshError = e; }
-            const details = [...res.errors.slice(0, 3)];
-            if (refreshError) details.push(`${settingHint("提醒刷新失败", "reminder refresh failed")}: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
-            const partial = res.errors.length > 0 || !!refreshError;
-            const summary = res.errors.length
-                ? t("settings.demoPartial").replace("${n}", String(res.errors.length))
-                : t("settings.demoDone").replace("${n}", String(res.created));
-            showMessage(details.length ? `${summary}: ${details.join("; ")}` : summary, partial ? 7000 : 5000, partial ? "error" : "info");
-        } catch (e) {
-            showMessage(t("settings.demoActionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            const { executeGenerateDemo } = await import("@/core/settings-maintenance");
+            await executeGenerateDemo(plugin, t, showMessage);
         } finally {
             demoBusy = false;
             demoAction = null;
         }
-    }
-
-    function clearDemo() {
+    };
+    const clearDemo = () => {
         if (demoBusy || saving || migrationBusy) return;
-        confirm(t("settings.demoClearTitle"), t("settings.demoClearBody"), async () => {
-            if (demoBusy || saving || migrationBusy) return;
-            demoBusy = true;
-            demoAction = "clear";
-            try {
-                const { clearDemoData } = await import("@/core/demo");
-                const res = await clearDemoData(plugin as any, plugin.settings);
-                let refreshError: unknown;
-                try { await plugin.refreshHub?.(undefined, true); }
-                catch (e) { refreshError = e; }
-                const details = [...res.errors.slice(0, 3)];
-                if (refreshError) details.push(`${settingHint("提醒刷新失败", "reminder refresh failed")}: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
-                const partial = res.errors.length > 0 || !!refreshError;
-                const summary = res.errors.length
-                    ? t("settings.demoClearPartial").replace("${n}", String(res.cleared)).replace("${m}", String(res.errors.length))
-                    : t("settings.demoClearDone").replace("${n}", String(res.cleared));
-                showMessage(details.length ? `${summary}: ${details.join("; ")}` : summary, partial ? 7000 : 6000, partial ? "error" : "info");
-            } catch (e) {
-                showMessage(t("settings.demoActionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-            } finally {
-                demoBusy = false;
-                demoAction = null;
-            }
+        demoBusy = true;
+        demoAction = "clear";
+        import("@/core/settings-maintenance").then((m) => {
+            m.executeClearDemo(plugin, t, showMessage);
+        }).finally(() => {
+            demoBusy = false;
+            demoAction = null;
         });
-    }
+    };
 </script>
 
 <div class="lv-home lv-settings">
@@ -1167,6 +848,7 @@
                         {/each}
                     {/if}
                     <div class="lv-setcard__actions" style="margin-top:8px">
+                        <button class="b3-button b3-button--outline" onclick={previewDiagnostics}>🔍 {t("settings.diagPreview")}</button>
                         <button class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={exportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
                         {#if (plugin.settings.members ?? []).some((m) => !m.avItemId || m.syncError)}
                             <button class="b3-button b3-button--outline"

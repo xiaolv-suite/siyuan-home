@@ -1,0 +1,347 @@
+/**
+ * 台账行详情抽屉跨模块流转与快捷入库流
+ * 包含：
+ * 1. 处方流转入药箱 (Rx to Medicine)
+ * 2. 采购条目药箱入库加减库存 (Shopping Stock-In)
+ * 3. 采购条目转固定资产档案 (Shopping to Asset-Real)
+ */
+
+import { confirm } from "@/libs/dialog";
+
+export interface RxToMedicineButtonOptions {
+    body: HTMLElement;
+    row: any;
+    ref: { avId?: string; columns?: Record<string, string> };
+    active: string;
+    plugin: any;
+    t: (k: string) => string;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+    cellTextFn: (cell: any, key?: string) => string;
+}
+
+/**
+ * 就医台账：处方流转入药箱快捷按钮
+ */
+export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): void {
+    if (typeof document === "undefined") return;
+    const { body, row, ref, active, plugin, t, showMessageFn, cellTextFn } = options;
+    if (active !== "health" || !ref?.columns) return;
+    const medRef = plugin.settings?.dbRefs?.["medicine"];
+    if (!medRef?.avId) return;
+    const name = String(cellTextFn(row.cells?.[ref.columns.name]));
+    if (!name || name === "—") return;
+
+    const btn = document.createElement("button");
+    btn.className = "b3-button b3-button--outline";
+    btn.style.cssText = "margin-top:8px;font-size:12px";
+    btn.textContent = t("ledger.rxToMedicine");
+
+    let pendingMedicineID: string | null = null;
+    let medicineOperationKey: string | null = null;
+
+    btn.onclick = () => {
+        if (btn.disabled) return;
+        confirm(t("ledger.rxToMedicine"), t("ledger.rxToMedicineBody").replace("${name}", name), async () => {
+            btn.disabled = true;
+            try {
+                const { addDetachedRow, setCell } = await import("./siyuan");
+                const { selectCellValue } = await import("./avcell");
+                if (!medicineOperationKey) medicineOperationKey = `ledger:rx-to-medicine:${row.itemID}:${Date.now()}`;
+                const itemID = pendingMedicineID ?? await addDetachedRow(medRef.avId!, name, {
+                    idempotencyKey: `${medicineOperationKey}:row`,
+                    retries: 1,
+                });
+                pendingMedicineID = itemID;
+                const catKey = medRef.columns?.category;
+                if (catKey) await setCell(medRef.avId!, catKey, itemID, selectCellValue("rx"), {
+                    idempotencyKey: `${medicineOperationKey}:category`,
+                    retries: 1,
+                });
+                const memKey = medRef.columns?.member;
+                const relBlock = row.cells?.[ref.columns!.member]?.relation?.blockIDs?.[0];
+                if (memKey && relBlock) await setCell(medRef.avId!, memKey, itemID, { type: "relation", relation: { blockIDs: [relBlock], contents: null } }, {
+                    idempotencyKey: `${medicineOperationKey}:member`,
+                    retries: 1,
+                });
+                showMessageFn(t("ledger.rxToMedicineDone").replace("${name}", name), 3000, "info");
+                pendingMedicineID = null;
+                medicineOperationKey = null;
+            } catch (e) {
+                showMessageFn(t("ledger.rxToMedicineFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                btn.disabled = false;
+            }
+        });
+    };
+    body.appendChild(btn);
+}
+
+export interface StockInButtonOptions {
+    body: HTMLElement;
+    row: any;
+    ref: { avId?: string; columns?: Record<string, string> };
+    active: string;
+    plugin: any;
+    t: (k: string) => string;
+    DialogCls: any;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+    cellTextFn: (cell: any, key?: string) => string;
+}
+
+/**
+ * 采购清单：药箱入库加减库存按钮与对齐弹窗
+ */
+export function renderStockInButton(options: StockInButtonOptions): void {
+    if (typeof document === "undefined") return;
+    const { body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn } = options;
+    if (active !== "shopping" || !ref?.columns) return;
+    const medRef = plugin.settings?.dbRefs?.["medicine"];
+    if (!medRef?.avId) return;
+    const name = String(cellTextFn(row.cells?.[ref.columns.name]));
+    if (!name || name === "—") return;
+    const qtyRaw = cellTextFn(row.cells?.[ref.columns.qty]);
+    const qty = qtyRaw !== "—" && qtyRaw !== "" && Number.isFinite(Number(qtyRaw)) && Number(qtyRaw) > 0 ? Number(qtyRaw) : 1;
+
+    const btn = document.createElement("button");
+    btn.className = "b3-button b3-button--outline";
+    btn.style.cssText = "margin-top:8px;font-size:12px";
+    btn.textContent = t("ledger.stockIn");
+
+    let pendingStockItemID: string | null = null;
+    let stockOperationKey: string | null = null;
+    let stockWrite: { itemID: string; value: number; idempotencyKey: string } | null = null;
+    let stockInBusy = false;
+
+    btn.onclick = async () => {
+        if (stockInBusy) return;
+        stockInBusy = true;
+        btn.disabled = true;
+        try {
+            const { renderLedgerAll, addDetachedRow, setCell } = await import("./siyuan");
+            const res = await renderLedgerAll(medRef.avId!);
+            if (!res.complete) throw new Error(t("ledger.loadIncomplete"));
+            const nameKey = medRef.columns?.name;
+            const stockKey = medRef.columns?.stock ?? medRef.columns?.stock_qty;
+            if (!nameKey || !stockKey) throw new Error("stock column is unavailable");
+
+            const matches = res.rows.filter((r) => String(cellTextFn(r.cells?.[nameKey])).trim() === name);
+            const dialog = new DialogCls({
+                title: t("ledger.stockIn"),
+                content: `<div class="b3-dialog__content"><p class="ft__on-surface" id="lv-stockin-body" style="font-size:13px;line-height:1.6"></p></div>
+<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-stockin-cancel">${t("cancel")}</button><button class="b3-button" id="lv-stockin-ok">${t("save")}</button></div>`,
+                width: "420px",
+                destroyCallback: () => {
+                    if (!stockCommitted) {
+                        stockInBusy = false;
+                        btn.disabled = false;
+                    }
+                },
+            });
+            let stockCommitted = false;
+            const bodyEl = dialog.element.querySelector("#lv-stockin-body") as HTMLElement;
+            if (bodyEl) bodyEl.textContent = t("ledger.stockInBody").replace("${name}", name).replace("${qty}", String(qty)).replace("${n}", String(matches.length));
+            const cancel = dialog.element.querySelector("#lv-stockin-cancel") as HTMLButtonElement;
+            const ok = dialog.element.querySelector("#lv-stockin-ok") as HTMLButtonElement;
+            if (cancel) cancel.onclick = () => { dialog.destroy(); stockInBusy = false; btn.disabled = false; };
+            if (ok) {
+                ok.onclick = async () => {
+                    if (ok.disabled) return;
+                    ok.disabled = true;
+                    if (cancel) cancel.disabled = true;
+                    try {
+                        const latest = await renderLedgerAll(medRef.avId!);
+                        if (!latest.complete) throw new Error(t("ledger.loadIncomplete"));
+                        const latestMatches = nameKey ? latest.rows.filter((r) => String(r.cells?.[nameKey]?.text?.content ?? "").trim() === name) : [];
+                        const target = stockWrite ? { itemID: stockWrite.itemID, cells: {} as any } : latestMatches[0];
+                        if (!stockOperationKey) stockOperationKey = `ledger:stock-in:${row.itemID}:${Date.now()}`;
+                        if (target) {
+                            if (!stockWrite) {
+                                const cur = target.cells?.[stockKey]?.number;
+                                const curVal = cur?.isNotEmpty && typeof cur.content === "number" ? cur.content : 0;
+                                stockWrite = { itemID: target.itemID, value: curVal + qty, idempotencyKey: `${stockOperationKey}:cell:${target.itemID}` };
+                            }
+                            await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
+                                idempotencyKey: stockWrite.idempotencyKey,
+                                retries: 1,
+                            });
+                        } else {
+                            const itemID = pendingStockItemID ?? await addDetachedRow(medRef.avId!, name, {
+                                idempotencyKey: `${stockOperationKey}:row`,
+                                retries: 1,
+                            });
+                            pendingStockItemID = itemID;
+                            if (!stockWrite) stockWrite = { itemID, value: qty, idempotencyKey: `${stockOperationKey}:cell:${itemID}` };
+                            await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
+                                idempotencyKey: stockWrite.idempotencyKey,
+                                retries: 1,
+                            });
+                            pendingStockItemID = null;
+                        }
+                        stockCommitted = true;
+                        stockOperationKey = null;
+                        stockWrite = null;
+                        dialog.destroy();
+                        try {
+                            await plugin.refreshHub?.(["medicine"]);
+                        } catch { /* soft */ }
+                        showMessageFn(t("ledger.stockInDone"), 3000, "info");
+                    } catch (e) {
+                        showMessageFn(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        ok.disabled = false;
+                        if (cancel) cancel.disabled = false;
+                    } finally {
+                        stockInBusy = false;
+                        btn.disabled = false;
+                    }
+                };
+            }
+        } catch (e) {
+            showMessageFn(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            stockInBusy = false;
+            btn.disabled = false;
+        }
+    };
+    body.appendChild(btn);
+}
+
+export interface ShoppingToAssetButtonOptions {
+    body: HTMLElement;
+    row: any;
+    ref: { avId?: string; columns?: Record<string, string> };
+    active: string;
+    plugin: any;
+    t: (k: string) => string;
+    DialogCls: any;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+    cellTextFn: (cell: any, key?: string) => string;
+}
+
+/**
+ * 采购清单：一键转固定资产档案
+ */
+export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOptions): void {
+    if (typeof document === "undefined") return;
+    const { body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn } = options;
+    if (active !== "shopping" || !ref?.columns) return;
+    const assetsRef = plugin.settings?.dbRefs?.["assets-real"];
+    if (!assetsRef?.avId || !assetsRef.columns) return;
+    const name = String(cellTextFn(row.cells?.[ref.columns.name]));
+    if (!name || name === "—") return;
+
+    const btn = document.createElement("button");
+    btn.className = "b3-button b3-button--outline";
+    btn.style.cssText = "margin-top:8px;margin-left:6px;font-size:12px";
+    btn.textContent = t("ledger.shoppingToAsset");
+
+    let busy = false;
+    btn.onclick = async () => {
+        if (busy) return;
+        busy = true;
+        btn.disabled = true;
+        try {
+            const { mapShoppingToAssetReal } = await import("./valuation");
+            const draft = mapShoppingToAssetReal(row, ref.columns!);
+
+            const catOptions = [
+                { val: "digital", label: "数码电子" },
+                { val: "appliance", label: "家用电器" },
+                { val: "furniture", label: "家具家居" },
+                { val: "apparel", label: "服饰箱包" },
+                { val: "collection", label: "潮玩收藏" },
+                { val: "sports", label: "运动户外" },
+                { val: "other_ar", label: "其他资产" },
+            ].map((c) => `<option value="${c.val}" ${c.val === draft.suggestedCategory ? "selected" : ""}>${c.label}</option>`).join("");
+
+            const dlg = new DialogCls({
+                title: t("ledger.shoppingToAssetTitle"),
+                content: `<div class="b3-dialog__content lv-dialog-col" style="display:flex;flex-direction:column;gap:10px;padding:12px">
+                    <p class="lv-caption" style="margin:0">${t("ledger.shoppingToAssetIntro")}</p>
+                    <label style="display:flex;flex-direction:column;gap:4px">
+                        <span class="lv-caption">${t("field.name")}</span>
+                        <input class="b3-text-field" id="lv-s2a-name" value="${draft.name}" style="width:100%" />
+                    </label>
+                    <label style="display:flex;flex-direction:column;gap:4px">
+                        <span class="lv-caption">${t("field.category")}</span>
+                        <select class="b3-select" id="lv-s2a-cat" style="width:100%">${catOptions}</select>
+                    </label>
+                    <label style="display:flex;flex-direction:column;gap:4px">
+                        <span class="lv-caption">${t("field.amount")}</span>
+                        <input class="b3-text-field" id="lv-s2a-amount" type="number" value="${draft.amount ?? ""}" style="width:100%" />
+                    </label>
+                </div>
+                <div class="b3-dialog__action">
+                    <button class="b3-button b3-button--cancel" id="lv-s2a-cancel">${t("cancel")}</button>
+                    <button class="b3-button" id="lv-s2a-save">${t("save")}</button>
+                </div>`,
+                width: "420px",
+            });
+
+            const cancelBtn = dlg.element.querySelector("#lv-s2a-cancel") as HTMLButtonElement | null;
+            if (cancelBtn) {
+                cancelBtn.onclick = () => {
+                    dlg.destroy();
+                    busy = false;
+                    btn.disabled = false;
+                };
+            }
+
+            const saveBtn = dlg.element.querySelector("#lv-s2a-save") as HTMLButtonElement | null;
+            if (saveBtn) {
+                saveBtn.onclick = async function (this: HTMLButtonElement) {
+                    const nameVal = (dlg.element.querySelector("#lv-s2a-name") as HTMLInputElement)?.value.trim() || draft.name;
+                    const catVal = (dlg.element.querySelector("#lv-s2a-cat") as HTMLSelectElement)?.value || draft.suggestedCategory;
+                    const amtVal = Number((dlg.element.querySelector("#lv-s2a-amount") as HTMLInputElement)?.value) || draft.amount;
+
+                    this.disabled = true;
+                    dlg.destroy();
+                    try {
+                        const { addDetachedRow, setCell } = await import("./siyuan");
+                        const rowId = await addDetachedRow(assetsRef.avId!, nameVal);
+                        if (assetsRef.columns.category) {
+                            await setCell(assetsRef.avId!, assetsRef.columns.category, rowId, {
+                                type: "select", select: { content: catVal },
+                            });
+                        }
+                        if (assetsRef.columns.amount && typeof amtVal === "number" && Number.isFinite(amtVal)) {
+                            await setCell(assetsRef.avId!, assetsRef.columns.amount, rowId, {
+                                type: "number", number: { content: amtVal, isNotEmpty: true },
+                            });
+                        }
+                        if (assetsRef.columns.date && draft.date) {
+                            await setCell(assetsRef.avId!, assetsRef.columns.date, rowId, {
+                                type: "date", date: { content: draft.date, isNotEmpty: true },
+                            });
+                        }
+                        if (assetsRef.columns.channel && draft.channel) {
+                            await setCell(assetsRef.avId!, assetsRef.columns.channel, rowId, {
+                                type: "text", text: { content: draft.channel },
+                            });
+                        }
+                        if (assetsRef.columns.member && draft.memberId) {
+                            await setCell(assetsRef.avId!, assetsRef.columns.member, rowId, {
+                                type: "relation", relation: { blockIDs: [draft.memberId] },
+                            });
+                        }
+                        if (assetsRef.columns.note) {
+                            const noteContent = draft.note ? `${draft.note} (来自购物记录)` : "来自购物记录";
+                            await setCell(assetsRef.avId!, assetsRef.columns.note, rowId, {
+                                type: "text", text: { content: noteContent },
+                            });
+                        }
+                        showMessageFn(t("ledger.shoppingToAssetDone").replace("${name}", nameVal), 3500, "info");
+                        btn.textContent = `✓ ${t("ledger.shoppingToAssetDoneShort")}`;
+                        btn.disabled = true;
+                    } catch (err) {
+                        showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
+                        busy = false;
+                        btn.disabled = false;
+                    }
+                };
+            }
+        } catch (e) {
+            showMessageFn(t("ledger.logReadFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            busy = false;
+            btn.disabled = false;
+        }
+    };
+    body.appendChild(btn);
+}

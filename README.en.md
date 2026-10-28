@@ -39,24 +39,25 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.165 (Local Ready Build)
+## 🆕 What's new in v0.5.166 (Local Ready Build)
 
-This release modularizes 6 domain-specific smart analysis cards into `src/core/drawer-domain-sections.ts`, slimming `src/core/drawer-module-sections.ts` to 265 lines:
+This release modularizes cross-ledger conversion pipelines into `src/core/drawer-conversions.ts`, slimming `src/core/drawer-sections.ts` to 380 lines:
 
-- **Refactoring (Modularized 6 Domain Analysis Cards)**: Extracted `src/core/drawer-domain-sections.ts` (600+ lines), encapsulating rich visual cards and workflows:
-  1. House warranty contracts matching (`renderHouseWarrantySection`)
-  2. Food dietary conflicts & allergen inspection with ingredients copying (`renderFoodDietarySection`)
-  3. Schooling stage & graduation countdown progress (`renderSchoolingStageSection`)
-  4. Pet care & human-equivalent age evaluation (`renderPetCareSection`)
-  5. Infant feeding observation & health ledger allergy recording modal (`renderParentingFeedingSection`)
-  6. Social member retirement career milestone calculation (`renderSocialRetirementSection`)
-- **Performance**: Drawer module section router `src/core/drawer-module-sections.ts` down to **265 lines** (trimmed 459 lines from 724 lines, a 63.4% reduction);
-- **Bugfix**: Resolved duplicate schooling branch handling so schooling stage progress is cleanly mounted alongside transfers;
-- **Test Milestone**: 140 test suites, **968 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Cross-Ledger Conversions)**: Extracted `src/core/drawer-conversions.ts` (340+ lines), encapsulating 3 key workflows:
+  1. Prescription to medicine ledger linking (`renderRxToMedicineButton`)
+  2. Shopping list medicine stock-in wizard with quantity reconciliation dialog (`renderStockInButton`)
+  3. One-click conversion from shopping item to fixed asset real archive (`renderShoppingToAssetButton`)
+- **Performance**: Drawer sections core `src/core/drawer-sections.ts` down to **380 lines** (trimmed 328 lines from 708 lines, a 46.3% reduction);
+- **Drawer Codebase Health**: All detail drawer components and sections are now cleanly modularized between 200 and 640 lines;
+- **Test Milestone**: 141 test suites, **970 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.165 (Local Ready Build)
+- Extracted `src/core/drawer-domain-sections.ts` for 6 domain analysis cards;
+- `src/core/drawer-module-sections.ts` down to 265 lines, unit tests at 968 passing.
 
 ### v0.5.164 (Local Ready Build)
 - Extracted `src/core/schema-catalog.ts` for 31-module schemas and column factories;

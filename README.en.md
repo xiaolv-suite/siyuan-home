@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.162 (Local Ready Build)
+## 🆕 What's new in v0.5.163 (Local Ready Build)
 
-This release modularizes the quick capture save transaction engine into `src/core/quick-capture-saver.ts`, taking `src/panels/quick-capture.svelte` down to 637 lines:
+This release modularizes the vehicle energy section and consumption charts into `src/core/vehicle-energy-section.ts`, taking `src/core/vehicle-drawer.ts` down to 393 lines:
 
-- **Refactoring (Modularized Quick Capture Saver Engine)**: Extracted `src/core/quick-capture-saver.ts` (220+ lines), encapsulating input validation, member relation integrity checks, target ledger verification and auto-repair, `RowIdentityPendingError` reconciliation, atomic row additions with `idempotencyKey` retry setCell updates, runtime preference persistence, and forced hub scans;
-- **Performance**: Quick capture screen `src/panels/quick-capture.svelte` dropped to **637 lines** (accumulating over 220 lines trimmed from original 860+ lines, a 26% reduction);
-- **Test Milestone**: 138 test suites, **964 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Vehicle Energy Section & Analytics)**: Extracted `src/core/vehicle-energy-section.ts` (410+ lines), encapsulating fuel/charging log dialogs, smooth bezier curves (`pointsToSmoothBezierPath`, `pointsToAreaBezierPath`), monthly expense bar charts, and entry actions;
+- **Performance**: Vehicle drawer `src/core/vehicle-drawer.ts` dropped to **393 lines** (accumulating over 333 lines trimmed from original 726 lines, a 45.9% reduction);
+- **Test Milestone**: 139 test suites, **966 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.162 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.163 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     buildArchiveManifest,
     formatArchiveManifestMarkdown,
+    formatArchiveManifestTableMarkdown,
     type ArchiveRecordItem,
 } from "@/core/archive";
 
@@ -87,6 +88,16 @@ describe("core/archive 重要凭据与合同附件离线归档（303波）", () 
             const manifest = buildArchiveManifest([]);
             const md = formatArchiveManifestMarkdown(manifest);
             expect(md).toContain("当前范围无带附件的凭据或合同记录");
+        });
+
+        it("formatArchiveManifestTableMarkdown 输出思源原生富表格与表头固定属性", () => {
+            const manifest = buildArchiveManifest(mockRecords, { generatedAt: "2026-10-20" });
+            const tableMd = formatArchiveManifestTableMarkdown(manifest);
+
+            expect(tableMd).toContain("| 业务模块 | 事项名称 | 归属成员 | 业务日期 | 效期/到期 | 凭证与合同附件 |");
+            expect(tableMd).toContain("李明普通护照");
+            expect(tableMd).toContain("[护照信息页.jpg](assets/passport-front.jpg)");
+            expect(tableMd).toContain('{: custom-sy-table-rich="true" custom-sy-table-header-row="true" }');
         });
     });
 });

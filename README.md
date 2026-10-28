@@ -18,20 +18,21 @@
 
 ---
 
-## 本次更新（v0.5.131 → v0.5.132）
+## 本次更新（v0.5.132 → v0.5.133）
 
-本次更新对齐 Task Horizon (任务视界) 属性标准并打通 tm:task-completed 反向核销（Issue #137 落实）：
-- **特性（对齐 Task Horizon 任务视界自定义属性标准）**：
-  - 增强 `src/core/block-capture.ts` 中的 `formatAsTaskBlock`，支持 Task Horizon 标准自定义属性集（`custom-status="todo"`、`custom-priority="high"`、`custom-completion-time`、`custom-remark` 关联管家行引用）；
-  - 全面打通 `overview.svelte`（总览）、`reminders.svelte`（提醒中枢及批量复制）与 `calendar.svelte`（日历），复制或同步的任务块可无缝自动流入任务视界的日历、甘特图与四象限看板；
-- **特性（监听 tm:task-completed 实现生活待办反向核销）**：
-  - 在 `src/index.ts` 中实现 `markReminderDoneByBlockId`，打通监听 Task Horizon 任务完成事件 `tm:task-completed`；
-  - 当用户在 Task Horizon 中打勾完成生活缴费或维保任务时，管家自动将对应的到期提醒核销为已办理，并同步记录打卡流水与即时更新生活指数；
-- **测试（全量 859 项单测与五层质量门禁 100% 全绿）**：
-  - 新增 Task Horizon 任务属性构造及反向事件核销自动化单元测试，全仓 859 项单测全部全绿，五层静态门禁无警告。
+本次更新带来归档清单思源原生富表格属性升级，Issue #137 正式闭环验收：
+- **特性（归档清单全面升级思源原生富表格支持）**：
+  - 在 `src/core/archive.ts` 中实现 `formatArchiveManifestTableMarkdown`，支持将资产、保单、合同及重要证件清单一键生成为带原生富表格属性（`custom-sy-table-rich="true" custom-sy-table-header-row="true"`）的对比汇总大表；
+  - 表头首行在思源中自动吸顶固定，单元格内完整支持保单与发票附件超链接，大幅提升大表浏览与复盘体验；
+- **治理（正式闭环验收 Issue #137）**：
+  - Issue #137（生态联邦协同与排雷规范）中 P0（关键词与大窗）、P1（iconLvHome与人脉打卡联邦）、P2（样式隔离与快捷键精简）及 Task Horizon 双向闭环与富表格等需求全部达成；
+- **测试（全量 860 项单测与五层质量门禁 100% 全绿）**：
+  - 新增富表格生成测试，全仓 860 项单测全部全绿，五层静态门禁无警告。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+- **v0.5.132**：对齐 Task Horizon 属性标准与 tm:task-completed 反向核销联动闭环。
 
 - **v0.5.131**：彻底根治属性写入 key not found 死锁自愈、顶栏主导航对称居中修复。
 
@@ -113,9 +114,9 @@
 
 ## 当前版本能做什么
 
-当前发布版本为 v0.5.132，主要流程是“成员 → 台账记录 → 到期提醒 → 回到来源继续办理”。车辆模块在此基础上增加“车辆档案 → 能源/维护流水 → 成本与趋势 → 日期/里程提醒”。插件提供四个主页面：总览、提醒、台账和成员。发布验证记录见 [CHANGELOG](./CHANGELOG.md)。
+当前发布版本为 v0.5.133，主要流程是“成员 → 台账记录 → 到期提醒 → 回到来源继续办理”。车辆模块在此基础上增加“车辆档案 → 能源/维护流水 → 成本与趋势 → 日期/里程提醒”。插件提供四个主页面：总览、提醒、台账和成员。发布验证记录见 [CHANGELOG](./CHANGELOG.md)。
 
-带有 v0.5.132 标签的 package.zip 是当前 GitHub 发布包；本版当前单测基线为 859 项。
+带有 v0.5.133 标签的 package.zip 是当前 GitHub 发布包；本版当前单测基线为 860 项。
 
 | 页面 | 当前能力 |
 |---|---|

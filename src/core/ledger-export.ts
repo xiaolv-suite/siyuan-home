@@ -133,7 +133,7 @@ export async function exportArchiveManifestFile(options: ExportArchiveManifestOp
             return;
         }
 
-        const { buildArchiveManifest, formatArchiveManifestMarkdown } = await import("./archive");
+        const { buildArchiveManifest, formatArchiveManifestMarkdown, formatArchiveManifestTableMarkdown } = await import("./archive");
         const memberMap = new Map(members.map((m) => [m.avItemId, m.name]));
 
         const records = all.rows.map((row) => {
@@ -160,7 +160,7 @@ export async function exportArchiveManifestFile(options: ExportArchiveManifestOp
         const manifest = buildArchiveManifest(records, {
             maskSensitive: guestModeActive,
         });
-        const md = formatArchiveManifestMarkdown(manifest, t);
+        const md = `${formatArchiveManifestMarkdown(manifest, t)}\n\n## 📊 归档汇总对比富表格\n\n${formatArchiveManifestTableMarkdown(manifest, t)}`;
         const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);

@@ -39,14 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.163 (Local Ready Build)
+## 🆕 What's new in v0.5.164 (Local Ready Build)
 
-This release modularizes the vehicle energy section and consumption charts into `src/core/vehicle-energy-section.ts`, taking `src/core/vehicle-drawer.ts` down to 393 lines:
+This release modularizes the 31 life module declarative schemas into `src/core/schema-catalog.ts`, reducing core `src/core/schema.ts` to 172 lines:
 
-- **Refactoring (Modularized Vehicle Energy Section & Analytics)**: Extracted `src/core/vehicle-energy-section.ts` (410+ lines), encapsulating fuel/charging log dialogs, smooth bezier curves (`pointsToSmoothBezierPath`, `pointsToAreaBezierPath`), monthly expense bar charts, and entry actions;
-- **Performance**: Vehicle drawer `src/core/vehicle-drawer.ts` dropped to **393 lines** (accumulating over 333 lines trimmed from original 726 lines, a 45.9% reduction);
+- **Refactoring (Modularized 31-Module Schema Catalog & Column Factories)**: Extracted `src/core/schema-catalog.ts` (610+ lines), encapsulating all 31 family module schemas (`CERTS_SCHEMA` ~ `ASSETS_VIRTUAL_SCHEMA`), `FIELD_DICT`, column factories (`txt`, `dat`, `num`, `sel`, `ast`, `chk`, `rem`), shared views (`VIEW_EXPIRING`, `VIEW_BY_MEMBER`), and `SCHEMA_CATALOG`;
+- **Performance**: Schema definition core `src/core/schema.ts` reduced to **172 lines** (accumulating over 752 lines trimmed from original 924 lines, an 81.4% reduction);
+- **Contract Integrity**: 100% byte-accurate snapshot match in `tests/core/schema-snapshot.test.ts` with zero schema drift;
 - **Test Milestone**: 139 test suites, **966 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
+
+<details>
+<summary>Previous Releases</summary>
+
+### v0.5.163 (Local Ready Build)
+- Extracted `src/core/vehicle-energy-section.ts` for vehicle energy logs and bezier consumption charts;
+- Vehicle drawer dropped to 393 lines, unit tests at 966 passing.
 
 ## 📦 Install (v0.5.134 / v0.5.163 Local Ready)
 

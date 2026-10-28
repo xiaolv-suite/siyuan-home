@@ -1,13 +1,13 @@
-# v0.5.163 · 小驴管家（内测版）车辆能源板块解耦、车辆抽屉降至393行（本地就绪版）
+# v0.5.164 · 小驴管家（内测版）31模块模型目录解耦、schema.ts降至172行（本地就绪版）
 
 ## 变更
 
-- **车辆能源能耗流水、贝塞尔能耗曲线与月度支出直方图全面解耦**：
-  - 独立抽取 `src/core/vehicle-energy-section.ts`（410 余行），完整封装油耗与充电流水记录弹窗、表单控制、实时单价计算、平滑贝塞尔走势曲线（`pointsToSmoothBezierPath`, `pointsToAreaBezierPath`）、月度能耗支出直方图、历史加注记录行内编辑与删除确认；
-  - 车辆专属抽屉核心 `src/core/vehicle-drawer.ts` 代码行数历史性降至 **393 行**（从最初 726 行精简 **333 行**，净精简达 **45.9%**）；
-  - 全仓所有详情抽屉文件彻底迈入极佳的 390~700 行区间；
+- **31 大生活模块声明式 Schema 目录与字段工厂全面解耦**：
+  - 独立抽取 `src/core/schema-catalog.ts`（610 余行），集中承载 31 个家庭模块的结构化 Schema 声明（`CERTS_SCHEMA` ~ `ASSETS_VIRTUAL_SCHEMA`）、字段字典（`FIELD_DICT`）、基础声明工厂函数（`txt`, `dat`, `num`, `sel`, `ast`, `chk`, `rem`）、视图声明（`VIEW_EXPIRING`, `VIEW_BY_MEMBER`）与统一目录索引映射（`SCHEMA_CATALOG`）；
+  - 数据模型核心定义 `src/core/schema.ts` 代码行数历史性降至 **172 行**（从最初 924 行累计精简 **752 行**，净精简达 **81.4%**），专注于类型契约定义、校验门禁（`validateSchema`）与内核白名单矩阵；
+  - **契约基准 100% 字节级对齐**：`tests/core/schema-snapshot.test.ts` 自动化快照全量对比 0 漂移，对外部调用保持 100% 符号与类型向后兼容；
 - **全量测试与门禁验证**：
-  - 新增车辆能源能耗板块自动化单元测试套件 `tests/core/vehicle-energy-section.test.ts`，全仓单测套件扩增至 **139 个套件、966 项单测全部全绿**，五层静态门禁无警告；
+  - 全仓 139 个自动化单元测试套件、966 项单测全部全绿，五层静态门禁无警告；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 ## 验证
@@ -18,15 +18,3 @@
 - 生产构建与 `smoke-test`、思源加载器语义测试（`verify-loader-semantics`）全部绿灯。
 
 完整变更细节见 [CHANGELOG.md](./CHANGELOG.md)。
-
-
-
-
-
-
-
-
-
-
-
-

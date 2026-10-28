@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.157 (Local Ready Build)
+## 🆕 What's new in v0.5.158 (Local Ready Build)
 
-This release modularizes the settings about and system diagnostics panel into `src/panels/settings-about-tab.svelte`, taking `src/panels/settings.svelte` down to 788 lines:
+This release modularizes drawer row logs and QR share section into `src/core/drawer-sections.ts`, taking `src/core/ledger-detail-drawer.ts` down to 644 lines:
 
-- **Refactoring (Modularized Settings About & Diagnostics Tab)**: Extracted `src/panels/settings-about-tab.svelte` (110+ lines), encapsulating deep health checks, member backfill synchronization, duplicate ledger checks, history adoption and rebuild triggers, diagnostic bundle previews, and onboarding reruns;
-- **Performance**: Settings panel `src/panels/settings.svelte` dropped to **788 lines** (accumulating over 233 lines trimmed from original 1,021 lines, a 22.8% reduction);
-- **Test Milestone**: 134 test suites, **948 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Row Logs & QR Share Sections)**: Extracted `renderRowLogSection` and `renderDrawerQrSection` into `src/core/drawer-sections.ts`, centralized `markActivityLine` into `src/core/activity.ts`, and streamlined log additions, deletion confirmation, and optimistic rendering;
+- **Performance**: Ledger detail drawer `src/core/ledger-detail-drawer.ts` dropped to **644 lines** (accumulating over 910 lines trimmed from original 1,554 lines, a 58.6% reduction);
+- **Test Milestone**: 134 test suites, **949 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.157 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.158 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

@@ -6,6 +6,10 @@
 import { setCell } from "./siyuan";
 import { saveRuntime } from "./hub/runtime";
 import { confirm } from "@/libs/dialog";
+import { blockDeepLink, generateQRDataUrl } from "./qr";
+import { localDateKey } from "./hub/rule";
+import type { LogKind } from "./rowlog";
+import { markActivityLine, rowLogActivityId, type ActivityTarget } from "./activity";
 
 export interface RenewChainSectionOptions {
     body: HTMLElement;
@@ -513,5 +517,192 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
         }
     };
     body.appendChild(btn);
+}
+
+const substRowCss = "padding:2px 0;font-size:12.5px";
+const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
+const flexCenterGap6Css = "display:flex;align-items:center;gap:6px";
+const fs125Css = "font-size:12.5px";
+
+export interface RenderRowLogSectionOptions {
+    body: HTMLElement;
+    row: any;
+    active: string;
+    activityTarget?: ActivityTarget;
+    t: (k: string) => string;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+    title: string;
+    emptyText: string;
+    addLabel: string;
+    kind?: LogKind;
+    fields: { key: string; type: "date" | "number" | "text"; placeholder: string; width: number }[];
+    load: () => Promise<Record<string, any>[]>;
+    add: (vals: Record<string, string>) => Promise<boolean>;
+    remove: (entry: Record<string, any>) => Promise<void>;
+    format: (entry: Record<string, any>) => string;
+}
+
+export async function renderRowLogSection(options: RenderRowLogSectionOptions): Promise<void> {
+    if (typeof document === "undefined") return;
+    const { body, row, active, activityTarget, t, showMessageFn, title, emptyText, addLabel, kind, fields, load, add, remove, format } = options;
+
+    const section = document.createElement("div");
+    let loaded: Record<string, any>[] = [];
+    let loadFailed = false;
+
+    const render = () => {
+        section.replaceChildren();
+        for (const e of loaded) {
+            const line = document.createElement("div");
+            line.style.cssText = `${substRowCss};display:flex;gap:6px;align-items:center`;
+            if (kind) {
+                line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, kind, e);
+                if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
+            }
+            const text = document.createElement("span");
+            text.textContent = format(e);
+            const del = document.createElement("button");
+            del.className = "b3-button b3-button--text";
+            del.style.cssText = "padding:0 4px;font-size:12px";
+            del.textContent = t("delete");
+            del.onclick = async () => {
+                del.disabled = true;
+                try {
+                    await remove(e);
+                } catch (err) {
+                    showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                    del.disabled = false;
+                    return;
+                }
+                loaded = loaded.filter((item) => item !== e);
+                loadFailed = false;
+                render();
+                try {
+                    loaded = await load();
+                    render();
+                } catch (err) {
+                    loadFailed = true;
+                    render();
+                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                }
+            };
+            line.append(text, del);
+            section.appendChild(line);
+        }
+        if (loadFailed) {
+            const error = document.createElement("div");
+            error.className = "ft__on-surface";
+            error.style.cssText = "font-size:12.5px;color:var(--lv-danger)";
+            error.textContent = t("ledger.logReadFailed");
+            section.appendChild(error);
+        } else if (loaded.length === 0) {
+            const none = document.createElement("div");
+            none.className = "ft__on-surface";
+            none.style.cssText = fs125Css;
+            none.textContent = emptyText;
+            section.appendChild(none);
+        }
+    };
+
+    const head = document.createElement("div");
+    head.className = "ft__on-surface";
+    head.style.cssText = sectionHeadBorderCss;
+    head.textContent = title;
+    body.appendChild(head);
+    body.appendChild(section);
+
+    const form = document.createElement("div");
+    form.style.cssText = `${flexCenterGap6Css};margin-top:6px;flex-wrap:wrap`;
+    const inputs: Record<string, HTMLInputElement> = {};
+    for (const f of fields) {
+        const inp = document.createElement("input");
+        inp.type = f.type;
+        inp.className = "b3-text-field";
+        inp.placeholder = f.placeholder;
+        inp.style.cssText = `width:${f.width}px;font-size:12px`;
+        if (f.type === "date") inp.value = localDateKey(new Date());
+        inp.onkeydown = (e: KeyboardEvent) => {
+            if (e.key === "Enter" && !e.isComposing) {
+                e.preventDefault();
+                addBtn.click();
+            }
+        };
+        inputs[f.key] = inp;
+        form.appendChild(inp);
+    }
+    const addBtn = document.createElement("button");
+    addBtn.className = "b3-button b3-button--outline";
+    addBtn.style.cssText = "font-size:12px";
+    addBtn.textContent = addLabel;
+    addBtn.onclick = async () => {
+        if (addBtn.disabled) return;
+        const vals = Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.value]));
+        if (!vals.date) {
+            showMessageFn(t("ledger.logInvalid"), 3000, "error");
+            return;
+        }
+        addBtn.disabled = true;
+        try {
+            if (await add(vals)) {
+                for (const i of Object.values(inputs)) i.value = "";
+                loadFailed = false;
+                try {
+                    loaded = await load();
+                } catch (err) {
+                    loadFailed = true;
+                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                }
+                render();
+            }
+        } catch (err) {
+            showMessageFn(t("ledger.logSaveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+        } finally {
+            addBtn.disabled = false;
+        }
+    };
+    form.appendChild(addBtn);
+    body.appendChild(form);
+    try {
+        loaded = await load();
+    } catch (err) {
+        loadFailed = true;
+        showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+    }
+    render();
+}
+
+export interface RenderDrawerQrSectionOptions {
+    body: HTMLElement;
+    row: any;
+    ref: { avId?: string; docId?: string; columns?: Record<string, string> };
+    active: string;
+    t: (k: string) => string;
+}
+
+export function renderDrawerQrSection(options: RenderDrawerQrSectionOptions): void {
+    if (typeof document === "undefined") return;
+    const { body, row, ref, active, t } = options;
+    const nameKey = ref.columns?.name;
+    const nameVal = nameKey ? row.cells?.[nameKey] : undefined;
+    const blockId = nameVal?.type === "block" ? nameVal.block?.id : undefined;
+    const link = blockDeepLink(blockId || ref.docId || "");
+    const wrap = document.createElement("div");
+    if (active === "vehicles") wrap.className = "lv-detail-wide";
+    wrap.style.cssText = "margin-top:12px;padding-top:10px;border-top:1px solid var(--lv-line)";
+    const head = document.createElement("p");
+    head.style.cssText = "font-size:12px;margin:0 0 6px;color:var(--lv-tx-2)";
+    head.textContent = t("ledger.qrTitle");
+    const rowEl = document.createElement("div");
+    rowEl.style.cssText = "display:flex;align-items:center;gap:10px";
+    const img = document.createElement("img");
+    img.alt = "QR";
+    img.style.cssText = "width:96px;height:96px;border:1px solid var(--lv-line);border-radius:8px;padding:4px;background:#fff;flex-shrink:0";
+    const hint = document.createElement("span");
+    hint.style.cssText = "font-size:12px;color:var(--lv-tx-2);flex:1";
+    hint.textContent = t("ledger.qrHint");
+    rowEl.append(img, hint);
+    wrap.append(head, rowEl);
+    body.appendChild(wrap);
+    generateQRDataUrl(link, 128).then((url) => { img.src = url; }).catch(() => { wrap.remove(); });
 }
 

@@ -355,3 +355,22 @@ export async function loadActivitySnapshot(plugin: HomePluginLike, options: { fo
 export function invalidateActivitySnapshot(plugin: object): void {
     activityCache.delete(plugin);
 }
+
+/** 聚焦并高亮定位指定活动行（抽屉时间线定位） */
+export function markActivityLine(line: HTMLElement, targetActivityId?: string): void {
+    if (typeof document === "undefined" || !line) return;
+    if (targetActivityId && line.dataset?.lvActivityId !== targetActivityId) return;
+    line.classList.add("lv-activity-target");
+    line.setAttribute("aria-current", "location");
+    line.tabIndex = -1;
+    line.style.cssText += ";border-radius:6px;background:var(--lv-accent-soft);outline:2px solid var(--lv-accent);outline-offset:2px;padding:7px";
+    if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(() => {
+            if (!line.isConnected) return;
+            const prefersReduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+            line.scrollIntoView?.({ block: "center", behavior: prefersReduced ? "auto" : "smooth" });
+            line.focus?.({ preventScroll: true });
+        });
+    }
+}
+

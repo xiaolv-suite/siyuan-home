@@ -72,4 +72,36 @@ describe("drawer-sections (台账详情抽屉专属扩展区块与跨台账联�
             });
         }).not.toThrow();
     });
+
+    it("renderRowLogSection 与 renderDrawerQrSection 在非DOM环境安全跳过", async () => {
+        const { renderRowLogSection, renderDrawerQrSection } = await import("@/core/drawer-sections");
+
+        await expect(
+            renderRowLogSection({
+                body: {} as any,
+                row: { itemID: "row-1", cells: {} },
+                active: "health",
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+                title: "用药记录",
+                emptyText: "无记录",
+                addLabel: "添加",
+                fields: [],
+                load: vi.fn().mockResolvedValue([]),
+                add: vi.fn().mockResolvedValue(true),
+                remove: vi.fn().mockResolvedValue(undefined),
+                format: () => "",
+            })
+        ).resolves.toBeUndefined();
+
+        expect(() => {
+            renderDrawerQrSection({
+                body: {} as any,
+                row: { itemID: "row-1", cells: {} },
+                ref: { docId: "doc-1" },
+                active: "certs",
+                t: (k) => k,
+            });
+        }).not.toThrow();
+    });
 });

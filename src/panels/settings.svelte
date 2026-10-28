@@ -8,6 +8,7 @@
     import type { HomeSettings, MemberRole, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
     import { formatLocalDateTime } from "@/core/date-display";
     import SettingsRemindersTab from "@/panels/settings-reminders-tab.svelte";
+    import SettingsAboutTab from "@/panels/settings-about-tab.svelte";
     import UiIcon from "@/ui/icon.svelte";
 
     interface IHomePluginLike {
@@ -625,77 +626,25 @@
         {/if}
         </div>
     {:else}
-        {@const diag = plugin.getDiagnostics?.()}
-        <div class="lv-settings__pane-title">{t("tabAbout")}</div>
-        <div class="lv-settings__scroll">
-        <div class="lv-card lv-setcard">
-            <div class="lv-settings__about">
-                <p>{t("about.line1")}</p>
-                <p>{t("about.tagline")}</p>
-                <p class="ft__on-surface">{t("about.principles")}</p>
-                <button class="b3-button b3-button--outline lv-setcard__action"
-                    disabled={rerunBusy || saving || migrationBusy || demoBusy}
-                    onclick={rerunOnboarding}>{rerunBusy ? t("ledger.saving") : t("wiz.rerun")}</button>
-                <!-- C8e：关于区仓库链接（SDK 无 open 导出，走浏览器新窗口） -->
-                <button class="b3-button b3-button--outline" style="margin-top:8px;margin-left:6px"
-                    onclick={() => window.open("https://github.com/ai68298100/siyuan-home", "_blank")}>{t("about.repo")}</button>
-            </div>
-        </div>
-            {#if diag}
-                <div class="lv-card lv-setcard">
-                    <div class="lv-setcard__title">{t("diag.title")} · v{diag.version}</div>
-                    <p class="lv-caption" style="margin:2px 0 8px">{t("hub.scannedAt")} {formatLocalDateTime(diag.scannedAt) ?? "—"}</p>
-                    {#each diag.ledgers as l (l.id)}
-                        <p class="lv-caption">
-                            {t(`module.${l.id}`)}：
-                            {l.provisioned ? (l.provisional ? t("diag.provisional") : t("diag.ok")) : t("diag.missing")}
-                            · {t("diag.columns")} {l.columns}
-                        </p>
-                    {/each}
-                    {#each diag.ledgers.filter((l) => l.error) as l (l.id)}
-                        <p class="lv-caption" style="color:var(--lv-danger)">{t(`module.${l.id}`)}: {l.error}</p>
-                    {/each}
-                    {#if diag.errors.length > 0}
-                        {#each diag.errors as e (e.moduleId)}
-                            <p class="lv-caption" style="color:var(--lv-danger)">{e.moduleId}: {e.message}</p>
-                        {/each}
-                    {/if}
-                    {#if diag.contracts.length > 0}
-                        {#each diag.contracts as c (c)}
-                            <p class="lv-caption" style="color:var(--lv-danger)">{c}</p>
-                        {/each}
-                    {/if}
-                    <div class="lv-setcard__actions" style="margin-top:8px">
-                        <button class="b3-button b3-button--outline" onclick={previewDiagnostics}>🔍 {t("settings.diagPreview")}</button>
-                        <button class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={exportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
-                        {#if (plugin.settings.members ?? []).some((m) => !m.avItemId || m.syncError)}
-                            <button class="b3-button b3-button--outline"
-                                disabled={diagnosticsBusy !== null || exportingDiagnostics}
-                                aria-busy={diagnosticsBusy === "backfill"}
-                                onclick={runBackfillMemberLinks}>{diagnosticsBusy === "backfill" ? t("ledger.saving") : t("diag.backfill")}</button>
-                        {/if}
-                        <button class="b3-button b3-button--outline"
-                            disabled={diagnosticsBusy !== null || exportingDiagnostics}
-                            aria-busy={diagnosticsBusy === "duplicates"}
-                            onclick={runDuplicateCheck}>{diagnosticsBusy === "duplicates" ? t("ledger.saving") : t("diag.dupCheck")}</button>
-                        <!-- D12 最小健康检查：实际读取每个启用模块，登记存在≠健康 -->
-                        <button class="b3-button b3-button--outline"
-                            disabled={diagnosticsBusy !== null || exportingDiagnostics}
-                            aria-busy={diagnosticsBusy === "health"}
-                            onclick={runDeepHealthCheck}>{diagnosticsBusy === "health" ? t("ledger.saving") : t("diag.health")}</button>
-                        <!-- §15 一键重建全部启用台账文档与视图 -->
-                        <button class="b3-button b3-button--outline"
-                            disabled={diagnosticsBusy !== null || exportingDiagnostics}
-                            aria-busy={diagnosticsBusy === "adopt"}
-                            onclick={runAdoptHistoryLedgers}>{diagnosticsBusy === "adopt" ? t("ledger.saving") : t("diag.adoptHistory")}</button>
-                        <button class="b3-button b3-button--outline"
-                            disabled={diagnosticsBusy !== null || exportingDiagnostics}
-                            aria-busy={diagnosticsBusy === "rebuild"}
-                            onclick={rebuildAllLedgers}>{diagnosticsBusy === "rebuild" ? t("ledger.saving") : t("diag.rebuildAll")}</button>
-                    </div>
-                </div>
-            {/if}
-        </div>
+        <SettingsAboutTab
+            {plugin}
+            {t}
+            {formatLocalDateTime}
+            {rerunBusy}
+            {saving}
+            {migrationBusy}
+            {demoBusy}
+            {exportingDiagnostics}
+            {diagnosticsBusy}
+            onRerunOnboarding={rerunOnboarding}
+            onPreviewDiagnostics={previewDiagnostics}
+            onExportDiagnostics={exportDiagnostics}
+            onRunBackfill={runBackfillMemberLinks}
+            onRunDuplicateCheck={runDuplicateCheck}
+            onRunDeepHealthCheck={runDeepHealthCheck}
+            onRunAdoptHistory={runAdoptHistoryLedgers}
+            onRebuildAll={rebuildAllLedgers}
+        />
     {/if}
     </div>
 

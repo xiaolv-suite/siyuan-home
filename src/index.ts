@@ -16,8 +16,8 @@ import { createSingleFlightUntilStable } from "@/core/single-flight";
 import { addDetachedRow, setCell } from "@/core/siyuan";
 import { loadRowLogs } from "@/core/rowlog";
 import { compactUserMessage, sameOriginReturnPath } from "@/core/auth";
-import { mountLvHomeBridge } from "@/bridge/external-bridge";
-import { logCheckinEventSafely, registerRaikiriModuleSafely } from "@/libs/ecosystem-bridge-kit";
+import { logCheckinEventSafely } from "@/libs/ecosystem-bridge-kit";
+import { initEcosystemIntegration, type EcosystemController } from "@/core/ecosystem-integration";
 import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
@@ -51,15 +51,8 @@ export default class LvHomePlugin extends Plugin {
         () => [...new Set(this.settings.enabledModules)].sort().join("\0"),
         () => this.provisionLedgers(),
     );
-    /** EC03/v0.3：服务桥卸载函数 */
-    private disposeLvHomeBridge?: () => void;
-    /** EC21：lv-exam:stats 监听（window CustomEvent，非 eventBus） */
-    private examStatsHandler?: (e: Event) => void;
-    private taskHorizonCompletedHandler?: (e: Event) => void;
-    /** EC09/EC10：打卡集成事件监听（window CustomEvent） */
-    private checkinEventHandler?: (e: Event) => void;
-    /** Epoch 6：小驴闪卡复习事件监听（window CustomEvent） */
-    private cardsReviewedHandler?: (e: Event) => void;
+    /** 生态集成控制器（雷切动作、服务桥、打卡/考试/闪卡/任务事件联动） */
+    private ecosystemController?: EcosystemController;
     /** 下次面板挂载的目标页签（状态栏/通知入口预选） */
     pendingScreen?: string;
     /** 已挂载面板的页签直切回调（tab-panel 挂载时注册、卸载时清空） */
@@ -83,13 +76,6 @@ export default class LvHomePlugin extends Plugin {
     private wsHandler?: (...args: any[]) => void;
     private lastWsRescan = 0;
     private static WS_RESCAN_MIN_MS = 60 * 1000;
-    /** EC09/EC10：打卡摘要节流 */
-    private lastCheckinPull = 0;
-    /** EC16：向雷切注册管家动作（disposer 收集；重试计时器上限 10 次） */
-    private speedSwitchDisposers: Array<() => void> = [];
-    private speedSwitchRetry?: number;
-    /** EC17：家庭摘要模块 disposer */
-    private homeModuleDisposer?: (() => void) | undefined;
     /** DEVICE-07（227 波）：移动前端标识与顶栏入口（petal addTopBar 在移动端不渲染，参照 checkin 直接注入 #mobileTopBar） */
     private isMobileFrontend = false;
     private mobileTopBarBtn?: HTMLElement;
@@ -396,7 +382,6 @@ export default class LvHomePlugin extends Plugin {
     }
 
     async onload() {
-        const self = this;
         // 309 波（顶栏图标突然消失的真因）：思源宿主在插件 onload 返回前完成顶栏/页签装配，
         // 历史实现在 `await loadSettings/loadRuntime` 之后才 addTopBar，注册时机落在装配窗口之外，
         // 重载/热更新后条目就会丢失（图标“突然消失”，面板同时被重新渲染）。
@@ -485,31 +470,6 @@ export default class LvHomePlugin extends Plugin {
 
         // 309 波：页签/顶栏/命令/图标的注册已全部移到 registerEntrypoints()，
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
-
-        // 向小驴雷切工作台安全注册到期提醒小组件（Epoch 6 联邦规范）
-        const unregRaikiri = registerRaikiriModuleSafely({
-            moduleId: "home-expiry-reminders",
-            title: "家庭到期提醒",
-            icon: "iconLvHome",
-            category: "life",
-            description: "展示小驴管家汇总的家庭各类证件、合同、账单、药品到期与超期事项",
-            source: { pluginId: "siyuan-home", name: "小驴管家", version: PLUGIN_VERSION },
-            read: async () => {
-                const rems = this.scan?.reminders ?? [];
-                const overdue = rems.filter((r) => r.daysLeft < 0);
-                const soon = rems.filter((r) => r.daysLeft >= 0 && r.daysLeft <= 7);
-                const items = [...overdue, ...soon].slice(0, 5).map((r) => ({
-                    label: r.title || "待办事项",
-                    value: r.daysLeft < 0 ? `逾期 ${Math.abs(r.daysLeft)} 天` : r.daysLeft === 0 ? "今天到期" : `${r.daysLeft} 天后到期`,
-                }));
-                return {
-                    title: `家庭提醒 (${overdue.length} 项逾期 · ${soon.length} 项临期)`,
-                    items: items.length > 0 ? items : [{ label: "近期无紧急到期事项", value: "✓" }],
-                };
-            },
-            open: () => this.openRemindersScreen(),
-        });
-        if (unregRaikiri) this.speedSwitchDisposers.push(unregRaikiri);
 
         // schema 契约门禁（33.2；193 波收口 SCHEMA_CATALOG 单源）：开发期发现违规立即暴露
         for (const [id, schema] of Object.entries(SCHEMA_CATALOG)) {
@@ -675,189 +635,18 @@ export default class LvHomePlugin extends Plugin {
         };
         this.eventBus.on("ws-main", this.wsHandler);
 
-        // EC16：向雷切注册管家动作（打卡同款已验证模式：app.plugins 探测 + 方法存在性 + 重试）
-        this.ensureSpeedSwitchActions();
-
-        // EC09/EC10：启动时初始打卡摘要拉取（打卡可能已先于管家加载）
-        this.scheduleTimeout(() => this.pullCheckinSummary(), 3000);
-
-        // EC03/v0.3 生态首批：管家服务桥 window.LvHome（对齐人脉 window.LvContacts 模式；卸载注销）
-        this.disposeLvHomeBridge = mountLvHomeBridge({
-            settings: this.settings,
-            get scan() { return self.scan; },
-            showTab: () => self.showTab(),
-            openRemindersTab: () => self.openRemindersScreen(),
-            openModuleTab: (m) => self.openModuleTab(m),
-            addMemo: (title, due) => self.addMemo(title, due),
-            completeReminder: async (id: string) => {
-                const target = self.scan?.reminders.find((r) => r.id === id);
-                if (target) {
-                    await self.complete(target);
-                    return true;
-                }
-                return false;
-            },
-            onBridgeDisposed: () => { self.disposeLvHomeBridge = undefined; },
+        // 初始化小驴生态深度联动（雷切快捷动作与小组件、服务桥 window.LvHome、打卡/考试/闪卡/任务事件）
+        this.ecosystemController = initEcosystemIntegration({
+            plugin: this,
+            t: (k: string) => this.i18nText(k),
+            showTab: () => this.showTab(),
+            openRemindersScreen: () => this.openRemindersScreen(),
+            openModuleTab: (m: string) => this.openModuleTab(m),
+            addMemo: (title: string, due: string) => this.addMemo(title, due),
+            complete: (r: any) => this.complete(r),
+            markReminderDoneByBlockId: (bId: string) => this.markReminderDoneByBlockId(bId),
+            emitHubChanged: () => this.emitHubChanged(),
         });
-
-        // EC21：消费 lv-exam:stats 聚合（脱敏 PublicStats v1，无题目内容）——仅缓存子集供考试模块卡展示
-        this.examStatsHandler = (e: Event) => {
-            const detail = (e as CustomEvent).detail as {streak?: unknown; accuracy?: unknown; attempts?: unknown; generatedAt?: unknown} | undefined;
-            if (!detail || typeof detail !== "object") return;
-            const streak = Number(detail.streak);
-            const accuracy = Number(detail.accuracy);
-            const attempts = Number(detail.attempts);
-            const generatedAt = Number(detail.generatedAt);
-            if (![streak, accuracy, attempts, generatedAt].every((n) => Number.isFinite(n))) return;
-            this.runtime.lastExamStats = {streak, accuracy, attempts, generatedAt};
-            import("@/core/hub/runtime").then((m) => m.saveRuntime(this, this.runtime)).catch(() => undefined);
-            this.emitHubChanged();
-        };
-        window.addEventListener("lv-exam:stats", this.examStatsHandler);
-
-        // Epoch 6：消费 lv-cards:reviewed 闪卡复习事件（更新家庭/成员学习活跃度）
-        this.cardsReviewedHandler = (e: Event) => {
-            const detail = (e as CustomEvent).detail as Record<string, unknown> | undefined;
-            if (!detail || typeof detail !== "object") return;
-            this.emitHubChanged();
-        };
-        window.addEventListener("lv-cards:reviewed", this.cardsReviewedHandler);
-
-        // EC09/EC10：打卡集成事件（checkin:*）→ 节流刷新健康模块卡打卡摘要
-        this.checkinEventHandler = () => {
-            // checkin 事件频繁（每次打卡触发）；60 秒节流后拉取强度摘要
-            if (Date.now() - this.lastCheckinPull < LvHomePlugin.WS_RESCAN_MIN_MS) return;
-            this.lastCheckinPull = Date.now();
-            this.pullCheckinSummary();
-        };
-        for (const evt of ["checkin:event-recorded", "checkin:event-deleted", "checkin:item-updated"]) {
-            window.addEventListener(evt, this.checkinEventHandler);
-        }
-        // 联动 Task Horizon：监听任务完成事件，自动反向核销生活待办并刷新提醒
-        this.taskHorizonCompletedHandler = (e: Event) => {
-            const detail = (e as CustomEvent).detail as Record<string, unknown> | undefined;
-            if (!detail) return;
-            const targetBlockId = detail.blockId || detail.id || detail.taskBlockId;
-            if (targetBlockId) {
-                void this.markReminderDoneByBlockId(String(targetBlockId));
-            }
-            this.emitHubChanged();
-        };
-        window.addEventListener("tm:task-completed", this.taskHorizonCompletedHandler);
-        // 启动时拉取一次（打卡可能先于管家加载；SPA 中 load 已触发，用延迟替代）
-        this.scheduleTimeout(() => this.pullCheckinSummary(), 5000);
-    }
-
-    /** EC09/EC10：拉取打卡强度摘要（只读；写入 runtime 供模块卡展示）[待实测] */
-    private async pullCheckinSummary(): Promise<void> {
-        try {
-            const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;
-            const checkin = (w.siyuanCheckin || w.xiaolvCheckin || w.lvCheckin) as {
-                whenReady: () => Promise<boolean>;
-                getStrengthSummary: (o?: {windowDays?: number}) => {items: {itemId: string; name: string; score: number}[]; windowDays: number};
-            } | undefined;
-            if (!checkin?.whenReady || !checkin.getStrengthSummary) return;
-            const ready = await checkin.whenReady();
-            if (!ready) return;
-            const summary = checkin.getStrengthSummary({windowDays: 30});
-            if (!summary?.items?.length) return;
-            this.runtime.lastCheckinSummary = {
-                items: summary.items.slice(0, 5), // 有界：top 5
-                windowDays: summary.windowDays,
-                pulledAt: Date.now(),
-            };
-            const { saveRuntime } = await import("@/core/hub/runtime");
-            await saveRuntime(this, this.runtime);
-            this.emitHubChanged();
-        } catch (e) {
-            console.warn("[LvHome] checkin summary pull failed:", e instanceof Error ? e.message : e);
-        }
-    }
-
-    /**
-     * EC17：家庭摘要快照（只读，计数有界——默认不共享标题/日期/生日/金额，EC17 边界）。
-     * 形态按雷切 normalizeSnapshot 协议 v2.1：stat 英雄区 + items 行 + sourceHealth 三态。
-     */
-    private buildHomeSummarySnapshot(): Record<string, unknown> {
-        try {
-            const rems = this.scan?.reminders ?? [];
-            const overdue = rems.filter((r) => r.level === "overdue").length;
-            const soon = rems.filter((r) => r.level === "soon").length;
-            const today = rems.filter((r) => r.daysLeft <= 0).length;
-            const stale = this.scan?.stale ?? false;
-            return {
-                title: this.i18nText("butler"),
-                stat: {value: String(today), label: this.i18nText("hub.groupOverdue")},
-                items: [
-                    {label: this.i18nText("hub.groupOverdue"), value: String(overdue), command: "siyuan-home::openButler"},
-                    {label: this.i18nText("hub.groupSoon"), value: String(soon), command: "siyuan-home::openButler"},
-                ],
-                updatedAt: Date.now(),
-                sourceHealth: stale ? "stale" : "fresh",
-                emptyHint: rems.length === 0 ? this.i18nText("dash.allClear") : undefined,
-            };
-        } catch (e) {
-            // 雷切约定：错误降级为空态快照 + 重试提示，不抛（见摘录 §4.1）
-            console.warn("[LvHome] summary snapshot failed:", e instanceof Error ? e.message : e);
-            return {title: this.i18nText("butler"), items: [], emptyHint: this.i18nText("hub.stale")};
-        }
-    }
-
-    /** 探测雷切（manifest name = siyuan-speed-switch）并注册管家动作；未安装时限次重试后静默放弃 */
-    private ensureSpeedSwitchActions(attempt = 0): void {
-        if (this.speedSwitchDisposers.length > 0) return; // 已注册
-        const plugins = (this.app as {plugins?: unknown} | undefined)?.plugins;
-        const candidates = Array.isArray(plugins)
-            ? plugins
-            : plugins && typeof plugins === "object" ? Object.values(plugins as Record<string, unknown>) : [];
-        const speedSwitch = candidates.find((candidate) => {
-            if (!candidate || typeof candidate !== "object") return false;
-            const p = candidate as {name?: unknown; registerQuickAction?: unknown};
-            return typeof p.registerQuickAction === "function"
-                && (p.name === "siyuan-speed-switch" || p.name === "小驴速切" || p.name === "siyuanSpeedSwitch");
-        }) as {registerQuickAction?: (options: unknown) => (() => void) | void} | undefined;
-        if (!speedSwitch?.registerQuickAction) {
-            // 未加载（或加载顺序靠后）：1200ms 重试，上限 10 次（约 12s）后放弃——雷切本会话内再启用则下次启动生效
-            if (attempt < 10 && this.speedSwitchRetry === undefined) {
-                this.speedSwitchRetry = this.scheduleTimeout(() => {
-                    this.speedSwitchRetry = undefined;
-                    this.ensureSpeedSwitchActions(attempt + 1);
-                }, 1200);
-            }
-            return;
-        }
-        const register = speedSwitch.registerQuickAction.bind(speedSwitch);
-        const actions: {id: string; label: string; handler: () => void}[] = [
-            {id: "lvhome.open-overview", label: this.i18nText("butler"), handler: () => this.showTab()},
-            {id: "lvhome.open-reminders", label: this.i18nText("tab.reminders"), handler: () => this.openRemindersScreen()},
-        ];
-        for (const action of actions) {
-            const dispose = register({
-                id: action.id,
-                label: action.label,
-                icon: "iconHome",
-                value: "open",
-                targets: ["desktop", "sidebar", "mobile"],
-                handler: () => action.handler(),
-            });
-            if (typeof dispose === "function") this.speedSwitchDisposers.push(dispose);
-        }
-        // EC17：家庭摘要模块（只读；read 返回计数快照；clickCommand 落管家总览）
-        const homeCapable = speedSwitch as {registerHomeModule?: (options: unknown) => (() => void) | void};
-        if (typeof homeCapable.registerHomeModule === "function" && !this.homeModuleDisposer) {
-            const dispose = homeCapable.registerHomeModule({
-                moduleId: "lvhome.summary",
-                title: this.i18nText("butler"),
-                icon: "iconHome",
-                supportedDevices: ["desktop", "sidebar", "mobile"],
-                sizes: ["xs", "small", "medium"],
-                protocolVersion: 1,
-                readOnly: true,
-                clickCommand: "siyuan-home::openButler",
-                read: () => this.buildHomeSummarySnapshot(),
-            });
-            if (typeof dispose === "function") this.homeModuleDisposer = dispose;
-        }
     }
 
     /** 布局就绪后：首次引导数据准备 + 智能找回历史台账 + 扫描（不阻塞启动，不强制全量建库） */
@@ -1444,38 +1233,8 @@ export default class LvHomePlugin extends Plugin {
         this.visibilityHandler = undefined;
         if (this.wsHandler) this.eventBus.off("ws-main", this.wsHandler);
         this.wsHandler = undefined;
-        // EC21：lv-exam:stats 监听移除
-        if (this.examStatsHandler) window.removeEventListener("lv-exam:stats", this.examStatsHandler);
-        this.examStatsHandler = undefined;
-        // Epoch 6：lv-cards:reviewed 闪卡复习事件移除
-        if (this.cardsReviewedHandler) window.removeEventListener("lv-cards:reviewed", this.cardsReviewedHandler);
-        this.cardsReviewedHandler = undefined;
-        // EC09/EC10：打卡集成事件移除
-        if (this.checkinEventHandler) {
-            for (const evt of ["checkin:event-recorded", "checkin:event-deleted", "checkin:item-updated"]) {
-                window.removeEventListener(evt, this.checkinEventHandler);
-            }
-            this.checkinEventHandler = undefined;
-        }
-        if (this.taskHorizonCompletedHandler) window.removeEventListener("tm:task-completed", this.taskHorizonCompletedHandler);
-        this.taskHorizonCompletedHandler = undefined;
-        // EC03/v0.3：服务桥卸载（delete window.LvHome）
-        if (this.disposeLvHomeBridge) this.disposeLvHomeBridge();
-        this.disposeLvHomeBridge = undefined;
-        // EC16：雷切动作注销 + 重试计时器清理
-        if (this.speedSwitchRetry !== undefined) {
-            window.clearTimeout(this.speedSwitchRetry);
-            this.speedSwitchRetry = undefined;
-        }
-        for (const dispose of this.speedSwitchDisposers) {
-            try { dispose(); } catch { /* 雷切可能已卸载——注销失败即无需注销 */ }
-        }
-        this.speedSwitchDisposers = [];
-        // EC17：家庭摘要模块注销
-        if (this.homeModuleDisposer) {
-            try { this.homeModuleDisposer(); } catch { /* 雷切可能已卸载 */ }
-            this.homeModuleDisposer = undefined;
-        }
+        this.ecosystemController?.dispose();
+        this.ecosystemController = undefined;
         this.statusbarEl?.remove();
         this.statusbarEl = undefined;
         if (typeof document !== "undefined") {

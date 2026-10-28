@@ -6,6 +6,7 @@ import {
     openReminderRenewDialog,
     openMemoEditDialog,
     openSnoozeMenu,
+    openTriageToLedgerDialog,
 } from "@/core/reminder-dialogs";
 import type { Reminder } from "@/types";
 
@@ -131,6 +132,25 @@ describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () 
                 MenuCls: MockMenu,
                 t: (k) => k,
                 onSnooze: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+
+    it("openTriageToLedgerDialog 安全打开备忘转正式台账分诊弹窗", () => {
+        expect(() => {
+            openTriageToLedgerDialog({
+                r: { ...mockReminder, id: "adhoc::m1", moduleId: "adhoc" },
+                plugin: {
+                    ...mockPlugin,
+                    settings: {
+                        enabledModules: ["certs", "vehicles"],
+                        dbRefs: { certs: { avId: "av-certs" } },
+                        members: [],
+                    },
+                },
+                DialogCls: MockDialog,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
             });
         }).not.toThrow();
     });

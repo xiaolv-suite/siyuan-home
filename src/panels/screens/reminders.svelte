@@ -10,8 +10,6 @@
     } from "@/core/hub/runtime";
     import { buildDisplay as display } from "@/core/hub/display";
     import { relativeDue, weekdayKey, localDateKey } from "@/core/hub/rule";
-    import { addDetachedRow, setCell } from "@/core/siyuan";
-    import { provisionModule } from "@/core/provisioner";
     import { toggleReminderPin } from "@/core/hub/actions";
     import { isReminderPinned } from "@/core/hub/runtime";
     import { stageBadgeLabel, stageBadge, stagesOf } from "@/core/reminder-stage";
@@ -21,7 +19,6 @@
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
     import type { Reminder, ReminderKind } from "@/types";
-    const rowFlexCenterCss = "display:flex;gap:8px;align-items:center";
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
     // 就地展开摘要（§17）：不打开抽屉直接查看派生规则、所属模块与责任成员
@@ -572,157 +569,17 @@
     });
     const handledVisible = $derived(handledFiltered.slice(0, renderLimit));
 
-    // 236 波（收件箱分诊）：备忘 → 正式台账行。目标限已建库的非成员模块；
-    // 名称带入备忘标题、日期带入目标模块首个日期列；创建后完成备忘（可在"已处理"恢复）。
-    async function toLedgerDialog(r: Reminder) {
-        // 247 波：目标扩展到已启用未建库模块（选中后自动建库再入行）
-        const targets = (plugin.settings.enabledModules ?? [])
-            .filter((id) => id !== "adhoc" && id !== "members")
-            .map((id) => ({ id, ref: plugin.settings.dbRefs[id] }));
-        if (!targets.length) { showMessage(t("triage.noTarget"), 3500, "error"); return; }
-        const modLabel = (id: string) => (t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id);
-        const needProvision = (id: string) => !plugin.settings.dbRefs[id]?.avId;
-        const dlg = new Dialog({ title: t("triage.title"), content: `<div id="lv-triage" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
-        const box = dlg.element.querySelector("#lv-triage") as HTMLElement;
-        const row1 = document.createElement("div");
-        row1.style.cssText = rowFlexCenterCss;
-        const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.module");
-        const sel = document.createElement("select"); sel.className = "b3-select"; sel.style.flex = "1";
-        for (const x of targets) {
-            const o = document.createElement("option"); o.value = x.id;
-            o.textContent = modLabel(x.id) + (needProvision(x.id) ? t("triage.needProvision") : "");
-            sel.append(o);
-        }
-        row1.append(l1, sel);
-        // 246 波（收件箱深化）：成员分配（relation 写入同台账快速表单；未分配=不写成员列）
-        const rowM = document.createElement("div");
-        rowM.style.cssText = rowFlexCenterCss;
-        const lM = document.createElement("span"); lM.className = "ft__on-surface"; lM.style.minWidth = "72px"; lM.textContent = t("field.member");
-        const memberSel = document.createElement("select"); memberSel.className = "b3-select"; memberSel.style.flex = "1";
-        const none = document.createElement("option"); none.value = ""; none.textContent = t("members.unassigned");
-        memberSel.append(none);
-        for (const m of plugin.settings.members ?? []) {
-            const o = document.createElement("option");
-            o.value = m.avItemId ?? "";
-            o.disabled = !m.avItemId;
-            o.textContent = `${m.name}${m.avItemId ? "" : ` · ${t("members.notLinked")}`}`;
-            memberSel.append(o);
-        }
-        rowM.append(lM, memberSel);
-        const row2 = document.createElement("div");
-        row2.style.cssText = rowFlexCenterCss;
-        const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.name");
-        const nameInput = document.createElement("input"); nameInput.className = "b3-text-field"; nameInput.style.flex = "1"; nameInput.value = r.title;
-        row2.append(l2, nameInput);
-        const row3 = document.createElement("div");
-        row3.style.cssText = rowFlexCenterCss;
-        const l3 = document.createElement("span"); l3.className = "ft__on-surface"; l3.style.minWidth = "72px"; l3.textContent = t("triage.due");
-        const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
-        row3.append(l3, dateInput);
-        const ok = document.createElement("button"); ok.className = "b3-button"; ok.textContent = t("triage.create");
-        const err = document.createElement("span"); err.className = "lv-caption"; err.setAttribute("role", "alert"); err.style.color = "var(--lv-danger)";
-        // 一个转台账对话框对应一个业务操作。若首个请求超时、或用户点击重试，
-        // 必须复用同一幂等 key，避免内核已落行但前端未拿到响应时再次建出重复行。
-        let operationKey = (() => {
-            try { return `triage:${crypto.randomUUID()}`; }
-            catch { return `triage:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
-        })();
-        let pendingRowId: string | undefined;
-        let pendingModuleId: string | undefined;
-        let identityPending = false;
-        const doCreate = async () => {
-            const title = nameInput.value.trim();
-            if (!title) { err.textContent = t("ledger.nameRequired"); nameInput.focus(); return; }
-            const mod = sel.value;
-            if (pendingRowId && pendingModuleId !== mod) {
-                err.textContent = t("triage.pendingTarget");
-                return;
-            }
-            let ref = plugin.settings.dbRefs[mod];
-            // 247 波：未建库模块自动建库（provisionModule 幂等；登记写入 settings 后 ref 即有效）
-            if (!ref?.avId) {
-                ok.textContent = t("triage.provisioning");
-                await provisionModule(plugin.settings, mod, plugin.schemaCatalog?.[mod], t(`module.${mod}`), { resolveName: (key: string) => String(plugin.i18n[`field.${key}`] ?? key) });
-                try {
-                    const { saveSettings } = await import("@/core/settings");
-                    await saveSettings(plugin as any, plugin.settings);
-                } catch { /* soft persist */ }
-                ref = plugin.settings.dbRefs[mod];
-                if (!ref?.avId) { showMessage(t("triage.noTarget"), 3000, "error"); return; }
-            }
-            const selectedMember = memberSel.value;
-            if (selectedMember && !(plugin.settings.members ?? []).some((m) => m.avItemId === selectedMember)) {
-                err.textContent = t("members.notLinked");
-                memberSel.focus();
-                return;
-            }
-            let itemID = pendingRowId;
-            if (!itemID) {
-                try {
-                    itemID = await addDetachedRow(ref.avId, title, { idempotencyKey: `${operationKey}:row`, retries: 1 });
-                    pendingRowId = itemID;
-                    pendingModuleId = mod;
-                } catch (e) {
-                    operationKey = `triage:${Date.now()}`;
-                    const { RowIdentityPendingError } = await import("@/core/siyuan");
-                    if (e instanceof RowIdentityPendingError) {
-                        identityPending = true;
-                        ok.disabled = false;
-                        err.textContent = t("triage.identityPending");
-                        return;
-                    }
-                    throw e;
-                }
-            }
-            // 新建行身份确认存在延迟：setCell 失败受控重试（同格重写不会重复建行）
-            const setCellSafe = async (key: string, value: unknown) => {
-                const keyID = ref.columns?.[key];
-                if (!keyID) return;
-                for (let attempt = 0; ; attempt++) {
-                    try {
-                        await setCell(ref.avId, keyID, itemID, value, {
-                            idempotencyKey: `${operationKey}:cell:${keyID}`,
-                            retries: 1,
-                        });
-                        return;
-                    }
-                    catch (e) {
-                        if (attempt >= 2) throw e;
-                        await new Promise((r2) => setTimeout(r2, 400));
-                    }
-                }
-            };
-            await setCellSafe("name", { type: "text", text: { content: title } });
-            // 日期写入提醒规则所用字段（如 certs→expiry）——写入无关日期列会导致转行后不派生提醒；
-            // 无规则字段的模块回退首个 date 列（行仍有到期日信息）
-            const schemaCols = plugin.schemaCatalog?.[mod]?.columns ?? [];
-            const ruleFields = (plugin.schemaCatalog?.[mod]?.reminders ?? []).map((x: any) => x.field);
-            const dateCol = schemaCols.find((c: any) => c.type === "date" && ruleFields.includes(c.key))
-                ?? schemaCols.find((c: any) => c.type === "date");
-            if (dateCol && r.dueDate) await setCellSafe(dateCol.key, { type: "date", date: { content: new Date(`${r.dueDate}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } });
-            // 成员分配（246 波）：relation 写入（选了成员才写）
-            if (selectedMember) await setCellSafe("member", { type: "relation", relation: { blockIDs: [selectedMember], contents: null } });
-            await plugin.complete(r);
-            dlg.destroy();
-            showMessage(t("triage.done").replace("${mod}", modLabel(mod)), 4000, "info");
-            // 转行改变了台账数据：全量重扫让新行立即派生提醒（缓存派生不含新行）。
-            // The triage flow just created a new ledger row. The cached scan
-            // does not contain it, so this refresh must bypass the debounce.
-            try { await plugin.refreshHub(undefined, true); }
-            catch (e) {
-                console.warn("[LvHome] triage saved but refresh failed:", e);
-                showMessage(t("triage.refreshFailed"), 5000, "error");
-            }
-        };
-        ok.addEventListener("click", () => {
-            if (identityPending) return;
-            ok.disabled = true;
-            doCreate().catch((e) => {
-                err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
-            }).finally(() => { if (!identityPending) ok.disabled = false; });
+    // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
+    function toLedgerDialog(r: Reminder) {
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openTriageToLedgerDialog({
+                r,
+                plugin,
+                DialogCls: Dialog,
+                t,
+                showMessageFn: showMessage,
+            });
         });
-        box.append(row1, rowM, row2, row3, err, ok);
-        nameInput.focus();
     }
 
     // 261 波：重扫 busy 态——31 模块串行扫描可达秒级，此前可连点堆积多次全量扫描

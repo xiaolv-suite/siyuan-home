@@ -39,17 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.136 (Local Ready Build)
+## 🆕 What's new in v0.5.137 (Local Ready Build)
 
-This release modularizes Settings maintenance and diagnostic logic, trimming `settings.svelte` and adding one-click diagnostics preview:
+This release decouples the memo triage to ledger dialog from Reminders, trimming `reminders.svelte` down to 1,136 lines:
 
-- **Refactoring (Decoupled Settings Maintenance Hub)**: Extracted `src/core/settings-maintenance.ts` (480+ lines) packaging settings import/export normalization, backup rollback, deep health check, duplicate check, member link backfill, and demo management;
-- **Feature (Diagnostics Preview Modal)**: Added `openDiagnosticsPreviewDialog` providing instant summary viewing and redacted metrics clipboard copy directly inside the About page without downloading JSON files;
-- **Performance**: Main component `settings.svelte` reduced from 1,339 lines to **1,015 lines**;
-- **Validation**: 111 test suites, **876 unit tests passing**, TypeScript, Svelte, i18n (1977 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Triage to Ledger Flow)**: Extracted `openTriageToLedgerDialog` into `src/core/reminder-dialogs.ts`, handling target module pick, auto-provisioning, member assignment, date field mapping, and memo completion;
+- **Performance**: Main component `reminders.svelte` reduced from 1,436 lines to **1,136 lines** (accumulating over 300 lines trimmed);
+- **Validation**: 111 test suites, **877 unit tests passing**, TypeScript, Svelte, i18n (1978 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.136 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.137 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

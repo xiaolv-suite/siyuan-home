@@ -39,17 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.142 (Local Ready Build)
+## 🆕 What's new in v0.5.143 (Local Ready Build)
 
-This release decouples 12 module-specific sections in the ledger detail drawer, taking `ledger-detail-drawer.ts` down to 895 lines and eliminating all 1000+ line files across the entire codebase:
+This release decouples the weekly pulse strip and achievement badges, modularizes the overview analysis dialog hub, taking `overview.svelte` down to 784 lines and breaking the 900-test milestone:
 
-- **Refactoring (Decoupled Module-Specific Drawer Sections)**: Extracted `src/core/drawer-module-sections.ts` (430+ lines), completely encapsulating asset depreciation/valuation, shopping deposits/price tracking, chore rotations, vitals, utility meters & warranty contracts, food allergy checks, schooling stages, pet care, travel checklist, media lending, feeding observation, and retirement progress;
-- **Performance**: Detail drawer engine `ledger-detail-drawer.ts` historically dropped to **895 lines** (from original 1,554 lines, a 42.4% reduction);
-- **Repo-wide Milestone**: Zero files exceed 1,000 lines across the entire codebase;
-- **Validation**: 118 test suites, **896 unit tests passing**, TypeScript, Svelte, i18n (1981 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Pulse Strip & Overview Modals)**: Extracted `src/panels/overview-pulse-strip.svelte` and `src/core/overview-modals.ts`, unifying the 7-day schedule rhythm, achievement badges, and report modals (Life Index, Emergency Card, Yearly Sharecard);
+- **Performance**: Main component `overview.svelte` dropped to **784 lines** (over 200 lines trimmed from original);
+- **Test Milestone**: 119 test suites, **900 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.142 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.143 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

@@ -15,6 +15,12 @@
     import { moduleUiIcon } from "@/ui/icons";
     import { getWeeklyPulse, getFamilyAchievements } from "@/core/pulse-and-achievements";
     import { formatAsTaskBlock } from "@/core/block-capture";
+    import OverviewPulseStrip from "../overview-pulse-strip.svelte";
+    import {
+        openLifeIndexModal as showLifeIndex,
+        openEmergencyCardModal as showEmergencyCard,
+        openYearlyShareCardModal as showShareCard,
+    } from "@/core/overview-modals";
     import type { ModuleGroupId } from "@/types";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
@@ -359,55 +365,13 @@
     }
 
     // 300波里程碑：家庭年度生活指数与幸福资产盘点
-    async function openLifeIndexModal() {
-        try {
-            const { collectFamilyLifeContext, calculateFamilyLifeIndex, openLifeIndexDialog } = await import("@/core/life-index");
-            const ctx = await collectFamilyLifeContext(plugin, allReminders, localDateKey(new Date()));
-            const report = calculateFamilyLifeIndex(ctx);
-            openLifeIndexDialog(report, t, Dialog, showMessage);
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
+    const openLifeIndexModal = () => showLifeIndex({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 
     // 318波：家庭急救与应急联络卡
-    async function openEmergencyCardModal() {
-        try {
-            const { openEmergencyCardDialog } = await import("@/core/emergency-card-dialog");
-            const { renderLedgerAll } = await import("@/core/siyuan");
-            const { cellContentText } = await import("@/core/avcell");
-            await openEmergencyCardDialog({
-                t,
-                plugin,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellContentText,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
+    const openEmergencyCardModal = () => showEmergencyCard({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 
     // 320波：家庭生活年度回顾长图与里程碑卡片
-    async function openShareCardModal() {
-        try {
-            const { openYearlyShareCardDialog } = await import("@/core/sharecard-dialog");
-            const { renderLedgerAll } = await import("@/core/siyuan");
-            const { cellContentText } = await import("@/core/avcell");
-            await openYearlyShareCardDialog({
-                t,
-                plugin,
-                allReminders,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellContentText,
-            });
-        } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
-        }
-    }
+    const openShareCardModal = () => showShareCard({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 
     // 322波：总览主屏一键直达全模块「📍 东西放哪了」存放位置速查
     function openLocationIndexModal() {
@@ -572,40 +536,7 @@
     </div>
 </div>
 
-<!-- 原型参考图生活律动周条（Weekly Pulse Strip） -->
-<div class="lv-pulse-strip" role="region" aria-label="本周日程节奏">
-    {#each weeklyPulse as p (p.date)}
-        <button type="button" class="lv-pulse-pill" class:is-today={p.isToday} class:is-selected={pulseDateFilter === p.date}
-            onclick={() => { pulseDateFilter = pulseDateFilter === p.date ? undefined : p.date; }}
-            title={`${p.date} ${p.weekday}：${p.dueCount} 项待办（点击筛选该日）`}>
-            <span class="lv-pulse-weekday">{p.weekday}</span>
-            <span class="lv-pulse-day lv-num">{p.dayNum}</span>
-            <span class="lv-pulse-status" class:has-due={p.dueCount > 0} class:is-past-ok={p.isPast && p.dueCount === 0}>
-                {#if p.isToday}
-                    ●
-                {:else if p.isPast && p.dueCount === 0}
-                    ✓
-                {:else if p.dueCount > 0}
-                    {p.dueCount}
-                {:else}
-                    ·
-                {/if}
-            </span>
-        </button>
-    {/each}
-</div>
-
-<!-- 原型参考图家庭生活就绪成就勋章（Achievements Badges） -->
-{#if achievements.some((a) => a.achieved)}
-    <div class="lv-achievements-row" aria-label="家庭生活就绪勋章">
-        {#each achievements.filter((a) => a.achieved) as ach (ach.id)}
-            <div class="lv-achievement-chip" title={ach.desc}>
-                <UiIcon name={ach.icon as any} size={15} />
-                <span>{ach.title}</span>
-            </div>
-        {/each}
-    </div>
-{/if}
+<OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter />
 
 <div class="lv-members" style="margin-bottom:4px">
     <button class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>

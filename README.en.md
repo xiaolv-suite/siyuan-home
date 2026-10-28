@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.151 (Local Ready Build)
+## 🆕 What's new in v0.5.152 (Local Ready Build)
 
-This release decouples the handled/archived reminders list and centralizes ICS calendar export, taking `reminders.svelte` down to 854 lines:
+This release modularizes the ledger detail drawer full edit form engine and decouples incremental cell updates, taking `ledger-detail-drawer.ts` down to 804 lines:
 
-- **Refactoring (Decoupled Handled Reminders List & ICS Export)**: Extracted `src/panels/screens/reminder-handled-list.svelte` (70+ lines), encapsulating archived reminder items, status badge mappings, restore actions, permanent memo deletion, and paginated loading; centralized reminder ICS export in `exportReminderIcs` (`src/core/reminder-dialogs.ts`);
-- **Performance**: Reminder hub `reminders.svelte` dropped to **854 lines** (accumulating over 582 lines trimmed from original 1,436 lines, a 40.5% reduction);
-- **Test Milestone**: 127 test suites, **929 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Drawer Full Edit Form Engine)**: Extracted `renderDrawerEditMode` into `src/core/drawer-actions.ts` (160+ lines), encapsulating dynamic form generation, raw value diffing, read-only guard during submission, `idempotencyKey` cell updates, ghost column healing, and favor sync cleanup;
+- **Performance**: Ledger detail drawer `src/core/ledger-detail-drawer.ts` dropped to **804 lines** (accumulating over 750 lines trimmed from original 1,554 lines, a 48.3% reduction);
+- **Test Milestone**: 127 test suites, **930 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.151 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.152 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { bindDrawerMoreActions } from "@/core/drawer-actions";
+import { bindDrawerMoreActions, renderDrawerEditMode } from "@/core/drawer-actions";
 
 describe("drawer-actions (台账抽屉更多操作菜单绑定器)", () => {
     it("bindDrawerMoreActions 安全边界与事件绑定", () => {
@@ -25,4 +25,24 @@ describe("drawer-actions (台账抽屉更多操作菜单绑定器)", () => {
             });
         }).not.toThrow();
     });
+
+    it("renderDrawerEditMode 在非浏览器环境下优雅跳过", () => {
+        expect(() => {
+            renderDrawerEditMode({
+                body: {} as any,
+                dlg: { element: { querySelector: vi.fn().mockReturnValue(null) } },
+                row: { itemID: "row-1", cells: {} },
+                ref: { avId: "av-1", columns: {} },
+                active: "certs",
+                schemaCols: [],
+                plugin: {},
+                t: (k: string) => k,
+                rawFromValueFn: () => "",
+                showMessageFn: vi.fn(),
+                onCancel: vi.fn(),
+                onReload: vi.fn().mockResolvedValue(undefined),
+            });
+        }).not.toThrow();
+    });
 });
+

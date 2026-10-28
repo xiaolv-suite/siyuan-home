@@ -14,7 +14,6 @@ import { blockDeepLink, generateQRDataUrl } from "./qr";
 import { confirm } from "@/libs/dialog";
 import { openContactPicker } from "@/libs/contact-picker";
 import type { LogKind } from "./rowlog";
-import { setCell } from "./siyuan";
 import { saveRuntime } from "./hub/runtime";
 import { saveSettings } from "./settings";
 
@@ -642,112 +641,22 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     });
 
     function buildEdit() {
-        body.innerHTML = "";
-        body.scrollTop = 0;
-        const more = dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement;
-        more.open = false;
-        more.hidden = true;
-        import("./record-form").then(({ renderEditableFormFields }) => {
-            const inputs = renderEditableFormFields({
-                container: body,
+        import("./drawer-actions").then(({ renderDrawerEditMode }) => {
+            renderDrawerEditMode({
+                body,
+                dlg,
+                row,
+                ref,
+                active,
                 schemaCols,
-                columns: ref.columns!,
-                rowCells: row.cells,
+                plugin,
                 t,
                 rawFromValueFn: rawFromValue,
-                hasContactsBridge: true,
-                onPickContact: pickFromContacts,
+                showMessageFn,
+                pickFromContactsFn: pickFromContacts,
+                onCancel: () => buildView(),
+                onReload,
             });
-            const errorBox = document.createElement("div");
-            errorBox.className = "lv-record-error";
-            errorBox.setAttribute("role", "alert");
-            errorBox.style.display = "none";
-            body.appendChild(errorBox);
-            const save = dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement;
-            save.textContent = t("save");
-            const cancel = dlg.element.querySelector("#lv-detail-close") as HTMLButtonElement;
-            cancel.textContent = t("cancel");
-            cancel.onclick = () => buildView();
-            save.onclick = async () => {
-                if (save.disabled) return;
-                save.disabled = true;
-                cancel.disabled = true;
-                errorBox.style.display = "none";
-                const failed: string[] = [];
-                let changed = 0;
-                let personChanged = false;
-                const personKeyID = ref.columns?.person;
-                const previousFavorSync = plugin.runtime?.favorSyncs?.[row.itemID];
-                try {
-                    for (const e of inputs) {
-                        const v = e.get();
-                        const orig = rawFromValue(e.type, row.cells[e.keyID]);
-                        const same = e.type === "checkbox" ? v === orig : String(v) === String(orig);
-                        if (same) continue;
-                        try {
-                            const { cellValue } = await import("./avcell");
-                            const nextCell = cellValue(e.type, v);
-                            await setCell(ref.avId!, e.keyID, row.itemID, nextCell, {
-                                idempotencyKey: `ledger:detail-edit:${row.itemID}:${e.keyID}:${JSON.stringify(nextCell)}`,
-                                retries: 1,
-                            });
-                            row.cells[e.keyID] = nextCell;
-                            changed++;
-                            if (personKeyID && e.keyID === personKeyID) personChanged = true;
-                        } catch (err) {
-                            const msg = err instanceof Error ? err.message : String(err);
-                            if (msg.includes("key not found")) {
-                                try {
-                                    const { healColumnMapping } = await import("./provisioner");
-                                    const healedKey = await healColumnMapping(plugin, active, e.colKey);
-                                    if (healedKey && healedKey !== e.keyID) {
-                                        const { cellValue } = await import("./avcell");
-                                        const nextCell = cellValue(e.type, v);
-                                        await setCell(ref.avId!, healedKey, row.itemID, nextCell, {
-                                            idempotencyKey: `ledger:detail-edit:${row.itemID}:${healedKey}:${JSON.stringify(nextCell)}`,
-                                            retries: 1,
-                                        });
-                                        row.cells[healedKey] = nextCell;
-                                        changed++;
-                                        continue;
-                                    }
-                                } catch { /* fail to failed.push */ }
-                            }
-                            failed.push(e.label);
-                        }
-                    }
-                    if (personChanged && previousFavorSync) {
-                        delete plugin.runtime.favorSyncs[row.itemID];
-                        try {
-                            await saveRuntime(plugin, plugin.runtime);
-                        } catch (err) {
-                            plugin.runtime.favorSyncs = { ...(plugin.runtime.favorSyncs ?? {}), [row.itemID]: previousFavorSync };
-                            showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
-                        }
-                    }
-                    if (failed.length > 0) {
-                        if (changed > 0) {
-                            await onReload();
-                            try { await plugin.refreshHub([active]); } catch { /* soft */ }
-                        }
-                        errorBox.textContent = t("ledger.editSavePartial").replace("${fields}", failed.join(", "));
-                        errorBox.style.display = "block";
-                        save.disabled = false;
-                        cancel.disabled = false;
-                        return;
-                    }
-                    dlg.destroy();
-                    if (changed > 0) {
-                        await onReload();
-                        try { await plugin.refreshHub([active]); } catch { /* soft */ }
-                    }
-                    if (changed > 0) showMessageFn(t("ledger.editSaved"), 2500, "info");
-                } catch (err) {
-                    showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
-                    save.disabled = false;
-                    cancel.disabled = false;
-                }
-            };
         });
     }
 

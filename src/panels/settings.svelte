@@ -7,6 +7,7 @@
     import type { ProvisioningReport } from "@/core/provisioner";
     import type { HomeSettings, MemberRole, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
     import { formatLocalDateTime } from "@/core/date-display";
+    import SettingsRemindersTab from "@/panels/settings-reminders-tab.svelte";
     import UiIcon from "@/ui/icon.svelte";
 
     interface IHomePluginLike {
@@ -57,7 +58,6 @@
             ? BUILT_IN_MODULES.filter((m) => (t(`module.${m.id}`) + m.id).toLowerCase().includes(moduleSearch.trim().toLowerCase()))
             : modulesByGroup(moduleGroup)
     );
-    let reminderSection: "schedule" | "webhook" | "leads" | "checkin" = $state("schedule");
     let dataSection: "migration" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
     let saving = $state(false);
     // 33.4 编辑事务：draft 副本，保存才落盘（取消/关闭不污染 settings）。
@@ -84,30 +84,11 @@
     let draftWebhookMode = $state<"bark" | "ntfy">(settings.webhookMode === "ntfy" ? "ntfy" : "bark");
     // svelte-ignore state_referenced_locally
     let draftWebhookUrl = $state(settings.webhookUrl ?? "");
-    let testingWebhook = $state(false);
     let rerunBusy = $state(false);
     let diagnosticsBusy = $state<"backfill" | "duplicates" | "health" | "rebuild" | "adopt" | null>(null);
     let exportingDiagnostics = $state(false);
     let demoBusy = $state(false);
     let demoAction = $state<"generate" | "clear" | null>(null);
-    async function testWebhook() {
-        if (testingWebhook) return;
-        testingWebhook = true;
-        try {
-            const { sendWebhook } = await import("@/core/webhook");
-            const r = await sendWebhook({
-                ...settings,
-                webhookEnabled: true,
-                webhookUrl: draftWebhookUrl,
-                webhookMode: draftWebhookMode,
-            } as HomeSettings, { title: t("hub.title"), body: t("settings.webhookTestBody") });
-            showMessage(r === "ok" ? t("settings.webhookTestOk") : t("settings.webhookTestFail"), 3000, r === "ok" ? "info" : "error");
-        } catch (error) {
-            showMessage(`${t("settings.webhookTestFail")}${error instanceof Error ? ` (${error.message})` : ""}`, 5000, "error");
-        } finally {
-            testingWebhook = false;
-        }
-    }
     /** C8c：枚举所有模块的提醒规则（leadOverrides 编辑行） */
     const leadRules = $derived.by(() => {
         const catalog = plugin.schemaCatalog ?? {};
@@ -122,75 +103,10 @@
 
     const ROLES: MemberRole[] = ["self", "spouse", "partner", "child", "elder", "kin", "other"];
     const enabledIds = $derived(new Set(draftEnabled));
-    // C8c 收尾：leadOverrides 编辑行只列启用模块（25+ 全量行过长）；未启用模块的
-    // 覆盖值保留在 draftLeads 里不动——关模块保存再开，自定义值原样回来。
-    let showAllLeads = $state(false);
-    const enabledLeadRules = $derived(leadRules.filter((lr) => enabledIds.has(lr.moduleId)));
-    const visibleLeadRules = $derived(showAllLeads ? leadRules : enabledLeadRules);
 
     // EC09（D20）：打卡绑定 draft——习惯→成员指标映射，只读消费不写打卡数据
     // svelte-ignore state_referenced_locally
     let draftBindings: CheckinBinding[] = $state((settings.checkinBindings ?? []).map((b) => ({ ...b })));
-    const METRICS: CheckinBinding["metric"][] = ["count", "quantity", "duration"];
-    let checkinItems: { id: string; name: string; kind: string }[] = $state([]);
-    let checkinPresent = $state<boolean | null>(null); // null=探测中
-    let checkinProbe = $state(0);
-
-    $effect(() => {
-        void checkinProbe;
-        let alive = true;
-        (async () => {
-            try {
-                const ck = (window as { siyuanCheckin?: { whenReady?: () => Promise<boolean>; queryItems?: (o?: { limit?: number }) => { id: string; name: string; kind: string }[] } }).siyuanCheckin;
-                if (!ck?.whenReady || !ck?.queryItems) { if (alive) checkinPresent = false; return; }
-                const ready = await ck.whenReady();
-                if (!alive) return;
-                checkinPresent = !!ready;
-                if (ready) checkinItems = (ck.queryItems({ limit: 200 }) ?? []).map((it) => ({ id: String(it.id), name: String(it.name), kind: String(it.kind) }));
-            } catch { if (alive) checkinPresent = false; }
-        })();
-        return () => { alive = false; };
-    });
-
-    /** kind → 默认指标（binary/count→次数；duration→时长；quantity/custom→数量） */
-    function defaultMetric(kind: string): CheckinBinding["metric"] {
-        if (kind === "duration") return "duration";
-        if (kind === "quantity" || kind === "custom") return "quantity";
-        return "count";
-    }
-    function addBinding() {
-        const pair = availableBindingPair;
-        if (!pair) {
-            showMessage(t(draftMembers.length ? "settings.checkinAllBound" : "settings.checkinNeedMember"), 3500, "info");
-            return;
-        }
-        const { item: it, member } = pair;
-        draftBindings = [...draftBindings, {
-            itemId: it.id, itemName: it.name,
-            memberId: member.id,
-            metric: defaultMetric(it.kind),
-        }];
-    }
-    const availableBindingPair = $derived.by(() => {
-        for (const item of checkinItems) {
-            const member = draftMembers.find((m) => !draftBindings.some((b) => b.itemId === item.id && b.memberId === m.id));
-            if (member) return { item, member };
-        }
-        return undefined;
-    });
-    function removeBinding(i: number) {
-        const binding = draftBindings[i];
-        if (!binding) return;
-        confirm(
-            t("settings.bindingRemoveTitle"),
-            t("settings.bindingRemoveBody").replace("${item}", binding.itemName).replace("${member}", draftMembers.find((m) => m.id === binding.memberId)?.name?.trim() || t("members.name")),
-            () => { draftBindings = draftBindings.filter((_, idx) => idx !== i); },
-        );
-    }
-    function syncBindingItem(b: CheckinBinding) {
-        const it = checkinItems.find((x) => x.id === b.itemId);
-        if (it) { b.itemName = it.name; b.metric = defaultMetric(it.kind); }
-    }
 
     // 263 波（脏检查）：归一化 helper 与 save() 共用同一份实现——判断口径=落盘口径，永不漂移
     const clampHour = (v: number, fallback: number) => (Number.isFinite(v) ? Math.min(23, Math.max(0, Math.round(v))) : fallback);
@@ -618,120 +534,22 @@
         </div>
         </div>
     {:else if area === "reminders"}
-        <div class="lv-settings__pane-title">{t("tabReminders")}</div>
-        <nav class="lv-settings__subnav" aria-label={t("tabReminders")}>
-            <button class="lv-setnav__item {reminderSection === 'schedule' ? 'on' : ''}" aria-current={reminderSection === 'schedule' ? 'true' : undefined} onclick={() => (reminderSection = "schedule")}>{t("settings.reminderSchedule")}</button>
-            <button class="lv-setnav__item {reminderSection === 'webhook' ? 'on' : ''}" aria-current={reminderSection === 'webhook' ? 'true' : undefined} onclick={() => (reminderSection = "webhook")}>{t("settings.webhookTitle")}</button>
-            <button class="lv-setnav__item {reminderSection === 'leads' ? 'on' : ''}" aria-current={reminderSection === 'leads' ? 'true' : undefined} onclick={() => (reminderSection = "leads")}>{t("settings.leadsTitle")}</button>
-            <button class="lv-setnav__item {reminderSection === 'checkin' ? 'on' : ''}" aria-current={reminderSection === 'checkin' ? 'true' : undefined} onclick={() => (reminderSection = "checkin")}>{t("settings.checkinBindingsTitle")}</button>
-        </nav>
-        <div class="lv-settings__scroll">
-        {#if reminderSection === "schedule"}
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("tabReminders")}</div>
-            <div class="lv-setcard__hint">{t("settings.remindersHint")}</div>
-            <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.notifyHour")}</span>
-                <input class="b3-text-field" style="width:90px" type="number" min="0" max="23" aria-label={t("settings.notifyHour")} bind:value={draftNotifyHour} />
-                <span class="lv-caption fn__flex-1">{t("settings.notifyHourHint")}</span>
-            </div>
-            <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.silentHours")}</span>
-                <input class="b3-text-field" style="width:70px" type="number" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
-                <span class="lv-caption" style="margin:0 6px">→</span>
-                <input class="b3-text-field" style="width:70px" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
-                <span class="lv-caption fn__flex-1">{t("settings.silentHoursHint")}</span>
-            </div>
-        </div>
-        {:else if reminderSection === "webhook"}
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.webhookTitle")}</div>
-            <div class="lv-setcard__hint">{t("settings.webhookHint")}</div>
-            <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookEnable")}</span>
-                <input type="checkbox" class="b3-switch" aria-label={t("settings.webhookEnable")} bind:checked={draftWebhookEnabled} />
-                <span class="lv-caption fn__flex-1"></span>
-            </div>
-            <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookMode")}</span>
-                <select class="b3-select" aria-label={t("settings.webhookMode")} bind:value={draftWebhookMode}>
-                    <option value="bark">Bark</option>
-                    <option value="ntfy">ntfy</option>
-                </select>
-                <span class="lv-caption fn__flex-1"></span>
-            </div>
-            <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookUrl")}</span>
-                <input class="b3-text-field fn__flex-1" style="min-width:0" aria-label={t("settings.webhookUrl")} bind:value={draftWebhookUrl}
-                    placeholder="https://api.day.app/yourkey" />
-            </div>
-            <button class="b3-button b3-button--outline lv-setcard__action" disabled={testingWebhook || !draftWebhookUrl.trim()}
-                onclick={testWebhook}>{testingWebhook ? t("settings.webhookTesting") : t("settings.webhookTest")}</button>
-        </div>
-        {:else if reminderSection === "leads"}
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.leadsTitle")}</div>
-            <div class="lv-setcard__hint">{t("settings.leadsHint")}</div>
-            {#if enabledLeadRules.length < leadRules.length}
-                <button class="b3-button b3-button--text lv-setcard__action" onclick={() => (showAllLeads = !showAllLeads)}>
-                    {showAllLeads ? t("settings.leadsEnabledOnly") : t("settings.leadsShowAll").replace("${n}", String(leadRules.length - enabledLeadRules.length))}
-                </button>
-            {/if}
-            {#each visibleLeadRules as lr (lr.key)}
-                <div class="fn__flex lv-settings__row" style={enabledIds.has(lr.moduleId) ? "" : "opacity:.55"}>
-                    <span style="min-width:220px">{t(`module.${lr.moduleId}`)} · {t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}</span>
-                    <input class="b3-text-field" style="width:90px" type="number" min="0" max="3650"
-                        aria-label={`${t(`module.${lr.moduleId}`)} · ${t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}`}
-                        placeholder={String(lr.def)}
-                        bind:value={draftLeads[lr.key]} />
-                    <span class="lv-caption fn__flex-1">{t("settings.leadDefault").replace("${n}", String(lr.def))}{#if !enabledIds.has(lr.moduleId)} · {t("settings.leadDisabled")}{/if}</span>
-                </div>
-            {/each}
-        </div>
-        {:else}
-        <!-- EC09（D20）：打卡习惯 → 成员指标绑定（只读消费） -->
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.checkinBindingsTitle")}</div>
-            <div class="lv-setcard__hint">{t("settings.checkinBindingsHint")}</div>
-            {#if checkinPresent === false}
-                <p class="lv-setcard__hint" style="color:var(--lv-warn)">{t("settings.checkinAbsent")}</p>
-            {:else if checkinPresent === null}
-                <p class="lv-setcard__hint" role="status">{t("settings.checkinLoading")}</p>
-                <button class="b3-button b3-button--outline lv-setcard__action" onclick={() => { checkinItems = []; checkinPresent = null; checkinProbe += 1; }}>{t("settings.checkinRetry")}</button>
-            {:else if checkinPresent === true}
-                {#if draftMembers.length === 0}
-                    <p class="lv-setcard__hint" role="status">{t("settings.checkinNeedMember")}</p>
-                    <button class="b3-button b3-button--outline lv-setcard__action" onclick={() => (area = "members")}>{t("tabMembers")}</button>
-                {/if}
-                {#each draftBindings as b, i}
-                    <div class="fn__flex lv-settings__row" style="gap:6px">
-                        <select class="b3-select" style="width:auto" bind:value={b.memberId} aria-label={t("settings.metricMember")}>
-                            {#each draftMembers as m (m.id)}<option value={m.id}>{m.name}</option>{/each}
-                        </select>
-                        <span class="lv-caption">·</span>
-                        <select class="b3-select" style="width:auto" bind:value={b.itemId} onchange={() => syncBindingItem(b)} aria-label={t("settings.metricItem")}>
-                            {#each checkinItems as it (it.id)}<option value={it.id}>{it.name}</option>{/each}
-                        </select>
-                        <select class="b3-select" style="width:auto" bind:value={b.metric} aria-label={t("settings.metricKind")}>
-                            {#each METRICS as mt (mt)}<option value={mt}>{t(`settings.metric.${mt}`)}</option>{/each}
-                        </select>
-                        <button class="b3-button b3-button--text" title={t("delete")} aria-label={`${t("delete")} · ${b.itemName}`} onclick={() => removeBinding(i)}>✕</button>
-                    </div>
-                {/each}
-                {#if draftBindings.length === 0}
-                    <p class="lv-setcard__hint ft__on-surface">{t("settings.checkinEmpty")}</p>
-                {/if}
-                {#if checkinItems.length === 0}
-                    <p class="lv-setcard__hint" role="status">{t("settings.checkinNoItems")}</p>
-                {/if}
-                {#if checkinItems.length > 0 && draftMembers.length > 0 && !availableBindingPair}
-                    <p class="lv-setcard__hint" role="status">{t("settings.checkinAllBound")}</p>
-                {/if}
-                <button class="b3-button b3-button--outline lv-setcard__action" disabled={!availableBindingPair} onclick={addBinding}>＋ {t("settings.checkinAdd")}</button>
-            {/if}
-        </div>
-        {/if}
-        </div>
+        <SettingsRemindersTab
+            bind:draftNotifyHour
+            bind:draftSilentFrom
+            bind:draftSilentTo
+            bind:draftWebhookEnabled
+            bind:draftWebhookMode
+            bind:draftWebhookUrl
+            bind:draftLeads
+            bind:draftBindings
+            {draftMembers}
+            {leadRules}
+            {enabledIds}
+            {settings}
+            {t}
+            onSwitchArea={(a) => (area = a)}
+        />
     {:else if area === "data"}
         <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
         <nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>

@@ -39,17 +39,17 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.140 (Local Ready Build)
+## 🆕 What's new in v0.5.141 (Local Ready Build)
 
-This release decouples the reminder batch management bar and digests, taking `reminders.svelte` down to 897 lines:
+This release decouples the settings reminders & check-in tab, taking `settings.svelte` down to 839 lines and completing the sub-1000 lines milestone across all 4 primary screens:
 
-- **Refactoring (Decoupled Reminder Batch Bar & Digests)**: Extracted `src/panels/screens/reminder-batch-bar.svelte` and moved the weekly digest dialog to `src/core/reminder-dialogs.ts`, unifying batch copy tasks, batch schedule today, batch done/snooze/mute;
-- **Performance**: Main component `reminders.svelte` historically dropped to **897 lines** (accumulating over 539 lines trimmed from original 1,436 lines, a 37.5% reduction);
-- **Feature (Batch Copy Block References)**: Added a "🔗 Copy Block Ref" action to the reminder batch toolbar, allowing users to copy standard `((id 'title'))` syntax for all selected reminders in one click;
-- **Validation**: 116 test suites, **890 unit tests passing**, TypeScript, Svelte, i18n (1981 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Reminders & Integration Settings)**: Extracted `src/panels/settings-reminders-tab.svelte` (230+ lines), completely encapsulating daily notification windows, silent hours, Bark/ntfy webhook setup with live testing, rule lead days customization, and check-in habits metric mapping;
+- **Performance**: Main component `settings.svelte` dropped to **839 lines** (500 lines trimmed from original 1,339 lines, a 37.3% reduction);
+- **Milestone Complete**: All 4 primary screens (Ledger: 969, Reminders: 897, Members: 835, Settings: 839) are now firmly under 1,000 lines;
+- **Validation**: 117 test suites, **894 unit tests passing**, TypeScript, Svelte, i18n (1981 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.140 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.141 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

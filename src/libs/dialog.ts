@@ -20,14 +20,16 @@ export const confirm = (
 ) => {
     siyuanConfirm(title, text, confirmCallback, cancelCallback);
     // 立即提升最新弹出的确认对话框至最高层级，杜绝层级倒挂
-    requestAnimationFrame(() => {
-        const dialogs = document.querySelectorAll<HTMLElement>(".b3-dialog");
-        if (dialogs.length > 0) {
-            const top = dialogs[dialogs.length - 1];
-            top.classList.add("lv-top-confirm");
-            top.style.setProperty("z-index", "2000", "important");
-        }
-    });
+    if (typeof requestAnimationFrame === "function" && typeof document !== "undefined") {
+        requestAnimationFrame(() => {
+            const dialogs = document.querySelectorAll<HTMLElement>(".b3-dialog");
+            if (dialogs.length > 0) {
+                const top = dialogs[dialogs.length - 1];
+                top.classList.add("lv-top-confirm");
+                top.style.setProperty("z-index", "2000", "important");
+            }
+        });
+    }
 };
 
 export const simpleDialog = (args: {

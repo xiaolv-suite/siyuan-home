@@ -5,8 +5,8 @@
     import { fade } from "svelte/transition";
     import type { HomePluginLike } from "@/types/plugin";
     import {
-        saveRuntime, saveNamedView, removeNamedView, applyNamedView, type ReminderNamedView,
-        setReminderPlanDate, clearReminderPlanDate, getReminderPlanStatus, type ReminderPlanStatus,
+        saveRuntime, applyNamedView, type ReminderNamedView,
+        getReminderPlanStatus, type ReminderPlanStatus,
     } from "@/core/hub/runtime";
     import { buildDisplay as display } from "@/core/hub/display";
     import { relativeDue, weekdayKey, localDateKey } from "@/core/hub/rule";
@@ -76,90 +76,15 @@
         getReminderPlanStatus(localDateKey(new Date()), r.dueDate, planDates[r.id]);
 
     function schedulePlanDialog(r: Reminder) {
-        const currentPlan = planDates[r.id] || "";
-        const todayKey = localDateKey(new Date());
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowKey = localDateKey(tomorrow);
-
-        // 计算下周一
-        const nextMon = new Date();
-        const dayOfWeek = nextMon.getDay();
-        const daysUntilMon = ((1 + 7 - dayOfWeek) % 7) || 7;
-        nextMon.setDate(nextMon.getDate() + daysUntilMon);
-        const nextMonKey = localDateKey(nextMon);
-
-        const dlg = new Dialog({
-            title: t("hub.planScheduleTitle"),
-            content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-                <p class="lv-caption" style="margin:0">${t("hub.planScheduleIntro")}</p>
-                <div style="font-size:12px;color:var(--lv-tx-2)">
-                    <b>${r.title}</b> · ${t("hub.summaryDue")}: ${r.dueDate}
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    <button class="b3-button b3-button--outline" id="lv-plan-preset-today" style="font-size:12px;padding:3px 8px">${t("hub.planPresetToday")}</button>
-                    <button class="b3-button b3-button--outline" id="lv-plan-preset-tomorrow" style="font-size:12px;padding:3px 8px">${t("hub.planPresetTomorrow")}</button>
-                    <button class="b3-button b3-button--outline" id="lv-plan-preset-nextmon" style="font-size:12px;padding:3px 8px">${t("hub.planPresetNextWeek")}</button>
-                </div>
-                <label style="display:flex;flex-direction:column;gap:6px">
-                    <span style="font-size:12px;color:var(--lv-tx-2)">${t("hub.planDateLabel")}</span>
-                    <input class="b3-text-field" id="lv-plan-date-input" type="date" value="${currentPlan || todayKey}" style="width:100%" />
-                </label>
-            </div>
-            <div class="b3-dialog__action">
-                ${currentPlan ? `<button class="b3-button b3-button--text ft__error" id="lv-plan-clear" style="color:var(--lv-danger)">${t("hub.clearPlanDate")}</button>` : ""}
-                <span class="fn__flex-1"></span>
-                <button class="b3-button b3-button--cancel" id="lv-plan-cancel">${t("cancel")}</button>
-                <button class="b3-button" id="lv-plan-save">${t("save")}</button>
-            </div>`,
-            width: "420px",
-        });
-
-        const dateInput = dlg.element.querySelector("#lv-plan-date-input") as HTMLInputElement;
-        const setDate = (val: string) => { if (dateInput) dateInput.value = val; };
-        if (dateInput) {
-            dateInput.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-plan-save") as HTMLButtonElement)?.click();
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openReminderPlanDialog({
+                r,
+                plugin,
+                DialogCls: Dialog,
+                t,
+                showMessageFn: showMessage,
             });
-        }
-
-        (dlg.element.querySelector("#lv-plan-preset-today") as HTMLButtonElement).onclick = () => setDate(todayKey);
-        (dlg.element.querySelector("#lv-plan-preset-tomorrow") as HTMLButtonElement).onclick = () => setDate(tomorrowKey);
-        (dlg.element.querySelector("#lv-plan-preset-nextmon") as HTMLButtonElement).onclick = () => setDate(nextMonKey);
-
-        const clearBtn = dlg.element.querySelector("#lv-plan-clear") as HTMLButtonElement | null;
-        if (clearBtn) {
-            clearBtn.onclick = async () => {
-                dlg.destroy();
-                clearReminderPlanDate(plugin.runtime, r.id);
-                try {
-                    await saveRuntime(plugin, plugin.runtime);
-                    showMessage(t("hub.planDateCleared"), 2500, "info");
-                    await plugin.refreshHub?.(undefined, true);
-                } catch (e) {
-                    showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                }
-            };
-        }
-
-        (dlg.element.querySelector("#lv-plan-cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        (dlg.element.querySelector("#lv-plan-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            const chosenDate = dateInput?.value.trim();
-            if (!chosenDate) {
-                showMessage(t("hub.planScheduleIntro"), 3000, "error");
-                return;
-            }
-            this.disabled = true;
-            dlg.destroy();
-            setReminderPlanDate(plugin.runtime, r.id, chosenDate);
-            try {
-                await saveRuntime(plugin, plugin.runtime);
-                showMessage(t("hub.planDateSaved"), 2500, "info");
-                await plugin.refreshHub?.(undefined, true);
-            } catch (e) {
-                showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            }
-        };
+        });
     }
 
     async function copyAsTaskBlock(r: Reminder) {
@@ -190,6 +115,24 @@
         }
     }
 
+    async function batchPlanToday() {
+        if (batchBusy || selected.size === 0) return;
+        batchBusy = true;
+        try {
+            const { batchPushRemindersToTodayPlan } = await import("@/core/hub/runtime");
+            const count = batchPushRemindersToTodayPlan(plugin.runtime, [...selected]);
+            await saveRuntime(plugin, plugin.runtime);
+            showMessage(t("hub.planDateSaved") + ` (${count})`, 2500, "info");
+            selected = new Set();
+            batchMode = false;
+            await plugin.refreshHub?.(undefined, true);
+        } catch (e) {
+            showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        } finally {
+            batchBusy = false;
+        }
+    }
+
     // 命名视图（§17）：筛选组合一键保存与切换
     const namedViews = $derived.by(() => {
         void version;
@@ -210,61 +153,30 @@
     }
 
     function promptSaveNamedView() {
-        const dlg = new Dialog({
-            title: t("hub.saveViewTitle"),
-            content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-                <p class="lv-caption" style="margin:0">${t("hub.saveViewIntro")}</p>
-                <input class="b3-text-field" id="lv-named-view-input" placeholder="${t("hub.saveViewPlaceholder")}" style="width:100%" />
-            </div>
-            <div class="b3-dialog__action">
-                <button class="b3-button b3-button--cancel" id="lv-named-view-cancel">${t("cancel")}</button>
-                <button class="b3-button" id="lv-named-view-save">${t("save")}</button>
-            </div>`,
-            width: "400px",
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openNamedViewSaveDialog({
+                plugin,
+                currentFilter: { filter, filterMember, filterModule, dueWithin },
+                DialogCls: Dialog,
+                t,
+                showMessageFn: showMessage,
+                onViewSaved: async (viewId) => { activeNamedViewId = viewId; },
+            });
         });
-        const input = dlg.element.querySelector("#lv-named-view-input") as HTMLInputElement;
-        if (input) {
-            input.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-named-view-save") as HTMLButtonElement)?.click();
-            });
-        }
-        requestAnimationFrame(() => input?.focus());
-        (dlg.element.querySelector("#lv-named-view-cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-        (dlg.element.querySelector("#lv-named-view-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-            const nameVal = input?.value.trim();
-            if (!nameVal) {
-                showMessage(t("hub.saveViewEmptyName"), 3000, "error");
-                return;
-            }
-            this.disabled = true;
-            dlg.destroy();
-            const saved = saveNamedView(plugin.runtime, {
-                name: nameVal,
-                filter,
-                memberId: filterMember,
-                moduleId: filterModule,
-                dueWithin,
-            });
-            activeNamedViewId = saved.id;
-            try {
-                await saveRuntime(plugin, plugin.runtime);
-                showMessage(t("hub.namedViewSaved"), 2500, "info");
-            } catch (e) {
-                showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            }
-        };
     }
 
     function confirmDeleteNamedView(v: ReminderNamedView) {
-        confirm(t("hub.deleteViewTitle"), t("hub.deleteViewBody").replace("${name}", v.name), async () => {
-            removeNamedView(plugin.runtime, v.id);
-            if (activeNamedViewId === v.id) activeNamedViewId = undefined;
-            try {
-                await saveRuntime(plugin, plugin.runtime);
-                showMessage(t("hub.namedViewDeleted"), 2500, "info");
-            } catch (e) {
-                showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            }
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openNamedViewDeleteConfirm({
+                v,
+                plugin,
+                activeNamedViewId,
+                t,
+                showMessageFn: showMessage,
+                onViewDeleted: async (id) => {
+                    if (activeNamedViewId === id) activeNamedViewId = undefined;
+                },
+            });
         });
     }
     const memberOptions = $derived.by(() => {
@@ -502,67 +414,28 @@
     }
 
     // B4b 续期：思源 Dialog 小窗（H10：失败保留 Dialog 与输入、错误就地显示，不提前销毁）
-    // 19 组安全：HTML 模板不插值任何用户内容——标题/条目名经 textContent 挂载，防台账文本注入
     function renewDialog(r: Reminder) {
-        const dlg = new Dialog({
-            title: t("act.renew"),
-            content: `<div class="b3-dialog__content"><div class="b3-dialog__content" id="lv-renew-sub" style="margin-bottom:8px"></div><input class="b3-text-field fn__block" id="lv-renew-date" type="date"><div class="lv-caption" id="lv-renew-err" role="alert" style="color:var(--b3-card-error-color);display:none"></div></div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-renew-cancel">${t("cancel")}</button><button class="b3-button" id="lv-renew-ok">${t("save")}</button></div>`,
-            width: "380px",
-        });
-        // 33.4 弹层契约：初始焦点落在日期输入
-        const dateInput = dlg.element.querySelector("#lv-renew-date") as HTMLInputElement;
-        dateInput.value = r.dueDate; // 内部格式 yyyy-MM-dd，属性赋值不走 HTML 解析
-        const sub = dlg.element.querySelector("#lv-renew-sub") as HTMLElement;
-        sub.textContent = r.title; // textContent：用户内容不经 HTML 解析
-        dateInput?.focus();
-        dlg.element.querySelector("#lv-renew-cancel")?.addEventListener("click", () => dlg.destroy());
-        dlg.element.querySelector("#lv-renew-ok")?.addEventListener("click", async () => {
-            const v = dateInput?.value;
-            const err = dlg.element.querySelector("#lv-renew-err") as HTMLElement;
-            if (!v) {
-                err.textContent = t("form.required");
-                err.style.display = "block";
-                dateInput?.focus();
-                return;
-            }
-            const okBtn = dlg.element.querySelector("#lv-renew-ok") as HTMLButtonElement;
-            try {
-                okBtn.disabled = true;
-                // plugin.renew 内部写回后触发 refreshHub（行数据已变，不走 notifyHubChanged）
-                await plugin.renew(r, v);
-                dlg.destroy();
-            } catch (e) {
-                // 写回失败：保留 Dialog 与已填值，可重试
-                err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
-                err.style.display = "block";
-                okBtn.disabled = false;
-            }
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openReminderRenewDialog({
+                r,
+                plugin,
+                DialogCls: Dialog,
+                t,
+            });
         });
     }
 
     // C3c 延后天数菜单（1/3/7/30）
     function snoozeMenu(r: Reminder, ev: MouseEvent) {
-        // 3.8.x 宿主的全局 click 关单监听在窗口层，且 Menu 为共享单例容器：同一次 click 的
-        // 传播中打开的菜单会被立即清空（2026-10-09 分层采样实证——document 层 4 项可见，
-        // window 层 0 项；仅延迟 open 会在重展示时拿到已被清空的共享壳）。整个构建+打开
-        // 都放进宏任务，等打开它的这次 click 传播清算完毕后再新建。
-        const target = ev.currentTarget instanceof HTMLElement ? ev.currentTarget : undefined;
-        const rect = target?.getBoundingClientRect();
-        const rawX = ev.detail > 0 ? ev.clientX : rect?.right ?? 0;
-        const rawY = ev.detail > 0 ? ev.clientY : rect?.bottom ?? 0;
-        const x = Math.max(8, Math.min(rawX, window.innerWidth - 8));
-        const y = Math.max(8, Math.min(rawY, window.innerHeight - 8));
-        setTimeout(() => {
-            const menu = new Menu("lv-snooze");
-            for (const d of [1, 3, 7, 30]) {
-                menu.addItem({
-                    label: t("act.snoozeN").replace("${n}", String(d)),
-                    click: () => { void runReminderAction(() => plugin.snooze(r.id, d), r.id); },
-                });
-            }
-            menu.open({ x, y });
-        }, 0);
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openSnoozeMenu({
+                r,
+                ev,
+                MenuCls: Menu,
+                t,
+                onSnooze: (days) => runReminderAction(() => plugin.snooze(r.id, days), r.id),
+            });
+        });
     }
 
     let activeMoreMenu: { button: HTMLButtonElement; menu: HTMLElement; dispose: () => void } | undefined;
@@ -618,45 +491,15 @@
 
     // 246 波（收件箱深化）：备忘编辑对话框（标题/到期日修正 → updateMemo 落盘）
     function editMemoDialog(r: Reminder) {
-        const dlg = new Dialog({ title: t("memo.edit"), content: `<div id="lv-memoedit" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
-        const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
-        const row1 = document.createElement("div");
-        row1.style.cssText = rowFlexCenterCss;
-        const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.name");
-        const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.style.flex = "1"; titleInput.value = r.title;
-        titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
-        row1.append(l1, titleInput);
-        const row2 = document.createElement("div");
-        row2.style.cssText = rowFlexCenterCss;
-        const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.due");
-        const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
-        dateInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
-        row2.append(l2, dateInput);
-        // 260 波：确认键升为描边按钮（幽灵样式的保存键没有动作感，与取消键主次不分）
-        const save = document.createElement("button"); save.className = "b3-button"; save.textContent = t("save");
-        const err = document.createElement("span"); err.className = "lv-caption"; err.setAttribute("role", "alert"); err.style.color = "var(--lv-danger)";
-        let saving = false;
-        save.addEventListener("click", async () => {
-            if (saving) return;
-            const title = titleInput.value.trim();
-            if (!title) { err.textContent = t("ledger.nameRequired"); titleInput.focus(); return; }
-            if (!dateInput.value) { err.textContent = t("form.required"); dateInput.focus(); return; }
-            saving = true;
-            save.disabled = true;
-            try {
-                await plugin.updateMemo(r.id, { title, dueDate: dateInput.value });
-                dlg.destroy();
-            } catch (e) {
-                err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
-                save.disabled = false;
-                saving = false;
-            }
+        import("@/core/reminder-dialogs").then((m) => {
+            m.openMemoEditDialog({
+                r,
+                plugin,
+                DialogCls: Dialog,
+                t,
+                showMessageFn: showMessage,
+            });
         });
-        const row3 = document.createElement("div");
-        row3.style.cssText = "display:flex;gap:8px;justify-content:flex-end";
-        row3.append(save);
-        box.append(row1, row2, err, row3);
-        titleInput.focus();
     }
 
     // 311 波（G2）：多段提醒割点——从 schema 规则查得 leadStages 后算出当前段位
@@ -1223,6 +1066,7 @@
         <button class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
         <span class="fn__flex-1"></span>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}>📋 {t("hub.batchCopyTasks")}</button>
+        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}>📅 {t("hub.planPresetToday")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}>{t("act.done")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}>{t("act.snooze7")}</button>
         <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}>{t("act.mute")}</button>

@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.161 (Local Ready Build)
+## 🆕 What's new in v0.5.162 (Local Ready Build)
 
-This release modularizes the overview module cards grid into `src/panels/screens/overview-module-grid.svelte`, taking `src/panels/screens/overview.svelte` down to 616 lines:
+This release modularizes the quick capture save transaction engine into `src/core/quick-capture-saver.ts`, taking `src/panels/quick-capture.svelte` down to 637 lines:
 
-- **Refactoring (Modularized Overview Module Cards Grid)**: Extracted `src/panels/screens/overview-module-grid.svelte` (210+ lines), encapsulating category group stats, realtime module search query matching, group section collapse/expand controls (`isModuleGroupOpen`, `toggleModuleGroup`), pending item drilldowns, 5-day sparklines (`sparkOf`), study streak badges, and check-in summary metrics;
-- **Performance**: Overview screen `src/panels/screens/overview.svelte` dropped to **616 lines** (accumulating over 237 lines trimmed from original 853 lines, a 27.8% reduction);
-- **Test Milestone**: 137 test suites, **960 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Quick Capture Saver Engine)**: Extracted `src/core/quick-capture-saver.ts` (220+ lines), encapsulating input validation, member relation integrity checks, target ledger verification and auto-repair, `RowIdentityPendingError` reconciliation, atomic row additions with `idempotencyKey` retry setCell updates, runtime preference persistence, and forced hub scans;
+- **Performance**: Quick capture screen `src/panels/quick-capture.svelte` dropped to **637 lines** (accumulating over 220 lines trimmed from original 860+ lines, a 26% reduction);
+- **Test Milestone**: 138 test suites, **964 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.161 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.162 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

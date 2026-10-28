@@ -3,9 +3,7 @@
     // 未建库自动建库（triage 同链路）。常驻挂载：关闭仅收起弹层，草稿保留到下次打开（对齐原型）。
     import { showMessage } from "siyuan";
     import { tick } from "svelte";
-    import { addDetachedRow, RowIdentityPendingError, setCell, renderLedgerAll } from "@/core/siyuan";
-    import { saveRuntime } from "@/core/hub/runtime";
-    import { captureCellValue, getCaptureFields, validateCaptureInput, getFieldPlaceholder } from "@/core/capture";
+    import { getCaptureFields, getFieldPlaceholder } from "@/core/capture";
     import { getGroupedModules, moduleIcon } from "@/core/modules";
     import { localDateKey } from "@/core/hub/rule";
     import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
@@ -333,174 +331,48 @@
         saveError = "";
     }
 
-    function validationMessage(field: ColumnDef, issue: string): string {
-        const key = `capture.validation.${issue}`;
-        return t(key)
-            .replace("${field}", fieldLabel(field))
-            .replace("${min}", String(field.min ?? ""))
-            .replace("${max}", String(field.max ?? ""));
-    }
-
     async function save(continueAfter = false) {
         if (saving) return;
         const hadIdentityPending = identityPending;
         identityPending = false;
-        const title = String(values.name ?? "").trim();
         saveError = "";
         fieldErrors = {};
-        for (const field of captureFields) {
-            const issue = validateCaptureInput(field, values[field.key]);
-            const relationID = field.type === "relation" ? String(values[field.key] ?? "").trim() : "";
-            const staleRelation = relationID && !(plugin.settings.members ?? []).some((m) => m.avItemId === relationID);
-            if (!issue && !staleRelation) continue;
-            const message = staleRelation ? t("members.notLinked") : validationMessage(field, issue!);
-            fieldErrors = { [field.key]: message };
-            saveError = message;
-            await tick();
-            document.getElementById(`lv-cap-${field.key}`)?.focus();
-            return;
-        }
         saving = true;
-        saveError = "";
         if (!saveOperationKey) saveOperationKey = nextSaveOperationKey();
-        // 268 波：连续录入的重聚焦必须在 saving=false 之后（disabled 输入框不可聚焦）
         let refocusName = false;
+
         try {
-            if (pendingRowId && pendingModuleId !== moduleId) {
-                saveError = t("capture.pendingTarget");
+            const { executeQuickCaptureSave } = await import("@/core/quick-capture-saver");
+            const result = await executeQuickCaptureSave({
+                plugin,
+                moduleId,
+                values,
+                captureFields,
+                pendingRowId,
+                pendingModuleId,
+                hadIdentityPending,
+                saveOperationKey,
+                t,
+                fieldLabel,
+                modLabel,
+                ensureTargetRef,
+            });
+
+            if (!result.success) {
+                if (result.fieldErrors) fieldErrors = result.fieldErrors;
+                if (result.error) saveError = result.error;
+                if (result.identityPending) identityPending = true;
+                if (result.focusFieldKey) {
+                    await tick();
+                    document.getElementById(`lv-cap-${result.focusFieldKey}`)?.focus();
+                }
                 return;
             }
-            let r = await ensureTargetRef(moduleId);
-            let missingColumn = captureFields.find((field) => {
-                const value = values[field.key];
-                const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
-                return field.key !== "name" && hasValue && !r.columns?.[field.key];
-            });
-            if (missingColumn) {
-                try {
-                    await plugin.repairModule?.(moduleId);
-                    r = plugin.settings.dbRefs[moduleId];
-                } catch { /* soft heal */ }
-                missingColumn = captureFields.find((field) => {
-                    const value = values[field.key];
-                    const hasValue = field.key === "name" || (value !== undefined && value !== null && value !== "" && value !== false);
-                    return field.key !== "name" && hasValue && !r.columns?.[field.key];
-                });
-                if (missingColumn) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(missingColumn)));
-            }
-            // 禁用选项仍可能由旧草稿带入失效关系 ID；建行前做最终校验。
-            for (const f of captureFields as { key: string; type: string }[]) {
-                if (f.type !== "relation") continue;
-                const relationID = String(values[f.key] ?? "").trim();
-                if (relationID && !(plugin.settings.members ?? []).some((m) => m.avItemId === relationID)) {
-                    saveError = t("members.notLinked");
-                    fieldErrors = { [f.key]: saveError };
-                    await tick();
-                    document.getElementById(`lv-cap-${f.key}`)?.focus();
-                    return;
-                }
-            }
-            let itemID = pendingRowId;
-            if (!itemID && hadIdentityPending) {
-                // 如果先前处于“身份待确认”状态，重试时优先回查目标台账，看是否已创建该行
-                try {
-                    const ledger = await renderLedgerAll(r.avId, 50);
-                    const nameCol = r.columns?.name;
-                    if (nameCol) {
-                        const matched = ledger.rows.find((row) => {
-                            const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
-                            return val === title;
-                        });
-                        if (matched) {
-                            itemID = matched.itemID;
-                            pendingRowId = itemID;
-                        }
-                    }
-                } catch { /* soft reconciliation */ }
-            }
-            if (!itemID) {
-                pendingModuleId = moduleId;
-                try {
-                    itemID = await addDetachedRow(r.avId, title, { idempotencyKey: `${saveOperationKey}:row` });
-                    pendingRowId = itemID;
-                } catch (e) {
-                    saveOperationKey = undefined;
-                    if (e instanceof RowIdentityPendingError) {
-                        identityPending = true;
-                        saveError = t("capture.identityPending").replace("${module}", modLabel(moduleId));
-                        return;
-                    }
-                    throw e;
-                }
-            }
-            // 新建行身份确认存在延迟：setCell 失败受控重试（同格重写不会重复建行，triage 同款）
-            const setCellSafe = async (key: string, value: unknown) => {
-                let keyID = r!.columns?.[key];
-                if (!keyID) {
-                    try {
-                        const { healColumnMapping } = await import("@/core/provisioner");
-                        keyID = await healColumnMapping(plugin, moduleId, key);
-                    } catch { /* soft */ }
-                }
-                if (!keyID) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(captureFields.find((field) => field.key === key) ?? { key, type: "text" })));
-                for (let attempt = 0; ; attempt++) {
-                    try {
-                        await setCell(r!.avId, keyID, itemID, value, { idempotencyKey: `${saveOperationKey}:cell:${key}` });
-                        return;
-                    } catch (err) {
-                        const msg = err instanceof Error ? err.message : String(err);
-                        if (msg.includes("key not found")) {
-                            try {
-                                const { healColumnMapping } = await import("@/core/provisioner");
-                                const healedId = await healColumnMapping(plugin, moduleId, key);
-                                if (healedId && healedId !== keyID) {
-                                    keyID = healedId;
-                                    continue;
-                                }
-                            } catch { /* soft */ }
-                        }
-                        if (attempt >= 2) throw err;
-                        await new Promise((res) => setTimeout(res, 400));
-                    }
-                }
-            };
-            if (r!.columns?.["name"]) {
-                await setCellSafe("name", { type: "text", text: { content: title } });
-            }
-            for (const f of captureFields) {
-                if (f.key === "name") continue;
-                const v = values[f.key];
-                if (v === undefined || v === null || (v === "" && f.type !== "checkbox")) continue;
-                const cell = captureCellValue(f, v);
-                if (cell !== undefined) await setCellSafe(f.key, cell);
-            }
-            // A preference failure must not turn a committed row into a retryable save failure.
-            const previousQuickModule = plugin.runtime?.hubQuickModule;
-            try {
-                if (plugin.runtime) {
-                    plugin.runtime.hubQuickModule = moduleId;
-                    await saveRuntime(plugin as any, plugin.runtime as any);
-                }
-            } catch (e) {
-                if (plugin.runtime) plugin.runtime.hubQuickModule = previousQuickModule;
-                showMessage(t("capture.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            }
-            let refreshFailed = false;
-            try {
-                // A capture can create a new reminder row. Bypass the normal
-                // full-scan debounce so overview/reminders reflect it now.
-                await plugin.refreshHub?.(undefined, true);
-            } catch (e) {
-                refreshFailed = true;
-                console.warn("[LvHome] quick capture saved but refresh failed:", e);
-                showMessage(t("capture.savedRefreshFailed").replace("${module}", modLabel(moduleId)), 5000, "error");
-            }
+
             if (values.member && typeof values.member === "string") {
                 lastMemberId = values.member;
             }
-            if (!refreshFailed) showMessage(t("capture.saved").replace("${module}", modLabel(moduleId)), 3000, "info");
             if (continueAfter) {
-                // 268 波：连续录入——可按需保留公共字段（家庭录入常成批），焦点回名称
                 if (keepContext) {
                     const retained: Record<string, string | number | boolean | undefined> = {};
                     for (const k of ["member", "date", "expiry", "due", "location", "store_place", "category", "energy_type", "status"]) {
@@ -527,7 +399,6 @@
         } finally {
             saving = false;
         }
-        // saving=false 到 DOM 重新可聚焦之间隔着一个 Svelte 刷新（微任务）——tick 后再聚焦
         if (refocusName) await tick().then(() => nameEl?.focus());
     }
     function openPendingLedger() {

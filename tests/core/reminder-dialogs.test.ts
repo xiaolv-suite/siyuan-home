@@ -8,6 +8,7 @@ import {
     openSnoozeMenu,
     openTriageToLedgerDialog,
     openReminderDigestDialog,
+    exportReminderIcs,
 } from "@/core/reminder-dialogs";
 import type { Reminder } from "@/types";
 
@@ -165,5 +166,24 @@ describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () 
             showMessageFn: vi.fn(),
         })).resolves.not.toThrow();
     });
+
+    it("exportReminderIcs 敏感类别提醒导出前提示确认", async () => {
+        const confirmFn = vi.fn();
+        const showMessageFn = vi.fn();
+
+        await exportReminderIcs({
+            list: [mockReminder], // certs 属于高后果敏感模块
+            t: (k) => k === "hub.icsBody" ? "导出 ${n} 条提醒" : k,
+            showMessageFn,
+            confirmFn,
+        });
+
+        expect(confirmFn).toHaveBeenCalledWith(
+            "hub.icsTitle",
+            expect.stringContaining("1"),
+            expect.any(Function),
+        );
+    });
 });
+
 

@@ -15,7 +15,8 @@
     import Calendar from "@/panels/screens/calendar.svelte";
     import ReminderCard from "@/panels/screens/reminder-card.svelte";
     import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
-    import { openReminderDigestDialog } from "@/core/reminder-dialogs";
+    import ReminderHandledList from "@/panels/screens/reminder-handled-list.svelte";
+    import { openReminderDigestDialog, exportReminderIcs } from "@/core/reminder-dialogs";
     import UiIcon from "@/ui/icon.svelte";
     import type { Reminder, ReminderKind } from "@/types";
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
@@ -211,41 +212,20 @@
     // 225 波：行级级别徽章撤除（级别由色轨+右侧相对时间大字承载，避免重复）——levelBadge 随之移除
 
     // UG11 v1：提醒导出 .ics（当前筛选为范围；G1 同款——含高后果模块先点名确认）
-    const HIGH_CONSEQUENCE_MODULES = new Set(["health", "parenting", "certs", "insurance", "assets-real", "assets-virtual", "contracts", "medicine", "schooling"]);
     let exportingIcs = $state(false);
-    function exportIcs() {
-        const list = filtered;
-        if (list.length === 0) { showMessage(t("hub.icsEmpty"), 3000, "error"); return; }
-        const download = async () => {
-            if (exportingIcs) return;
-            exportingIcs = true;
-            try {
-                const { buildIcs } = await import("@/core/ics");
-                const events = list.map((r: Reminder) => ({
-                    uid: `${r.id}@lvhome.local`,
-                    date: r.dueDate,
-                    summary: r.title, // 用户确认后才导出；文件保管责任由确认框声明
-                    description: r.moduleId === "adhoc" ? t("adhoc.name") : (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId),
-                }));
-                const ics = buildIcs(t("hub.title"), events);
-                const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `lvhome-reminders-${new Date().toISOString().slice(0, 10)}.ics`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                showMessage(t("hub.icsDone").replace("${n}", String(list.length)), 3000, "info");
-            } catch (e) {
-                showMessage(t("hub.icsFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            } finally {
-                exportingIcs = false;
-            }
-        };
-        if (list.some((r: Reminder) => HIGH_CONSEQUENCE_MODULES.has(r.moduleId))) {
-            confirm(t("hub.icsTitle"), t("hub.icsBody").replace("${n}", String(list.length)), () => { void download(); });
-            return;
+    async function exportIcs() {
+        if (exportingIcs) return;
+        exportingIcs = true;
+        try {
+            await exportReminderIcs({
+                list: filtered,
+                t,
+                showMessageFn: showMessage,
+                confirmFn: confirm,
+            });
+        } finally {
+            exportingIcs = false;
         }
-        void download();
     }
     // H07：已处理视图真实数据源（runtime 留痕 + 缓存派生列表回查标题）
     const handledEntries = $derived.by(() => {
@@ -278,10 +258,6 @@
         pruneSelection();
         void persistFilter();
     }
-    const kindLabel: Record<string, string> = {
-        done: "hub.handledDone", muted: "hub.handledMuted",
-        year: "hub.handledYear", period: "hub.handledPeriod", memo: "hub.handledMemo",
-    };
     async function restoreEntry(id: string) {
         await runReminderAction(async () => {
             await plugin.restore(id);
@@ -460,7 +436,6 @@
             })
             .filter((group) => group.items.length > 0);
     });
-    const handledVisible = $derived(handledFiltered.slice(0, renderLimit));
 
     // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
     function toLedgerDialog(r: Reminder) {
@@ -707,38 +682,20 @@
 
 
 {#if filter === "handled"}
-    {#if handledFiltered.length === 0 && handledEntries.length > 0}
-        <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("hub.filteredEmpty")}</b><span>{t("hub.filteredEmptyHint")}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => { filterMember = undefined; filterModule = undefined; dueWithin = "all"; void persistFilter(); }}>{t("hub.clearFilters")}</button>
-        </div></div>
-    {:else if handledFiltered.length === 0}
-        <div class="lv-card"><div class="lv-empty"><div class="eic"><UiIcon name="check" size={22} /></div><b>{t("hub.handledTitle")}</b><span>{t("hub.handledHint")}</span></div></div>
-    {:else}
-        <div class="lv-card lv-rems">
-            {#each handledVisible as h (h.id + h.kind)}
-                <div class="lv-rem lead">
-                    <div class="lv-rem-ic"><UiIcon name={h.kind === "memo" ? "note" : h.kind === "muted" ? "mute" : "check"} size={18} /></div>
-                    <div class="lv-rem-t">
-                        <b>{h.title || t("hub.handledUnknown")}</b>
-                        <span class="lv-caption">{t(kindLabel[h.kind] ?? "hub.handledDone")}{h.dueDate ? ` · ${h.dueDate}` : ""}{h.moduleId && h.moduleId !== "adhoc" ? ` · ${t(`module.${h.moduleId}`)}` : ""}</span>
-                    </div>
-                    <div class="lv-rem-ops">
-                        <button class="b3-button b3-button--text" disabled={reminderBusy.has(h.id)} aria-busy={reminderBusy.has(h.id)} onclick={() => restoreEntry(h.id)}>{reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}</button>
-                        {#if h.kind === "memo"}
-                            <button class="b3-button b3-button--text ft__error" style="color:var(--lv-danger)" disabled={reminderBusy.has(h.id)} onclick={() => confirmDeleteHandledMemo(h.id, h.title || t("hub.handledUnknown"))}>{t("delete")}</button>
-                        {/if}
-                    </div>
-                </div>
-            {/each}
-            {#if handledFiltered.length > handledVisible.length}
-                <div style="display:flex;justify-content:center;padding:12px">
-                    <button class="b3-button b3-button--outline" onclick={() => (renderLimit += REMINDER_PAGE_SIZE)}>
-                        {t("ledger.loadMore").replace("${n}", String(handledFiltered.length - handledVisible.length))}
-                    </button>
-                </div>
-            {/if}
-        </div>
-    {/if}
+    <ReminderHandledList
+        {handledFiltered}
+        {handledEntries}
+        {reminderBusy}
+        {t}
+        onClearFilters={() => {
+            filterMember = undefined;
+            filterModule = undefined;
+            dueWithin = "all";
+            void persistFilter();
+        }}
+        onRestore={restoreEntry}
+        onDeleteMemo={confirmDeleteHandledMemo}
+    />
 {:else if viewMode === "calendar" && filter !== "handled"}
     <!-- 日历在空筛选结果时仍提供日期浏览与新增备忘入口。 -->
     <Calendar items={filtered} {t} {version} initialMode={plugin.runtime.hubCalMode}

@@ -39,17 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.150 (Local Ready Build)
+## 🆕 What's new in v0.5.151 (Local Ready Build)
 
-This release decouples historical ledger adoption and ghost column healing, taking `provisioner.ts` down to 531 lines:
+This release decouples the handled/archived reminders list and centralizes ICS calendar export, taking `reminders.svelte` down to 854 lines:
 
-- **Refactoring (Decoupled Ledger Adoption & Column Healing)**: Extracted `src/core/provision-adoption.ts` (250+ lines), encapsulating duplicate ledger inspection (`findDuplicateLedgers`), binding existing documents (`bindExistingDoc`), smart global probe adoption (`discoverAndAdoptAllLedgers`), and real-time ghost column healing (`healColumnMapping`), while preserving 100% backward compatibility;
-- **Performance**: Provisioning engine `provisioner.ts` dropped to **531 lines** (221 lines trimmed from original 752 lines, a 29.4% reduction);
-- **DAL Health Milestone**: All 3 core persistence engines (`siyuan.ts`: 820, `schema.ts`: 771, `provisioner.ts`: 531) are now completely compact and cohesive;
-- **Test Milestone**: 126 test suites, **925 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Handled Reminders List & ICS Export)**: Extracted `src/panels/screens/reminder-handled-list.svelte` (70+ lines), encapsulating archived reminder items, status badge mappings, restore actions, permanent memo deletion, and paginated loading; centralized reminder ICS export in `exportReminderIcs` (`src/core/reminder-dialogs.ts`);
+- **Performance**: Reminder hub `reminders.svelte` dropped to **854 lines** (accumulating over 582 lines trimmed from original 1,436 lines, a 40.5% reduction);
+- **Test Milestone**: 127 test suites, **929 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.150 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.151 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

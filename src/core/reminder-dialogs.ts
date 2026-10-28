@@ -553,3 +553,51 @@ export async function openReminderDigestDialog(options: OpenReminderDigestDialog
     }
 }
 
+const HIGH_CONSEQUENCE_MODULES = new Set([
+    "health", "parenting", "certs", "insurance", "assets-real", "assets-virtual", "contracts", "medicine", "schooling"
+]);
+
+export interface ExportReminderIcsOptions {
+    list: Reminder[];
+    t: (k: string) => string;
+    showMessageFn: (m: string, timeout?: number, type?: string) => void;
+    confirmFn: (title: string, body: string, onConfirm: () => void) => void;
+}
+
+/** 提醒中枢日历 ICS 导出（含敏感模块二次确认） */
+export async function exportReminderIcs(options: ExportReminderIcsOptions): Promise<void> {
+    const { list, t, showMessageFn, confirmFn } = options;
+    if (list.length === 0) {
+        showMessageFn(t("hub.icsEmpty"), 3000, "error");
+        return;
+    }
+    const download = async () => {
+        if (typeof document === "undefined") return;
+        try {
+            const { buildIcs } = await import("./ics");
+            const events = list.map((r: Reminder) => ({
+                uid: `${r.id}@lvhome.local`,
+                date: r.dueDate,
+                summary: r.title,
+                description: r.moduleId === "adhoc" ? t("adhoc.name") : (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId),
+            }));
+            const ics = buildIcs(t("hub.title"), events);
+            const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `lvhome-reminders-${new Date().toISOString().slice(0, 10)}.ics`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showMessageFn(t("hub.icsDone").replace("${n}", String(list.length)), 3000, "info");
+        } catch (e) {
+            showMessageFn(t("hub.icsFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        }
+    };
+    if (list.some((r: Reminder) => HIGH_CONSEQUENCE_MODULES.has(r.moduleId))) {
+        confirmFn(t("hub.icsTitle"), t("hub.icsBody").replace("${n}", String(list.length)), () => { void download(); });
+        return;
+    }
+    await download();
+}
+
+

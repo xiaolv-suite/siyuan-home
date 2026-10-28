@@ -1143,6 +1143,7 @@
     "hub.icsBody": "将把当前筛选下的 ${n} 条提醒导出为 .ics 日历（每条为到期日全天事件，含提醒标题与所属模块）。文件包含台账派生信息，请妥善保管、避免转发。",
     "hub.icsDone": "已导出 ${n} 条提醒到日历文件",
     "hub.icsEmpty": "当前筛选没有可导出的提醒",
+    "hub.dblClickPlanToday": "双击快速标记/取消今日待办，右键切换置顶",
     "ledger.detail": "记录详情",
     "ledger.sortSaveFailed": "排序设置保存失败：${msg}",
     "ledger.importRefreshFailed": "导入完成，但刷新台账失败：${msg}",

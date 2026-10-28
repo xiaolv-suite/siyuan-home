@@ -1,8 +1,6 @@
 <script lang="ts">
     import { Dialog, Menu, showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
-    import { onDestroy } from "svelte";
-    import { fade } from "svelte/transition";
     import type { HomePluginLike } from "@/types/plugin";
     import {
         saveRuntime, applyNamedView, type ReminderNamedView,
@@ -15,9 +13,8 @@
     import { stageBadgeLabel, stageBadge, stagesOf } from "@/core/reminder-stage";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import Calendar from "@/panels/screens/calendar.svelte";
+    import ReminderCard from "@/panels/screens/reminder-card.svelte";
     import UiIcon from "@/ui/icon.svelte";
-    import { moduleUiIcon } from "@/ui/icons";
-    import { memberHue } from "@/core/format";
     import type { Reminder, ReminderKind } from "@/types";
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
@@ -127,6 +124,27 @@
             showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         } finally {
             batchBusy = false;
+        }
+    }
+
+    async function quickPlanToday(r: Reminder) {
+        const todayKey = localDateKey(new Date());
+        const planDates = plugin.runtime.planDates ?? {};
+        const isAlreadyToday = planDates[r.id] === todayKey;
+        try {
+            if (isAlreadyToday) {
+                const { clearReminderPlanDate } = await import("@/core/hub/runtime");
+                clearReminderPlanDate(plugin.runtime, r.id);
+                showMessage(t("hub.planDateCleared"), 2000, "info");
+            } else {
+                const { setReminderPlanDate } = await import("@/core/hub/runtime");
+                setReminderPlanDate(plugin.runtime, r.id, todayKey);
+                showMessage(t("hub.planDateSaved"), 2000, "info");
+            }
+            await saveRuntime(plugin, plugin.runtime);
+            await plugin.refreshHub?.(undefined, true);
+        } catch (e) {
+            showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         }
     }
 
@@ -435,57 +453,6 @@
         });
     }
 
-    let activeMoreMenu: { button: HTMLButtonElement; menu: HTMLElement; dispose: () => void } | undefined;
-    function closeMoreMenu(restoreFocus = false) {
-        const active = activeMoreMenu;
-        if (!active) return;
-        activeMoreMenu = undefined;
-        active.menu.dataset.open = "false";
-        active.button.setAttribute("aria-expanded", "false");
-        active.dispose();
-        if (restoreFocus) active.button.focus();
-    }
-    function toggleMoreMenu(event: MouseEvent) {
-        const button = event.currentTarget as HTMLButtonElement;
-        const menu = button.nextElementSibling as HTMLElement | null;
-        if (!menu) return;
-        if (activeMoreMenu?.button === button) { closeMoreMenu(); return; }
-        closeMoreMenu();
-        menu.dataset.open = "true";
-        button.setAttribute("aria-expanded", "true");
-        const onPointerDown = (e: PointerEvent) => {
-            const target = e.target;
-            if (target instanceof Node && (menu.contains(target) || button.contains(target))) return;
-            closeMoreMenu();
-        };
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "Escape") return;
-            e.preventDefault();
-            e.stopPropagation();
-            closeMoreMenu(true);
-        };
-        document.addEventListener("pointerdown", onPointerDown, true);
-        document.addEventListener("keydown", onKeyDown, true);
-        activeMoreMenu = {
-            button,
-            menu,
-            dispose: () => {
-                document.removeEventListener("pointerdown", onPointerDown, true);
-                document.removeEventListener("keydown", onKeyDown, true);
-            },
-        };
-    }
-    function closeMoreOnMenuClick(node: HTMLElement) {
-        const onClick = (event: MouseEvent) => {
-            if (event.target instanceof Element && event.target.closest("button") && !event.target.closest(".lv-rem-more-toggle")) {
-                closeMoreMenu();
-            }
-        };
-        node.addEventListener("click", onClick);
-        return { destroy: () => node.removeEventListener("click", onClick) };
-    }
-    onDestroy(() => closeMoreMenu());
-
     // 246 波（收件箱深化）：备忘编辑对话框（标题/到期日修正 → updateMemo 落盘）
     function editMemoDialog(r: Reminder) {
         import("@/core/reminder-dialogs").then((m) => {
@@ -693,122 +660,38 @@
 </script>
 
 {#snippet remRow(r: Reminder)}
-    {@const plan = planStatusOf(r)}
-    <!-- 261 波：完成/延后后行 150ms 淡出离场（瞬消失让用户怀疑误触；respects reduced-motion 由全局降级） -->
-    <div class="lv-rem {r.level}" class:lv-rem--batch={batchMode && viewMode === "list" && filter !== "handled"} out:fade={{ duration: 150 }}>
-    {#if batchMode && viewMode === "list" && filter !== "handled"}
-            <input type="checkbox" class="b3-checkbox" aria-label={`${t("hub.select")}: ${r.title}`}
-                checked={selected.has(r.id)} disabled={batchBusy} onchange={() => toggleSelect(r.id)} style="flex-shrink:0" />
-        {/if}
-        <!-- 259 波：图标砖收回中性（对齐原型 .rem .ic）——级别语义由色轨+右侧大字承载 -->
-        <div class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></div>
-        <div class="lv-rem-t" title={(r.autoRenew ? `${t("hub.autoRenew")} · ` : "") + r.dueDate}>
-            <b>
-                {#if isPinned(r)}
-                    <span class="lv-plan-badge is-planned-now" style="background:var(--lv-accent);color:#fff;margin-right:4px;padding:1px 6px" title={t("hub.pinned")}>
-                        📌 {t("hub.pinned")}
-                    </span>
-                {/if}
-                {#if stageLabelOf(r)}
-                    <span class="lv-plan-badge" class:is-planned-now={stageOf(r)?.isUrgent} style="margin-right:4px;padding:1px 6px" title={t("hub.stageDesc").replace("${stages}", (stageOf(r)?.stages ?? []).join(" / "))}>
-                        ⏱ {stageLabelOf(r)}
-                    </span>
-                {/if}
-                {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
-                {#if plan.hasPlan}
-                    <button type="button" class="lv-plan-badge" class:is-planned-now={plan.isPlannedNow}
-                        style="cursor:pointer;border:none;margin-left:4px"
-                        title={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
-                        onclick={(e) => { e.stopPropagation(); schedulePlanDialog(r); }}>
-                        🗓️ {plan.planDate}{#if plan.isPlannedNow} · 🎯 {t("hub.planActive")}{/if}
-                    </button>
-                {:else}
-                    <button type="button" class="lv-plan-tag-add"
-                        style="cursor:pointer;border:none;background:none;font-size:11px;color:var(--lv-tx-3);padding:0 3px;margin-left:3px;opacity:0.65"
-                        title={t("hub.setPlanDate")}
-                        onclick={(e) => { e.stopPropagation(); schedulePlanDialog(r); }}>
-                        🗓️
-                    </button>
-                {/if}
-                <button class="lv-rem-expand-btn" type="button"
-                    aria-expanded={expandedReminders.has(r.id)}
-                    aria-label={expandedReminders.has(r.id) ? t("hub.collapseSummary") : t("hub.expandSummary")}
-                    title={expandedReminders.has(r.id) ? t("hub.collapseSummary") : t("hub.expandSummary")}
-                    onclick={() => toggleReminderExpand(r.id)}>
-                    <span aria-hidden="true">{expandedReminders.has(r.id) ? "▴" : "▾"}</span>
-                </button>
-            </b>
-            <!-- 249 波：meta 补模块名（对齐原型三段 meta）；262 波：成员微头像前置（"这是谁的事"） -->
-            <span class="lv-num">{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{r.dueDate}{#if !r.memberId} · {t("members.unassigned")}{/if}{r.lunar ? " 🌙" : ""}{r.autoRenew ? " 🔄" : ""}</span>
-        </div>
-        <!-- 对齐原型：相对到期大字居右（颜色随级别；文字本身已承载逾期/N天后语义，级别徽章不再重复） -->
-        <div class="lv-rem-when">
-            <b class="lv-num" style="color:var(--lv-{r.level === 'overdue' ? 'danger' : r.level === 'soon' ? 'warn' : 'amber'})">{relDue(r.daysLeft, r.dueDate)}</b>
-        </div>
-        <div class="lv-rem-ops">
-            <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} aria-busy={reminderBusy.has(r.id)} onclick={() => void runReminderAction(() => plugin.complete(r), r.id)}>{reminderBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
-            <div class="lv-rem-more">
-                <button class="b3-button b3-button--text lv-rem-more-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls={`lv-rem-more-${r.id}`}
-                    onclick={toggleMoreMenu}>{t("ledger.detailMore")} <span aria-hidden="true">⌄</span></button>
-                <div id={`lv-rem-more-${r.id}`} class="lv-rem-more-menu" role="group" aria-label={t("ledger.detailMore")} data-open="false" use:closeMoreOnMenuClick>
-                    {#if ["certs", "insurance", "contracts"].includes(r.moduleId)}
-                        <!-- 续保/换证/合同续约：新到期日写回规则 field 列（26.6 + 98 波：contracts 规则带 field=expiry 与
-                             autoRenewField 升级路径，此前 🔄 决策提醒无"续"动作入口——漏项补齐） -->
-                    <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => renewDialog(r)}>{t("act.renew")}</button>
-                    {/if}
-                    {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
-                        <button class="b3-button b3-button--text" disabled={batchBusy} title={t("act.locate")} onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>{t("act.locate")}</button>
-                    {/if}
-                    <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => schedulePlanDialog(r)}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
-                    <button class="b3-button b3-button--text" disabled={batchBusy} onclick={() => void copyAsTaskBlock(r)}>{t("hub.copyTaskBlock")}</button>
-                    <!-- 304 波：重要证件与到期项紧急置顶（置顶项组内排最前） -->
-                    <button class="b3-button b3-button--text" title={isPinned(r) ? t("act.unpin") : t("act.pin")}
-                        disabled={batchBusy || reminderBusy.has(r.id)} aria-busy={reminderBusy.has(r.id)}
-                        onclick={() => void runReminderAction(async () => { await toggleReminderPin(plugin, r.id); await plugin.refreshHub(); }, r.id)}>{reminderBusy.has(r.id) ? t("ledger.saving") : (isPinned(r) ? t("act.unpin") : t("act.pin"))}</button>
-                    <button class="b3-button b3-button--text" aria-haspopup="menu" disabled={batchBusy || reminderBusy.has(r.id)} aria-busy={reminderBusy.has(r.id)} onclick={(e) => snoozeMenu(r, e)}>{reminderBusy.has(r.id) ? t("ledger.saving") : `${t("act.snooze")} ▾`}</button>
-                    <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} aria-busy={reminderBusy.has(r.id)} onclick={() => void runReminderAction(() => plugin.mute(r.id), r.id)}>{reminderBusy.has(r.id) ? t("ledger.saving") : t("act.mute")}</button>
-                    {#if r.moduleId === "adhoc"}
-                        <!-- 246 波（收件箱深化）：备忘编辑（标题/到期日） -->
-                        <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => editMemoDialog(r)}>{t("memo.edit")}</button>
-                        <!-- H03：备忘的显式删除（唯一物理删除路径；未处理项不自动清理） -->
-                        <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => confirmDeleteMemo(r)}>{t("delete")}</button>
-                        <!-- 240 波（收件箱分诊）：备忘 → 正式台账行 -->
-                        <button class="b3-button b3-button--text" disabled={batchBusy || reminderBusy.has(r.id)} onclick={() => toLedgerDialog(r)}>{t("triage.title")}</button>
-                    {/if}
-                </div>
-            </div>
-        </div>
-        {#if expandedReminders.has(r.id)}
-            <div class="lv-rem-summary" role="region" aria-label={t("hub.summary")}>
-                <div class="lv-rem-summary__item">
-                    <span class="label">{t("hub.summaryRule")}:</span>
-                    <span>{r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{ruleText(r.ruleKey)}{r.kind ? `（${kindText(r.kind)}）` : ""}{r.lunar ? " · 🌙" : ""}{r.autoRenew ? " · 🔄" : ""}</span>
-                </div>
-                <div class="lv-rem-summary__item">
-                    <span class="label">{t("hub.summaryMember")}:</span>
-                    <span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}{member.name}{member.role ? `（${member.role}）` : ""}{:else}{t("members.unassigned")}{/if}</span>
-                </div>
-                <div class="lv-rem-summary__item">
-                    <span class="label">{t("hub.summaryDue")}:</span>
-                    <span>{r.dueDate} · {relDue(r.daysLeft, r.dueDate)}</span>
-                </div>
-                {#if plan.hasPlan}
-                    <div class="lv-rem-summary__item">
-                        <span class="label">{t("hub.planDateLabel")}:</span>
-                        <span>{plan.planDate}{#if plan.isPlannedNow}（🎯 {t("hub.planActive")}）{/if}</span>
-                    </div>
-                {/if}
-                {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
-                    <div class="lv-rem-summary__item">
-                        <button class="b3-button b3-button--text" style="padding:0 4px;font-size:12px;color:var(--lv-accent)"
-                            onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
-                            {t("act.locate")} →
-                        </button>
-                    </div>
-                {/if}
-            </div>
-        {/if}
-    </div>
+    <ReminderCard
+        {r}
+        {plugin}
+        {t}
+        {batchMode}
+        {viewMode}
+        {filter}
+        {batchBusy}
+        {selected}
+        {expandedReminders}
+        {planStatusOf}
+        {stageOf}
+        {stageLabelOf}
+        {isPinned}
+        {memberOf}
+        {relDue}
+        {ruleText}
+        {kindText}
+        {reminderBusy}
+        onToggleSelect={toggleSelect}
+        onToggleExpand={toggleReminderExpand}
+        onRunAction={runReminderAction}
+        onRenew={renewDialog}
+        onSchedulePlan={schedulePlanDialog}
+        onCopyTask={copyAsTaskBlock}
+        onTogglePin={(rem) => runReminderAction(async () => { await toggleReminderPin(plugin, rem.id); await plugin.refreshHub(); }, rem.id)}
+        onQuickPlanToday={quickPlanToday}
+        onSnooze={snoozeMenu}
+        onEditMemo={editMemoDialog}
+        onDeleteMemo={confirmDeleteMemo}
+        onTriage={toLedgerDialog}
+    />
 {/snippet}
 
 <div class="lv-hero lv-hub-hero" aria-labelledby="lv-hub-title">
@@ -1102,7 +985,6 @@
     .lv-hub-batchbar .b3-button--text { color: var(--lv-tx-2); font-size: 12.5px; padding: 4px 8px; border-radius: 6px; }
     .lv-hub-batchbar .b3-button--text:hover { color: var(--lv-tx); background: var(--lv-surface-2); }
     @media (max-width: 760px) {
-        .lv-hub-head { align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .lv-hub-summary { align-self: stretch; width: 100%; }
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
         .lv-hub-controls { grid-template-columns: 1fr; gap: 8px; }
@@ -1118,7 +1000,6 @@
     }
     /* 嵌入思源侧栏时 viewport 仍可能很宽，使用面板容器宽度复用移动布局。 */
     @container lv-home (max-width: 760px) {
-        .lv-hub-head { align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .lv-hub-summary { align-self: stretch; width: 100%; }
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
         .lv-hub-controls { grid-template-columns: 1fr; gap: 8px; }

@@ -1143,6 +1143,7 @@
     "hub.icsBody": "Exports the ${n} reminders under the current filter as an .ics calendar (one all-day event per due date, including reminder titles and modules). The file contains ledger-derived information — keep it safe and do not share it casually.",
     "hub.icsDone": "Exported ${n} reminders to calendar file",
     "hub.icsEmpty": "No reminders to export under the current filter",
+    "hub.dblClickPlanToday": "Double-click to toggle Today plan, right-click to pin/unpin",
     "ledger.detail": "Record detail",
     "ledger.sortSaveFailed": "Could not save sort preference: ${msg}",
     "ledger.importRefreshFailed": "Import finished, but the ledger could not refresh: ${msg}",

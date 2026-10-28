@@ -10,6 +10,7 @@
     import { localDateKey } from "@/core/hub/rule";
     import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
     import QuickEventFlow from "./quick-event-flow.svelte";
+    import QuickSmartBar from "./quick-smart-bar.svelte";
     import type { ColumnDef, ModuleSchema } from "@/core/schema";
     import type { HomeSettings } from "@/types";
     import UiIcon from "@/ui/icon.svelte";
@@ -156,15 +157,6 @@
     // 301波：智能速记与思源块文本结构化预填
     let smartInputText = $state("");
     let smartParsed = $state<ParsedCaptureResult | null>(null);
-
-    async function handleSmartInput() {
-        if (!smartInputText.trim()) {
-            smartParsed = null;
-            return;
-        }
-        const { smartParseNoteContent } = await import("@/core/block-capture");
-        smartParsed = smartParseNoteContent(smartInputText);
-    }
 
     function applySmartParse() {
         if (!smartParsed) return;
@@ -644,37 +636,21 @@
                     <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
                 </div>
             {:else}
-                <div class="lv-smart-capture-bar" style="margin-bottom:8px">
-                    <div style="display:flex;gap:6px;align-items:center">
-                        <input class="b3-text-field" style="flex:1;font-size:12px;padding:4px 8px"
-                            placeholder={t("capture.smartHint")}
-                            aria-label={t("capture.smartHint")}
-                            bind:value={smartInputText}
-                            oninput={handleSmartInput}
-                            disabled={saving}
-                        />
-                        {#if smartParsed && smartParsed.title}
-                            <button class="b3-button b3-button--outline" style="font-size:11.5px;padding:3px 8px;flex-shrink:0"
-                                aria-label={t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
-                                onclick={applySmartParse}>
-                                {t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
-                            </button>
-                        {/if}
-                    </div>
-                </div>
-                {#if frequentModules.length > 0}
-                    <div class="lv-quick-chips" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-                        {#each frequentModules as fId (fId)}
-                            <button type="button" class="lv-quick-chip" class:active={moduleId === fId}
-                                onclick={() => { moduleId = fId; }}
-                                disabled={saving || identityPending}
-                                title={modLabel(fId)}>
-                                <span>{moduleIcon(fId)}</span>
-                                <span>{modLabel(fId)}</span>
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
+                <QuickSmartBar
+                    bind:moduleId
+                    bind:smartInputText
+                    bind:smartParsed
+                    {frequentModules}
+                    {currentTemplates}
+                    {saving}
+                    {identityPending}
+                    {t}
+                    {modLabel}
+                    {moduleIcon}
+                    onApplySmartParse={applySmartParse}
+                    onApplyTemplate={applyTemplate}
+                />
+
                 <div class="lv-capture-context" role="status" aria-live="polite">
                     <div class="lv-capture-context__main">
                         <span class="lv-capture-context__eyebrow">{t("capture.contextTitle")}</span>
@@ -687,17 +663,6 @@
                             : t("capture.noTarget").replace("${module}", modLabel(moduleId))}
                     </span>
                 </div>
-                {#if currentTemplates.length > 0}
-                    <div class="lv-template-bar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;font-size:11.5px;margin-bottom:6px">
-                        <span class="lv-caption" style="color:var(--lv-tx-3);font-size:11px">✨ {t("capture.frequentTemplates") || "常用模板"}:</span>
-                        {#each currentTemplates as tpl (tpl.id)}
-                            <button type="button" class="lv-preset-tag" onclick={() => applyTemplate(tpl)} disabled={saving} style="font-size:11.5px;padding:2px 8px">
-                                {#if tpl.icon}<span>{tpl.icon}</span>{/if}
-                                <span>{tpl.label}</span>
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
                 {#each captureFields as f (f.key)}
                     <div class="lv-frow">
                         {#if f.key === "name"}

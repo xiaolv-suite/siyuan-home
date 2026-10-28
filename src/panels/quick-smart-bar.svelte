@@ -1,0 +1,87 @@
+<script lang="ts">
+    import type { ParsedCaptureResult } from "@/core/block-capture";
+    import type { QuickRecordTemplate } from "@/core/quick-templates";
+
+    let {
+        moduleId = $bindable(""),
+        smartInputText = $bindable(""),
+        smartParsed = $bindable<ParsedCaptureResult | null>(null),
+        frequentModules = [] as string[],
+        currentTemplates = [] as QuickRecordTemplate[],
+        saving = false,
+        identityPending = false,
+        t,
+        modLabel,
+        moduleIcon,
+        onApplySmartParse,
+        onApplyTemplate,
+    }: {
+        moduleId?: string;
+        smartInputText?: string;
+        smartParsed?: ParsedCaptureResult | null;
+        frequentModules?: string[];
+        currentTemplates?: QuickRecordTemplate[];
+        saving?: boolean;
+        identityPending?: boolean;
+        t: (k: string) => string;
+        modLabel: (mid: string) => string;
+        moduleIcon: (mid: string) => string;
+        onApplySmartParse?: () => void;
+        onApplyTemplate?: (tpl: QuickRecordTemplate) => void;
+    } = $props();
+
+    async function handleSmartInput() {
+        if (!smartInputText.trim()) {
+            smartParsed = null;
+            return;
+        }
+        const { smartParseNoteContent } = await import("@/core/block-capture");
+        const res = smartParseNoteContent(smartInputText);
+        smartParsed = res?.title ? res : null;
+    }
+</script>
+
+<div class="lv-smart-capture-bar" style="margin-bottom:8px">
+    <div style="display:flex;gap:6px;align-items:center">
+        <input class="b3-text-field" style="flex:1;font-size:12px;padding:4px 8px"
+            placeholder={t("capture.smartHint")}
+            aria-label={t("capture.smartHint")}
+            bind:value={smartInputText}
+            oninput={handleSmartInput}
+            disabled={saving}
+        />
+        {#if smartParsed && smartParsed.title}
+            <button type="button" class="b3-button b3-button--outline" style="font-size:11.5px;padding:3px 8px;flex-shrink:0"
+                aria-label={t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
+                onclick={onApplySmartParse}>
+                {t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
+            </button>
+        {/if}
+    </div>
+</div>
+
+{#if frequentModules.length > 0}
+    <div class="lv-quick-chips" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+        {#each frequentModules as fId (fId)}
+            <button type="button" class="lv-quick-chip" class:active={moduleId === fId}
+                onclick={() => { moduleId = fId; }}
+                disabled={saving || identityPending}
+                title={modLabel(fId)}>
+                <span>{moduleIcon(fId)}</span>
+                <span>{modLabel(fId)}</span>
+            </button>
+        {/each}
+    </div>
+{/if}
+
+{#if currentTemplates.length > 0}
+    <div class="lv-template-bar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;font-size:11.5px;margin-bottom:6px">
+        <span class="lv-caption" style="color:var(--lv-tx-3);font-size:11px">✨ {t("capture.frequentTemplates") || "常用模板"}:</span>
+        {#each currentTemplates as tpl (tpl.id)}
+            <button type="button" class="lv-preset-tag" onclick={() => onApplyTemplate?.(tpl)} disabled={saving} style="font-size:11.5px;padding:2px 8px">
+                {#if tpl.icon}<span>{tpl.icon}</span>{/if}
+                <span>{tpl.label}</span>
+            </button>
+        {/each}
+    </div>
+{/if}

@@ -39,16 +39,17 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.145 (Local Ready Build)
+## 🆕 What's new in v0.5.146 (Local Ready Build)
 
-This release unifies ledger export dispatching, decouples stock quantity adjustment, taking `ledger.svelte` down to 888 lines:
+This release decouples the smart input bar and template recommendation bar, taking `quick-capture.svelte` down to 766 lines:
 
-- **Refactoring (Unified Export Dispatcher & Quantity Adjuster)**: Added `dispatchLedgerModal` in `src/core/ledger-modals.ts` eliminating 20+ switch cases, extracted `quickAdjustRowQty` into `src/core/inline-edit.ts`, and unified CSV/manifest/label/ICS exports via `executeLedgerExportAction` in `src/core/ledger-export.ts`;
-- **Performance**: Main component `ledger.svelte` dropped to **888 lines** (accumulating over 5,610 lines trimmed from original ~6,500 lines, an 86.3% reduction);
-- **Test Milestone**: 121 test suites, **909 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Smart Input Bar & Templates)**: Extracted `src/panels/quick-smart-bar.svelte`, unifying NLP quick capture parsing (`smartParseNoteContent`), frequent module shortcuts, and template recommendations (`QuickRecordTemplate`);
+- **Performance**: Quick capture panel `quick-capture.svelte` dropped to **766 lines** (from original 801 lines);
+- **Architecture Grand Slam**: All 7 core views and heavy engines (Members: 666, Quick Capture: 766, Overview: 784, Settings: 839, Ledger: 888, Detail Drawer: 895, Reminders: 897) are now firmly in the 600–800s golden range;
+- **Test Milestone**: 122 test suites, **912 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.145 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.146 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

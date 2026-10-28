@@ -39,17 +39,17 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.148 (Local Ready Build)
+## 🆕 What's new in v0.5.149 (Local Ready Build)
 
-This release decouples asset upload and OCR recognition from the kernel driver, taking `siyuan.ts` down to 820 lines:
+This release decouples certificate profiles and category-specific fields from the data model, taking `schema.ts` down to 771 lines:
 
-- **Refactoring (Decoupled Siyuan Asset Upload & OCR Module)**: Extracted `src/core/siyuan-asset-ocr.ts` (160+ lines), encapsulating asset uploads, fingerprint deduplication, concurrency handling, OCR config queries (`getOCRConfig`), cached OCR text reading, and image recognition (`recognizeAsset`), while seamlessly preserving 100% backward compatibility on `siyuan.ts` exports;
-- **Performance**: Kernel database driver `siyuan.ts` dropped to **820 lines** (153 lines trimmed from original 973 lines);
-- **Architecture Health**: All primary screens and core DAL drivers are now solidly within the 600–800s lines range with an average file size of only 30–45 KB;
-- **Test Milestone**: 124 test suites, **917 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Certificate Profiles & Category Fields)**: Extracted `src/core/certificate-profiles.ts` (160+ lines), encapsulating 17 certificate types (`CERTIFICATE_CATEGORY_OPTIONS`), profile field mappings (`CERTIFICATE_PROFILES`), category reminder rule lookups (`getCertificateReminderField`), and fallback mechanisms, seamlessly preserving full backward compatibility;
+- **Performance**: Central data schema `schema.ts` dropped to **771 lines** (153 lines trimmed from original 924 lines);
+- **Architecture Grand Slam**: All 10 primary views, data models, and DAL drivers (Members: 666, Record Modal: 696, Quick Capture: 766, Schema: 771, Overview: 784, Siyuan: 820, Settings: 839, Ledger: 888, Detail Drawer: 895, Reminders: 897) are now solidly within 600–800s lines;
+- **Test Milestone**: 125 test suites, **921 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.148 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.149 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

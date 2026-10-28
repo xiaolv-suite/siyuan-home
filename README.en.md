@@ -39,15 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.134
+## 🆕 What's new in v0.5.135 (Local Ready Build)
 
-This release decouples modal dialogs from the Reminders screen and adds batch push-to-today planning:
+This release modularizes the 4-in-1 quick event actions flow, reducing `quick-capture.svelte` to 794 lines:
 
-- **Refactoring (Decoupled Reminders Dialog Hub)**: Extracted `src/core/reminder-dialogs.ts` (320+ lines) handling plan scheduling, named view creation/removal, renewal modals, memo editing, and snooze menus, slimming `reminders.svelte` down to 1,260 lines;
-- **Feature (Batch Push to Today Plan)**: Added `batchPushRemindersToTodayPlan` in `src/core/hub/runtime.ts` and a "📅 Plan Today" button in the batch toolbar to schedule urgent items into today's focus list in one click;
-- **Validation**: 109 test suites, **867 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
+- **Refactoring (Decoupled Quick Event Flow)**: Extracted `src/panels/quick-event-flow.svelte` (320+ lines) handling quick fueling, physiological vitals (BP/glucose), quick shopping, and quick snippets;
+- **Performance**: Main component `quick-capture.svelte` dropped to **794 lines**;
+- **Validation**: 110 test suites, **869 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green;
+- **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134)
+## 📦 Install (v0.5.134 / v0.5.135 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

@@ -14,6 +14,7 @@
     import LedgerToolbar from "./ledger-toolbar.svelte";
     import LedgerBatchBar from "./ledger-batch-bar.svelte";
     import LedgerVehicleGrid from "./ledger-vehicle-grid.svelte";
+    import LedgerTable from "./ledger-table.svelte";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { panelSession, type TableDensity } from "../panel-session";
@@ -76,23 +77,12 @@
     // Progressive rendering keeps the initial table responsive.
     const RENDER_PAGE = 200;
     let renderLimit = $state(RENDER_PAGE);
-    // 台账窗口化：数据仍完整保留在内存中，DOM 只保留视口附近的行。
-    // 密度模式（§17）：舒适（48px）与紧凑（34px）两档，滚动轨道高度随密度自适应。
-    const VIRTUAL_ROW_HEIGHT_COMFORTABLE = 48;
-    const VIRTUAL_ROW_HEIGHT_COMPACT = 34;
+    // 密度模式（§17）：舒适与紧凑两档
     let tableDensity = $state<TableDensity>(panelMemory.tableDensity ?? "comfortable");
-    let virtualRowHeight = $derived(tableDensity === "compact" ? VIRTUAL_ROW_HEIGHT_COMPACT : VIRTUAL_ROW_HEIGHT_COMFORTABLE);
     function toggleDensity() {
         tableDensity = tableDensity === "compact" ? "comfortable" : "compact";
         panelMemory.tableDensity = tableDensity;
     }
-    const VIRTUAL_OVERSCAN = 8;
-    let ledgerScrollTop = $state(0);
-    let ledgerViewportHeight = $state(640);
-    let ledgerTableEl = $state<HTMLTableElement | undefined>(undefined);
-    // The scroll owner is an imperative DOM handle; keeping it non-reactive
-    // prevents the ResizeObserver setup effect from re-running itself.
-    let virtualRoot: HTMLElement | undefined;
     // Load the pinyin dictionary lazily and recompute once it is ready.
     let pyTick = $state(0);
     $effect(() => {
@@ -131,14 +121,6 @@
     let filterMemberId = $state("");
     let filterCategory = $state("");
     let selectedItemIds = $state<string[]>([]);
-
-    function toggleRowSelect(id: string) {
-        if (selectedItemIds.includes(id)) {
-            selectedItemIds = selectedItemIds.filter((x) => x !== id);
-        } else {
-            selectedItemIds = [...selectedItemIds, id];
-        }
-    }
 
     const columnSuggestions = $derived.by(() => {
         const map: Record<string, string[]> = {};
@@ -243,12 +225,6 @@
         return sortRows(list, keyID, sortAsc, keyType);
     });
 
-    const allSelected = $derived(filteredRows.length > 0 && selectedItemIds.length === filteredRows.length);
-
-    function toggleSelectAll() {
-        if (allSelected) selectedItemIds = [];
-        else selectedItemIds = filteredRows.map((r) => r.itemID);
-    }
     function sortRows(list: any[], keyID?: string, ascending = true, keyType?: string) {
         if (!keyID) return list;
         return [...list].sort((a, b) => {
@@ -267,45 +243,6 @@
     // 普通台账表格使用完整结果集配合窗口化渲染；车辆卡片保留渐进加载，
     // 以便图片卡片按批次进入 DOM，避免首次进入触发大量资源解码。
     const visibleRows = $derived(active === "vehicles" ? filteredRows.slice(0, renderLimit) : filteredRows);
-    const virtualRange = $derived.by(() => {
-        void ledgerScrollTop;
-        void ledgerViewportHeight;
-        const total = visibleRows.length;
-        if (total <= 80) return { start: 0, end: total };
-        const tableTop = ledgerTableEl && virtualRoot
-            ? ledgerTableEl.getBoundingClientRect().top - virtualRoot.getBoundingClientRect().top + virtualRoot.scrollTop
-            : 0;
-        const first = Math.max(0, Math.floor((ledgerScrollTop - tableTop) / virtualRowHeight) - VIRTUAL_OVERSCAN);
-        const count = Math.ceil(ledgerViewportHeight / virtualRowHeight) + VIRTUAL_OVERSCAN * 2;
-        const start = Math.max(0, Math.min(first, Math.max(0, total - count)));
-        const end = Math.min(total, start + count);
-        return { start, end };
-    });
-    const virtualRows = $derived(visibleRows.slice(virtualRange.start, virtualRange.end));
-
-    function measureLedgerViewport() {
-        if (!virtualRoot) return;
-        ledgerViewportHeight = virtualRoot.clientHeight || 640;
-        ledgerScrollTop = virtualRoot.scrollTop;
-    }
-
-    $effect(() => {
-        const table = ledgerTableEl;
-        if (!table) return;
-        const root = table.closest<HTMLElement>(".lv-home");
-        if (!root) return;
-        virtualRoot = root;
-        const onScroll = () => { ledgerScrollTop = root.scrollTop; };
-        root.addEventListener("scroll", onScroll, { passive: true });
-        const resize = new ResizeObserver(measureLedgerViewport);
-        resize.observe(root);
-        measureLedgerViewport();
-        return () => {
-            root.removeEventListener("scroll", onScroll);
-            resize.disconnect();
-            if (virtualRoot === root) virtualRoot = undefined;
-        };
-    });
 
     function rowMatchesSearch(row: any, q: string, columns?: Record<string, string>) {
         // Search every scalar column so plate numbers, categories, dates and
@@ -806,75 +743,26 @@
             </button>
         </div>
     {/if}
-    <div class="lv-card lv-table-wrap lv-table" class:lv-table--compact={tableDensity === "compact"} style="margin-top:12px">
-        <table bind:this={ledgerTableEl}>
-            <thead><tr>
-                <th style="width:36px;padding:4px 6px;text-align:center">
-                    <input type="checkbox" class="b3-switch" style="transform:scale(0.8);margin:0" checked={allSelected} onclick={toggleSelectAll} title="全选/取消全选" />
-                </th>
-                <!-- Severity indicator column. -->
-                <th class="lv-sev-col"></th>
-                {#each tableKeys as k (k)}
-                    <th>
-                        <button class="b3-button b3-button--text" style="padding:0 2px;font-weight:600" title={t("ledger.sortTip")}
-                            onclick={() => toggleSort(k)}>
-                            {fieldLabel(k)}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
-                        </button>
-                    </th>
-                {/each}
-            </tr></thead>
-            <tbody>
-                {#if virtualRange.start > 0}
-                    <tr class="lv-virtual-spacer" aria-hidden="true"><td colspan={tableKeys.length + 2} style={`height:${virtualRange.start * virtualRowHeight}px`}></td></tr>
-                {/if}
-                {#each virtualRows as r (r.itemID)}
-                    {@const tone = ledgerTone(r)}
-                    {@const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail")}
-                    <tr class="lv-row-link" onclick={() => openDetail(r)} title={t("ledger.detail")}>
-                        <td style="width:36px;padding:4px 6px;text-align:center" onclick={(e) => e.stopPropagation()}>
-                            <input type="checkbox" class="b3-switch" style="transform:scale(0.8);margin:0" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} />
-                        </td>
-                        <td class="lv-sev-cell">
-                            <button type="button" class="lv-table-open" aria-label={`${t("ledger.detail")}：${rowName}`} title={t("ledger.detail")}
-                                onclick={(e) => { e.stopPropagation(); openDetail(r); }}>
-                                <span class="lv-sev {toneCls(tone)}" aria-hidden="true"></span><UiIcon name="forward" size={14} />
-                            </button>
-                        </td>
-                        {#each tableKeys as k (k)}
-                            {@const v = r.cells?.[ref?.columns?.[k]]}
-                            <td class="lv-num" style={k === "expiry" || k === "due" ? `color:${toneColor(tone)}` : ""}>
-                                {#if k === "qty" || k === "stock_qty"}
-                                    <div class="lv-qty-stepper">
-                                        <button type="button" class="lv-qty-btn"
-                                            title={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); adjustRowQty(r, k, -1); }}>−</button>
-                                        <span style="min-width:18px;text-align:center">{cellText(v, k)}</span>
-                                        <button type="button" class="lv-qty-btn"
-                                            title={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); adjustRowQty(r, k, 1); }}>+</button>
-                                    </div>
-                                {:else}
-                                    {cellText(v, k)}
-                                {/if}
-                            </td>
-                        {/each}
-                    </tr>
-                {/each}
-                {#if virtualRange.end < visibleRows.length}
-                    <tr class="lv-virtual-spacer" aria-hidden="true"><td colspan={tableKeys.length + 2} style={`height:${(visibleRows.length - virtualRange.end) * virtualRowHeight}px`}></td></tr>
-                {/if}
-                {#if filteredRows.length > visibleRows.length}
-                    <!-- Progressive rendering load-more row. -->
-                    <tr class="lv-more">
-                        <td colspan={tableKeys.length + 2}>
-                            <button class="b3-button b3-button--outline" style="margin:0 auto;display:block"
-                                onclick={() => (renderLimit += RENDER_PAGE)}>
-                                {t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}
-                            </button>
-                        </td>
-                    </tr>
-                {/if}
-            </tbody>
-        </table>
-    </div>
+    <LedgerTable
+        {tableDensity}
+        {tableKeys}
+        {visibleRows}
+        {filteredRows}
+        {ref}
+        {sortKey}
+        {sortAsc}
+        bind:selectedItemIds
+        {t}
+        {fieldLabel}
+        {cellText}
+        {ledgerTone}
+        {toneCls}
+        {toneColor}
+        onToggleSort={toggleSort}
+        onOpenDetail={openDetail}
+        onAdjustQty={adjustRowQty}
+        onLoadMore={() => (renderLimit += RENDER_PAGE)}
+    />
     <LedgerBatchBar
         {plugin}
         {active}

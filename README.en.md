@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.152 (Local Ready Build)
+## 🆕 What's new in v0.5.153 (Local Ready Build)
 
-This release modularizes the ledger detail drawer full edit form engine and decouples incremental cell updates, taking `ledger-detail-drawer.ts` down to 804 lines:
+This release modularizes the virtualized data table into `ledger-table.svelte`, taking `ledger.svelte` down to 776 lines:
 
-- **Refactoring (Modularized Drawer Full Edit Form Engine)**: Extracted `renderDrawerEditMode` into `src/core/drawer-actions.ts` (160+ lines), encapsulating dynamic form generation, raw value diffing, read-only guard during submission, `idempotencyKey` cell updates, ghost column healing, and favor sync cleanup;
-- **Performance**: Ledger detail drawer `src/core/ledger-detail-drawer.ts` dropped to **804 lines** (accumulating over 750 lines trimmed from original 1,554 lines, a 48.3% reduction);
-- **Test Milestone**: 127 test suites, **930 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Virtualized Data Table)**: Extracted `src/panels/screens/ledger-table.svelte` (180+ lines), encapsulating viewport height and scroll tracking (`ResizeObserver` / `.lv-home` scroll handling), comfortable/compact row height adaptation (48px / 34px), `VIRTUAL_OVERSCAN` buffering, multi-language field label fallback, batch select toggling, and quantity stepper callbacks;
+- **Performance**: Main ledger screen `src/panels/screens/ledger.svelte` dropped to **776 lines** (accumulating over 450 lines trimmed from original 1,200+ lines, a 37% reduction);
+- **Test Milestone**: 128 test suites, **933 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.152 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.153 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

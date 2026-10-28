@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.160 (Local Ready Build)
+## 🆕 What's new in v0.5.161 (Local Ready Build)
 
-This release modularizes reminder named views, plan dates, and pinning into `src/core/hub/runtime-views.ts`, taking `src/core/hub/runtime.ts` down to 651 lines:
+This release modularizes the overview module cards grid into `src/panels/screens/overview-module-grid.svelte`, taking `src/panels/screens/overview.svelte` down to 616 lines:
 
-- **Refactoring (Modularized Views & Plan Dates Engine)**: Extracted `src/core/hub/runtime-views.ts` (150+ lines), encapsulating named view CRUD & filter mapping (`saveNamedView`, `removeNamedView`, `applyNamedView`), dual-date plan deviation calculations (`getReminderPlanStatus`), batch pushing to today plan, and unified reminder pinning;
-- **Performance**: Hub runtime store `src/core/hub/runtime.ts` dropped to **651 lines** (a 144-line trimming, 18.1% reduction);
-- **Test Milestone**: 136 test suites, **957 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Overview Module Cards Grid)**: Extracted `src/panels/screens/overview-module-grid.svelte` (210+ lines), encapsulating category group stats, realtime module search query matching, group section collapse/expand controls (`isModuleGroupOpen`, `toggleModuleGroup`), pending item drilldowns, 5-day sparklines (`sparkOf`), study streak badges, and check-in summary metrics;
+- **Performance**: Overview screen `src/panels/screens/overview.svelte` dropped to **616 lines** (accumulating over 237 lines trimmed from original 853 lines, a 27.8% reduction);
+- **Test Milestone**: 137 test suites, **960 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.160 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.161 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

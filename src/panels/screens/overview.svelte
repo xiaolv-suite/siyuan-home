@@ -6,10 +6,10 @@
     import { fade } from "svelte/transition";
     import { localDateKey } from "@/core/hub/rule";
     import { parseNaturalDate } from "@/core/dateparse";
-    import { formatLocalDate, formatLocalTime } from "@/core/date-display";
+    import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
     import { showMessage, Dialog } from "siyuan";
-    import { MODULE_GROUPS, getModule, moduleTone } from "@/core/modules";
+    import { moduleTone } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";
     import { moduleUiIcon } from "@/ui/icons";
@@ -21,7 +21,7 @@
         openEmergencyCardModal as showEmergencyCard,
         openYearlyShareCardModal as showShareCard,
     } from "@/core/overview-modals";
-    import type { ModuleGroupId } from "@/types";
+    import OverviewModuleGrid from "./overview-module-grid.svelte";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
         plugin: HomePluginLike;
@@ -112,56 +112,6 @@
         return plugin.runtime?.monthlyDueTotals?.[monthKey] ?? 0;
     });
 
-    // 262 波（H02 语义补全）：模块卡列表此前直接遍历 plugin.settings.enabledModules——
-    // 普通对象属性无响应性，且该模板块无任何 version 驱动依赖，导致「全部启用/保存」后
-    // 总览模块卡不即时刷新（需切一次页签重挂载）；改 version 驱动 derived 修复
-    const moduleCards = $derived.by(() => {
-        void version;
-        return plugin.settings.enabledModules.filter((id: string) => id !== "members");
-    });
-
-    // 269 波：模块较多时按功能分组，并提供本地搜索，避免首页变成难以扫读的长卡片墙。
-    // 筛选只影响当前页面展示，不改变设置中的启用状态。
-    let moduleGroupFilter = $state<ModuleGroupId | "all">("all");
-    let moduleQuery = $state("");
-    // 模块较多时默认只展开首个分组和有待办的分组；用户展开状态独立保存，
-    // 筛选结果自动展开匹配组，避免在长页面中反复寻找命中的模块。
-    let moduleGroupOpen = $state<Partial<Record<ModuleGroupId, boolean>>>({});
-    const moduleGroupStats = $derived.by(() => {
-        void version;
-        return MODULE_GROUPS
-            .map((id) => ({ id, count: moduleCards.filter((mid) => getModule(mid)?.group === id).length }))
-            .filter((group) => group.count > 0);
-    });
-    const moduleSections = $derived.by(() => {
-        void version;
-        const query = moduleQuery.trim().toLocaleLowerCase();
-        return moduleGroupStats
-            .filter((group) => moduleGroupFilter === "all" || group.id === moduleGroupFilter)
-            .map((group) => ({
-                ...group,
-                ids: moduleCards.filter((mid) => {
-                    if (getModule(mid)?.group !== group.id) return false;
-                    if (!query) return true;
-                    return t(`module.${mid}`).toLocaleLowerCase().includes(query);
-                }),
-            }))
-            .filter((group) => group.ids.length > 0);
-    });
-
-    function isModuleGroupOpen(id: ModuleGroupId, index: number, ids: string[]): boolean {
-        const query = moduleQuery.trim();
-        if (query || moduleGroupFilter !== "all") return ids.length > 0;
-        const explicit = moduleGroupOpen[id];
-        if (explicit !== undefined) return explicit;
-        const hasPending = ids.some((mid) => (pendingByModule.get(mid) ?? 0) > 0);
-        return index === 0 || hasPending;
-    }
-
-    function toggleModuleGroup(id: ModuleGroupId, open: boolean) {
-        moduleGroupOpen = { ...moduleGroupOpen, [id]: open };
-    }
-
     // 快捷录入只展示当前已启用的模块。固定展示未启用模块会把用户带到
     // 不存在的台账页，随后点击“重建”也不会真正创建该模块。
     const quickModuleIds = ["vehicles", "certs", "medicine", "memberships", "favors", "media", "health", "insurance", "stock", "parenting", "members"];
@@ -195,21 +145,6 @@
         void version;
         return plugin.runtime?.moduleHistory ?? {};
     });
-    function sparkOf(mid: string): number[] | null {
-        const days: number[] = [];
-        let known = 0;
-        let max = 0;
-        for (let i = 4; i >= 0; i--) {
-            const d = new Date(Date.now() - i * 86400000);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            const v = moduleHistory[key]?.[mid];
-            if (typeof v === "number") known++;
-            days.push(typeof v === "number" ? v : 0);
-            if (v > max) max = v;
-        }
-        if (known < 3) return null;
-        return days.map((v) => (max > 0 ? Math.max(15, Math.round((v / max) * 100)) : 15));
-    }
 
     // 170/171 波（对齐原型质感，不低于）：context-strip 状态条 + focus-row 三重点卡
     const overdueCount = $derived.by(() => { void version; return allReminders.filter((r: Reminder) => r.level === "overdue").length; });
@@ -661,124 +596,20 @@
     <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
 </div>
 
-<div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>
-    <button class="b3-button b3-button--text" onclick={() => plugin.openSetting()}>{t("dash.enableMore")} →</button>
-</div>
-{#if firstScanPending}
-    <!-- 262 波：首扫骨架补全模块网格（与提醒骨架同一 loading 故事） -->
-    <div class="lv-mods" aria-hidden="true">
-        {#each [0, 1, 2, 3] as i (i)}
-            <div class="lv-card lv-mod">
-                <div class="lv-skel" style="width:38px;height:38px;border-radius:11px"></div>
-                <div class="lv-skel" style="height:13px;width:56%"></div>
-                <div class="lv-skel" style="height:11px;width:38%"></div>
-            </div>
-        {/each}
-    </div>
-{:else}
-    <div class="lv-module-tools" aria-label={t("dash.moduleFilterLabel")}>
-        <div class="lv-module-filters" role="group" aria-label={t("dash.moduleFilterLabel")}>
-            <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === "all"} aria-pressed={moduleGroupFilter === "all"}
-                onclick={() => (moduleGroupFilter = "all")}>{t("dash.moduleAll")}</button>
-            {#each moduleGroupStats as group (group.id)}
-                <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === group.id} aria-pressed={moduleGroupFilter === group.id}
-                    onclick={() => (moduleGroupFilter = group.id)}>{t(`group.${group.id}`)} <span>{group.count}</span></button>
-            {/each}
-        </div>
-        <label class="lv-module-search">
-            <UiIcon name="search" size={15} />
-            <input class="b3-text-field" type="search" bind:value={moduleQuery} placeholder={t("dash.moduleSearch")} aria-label={t("dash.moduleSearch")} />
-        </label>
-        <span class="lv-module-total"><b class="lv-num">{moduleCards.length}</b> {t("dash.moduleCount")}</span>
-    </div>
-    {#if moduleSections.length === 0}
-        <div class="lv-card lv-module-empty" role="status">
-            <UiIcon name="search" size={17} /><span>{t("dash.moduleEmpty")}</span>
-            <button class="b3-button b3-button--text" onclick={() => { moduleQuery = ""; moduleGroupFilter = "all"; }}>{t("dash.moduleClear")}</button>
-        </div>
-    {:else}
-    {#each moduleSections as section, sectionIndex (section.id)}
-    {@const expanded = isModuleGroupOpen(section.id, sectionIndex, section.ids)}
-    {@const sectionPending = section.ids.reduce((total, id) => total + (pendingByModule.get(id) ?? 0), 0)}
-    {@const sectionRows = section.ids.reduce((total, id) => total + (rowCountOf(id) ?? 0), 0)}
-    {@const sectionRowsKnown = section.ids.every((id) => rowCountOf(id) !== undefined)}
-    <section class="lv-module-section" aria-labelledby={`lv-module-group-${section.id}`}>
-        <h3 class="lv-module-section__heading">
-            <button class="lv-module-section__head" aria-expanded={expanded} aria-controls={expanded ? `lv-module-items-${section.id}` : undefined}
-                onclick={() => toggleModuleGroup(section.id, !expanded)}>
-                <span class="lv-module-section__chevron" aria-hidden="true">{expanded ? "⌄" : "›"}</span>
-                <span class="lv-module-section__title" id={`lv-module-group-${section.id}`}>{t(`group.${section.id}`)}</span>
-                <span class="lv-caption">{(sectionRowsKnown ? t("dash.moduleGroupSummary") : t("dash.moduleGroupSummaryUnknown")).replace("${m}", String(section.ids.length)).replace("${r}", String(sectionRows)).replace("${p}", String(sectionPending))}</span>
-                {#if sectionPending > 0}<span class="lv-badge red lv-num">{sectionPending} <UiIcon name="alert" size={12} /></span>{/if}
-            </button>
-        </h3>
-        {#if expanded}
-        <div id={`lv-module-items-${section.id}`} class="lv-module-section__body">
-        <div class="lv-mods">
-    {#each section.ids as mid (mid)}
-        {@const pending = pendingByModule.get(mid) ?? 0}
-        <div class="lv-card lv-mod" aria-label={t(`module.${mid}`)}
-            role="button" tabindex="0"
-            onclick={() => { plugin.setActiveLedger(mid); onGoto("ledger"); }}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); plugin.setActiveLedger(mid); onGoto("ledger"); } }}>
-            <div class="lv-module-open">
-                <span class="lv-mi" class:tone-blue={moduleTone(mid) === "t-blue"} class:tone-green={moduleTone(mid) === "t-green"}
-                    class:tone-rose={moduleTone(mid) === "t-rose"} class:tone-amber={moduleTone(mid) === "t-amber"}
-                    aria-hidden="true"><UiIcon name={moduleUiIcon(mid)} size={20} /></span><b>{t(`module.${mid}`)}</b>
-            </div>
-            <div class="lv-stat" title={t("dash.statScope").replace("${t}", snapshotLabel)}>
-            {#if rowCountOf(mid) !== undefined}
-                <!-- 264 波：主数字=台账行数（原型 "12 条 · 1 待办" 层次）；265 波零值弱色降噪——
-                     空台账的"0"是已知事实但不必与活跃数字同权重；待办徽章右置可下钻 -->
-                <b class="lv-num" class:zero={rowCountOf(mid) === 0}>{rowCountOf(mid)}</b><span>{t("mod.records")}</span>
-                {#if pending > 0}
-                    <button type="button" class="lv-module-pending up"
-                        title={t("mod.pendingDrill")}
-                        onclick={(e: MouseEvent) => { e.stopPropagation(); drillReminders(mid); }}
-                    ><span class="lv-badge red lv-num">{pending} <UiIcon name="alert" size={12} /></span></button>
-                {/if}
-            {:else if pending > 0}
-                <!-- 17 组/196 波：徽章=独立下钻目标（stopPropagation，卡片本体仍进台账） -->
-                <button type="button" class="lv-num lv-module-pending"
-                    title={t("mod.pendingDrill")}
-                    onclick={(e: MouseEvent) => { e.stopPropagation(); drillReminders(mid); }}
-                ><b>{pending}</b><span style="color:var(--lv-warn)">{t("mod.pending")}</span></button>
-            {:else if plugin.settings.dbRefs?.[mid] && !plugin.settings.dbRefs[mid].docId}
-                    <span style="color:var(--lv-warn)">{t("diag.missing")}</span>
-            {:else if plugin.settings.dbRefs?.[mid]?.provisional}
-                    <span>{t("diag.provisional")}</span>
-            {:else}
-                    <!-- 259 波：fallback 从灰字改为导航出口（卡面视觉重心；箭头 hover 位移） -->
-                    <span class="lv-go">{t("mod.inLedger")}<i aria-hidden="true">&nbsp;→</i></span>
-            {/if}
-            {#if sparkOf(mid)}
-                <!-- 266 波：近 5 日待办趋势（数据源 moduleHistory；末条高亮=原型 .spark hi） -->
-                <span class="lv-spark" aria-hidden="true" title={t("dash.sparkTip")}>
-                    {#each sparkOf(mid) as h, i (i)}
-                        <i class:hi={i === 4} style="height:{h}%"></i>
-                    {/each}
-                </span>
-            {/if}
-            </div>
-            {#if mid === "exams" && plugin.runtime?.lastExamStats?.generatedAt}
-                <!-- EC21：lv-exam:stats 聚合展示（只读子集，标注更新日期；不读题目内容） -->
-                <div class="lv-caption" title={t("mod.examStatsTip").replace("${d}", formatLocalDate(plugin.runtime.lastExamStats.generatedAt) ?? "—")}>
-                    <UiIcon name="note" size={13} /> {t("mod.examStreak").replace("${n}", String(plugin.runtime.lastExamStats.streak)).replace("${p}", String(plugin.runtime.lastExamStats.accuracy))}
-                </div>
-            {/if}
-            {#if mid === "health" && healthBound.length > 0}
-                <!-- EC09（D20）：打卡绑定摘要（只读；只统计有强度数据的绑定项） -->
-                <div class="lv-caption" title={healthBound.map((b) => `${b.label} · ${b.score}`).join("\n")}>
-                    ⏱ {t("mod.checkinBound").replace("${n}", String(healthBound.length))}
-                </div>
-            {/if}
-        </div>
-    {/each}
-        </div>
-        </div>
-        {/if}
-    </section>
-    {/each}
-    {/if}
-{/if}
+<OverviewModuleGrid
+    {plugin}
+    {version}
+    {t}
+    {firstScanPending}
+    {snapshotLabel}
+    {pendingByModule}
+    {moduleHistory}
+    {healthBound}
+    {rowCountOf}
+    {moduleTone}
+    {moduleUiIcon}
+    onOpenSetting={() => plugin.openSetting()}
+    onGotoLedger={(mid) => { plugin.setActiveLedger(mid); onGoto("ledger"); }}
+    onDrillReminders={drillReminders}
+/>
 {/if}

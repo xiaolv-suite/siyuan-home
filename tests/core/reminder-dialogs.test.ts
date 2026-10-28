@@ -1,0 +1,137 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+    openReminderPlanDialog,
+    openNamedViewSaveDialog,
+    openNamedViewDeleteConfirm,
+    openReminderRenewDialog,
+    openMemoEditDialog,
+    openSnoozeMenu,
+} from "@/core/reminder-dialogs";
+import type { Reminder } from "@/types";
+
+describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () => {
+    const mockReminder: Reminder = {
+        id: "certs::row-1::expiry",
+        moduleId: "certs",
+        ruleKey: "expiry",
+        rowId: "row-1",
+        title: "护照到期",
+        dueDate: "2026-11-20",
+        daysLeft: 23,
+        level: "soon",
+    };
+
+    const mockPlugin = {
+        runtime: {
+            reminderPlanDates: {},
+            namedViews: [],
+        },
+        saveRuntime: vi.fn().mockResolvedValue(undefined),
+        refreshHub: vi.fn().mockResolvedValue(undefined),
+        renew: vi.fn().mockResolvedValue(undefined),
+        updateMemo: vi.fn().mockResolvedValue(undefined),
+        snooze: vi.fn().mockResolvedValue(undefined),
+    };
+
+    class MockDialog {
+        element = {
+            querySelector: vi.fn().mockReturnValue({
+                addEventListener: vi.fn(),
+                onclick: vi.fn(),
+                focus: vi.fn(),
+                value: "2026-11-01",
+            }),
+            querySelectorAll: vi.fn().mockReturnValue([]),
+        };
+        destroy = vi.fn();
+    }
+
+    class MockMenu {
+        addItem = vi.fn();
+        open = vi.fn();
+    }
+
+    it("openReminderPlanDialog 安全调用不抛异常", () => {
+        expect(() => {
+            openReminderPlanDialog({
+                r: mockReminder,
+                plugin: mockPlugin,
+                DialogCls: MockDialog,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+
+    it("openNamedViewSaveDialog 安全调用不抛异常", () => {
+        expect(() => {
+            openNamedViewSaveDialog({
+                plugin: mockPlugin,
+                currentFilter: {
+                    filter: "all",
+                    dueWithin: "all",
+                },
+                DialogCls: MockDialog,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+
+    it("openNamedViewDeleteConfirm 安全调用", () => {
+        expect(() => {
+            openNamedViewDeleteConfirm({
+                v: {
+                    id: "v-1",
+                    name: "紧急视图",
+                    filter: "urgent",
+                    dueWithin: "7d",
+                    createdAt: "2026-10-28",
+                },
+                plugin: mockPlugin,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+
+    it("openReminderRenewDialog 安全调用", () => {
+        expect(() => {
+            openReminderRenewDialog({
+                r: mockReminder,
+                plugin: mockPlugin,
+                DialogCls: MockDialog,
+                t: (k) => k,
+            });
+        }).not.toThrow();
+    });
+
+    it("openMemoEditDialog 安全调用", () => {
+        expect(() => {
+            openMemoEditDialog({
+                r: mockReminder,
+                plugin: mockPlugin,
+                DialogCls: MockDialog,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+
+    it("openSnoozeMenu 安全打开延后天数菜单", () => {
+        expect(() => {
+            openSnoozeMenu({
+                r: mockReminder,
+                ev: {
+                    currentTarget: { getBoundingClientRect: () => ({ right: 100, bottom: 200 }) },
+                    detail: 1,
+                    clientX: 100,
+                    clientY: 200,
+                } as any,
+                MenuCls: MockMenu,
+                t: (k) => k,
+                onSnooze: vi.fn(),
+            });
+        }).not.toThrow();
+    });
+});

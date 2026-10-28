@@ -773,5 +773,23 @@ export function isReminderPinned(runtime: HubRuntime | undefined, reminder: { id
     return (runtime.pinnedMemoIds ?? []).includes(memoId);
 }
 
+/**
+ * 批量将一组提醒一键推入今日计划排期（标记为今日专注事项）
+ */
+export function batchPushRemindersToTodayPlan(
+    runtime: HubRuntime,
+    reminderIds: string[],
+    today: string = localDateKey(new Date())
+): number {
+    runtime.planDates = runtime.planDates ?? {};
+    let count = 0;
+    for (const id of reminderIds) {
+        if (!id) continue;
+        runtime.planDates[id] = today;
+        count++;
+    }
+    return count;
+}
+
 
 

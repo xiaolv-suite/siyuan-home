@@ -39,25 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.133
+## 🆕 What's new in v0.5.134
 
-This release introduces native SiYuan rich-table attributes for archive manifests and closes Issue #137:
+This release decouples modal dialogs from the Reminders screen and adds batch push-to-today planning:
 
-- **Feature (Native Rich-Table Support for Archive Manifests)**:
-  - Implemented `formatArchiveManifestTableMarkdown` in `src/core/archive.ts` generating markdown tables with `custom-sy-table-rich="true"` and `custom-sy-table-header-row="true"`;
-  - Sticky header rows and interactive attachment links for policy, contract, and asset reviews;
-- **Governance**: Officially verified and resolved all directives from Issue #137;
-- **Validation**: 108 test suites, **860 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
+- **Refactoring (Decoupled Reminders Dialog Hub)**: Extracted `src/core/reminder-dialogs.ts` (320+ lines) handling plan scheduling, named view creation/removal, renewal modals, memo editing, and snooze menus, slimming `reminders.svelte` down to 1,260 lines;
+- **Feature (Batch Push to Today Plan)**: Added `batchPushRemindersToTodayPlan` in `src/core/hub/runtime.ts` and a "📅 Plan Today" button in the batch toolbar to schedule urgent items into today's focus list in one click;
+- **Validation**: 109 test suites, **867 unit tests passing**, TypeScript, Svelte, i18n (1975 keys), metadata, and package smoke all green.
 
-## 📦 Install (v0.5.133)
+## 📦 Install (v0.5.134)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip
 3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
 4. Press `Ctrl+Alt+H` anytime to open the hub
 
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.133 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.133 package is the current GitHub release; local quality checks report 860 unit tests.
+> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.134 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
+> **Version note:** the tagged v0.5.134 package is the current GitHub release; local quality checks report 867 unit tests.
 >
 > Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
 >

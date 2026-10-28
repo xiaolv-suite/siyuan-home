@@ -147,3 +147,34 @@ export function formatArchiveManifestMarkdown(manifest: ArchiveManifest, t?: (k:
     lines.push("*小驴管家 · 本地优先家庭资产管理归档文件*");
     return lines.join("\n");
 }
+
+/**
+ * 格式化输出支持思源原生富表格 (custom-sy-table-rich) 的归档汇总表格
+ * 首行表头固定，单元格内支持多附件与超链接渲染，满足资产与保单大表浏览需求（Issue #137）
+ */
+export function formatArchiveManifestTableMarkdown(manifest: ArchiveManifest, t?: (k: string) => string): string {
+    const translateMod = (m: string) => {
+        if (!t) return m;
+        const key = `module.${m}`;
+        const val = t(key);
+        return val !== key ? val : m;
+    };
+
+    const lines: string[] = [
+        "| 业务模块 | 事项名称 | 归属成员 | 业务日期 | 效期/到期 | 凭证与合同附件 |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+    ];
+
+    for (const cat of manifest.categories) {
+        for (const rec of cat.records) {
+            const attLinks = rec.attachments.map((a) => a.path ? `[${a.name}](${a.path})` : a.name).join("、") || "—";
+            lines.push(
+                `| ${translateMod(cat.module)} | ${rec.title} | ${rec.memberName || "—"} | ${rec.date || "—"} | ${rec.expiry || "—"} | ${attLinks} |`
+            );
+        }
+    }
+
+    lines.push('{: custom-sy-table-rich="true" custom-sy-table-header-row="true" }');
+    return lines.join("\n");
+}
+

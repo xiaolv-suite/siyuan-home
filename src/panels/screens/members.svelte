@@ -2,13 +2,15 @@
     import type { Reminder, FamilyMember } from "@/types";
     import { Menu, showMessage, Dialog } from "siyuan";
     import { confirm } from "@/libs/dialog";
-    import { addMember, updateMember, removeMember } from "@/core/members";
-    import { newSiYuanId, renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
+    import { removeMember } from "@/core/members";
+    import { renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { memberHue } from "@/core/format";
     import { openContactPicker, getContactsBridge } from "@/libs/contact-picker";
     import { calculateRetirement } from "@/core/retirement";
+    import MemberFormEditor from "./member-form-editor.svelte";
+    import { openMemberReassignDialog, exportMemberVcf } from "@/core/member-dialogs";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";
 
@@ -21,7 +23,6 @@
         void orderVersion;
         return plugin.settings.members ?? [];
     });
-    let nameInput: HTMLInputElement | undefined = $state();
     const reminders = $derived.by(() => {
         void version;
         return plugin.scan?.reminders ?? [];
@@ -289,14 +290,8 @@
     let lunar = $state(false);
     let notes = $state("");
     let editId = $state<string | null>(null);
-    // Retain the new-member ID after a failed save so a user retry is the same
-    // operation and cannot create a second settings row or AV row.
-    let pendingNewMemberId = $state<string | undefined>();
-    // 初始由用户操作控制展开，不默认霸占页面
-    // svelte-ignore state_referenced_locally
     let editorOpen = $state(false);
-    let editorEl: HTMLDivElement | undefined = $state();
-    const roles = ["self", "spouse", "partner", "child", "elder", "kin", "other"];
+    let editorComp: any;
 
     function startEdit(m: FamilyMember) {
         editId = m.id;
@@ -309,8 +304,7 @@
         notes = m.notes ?? "";
         expandedId = null;
         requestAnimationFrame(() => {
-            editorEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            nameInput?.focus();
+            editorComp?.focusName?.();
         });
     }
 
@@ -318,8 +312,7 @@
         cancelEdit();
         editorOpen = true;
         requestAnimationFrame(() => {
-            editorEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            nameInput?.focus();
+            editorComp?.focusName?.();
         });
     }
 
@@ -358,7 +351,7 @@
         await saveContactSnapshot(m, undefined);
     }
     function cancelEdit() {
-        editId = null; pendingNewMemberId = undefined; name = ""; role = "self"; sex = undefined; birthday = ""; lunar = false; notes = "";
+        editId = null; name = ""; role = "self"; sex = undefined; birthday = ""; lunar = false; notes = "";
         editorOpen = false;
     }
 
@@ -372,173 +365,35 @@
         }
     }
 
-    // UG11 v1（第九十波）：成员导出 vCard 4.0——姓名/生日/备注即个人信息，导出前一律确认
-    function exportVcf() {
-        const list = plugin.settings.members ?? [];
-        if (list.length === 0) return;
-        confirm(t("members.exportVcf"), t("members.exportVcfBody").replace("${n}", String(list.length)), () => {
-            if (exportingVcf) return;
-            exportingVcf = true;
-            import("@/core/vcard").then(({ buildVCard }) => {
-                const vcf = buildVCard(list.map((m) => ({
-                    uid: m.id,
-                    name: m.name,
-                    birthday: m.birthday,
-                    lunarBirthday: m.lunarBirthday,
-                    note: m.notes,
-                    category: t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role,
-                })));
-                if (!vcf) { showMessage(t("members.exportVcfEmpty"), 3000, "error"); return; }
-                const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `lvhome-members-${new Date().toISOString().slice(0, 10)}.vcf`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                showMessage(t("members.exportVcfDone").replace("${n}", String(list.length)), 3000, "info");
-            }).catch((e) => {
-                showMessage(t("members.exportVcfFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-            }).finally(() => {
-                exportingVcf = false;
-            });
-        });
-    }
-
-let reassignBusy = $state(false);
-function openReassignDialog(fromMember?: FamilyMember) {
-    const activeMembers = members.filter((m) => m.avItemId);
-    if (activeMembers.length === 0) {
-        showMessage(t("members.reassignNoTargets"), 4000, "error");
-        return;
-    }
-    const fromOptions = [
-        `<option value="unassigned">${t("members.unassignedOrStale")}</option>`,
-        ...members.filter((m) => m.avItemId).map((m) => `<option value="${m.avItemId}" ${fromMember?.id === m.id ? "selected" : ""}>${m.name}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`),
-    ].join("");
-    const toOptions = members
-        .filter((m) => m.avItemId && m.id !== fromMember?.id)
-        .map((m) => `<option value="${m.avItemId}">${m.name}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`)
-        .join("");
-
-    const dlg = new Dialog({
-        title: t("members.reassignTitle"),
-        content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-            <p class="lv-caption" style="margin:0">${t("members.reassignIntro")}</p>
-            <label style="display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:12px;color:var(--lv-tx-2)">${t("members.reassignFrom")}</span>
-                <select class="b3-select" id="lv-reassign-from">${fromOptions}</select>
-            </label>
-            <label style="display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:12px;color:var(--lv-tx-2)">${t("members.reassignTo")}</span>
-                <select class="b3-select" id="lv-reassign-to">${toOptions}</select>
-            </label>
-        </div>
-        <div class="b3-dialog__action">
-            <button class="b3-button b3-button--cancel" id="lv-reassign-cancel">${t("cancel")}</button>
-            <button class="b3-button" id="lv-reassign-confirm">${t("save")}</button>
-        </div>`,
-        width: "440px",
-    });
-
-    (dlg.element.querySelector("#lv-reassign-cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-    (dlg.element.querySelector("#lv-reassign-confirm") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
-        const fromVal = (dlg.element.querySelector("#lv-reassign-from") as HTMLSelectElement).value;
-        const toVal = (dlg.element.querySelector("#lv-reassign-to") as HTMLSelectElement).value;
-        if (!toVal) {
-            showMessage(t("members.reassignSelectTo"), 3000, "error");
-            return;
-        }
-        if (fromVal === toVal) {
-            showMessage(t("members.reassignSameError"), 3000, "error");
-            return;
-        }
-        this.disabled = true;
-        dlg.destroy();
-        reassignBusy = true;
-        try {
-            const { reassignMemberRows } = await import("@/core/members");
-            const res = await reassignMemberRows(plugin as any, plugin.settings, {
-                fromAvItemId: fromVal === "unassigned" ? "unassigned" : fromVal,
-                toAvItemId: toVal,
-            });
-            if (res.updated > 0) {
-                const modNames = res.modules.map((m) => t(`module.${m}`) !== `module.${m}` ? t(`module.${m}`) : m).join("、");
-                showMessage(t("members.reassignDone").replace("${n}", String(res.updated)).replace("${modules}", modNames), 4000, "info");
-                await plugin.refreshHub(undefined, true);
-            } else {
-                showMessage(t("members.reassignZero"), 3000, "info");
-            }
-        } catch (e) {
-            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-        } finally {
-            reassignBusy = false;
-        }
-    };
-}
-
-    let memberSaving = $state(false);
     let exportingVcf = $state(false);
-    async function save() {
-        if (memberSaving) return;
-        // 297 波：访客模式写保护拦截
-        if (plugin.runtime?.guestModeActive) {
-            showMessage(t("guest.writeBlocked"), 4000, "info");
-            return;
+    function exportVcf() {
+        if (exportingVcf) return;
+        exportingVcf = true;
+        try {
+            exportMemberVcf({
+                members,
+                t,
+                showMessageFn: showMessage,
+                confirmFn: confirm,
+            });
+        } finally {
+            exportingVcf = false;
         }
-        if (!name.trim()) {
-            nameInput?.focus();
-            showMessage(t("ledger.nameRequired"), 4000, "info");
-            return;
-        }
-        // D06 配套：同名成员会让按姓名回填产生歧义——新增时提示确认（编辑不受影响）
-        const dup = !editId && (plugin.settings.members ?? []).some((m) => m.name.trim() === name.trim());
-        if (dup) {
-            confirm(t("members.dupTitle"), t("members.dupBody").replace("${name}", name.trim()), () => { void doSave(true); });
-            return;
-        }
-        await doSave(true);
     }
 
-    async function doSave(clearAfterCreate = true) {
-        if (!name.trim() || memberSaving) return;
-        memberSaving = true;
-        try {
-            try {
-                if (editId) {
-                    const target = (plugin.settings.members ?? []).find((m) => m.id === editId);
-                    if (target) {
-                        await updateMember(plugin, plugin.settings, {
-                            ...target, name: name.trim(), role, sex: sex || undefined, birthday: birthday || undefined, lunarBirthday: lunar, notes: notes.trim() || undefined,
-                        });
-                    }
-                    cancelEdit();
-                } else {
-                    const submittedName = name.trim();
-                    pendingNewMemberId ??= newSiYuanId();
-                    await addMember(plugin, plugin.settings, {
-                        id: pendingNewMemberId,
-                        name: submittedName, role, sex: sex || undefined, birthday: birthday || undefined,
-                        lunarBirthday: lunar, notes: notes.trim() || undefined, createdAt: new Date().toISOString(),
-                    });
-                    pendingNewMemberId = undefined;
-                    if (clearAfterCreate) {
-                        name = ""; role = "self"; sex = undefined; birthday = ""; lunar = false; notes = "";
-                    }
-                }
-            } catch (e) {
-                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                return;
-            }
-            try {
-                // Member rows/settings affect birthday and member-linked
-                // reminders; force a fresh scan after the write.
-                await plugin.refreshHub(undefined, true);
-            } catch (e) {
-                showMessage(t("members.saveRefreshFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-            }
-        } finally {
-            memberSaving = false;
-        }
+    let reassignBusy = $state(false);
+    function openReassignDialog(fromMember?: FamilyMember) {
+        openMemberReassignDialog({
+            members,
+            fromMember,
+            plugin,
+            t,
+            DialogCls: Dialog,
+            showMessageFn: showMessage,
+            onReassigned: async () => {
+                await plugin.refreshHub?.(undefined, true);
+            },
+        });
     }
 </script>
 
@@ -563,7 +418,7 @@ function openReassignDialog(fromMember?: FamilyMember) {
 <div class="lv-member-tools" style="display:flex;align-items:center;gap:10px;margin:12px 0">
     <button class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
         aria-expanded={editorOpen} aria-controls="lv-member-editor"
-        disabled={memberSaving} onclick={editorOpen ? cancelEdit : startNewMember}>
+        onclick={editorOpen ? cancelEdit : startNewMember}>
         {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}
     </button>
     <span class="fn__flex-1"></span>
@@ -575,28 +430,23 @@ function openReassignDialog(fromMember?: FamilyMember) {
     </button>
 </div>
 
-<div id="lv-member-editor" class="lv-card lv-member-editor" bind:this={editorEl} hidden={!editorOpen}>
-    <div class="lv-member-editor-head"><div><h2>{editId ? t("members.editing") : t("add")}</h2><p>{editId ? t("members.editing") : t("settings.membersHint")}</p></div></div>
-    <div class="lv-member-editor-fields">
-                        <label class="lv-member-field"><span>{t("members.name")}</span><input bind:this={nameInput} class="b3-text-field" placeholder={t("members.name")} aria-label={t("members.name")} bind:value={name} disabled={memberSaving}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) save(); }} /></label>
-                        <label class="lv-member-field"><span>{t("members.role")}</span><select class="b3-select" bind:value={role} aria-label={t("members.role")} disabled={memberSaving}>
-            {#each roles as r (r)}<option value={r}>{t(`role.${r}`)}</option>{/each}
-        </select></label>
-                        <label class="lv-member-field"><span>{t("members.sex")}</span><select class="b3-select" bind:value={sex} aria-label={t("members.sex")} disabled={memberSaving}>
-            <option value="">{t("members.sex.unknown")}</option><option value="male">{t("members.sex.male")}</option><option value="female">{t("members.sex.female")}</option>
-        </select></label>
-                        <label class="lv-member-field"><span>{t("members.birthday")}</span><input class="b3-text-field" type="date" title={t("members.birthday")} aria-label={t("members.birthday")} bind:value={birthday} disabled={memberSaving} /></label>
-                        <label class="lv-member-check"><input type="checkbox" bind:checked={lunar} disabled={memberSaving} />{t("members.lunar")}</label>
-                        <label class="lv-member-field lv-member-field-wide"><span>{t("members.notes")}</span><textarea class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea></label>
-        <div class="lv-member-editor-actions">
-            <button class="lv-btn primary sm" onclick={save} disabled={memberSaving} aria-busy={memberSaving}>
-                {memberSaving ? t("ledger.saving") : editId ? t("save") : `＋ ${t("add")}`}
-            </button>
-            {#if editId}<button class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>{/if}
-        </div>
-    </div>
-</div>
+<MemberFormEditor
+    bind:this={editorComp}
+    bind:editorOpen
+    bind:editId
+    bind:name
+    bind:role
+    bind:sex
+    bind:birthday
+    bind:lunar
+    bind:notes
+    {plugin}
+    {t}
+    onSaved={async () => {
+        await plugin.refreshHub?.(undefined, true);
+    }}
+    onCancel={cancelEdit}
+/>
 
 {#if members.length === 0 && !editorOpen}
     <div class="lv-card"><div class="lv-empty" role="status">
@@ -778,19 +628,7 @@ function openReassignDialog(fromMember?: FamilyMember) {
 
     .lv-member-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin: 0 2px 14px; }
     .lv-member-tools > button { min-height: 40px; }
-    .lv-member-editor { padding: 16px; }
-    .lv-member-editor[hidden] { display: none !important; }
-    .lv-member-editor-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-    .lv-member-editor-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
-    .lv-member-editor-head p { margin: 3px 0 0; color: var(--lv-tx-3); font-size: 11.5px; line-height: 1.45; }
-    .lv-member-editor-fields { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(120px, .9fr) minmax(135px, 1fr) auto auto; align-items: end; gap: 10px; }
-    .lv-member-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-    .lv-member-field > span { color: var(--lv-tx-3); font-size: 11.5px; }
-    .lv-member-field .b3-text-field, .lv-member-field .b3-select { width: 100%; min-width: 0; box-sizing: border-box; }
-    .lv-member-field-wide { grid-column: 1 / -1; }
     .lv-member-notes { margin: 0; color: var(--lv-tx-2); font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .lv-member-check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding-bottom: 1px; color: var(--lv-tx-2); font-size: 12px; white-space: nowrap; cursor: pointer; }
-    .lv-member-editor-actions { display: flex; gap: 7px; align-items: center; min-height: 32px; }
 
     .lv-members-screen .lv-people { gap: var(--member-gap); }
     .lv-members-screen .lv-person { min-width: 0; }
@@ -812,16 +650,9 @@ function openReassignDialog(fromMember?: FamilyMember) {
     .lv-members-screen .lv-member-birthday { color: var(--lv-accent); background: var(--lv-accent-soft); }
     .lv-members-screen .lv-drag-over { outline: 2px dashed var(--lv-accent); outline-offset: -2px; }
 
-    @container lv-home (max-width: 680px) {
-        .lv-member-editor-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .lv-member-editor-actions { grid-column: 1 / -1; }
-    }
-
     @container lv-home (max-width: 420px) {
         .lv-members-hero-count { display: none; }
         .lv-member-tools > button { min-height: 44px; }
-        .lv-member-editor-fields { grid-template-columns: 1fr; }
-        .lv-member-editor-actions { grid-column: auto; }
         .lv-members-screen .lv-person-head { align-items: flex-start; flex-wrap: wrap; }
         .lv-members-screen .lv-person-toggle { min-width: calc(100% - 12px); }
         .lv-members-screen .lv-person-head .lv-iconbtn,

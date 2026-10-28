@@ -5,18 +5,15 @@
     import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage, Dialog } from "siyuan";
-    import { confirm } from "@/libs/dialog";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { ensurePinyin, pinyinReady, searchMatch } from "@/core/pinyin";
-    import { COMMON_COLUMN_ALIASES } from "@/core/provisioner";
     import type { ColumnDef } from "@/core/schema";
-    import { assetHref, isImageAsset } from "@/core/assets";
     import type { ActivityTarget } from "@/core/activity";
     import LedgerRecordModal from "./ledger-record-modal.svelte";
     import LedgerToolbar from "./ledger-toolbar.svelte";
-    const fs12Pad310Css = "font-size:12px;padding:3px 10px";
-    const pad36Fs12Css = "padding:3px 6px;font-size:12px";
+    import LedgerBatchBar from "./ledger-batch-bar.svelte";
+    import LedgerVehicleGrid from "./ledger-vehicle-grid.svelte";
     import { onDestroy } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { panelSession, type TableDensity } from "../panel-session";
@@ -134,7 +131,6 @@
     let filterMemberId = $state("");
     let filterCategory = $state("");
     let selectedItemIds = $state<string[]>([]);
-    let batchBusy = $state(false);
 
     function toggleRowSelect(id: string) {
         if (selectedItemIds.includes(id)) {
@@ -195,89 +191,6 @@
     });
 
     const currentLedgerTemplates = $derived(getQuickTemplates(active));
-
-    async function openBatchMemberModal() {
-        if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
-        const membersList = (plugin.settings.members ?? []).filter((m) => !!m.avItemId);
-        if (!membersList.length) {
-            showMessage(t("members.notLinked"), 4000, "info");
-            return;
-        }
-        try {
-            const { openBatchMemberDialog } = await import("@/core/batch-dialog");
-            openBatchMemberDialog({
-                targetCol: memberCol,
-                membersList,
-                selectedItemIds,
-                avId: ref.avId,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                onBatchSuccess: async () => {
-                    selectedItemIds = [];
-                    await load();
-                    try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
-                },
-            });
-        } catch (e) {
-            showMessage(String(e), 5000, "error");
-        }
-    }
-
-    async function openBatchLocationModal() {
-        if (!selectedItemIds.length || !ref?.avId || !ref?.columns?.location || batchBusy) return;
-        try {
-            const { openBatchLocationDialog } = await import("@/core/batch-dialog");
-            openBatchLocationDialog({
-                targetCol: ref.columns.location,
-                selectedItemIds,
-                locOptions: dynamicLocations,
-                avId: ref.avId,
-                t,
-                DialogCls: Dialog,
-                showMessageFn: showMessage,
-                onBatchSuccess: async () => {
-                    selectedItemIds = [];
-                    await load();
-                    try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
-                },
-            });
-        } catch (e) {
-            showMessage(String(e), 5000, "error");
-        }
-    }
-
-    function batchDelete() {
-        if (!selectedItemIds.length || !ref?.avId || batchBusy) return;
-        const count = selectedItemIds.length;
-        confirm(
-            t("ledger.batchDelete"),
-            t("ledger.batchDeleteConfirm").replace("${n}", String(count)),
-            async () => {
-                batchBusy = true;
-                try {
-                    const { removeLedgerRows } = await import("@/core/siyuan");
-                    const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
-                    await removeLedgerRows(ref!.avId!, selectedItemIds, {
-                        idempotencyKey: `ledger:batch-del:${ref!.avId!}:${Date.now()}`,
-                        retries: 1,
-                    });
-                    for (const id of selectedItemIds) {
-                        cleanupRowRuntimeData(plugin.runtime, id);
-                    }
-                    await saveRuntime(plugin, plugin.runtime);
-                    selectedItemIds = [];
-                    showMessage(t("ledger.delDone") + ` (${count})`, 3000, "info");
-                    await load();
-                    try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
-                } catch (e) {
-                    showMessage(t("ledger.delFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-                } finally {
-                    batchBusy = false;
-                }
-            }
-        );
-    }
 
     async function openBindExistingDocModal() {
         const schema = plugin.schemaCatalog?.[active];
@@ -823,41 +736,6 @@
         });
     }
 
-    function vehicleImageHref(row: any): string {
-        if (active !== "vehicles" || !ref?.columns?.attachments) return "";
-        const cell = row.cells?.[ref.columns.attachments];
-        const asset = Array.isArray(cell?.mAsset) ? cell.mAsset.find((item: any) => isImageAsset(String(item?.content ?? ""))) : undefined;
-        if (!asset?.content) return "";
-        try { return assetHref(String(asset.content)); } catch { return ""; }
-    }
-
-    function vehicleText(row: any, key: string): string {
-        const id = ref?.columns?.[key];
-        let val = id ? cellText(row.cells?.[id], key) : "—";
-        // 动态自愈：若映射 ID 未取到值，从当前视图已知列（avCols）中通过别名匹配
-        if ((!id || val === "—") && avCols.length > 0) {
-            const aliases = ["name", "plate", "brand_model", "energy_type", "mileage"].includes(key)
-                ? (COMMON_COLUMN_ALIASES[key] ?? [key])
-                : [key];
-            const matchedCol = avCols.find((c) => aliases.includes(c?.name) || aliases.includes(c?.keyName));
-            if (matchedCol?.id && row.cells?.[matchedCol.id]) {
-                const probed = cellText(row.cells[matchedCol.id], key);
-                if (probed && probed !== "—") val = probed;
-            }
-        }
-        // 车名双重兜底：若仍为空，回退到行主键块或首个文本单元格
-        if (key === "name" && (val === "—" || !val)) {
-            if (row?.cells) {
-                for (const cell of Object.values(row.cells) as any[]) {
-                    if (cell?.block?.content) return String(cell.block.content).trim();
-                }
-                for (const cell of Object.values(row.cells) as any[]) {
-                    if (cell?.text?.content) return String(cell.text.content).trim();
-                }
-            }
-        }
-        return val || "—";
-    }
 </script>
 
 <LedgerToolbar
@@ -984,41 +862,19 @@
         </div>
     {/if}
 {:else if active === "vehicles"}
-    <div class="lv-vehicle-grid" aria-label={t("module.vehicles")}>
-        {#each visibleRows as r (r.itemID)}
-            {@const tone = ledgerTone(r)}
-            {@const photo = vehicleImageHref(r)}
-            <article class="lv-vehicle-card lv-card" role="group">
-                <div class="lv-vehicle-photo">
-                    {#if photo}<img src={photo} alt={vehicleText(r, "name")} width="96" height="72" decoding="async" loading="lazy" />{:else}<UiIcon name="car" size={28} />{/if}
-                </div>
-                <div class="lv-vehicle-main">
-                    <div class="lv-vehicle-head">
-                        <button type="button" class="lv-vehicle-title" onclick={() => openDetail(r)} aria-label={`${t("ledger.detail")}：${vehicleText(r, "name")}`}>
-                            {vehicleText(r, "name")}
-                        </button>
-                        <span class="lv-sev {toneCls(tone)}" title={tone === "danger" ? t("level.overdue") : tone === "warn" ? t("level.soon") : ""}></span>
-                    </div>
-                    <div class="lv-vehicle-sub">{vehicleText(r, "brand_model")} · {vehicleText(r, "plate")}</div>
-                    <div class="lv-vehicle-meta">
-                        <span>{vehicleText(r, "energy_type")}</span>
-                        <span>{vehicleText(r, "mileage")} {t("fuel.km")}</span>
-                        <span>{t("field.inspection_due")} · {vehicleText(r, "inspection_due")}</span>
-                        <span>{t("field.insurance_due")} · {vehicleText(r, "insurance_due")}</span>
-                    </div>
-                    <div class="lv-vehicle-actions">
-                        <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); openDetail(r, "fuel"); }}>{t("vehicle.quick.fuel")}</button>
-                        <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); openDetail(r, "charging"); }}>{t("vehicle.quick.charging")}</button>
-                        <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); openDetail(r, "maintenance"); }}>{t("vehicle.quick.maintenance")}</button>
-                        <button class="b3-button b3-button--text" onclick={(e) => { e.stopPropagation(); openDetail(r, "edit"); }}>{t("members.edit")}</button>
-                    </div>
-                </div>
-            </article>
-        {/each}
-        {#if filteredRows.length > visibleRows.length}
-            <button class="b3-button b3-button--outline lv-vehicle-more" onclick={() => (renderLimit += RENDER_PAGE)}>{t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}</button>
-        {/if}
-    </div>
+    <LedgerVehicleGrid
+        {visibleRows}
+        {filteredRows}
+        bind:renderLimit
+        {RENDER_PAGE}
+        {ref}
+        {avCols}
+        {t}
+        {ledgerTone}
+        {toneCls}
+        {cellText}
+        onOpenDetail={openDetail}
+    />
 {:else}
     {#if missingSchemaCols.length > 0 && ref?.avId}
         <div class="lv-card" style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--lv-amber-soft);border:1px solid var(--lv-accent-line);border-radius:var(--lv-r-2);margin:8px 0;font-size:12px">
@@ -1100,27 +956,15 @@
             </tbody>
         </table>
     </div>
-    {#if selectedItemIds.length > 0}
-        <div class="lv-batch-bar" role="toolbar" aria-label="批量操作">
-            <span class="lv-caption" style="font-weight:600;color:var(--lv-tx)">
-                {t("ledger.batchSelected").replace("${n}", String(selectedItemIds.length))}
-            </span>
-            {#if ref?.columns?.location}
-                <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchLocationModal}>
-                    📍 {t("ledger.batchLocation")}
-                </button>
-            {/if}
-            {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-                <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchMemberModal}>
-                    👤 {t("ledger.batchMember")}
-                </button>
-            {/if}
-            <button type="button" class="b3-button b3-button--text ft__error" style="{fs12Pad310Css};color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
-                🗑️ {t("ledger.batchDelete")}
-            </button>
-            <button type="button" class="b3-button b3-button--text" style={pad36Fs12Css} onclick={() => { selectedItemIds = []; }} title={t("close")}>
-                ✕
-            </button>
-        </div>
-    {/if}
+    <LedgerBatchBar
+        {plugin}
+        {active}
+        {ref}
+        bind:selectedItemIds
+        {rows}
+        {dynamicLocations}
+        {memberCol}
+        {t}
+        onReload={load}
+    />
 {/if}

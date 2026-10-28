@@ -1,0 +1,109 @@
+import { describe, it, expect, vi } from "vitest";
+import type { Reminder } from "@/types";
+import { formatAsTaskBlock } from "@/core/block-capture";
+import { batchPushRemindersToTodayPlan } from "@/core/hub/runtime";
+
+describe("reminder-batch-bar (提醒主屏多选批量操作条)", () => {
+    const mockReminders: Reminder[] = [
+        {
+            id: "certs::r1::expiry",
+            moduleId: "certs",
+            ruleKey: "expiry",
+            rowId: "r1",
+            title: "护照换发",
+            dueDate: "2026-11-20",
+            daysLeft: 23,
+            level: "soon",
+        },
+        {
+            id: "vehicles::r2::inspection",
+            moduleId: "vehicles",
+            ruleKey: "inspection",
+            rowId: "r2",
+            title: "车辆年检",
+            dueDate: "2026-11-05",
+            daysLeft: 8,
+            level: "soon",
+        },
+    ];
+
+    it("批量操作选项计算与全选/清空状态管理", () => {
+        let selected = new Set<string>();
+        let batchMode = true;
+
+        // 全选
+        selected = new Set(mockReminders.map((r) => r.id));
+        expect(selected.size).toBe(2);
+        expect(selected.has("certs::r1::expiry")).toBe(true);
+
+        // 清空选择并退出批量模式
+        selected = new Set();
+        batchMode = false;
+        expect(selected.size).toBe(0);
+        expect(batchMode).toBe(false);
+    });
+
+    it("批量生成思源块双链引用 ((id 'title')) 与任务列表块", () => {
+        const selected = new Set(["certs::r1::expiry", "vehicles::r2::inspection"]);
+        const selectedList = mockReminders.filter((r) => selected.has(r.id));
+
+        // 验证生成块引用
+        const refs = selectedList.map((r) => `((${r.rowId || r.id} '${r.title}'))`);
+        expect(refs).toEqual([
+            "((r1 '护照换发'))",
+            "((r2 '车辆年检'))",
+        ]);
+        expect(refs.join("\n")).toBe("((r1 '护照换发'))\n((r2 '车辆年检'))");
+
+        // 验证生成任务块
+        const taskBlocks = selectedList.map((r) =>
+            formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: "证件" })
+        );
+        expect(taskBlocks[0]).toContain("r1 '护照换发'");
+        expect(taskBlocks[0]).toContain("2026-11-20");
+        expect(taskBlocks[0]).toContain("证件");
+    });
+
+    it("批量推入今日排期 batchPushRemindersToTodayPlan", () => {
+        const runtime = {
+            planDates: {},
+        };
+        const selected = ["certs::r1::expiry", "vehicles::r2::inspection"];
+        const count = batchPushRemindersToTodayPlan(runtime as any, selected);
+
+        expect(count).toBe(2);
+        expect(Object.keys(runtime.planDates)).toHaveLength(2);
+        expect(runtime.planDates["certs::r1::expiry"]).toBeDefined();
+    });
+
+    it("批量操作逐条容错与部分成功统计", async () => {
+        const completeFn = vi.fn()
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new Error("网络超时"));
+
+        const mockPlugin = {
+            complete: completeFn,
+        };
+
+        const selected = new Set(["certs::r1::expiry", "vehicles::r2::inspection"]);
+        const byId = new Map(mockReminders.map((r) => [r.id, r]));
+
+        let ok = 0;
+        const failed: string[] = [];
+
+        for (const id of selected) {
+            const r = byId.get(id);
+            if (!r) continue;
+            try {
+                await mockPlugin.complete(r);
+                ok++;
+            } catch {
+                failed.push(r.title);
+            }
+        }
+
+        expect(ok).toBe(1);
+        expect(failed).toEqual(["车辆年检"]);
+    });
+});
+

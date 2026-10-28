@@ -489,3 +489,67 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     box.append(row1, rowM, row2, row3, err, ok);
     nameInput.focus();
 }
+
+export interface OpenReminderDigestDialogOptions {
+    filtered: Reminder[];
+    plugin: any;
+    DialogCls: any;
+    t: (k: string) => string;
+    showMessageFn: (m: string, timeout?: number, type?: string) => void;
+}
+
+export async function openReminderDigestDialog(options: OpenReminderDigestDialogOptions): Promise<void> {
+    if (typeof document === "undefined") return;
+    const { filtered, plugin, DialogCls, t, showMessageFn } = options;
+    try {
+        const { buildReminderDigest, formatDigestMarkdown } = await import("./reminder-digest");
+        const input = filtered.map((r) => ({
+            id: r.id,
+            moduleId: r.moduleId,
+            title: r.title,
+            dueDate: r.dueDate,
+            daysLeft: r.daysLeft,
+            level: r.level,
+        }));
+        const history = plugin.runtime?.digestHistory;
+        const digest = buildReminderDigest(input, {
+            periodLabel: t("hub.digestThisWeek"),
+            previousOverdue: typeof history?.overdue === "number" ? history.overdue : null,
+        });
+        const markdown = formatDigestMarkdown(digest, (id) => t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id);
+
+        const dlg = new DialogCls({
+            title: t("hub.digestTitle"),
+            content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption" style="white-space:pre-wrap;line-height:1.7;margin:0"></pre></div>
+<div class="b3-dialog__action">
+  <button class="b3-button b3-button--cancel">${t("close")}</button>
+  <button class="b3-button" id="lv-digest-copy">${t("hub.digestCopy")}</button>
+</div>`,
+            width: "600px",
+        });
+
+        const pre = dlg.element.querySelector("pre");
+        if (pre) pre.textContent = markdown;
+        const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
+        if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
+        const copyBtn = dlg.element.querySelector("#lv-digest-copy") as HTMLButtonElement | null;
+        if (copyBtn) {
+            copyBtn.onclick = async () => {
+                try {
+                    await navigator.clipboard.writeText(markdown);
+                    showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+                } catch {
+                    showMessageFn(t("hub.digestCopyFailed"), 4000, "error");
+                }
+            };
+        }
+
+        // 记录本次快照，供下期生成对比差值
+        if (!plugin.runtime) plugin.runtime = {};
+        plugin.runtime.digestHistory = { overdue: digest.counts.overdue, at: digest.generatedAt };
+        await saveRuntime(plugin, plugin.runtime);
+    } catch (e) {
+        showMessageFn(t("hub.digestFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+    }
+}
+

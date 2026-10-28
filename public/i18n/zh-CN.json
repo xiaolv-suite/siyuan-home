@@ -1362,6 +1362,8 @@
     "hub.taskBlockCopied": "已复制为思源任务列表块，可直接粘贴到笔记或任务管理器中",
     "hub.batchCopyTasks": "复制为任务列表",
     "hub.batchTasksCopied": "已复制 ${n} 项为思源任务列表",
+    "hub.batchCopyRefs": "复制块引用",
+    "hub.batchRefsCopied": "已复制 ${n} 项思源块引用",
     "ledger.copyAsTaskBlock": "复制为任务列表块",
     "ledger.taskBlockCopied": "已复制为思源任务列表块",
     "ledger.delTitle": "删除台账行",

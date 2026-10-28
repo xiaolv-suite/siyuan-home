@@ -39,17 +39,17 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.139 (Local Ready Build)
+## 🆕 What's new in v0.5.140 (Local Ready Build)
 
-This release decouples the batch management bar and vehicle grid, taking `ledger.svelte` down to 969 lines:
+This release decouples the reminder batch management bar and digests, taking `reminders.svelte` down to 897 lines:
 
-- **Refactoring (Decoupled Batch Bar & Vehicle Grid)**: Extracted `src/panels/screens/ledger-batch-bar.svelte` and `src/panels/screens/ledger-vehicle-grid.svelte`, modularizing reassigning members, updating locations, batch deletion, and dedicated vehicle cards;
-- **Performance**: Main component `ledger.svelte` historically dropped to **969 lines** (accumulating over 5,530 lines trimmed from the original ~6,500 lines, an 85.1% reduction). All 3 primary monoliths (Ledgers, Reminders, Settings) are now under 1,000 lines!
-- **Feature (Batch Copy Block References)**: Added a "🔗 Copy Block Ref" action to the batch toolbar, allowing users to copy standard `((id 'title'))` syntax for all selected records in one click;
-- **Validation**: 115 test suites, **885 unit tests passing**, TypeScript, Svelte, i18n (1979 keys), metadata, and package smoke all green;
+- **Refactoring (Decoupled Reminder Batch Bar & Digests)**: Extracted `src/panels/screens/reminder-batch-bar.svelte` and moved the weekly digest dialog to `src/core/reminder-dialogs.ts`, unifying batch copy tasks, batch schedule today, batch done/snooze/mute;
+- **Performance**: Main component `reminders.svelte` historically dropped to **897 lines** (accumulating over 539 lines trimmed from original 1,436 lines, a 37.5% reduction);
+- **Feature (Batch Copy Block References)**: Added a "🔗 Copy Block Ref" action to the reminder batch toolbar, allowing users to copy standard `((id 'title'))` syntax for all selected reminders in one click;
+- **Validation**: 116 test suites, **890 unit tests passing**, TypeScript, Svelte, i18n (1981 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.139 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.140 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

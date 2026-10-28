@@ -7,6 +7,7 @@ import {
     openMemoEditDialog,
     openSnoozeMenu,
     openTriageToLedgerDialog,
+    openReminderDigestDialog,
 } from "@/core/reminder-dialogs";
 import type { Reminder } from "@/types";
 
@@ -154,4 +155,15 @@ describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () 
             });
         }).not.toThrow();
     });
+
+    it("openReminderDigestDialog 安全打开提醒周报摘要弹窗", async () => {
+        await expect(openReminderDigestDialog({
+            filtered: [mockReminder],
+            plugin: mockPlugin,
+            DialogCls: MockDialog,
+            t: (k) => k,
+            showMessageFn: vi.fn(),
+        })).resolves.not.toThrow();
+    });
 });
+

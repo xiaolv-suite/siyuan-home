@@ -14,6 +14,8 @@
     import { formatAsTaskBlock } from "@/core/block-capture";
     import Calendar from "@/panels/screens/calendar.svelte";
     import ReminderCard from "@/panels/screens/reminder-card.svelte";
+    import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
+    import { openReminderDigestDialog } from "@/core/reminder-dialogs";
     import UiIcon from "@/ui/icon.svelte";
     import type { Reminder, ReminderKind } from "@/types";
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
@@ -89,41 +91,6 @@
             showMessage(t("hub.taskBlockCopied"), 3000, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
-        }
-    }
-
-    async function batchCopyAsTasks() {
-        const selectedList = filtered.filter((r) => selected.has(r.id));
-        if (selectedList.length === 0) return;
-        const text = selectedList
-            .map((r) => {
-                const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
-                return formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
-            })
-            .join("\n");
-        try {
-            await navigator.clipboard.writeText(text);
-            showMessage(t("hub.batchTasksCopied").replace("${n}", String(selectedList.length)), 3000, "info");
-        } catch {
-            showMessage(t("hub.digestCopyFailed"), 3000, "error");
-        }
-    }
-
-    async function batchPlanToday() {
-        if (batchBusy || selected.size === 0) return;
-        batchBusy = true;
-        try {
-            const { batchPushRemindersToTodayPlan } = await import("@/core/hub/runtime");
-            const count = batchPushRemindersToTodayPlan(plugin.runtime, [...selected]);
-            await saveRuntime(plugin, plugin.runtime);
-            showMessage(t("hub.planDateSaved") + ` (${count})`, 2500, "info");
-            selected = new Set();
-            batchMode = false;
-            await plugin.refreshHub?.(undefined, true);
-        } catch (e) {
-            showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-        } finally {
-            batchBusy = false;
         }
     }
 
@@ -371,15 +338,11 @@
     }
     let selected = $state<Set<string>>(new Set());
     let batchBusy = $state(false);
-    const selectedCount = $derived(selected.size);
     function toggleSelect(id: string) {
         const next = new Set(selected);
         if (next.has(id)) next.delete(id);
         else next.add(id);
         selected = next;
-    }
-    function selectAllFiltered() {
-        selected = new Set(filtered.map((r: Reminder) => r.id));
     }
     function pruneSelection() {
         const visibleIds = new Set(filtered.map((r: Reminder) => r.id));
@@ -389,43 +352,6 @@
     function clearSelection() {
         selected = new Set();
         batchMode = false;
-    }
-    async function runBatch(kind: "done" | "snooze7" | "mute") {
-        if (batchBusy || selected.size === 0) return;
-        const visibleIds = new Set(filtered.map((r: Reminder) => r.id));
-        selected = new Set([...selected].filter((id) => visibleIds.has(id)));
-        if (selected.size === 0) {
-            showMessage(t("hub.selectionNoLongerVisible"), 3500, "info");
-            return;
-        }
-        batchBusy = true;
-        try {
-            const byId = new Map<string, Reminder>(all.map((r: Reminder) => [r.id, r] as [string, Reminder]));
-            let ok = 0;
-            const failed: string[] = [];
-            // 逐条容错：单项失败不中断批量（剩余项继续处理），失败清单在回执中报告
-            for (const id of selected) {
-                const r = byId.get(id);
-                if (!r) continue;
-                try {
-                    if (kind === "done") await plugin.complete(r);
-                    else if (kind === "snooze7") await plugin.snooze(id, 7);
-                    else await plugin.mute(id);
-                    ok++;
-                } catch (e) {
-                    failed.push((r as any).title || id);
-                    console.warn("[LvHome] batch item failed:", e instanceof Error ? e.message : e);
-                }
-            }
-            if (failed.length > 0) {
-                showMessage(t("hub.batchPartial").replace("${ok}", String(ok)).replace("${failed}", failed.join("、")), 7000, "error");
-            } else {
-                showMessage(t("hub.batchDone").replace("${n}", String(ok)), 3000, "info");
-            }
-            selected = new Set();
-        } finally {
-            batchBusy = false;
-        }
     }
 
     // B4b 续期：思源 Dialog 小窗（H10：失败保留 Dialog 与输入、错误就地显示，不提前销毁）
@@ -577,49 +503,13 @@
         if (digestBusy) return;
         digestBusy = true;
         try {
-            const { buildReminderDigest, formatDigestMarkdown } = await import("@/core/reminder-digest");
-            const input = filtered.map((r) => ({
-                id: r.id,
-                moduleId: r.moduleId,
-                title: r.title,
-                dueDate: r.dueDate,
-                daysLeft: r.daysLeft,
-                level: r.level,
-            }));
-            const history = plugin.runtime?.digestHistory;
-            const digest = buildReminderDigest(input, {
-                periodLabel: t("hub.digestThisWeek"),
-                previousOverdue: typeof history?.overdue === "number" ? history.overdue : null,
+            await openReminderDigestDialog({
+                filtered,
+                plugin,
+                DialogCls: Dialog,
+                t,
+                showMessageFn: showMessage,
             });
-            const markdown = formatDigestMarkdown(digest, (id) => t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id);
-
-            const dlg = new Dialog({
-                title: t("hub.digestTitle"),
-                content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption" style="white-space:pre-wrap;line-height:1.7;margin:0"></pre></div>
-<div class="b3-dialog__action">
-  <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button" id="lv-digest-copy">${t("hub.digestCopy")}</button>
-</div>`,
-                width: "600px",
-            });
-
-            const pre = dlg.element.querySelector("pre");
-            if (pre) pre.textContent = markdown;
-            (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-            (dlg.element.querySelector("#lv-digest-copy") as HTMLButtonElement).onclick = async () => {
-                try {
-                    await navigator.clipboard.writeText(markdown);
-                    showMessage(t("overview.lifeIndexCopied"), 2500, "info");
-                } catch {
-                    showMessage(t("hub.digestCopyFailed"), 4000, "error");
-                }
-            };
-
-            // 记录本次快照，供下期生成对比差值
-            plugin.runtime.digestHistory = { overdue: digest.counts.overdue, at: digest.generatedAt };
-            await saveRuntime(plugin, plugin.runtime);
-        } catch (e) {
-            showMessage(t("hub.digestFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         } finally {
             digestBusy = false;
         }
@@ -801,17 +691,17 @@
 {/if}
 
 {#if batchMode && filter !== "handled" && viewMode === "list"}
-    <div class="lv-card lv-toolbar lv-hub-batchbar">
-        <b class="lv-caption">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
-        <button class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
-        <span class="fn__flex-1"></span>
-        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}>📋 {t("hub.batchCopyTasks")}</button>
-        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}>📅 {t("hub.planPresetToday")}</button>
-        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}>{t("act.done")}</button>
-        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}>{t("act.snooze7")}</button>
-        <button class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}>{t("act.mute")}</button>
-        <button class="b3-button b3-button--outline" disabled={batchBusy} onclick={clearSelection}>{t("cancel")}</button>
-    </div>
+    <ReminderBatchBar
+        bind:selected
+        bind:batchMode
+        {filtered}
+        {all}
+        {plugin}
+        {t}
+        onActionCompleted={async () => {
+            await plugin.refreshHub?.(undefined, true);
+        }}
+    />
 {/if}
 
 
@@ -973,17 +863,6 @@
     .lv-hub-view-toggle { flex: 0 0 auto; padding: 2px; }
     .lv-hub-view-toggle .lv-tabs__item { min-height: 28px; padding: 4px 10px; font-size: 12px; }
     .lv-hub-filters .is-filtered, .lv-hub-actions .is-active { color: var(--lv-accent); border-color: var(--lv-accent-line); background: var(--lv-accent-soft); }
-    .lv-hub-batchbar {
-        padding: 8px 16px;
-        margin-bottom: 14px;
-        border: 1px solid var(--lv-accent);
-        border-radius: var(--lv-r-2);
-        background: var(--lv-surface);
-        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
-    }
-    .lv-hub-batchbar .lv-caption { color: var(--lv-accent); font-weight: 650; }
-    .lv-hub-batchbar .b3-button--text { color: var(--lv-tx-2); font-size: 12.5px; padding: 4px 8px; border-radius: 6px; }
-    .lv-hub-batchbar .b3-button--text:hover { color: var(--lv-tx); background: var(--lv-surface-2); }
     @media (max-width: 760px) {
         .lv-hub-summary { align-self: stretch; width: 100%; }
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }

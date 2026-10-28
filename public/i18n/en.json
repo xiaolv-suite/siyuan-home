@@ -1362,6 +1362,8 @@
     "hub.taskBlockCopied": "Copied as SiYuan task list block, ready to paste into notes or task managers",
     "hub.batchCopyTasks": "Copy as Task List",
     "hub.batchTasksCopied": "Copied ${n} items as SiYuan task list",
+    "hub.batchCopyRefs": "Copy Block Refs",
+    "hub.batchRefsCopied": "Copied ${n} block reference(s)",
     "ledger.copyAsTaskBlock": "Copy as Task List Block",
     "ledger.taskBlockCopied": "Copied as SiYuan task list block",
     "ledger.delTitle": "Delete ledger row",

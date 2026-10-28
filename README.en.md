@@ -39,18 +39,28 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.164 (Local Ready Build)
+## 🆕 What's new in v0.5.165 (Local Ready Build)
 
-This release modularizes the 31 life module declarative schemas into `src/core/schema-catalog.ts`, reducing core `src/core/schema.ts` to 172 lines:
+This release modularizes 6 domain-specific smart analysis cards into `src/core/drawer-domain-sections.ts`, slimming `src/core/drawer-module-sections.ts` to 265 lines:
 
-- **Refactoring (Modularized 31-Module Schema Catalog & Column Factories)**: Extracted `src/core/schema-catalog.ts` (610+ lines), encapsulating all 31 family module schemas (`CERTS_SCHEMA` ~ `ASSETS_VIRTUAL_SCHEMA`), `FIELD_DICT`, column factories (`txt`, `dat`, `num`, `sel`, `ast`, `chk`, `rem`), shared views (`VIEW_EXPIRING`, `VIEW_BY_MEMBER`), and `SCHEMA_CATALOG`;
-- **Performance**: Schema definition core `src/core/schema.ts` reduced to **172 lines** (accumulating over 752 lines trimmed from original 924 lines, an 81.4% reduction);
-- **Contract Integrity**: 100% byte-accurate snapshot match in `tests/core/schema-snapshot.test.ts` with zero schema drift;
-- **Test Milestone**: 139 test suites, **966 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized 6 Domain Analysis Cards)**: Extracted `src/core/drawer-domain-sections.ts` (600+ lines), encapsulating rich visual cards and workflows:
+  1. House warranty contracts matching (`renderHouseWarrantySection`)
+  2. Food dietary conflicts & allergen inspection with ingredients copying (`renderFoodDietarySection`)
+  3. Schooling stage & graduation countdown progress (`renderSchoolingStageSection`)
+  4. Pet care & human-equivalent age evaluation (`renderPetCareSection`)
+  5. Infant feeding observation & health ledger allergy recording modal (`renderParentingFeedingSection`)
+  6. Social member retirement career milestone calculation (`renderSocialRetirementSection`)
+- **Performance**: Drawer module section router `src/core/drawer-module-sections.ts` down to **265 lines** (trimmed 459 lines from 724 lines, a 63.4% reduction);
+- **Bugfix**: Resolved duplicate schooling branch handling so schooling stage progress is cleanly mounted alongside transfers;
+- **Test Milestone**: 140 test suites, **968 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.164 (Local Ready Build)
+- Extracted `src/core/schema-catalog.ts` for 31-module schemas and column factories;
+- Schema core `src/core/schema.ts` reduced to 172 lines, 966 tests passing.
 
 ### v0.5.163 (Local Ready Build)
 - Extracted `src/core/vehicle-energy-section.ts` for vehicle energy logs and bezier consumption charts;

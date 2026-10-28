@@ -16,6 +16,7 @@
     import ReminderCard from "@/panels/screens/reminder-card.svelte";
     import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
     import ReminderHandledList from "@/panels/screens/reminder-handled-list.svelte";
+    import ReminderControlsBar from "@/panels/screens/reminder-controls-bar.svelte";
     import { openReminderDigestDialog, exportReminderIcs } from "@/core/reminder-dialogs";
     import UiIcon from "@/ui/icon.svelte";
     import type { Reminder, ReminderKind } from "@/types";
@@ -251,13 +252,7 @@
         }
         return list;
     });
-    function changeFilter(value: string) {
-        filter = value;
-        activeNamedViewId = undefined;
-        if (value === "handled") clearSelection();
-        pruneSelection();
-        void persistFilter();
-    }
+
     async function restoreEntry(id: string) {
         await runReminderAction(async () => {
             await plugin.restore(id);
@@ -305,13 +300,13 @@
     // 263 波：视图偏好持久化（runtime.hubViewMode，跨会话记忆）
     // svelte-ignore state_referenced_locally
     let viewMode = $state<"list" | "calendar">(plugin.runtime.hubViewMode ?? "list");
-    function setViewMode(mode: "list" | "calendar") {
-        if (viewMode === mode) return;
-        viewMode = mode;
-        if (mode === "calendar") clearSelection();
-        plugin.runtime.hubViewMode = mode;
-        saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"));
-    }
+    $effect(() => {
+        if (viewMode === "calendar") clearSelection();
+        if (plugin.runtime.hubViewMode !== viewMode) {
+            plugin.runtime.hubViewMode = viewMode;
+            saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"));
+        }
+    });
     let selected = $state<Set<string>>(new Set());
     let batchBusy = $state(false);
     function toggleSelect(id: string) {
@@ -573,87 +568,38 @@
     </div>
 </div>
 
-<section class="lv-hub-controls" aria-label={t("hub.title")}>
-    <div class="lv-card lv-hub-filter-panel">
-        <div class="lv-hub-panel-label">{t("hub.filterAll")}</div>
-        <div class="lv-toolbar lv-hub-filters">
-            <select class="b3-select" aria-label={t("hub.title")} value={filter} disabled={batchBusy} onchange={(e) => changeFilter((e.target as HTMLSelectElement).value)}>
-                <option value="all">{t("hub.filterAll")}</option>
-                <option value="overdue">{t("hub.filterOverdue")}</option>
-                <option value="soon">{t("hub.filterSoon")}</option>
-                <option value="lead">{t("hub.filterLead")}</option>
-                <option value="handled">{t("hub.filterHandled")}</option>
-            </select>
-            <select class="b3-select" aria-label={t("field.member")} value={filterMember ?? ""} disabled={batchBusy} onchange={(e) => { filterMember = (e.target as HTMLSelectElement).value || undefined; activeNamedViewId = undefined; pruneSelection(); persistFilter(); }}>
-                <option value="">{t("field.member")}: {t("members.all")}</option>
-                {#each memberOptions as m (m.id)}
-                    <option value={m.id}>{m.name}</option>
-                {/each}
-            </select>
-            <select class="b3-select" aria-label={t("hub.filterAllModule")} value={filterModule ?? ""} disabled={batchBusy} onchange={(e) => { filterModule = (e.target as HTMLSelectElement).value || undefined; activeNamedViewId = undefined; pruneSelection(); persistFilter(); }}>
-                <option value="">{t("hub.filterAllModule")}</option>
-                {#each moduleOptions as mid (mid)}
-                    <option value={mid}>{mid === "adhoc" ? t("adhoc.name") : (t(`module.${mid}`) !== `module.${mid}` ? t(`module.${mid}`) : mid)}</option>
-                {/each}
-            </select>
-            <select class="b3-select" aria-label={t("hub.dueAll")} value={dueWithin} disabled={batchBusy} onchange={(e) => { dueWithin = (e.target as HTMLSelectElement).value; activeNamedViewId = undefined; pruneSelection(); persistFilter(); }}>
-                <option value="all">{t("hub.dueAll")}</option>
-                <option value="0">{t("hub.dueToday")}</option>
-                <option value="7">{t("hub.due7")}</option>
-                <option value="30">{t("hub.due30")}</option>
-            </select>
-            <!-- 306 波：生成本周期提醒摘要（可粘贴的 Markdown 周报） -->
-            <button class="b3-button b3-button--outline" title={t("hub.digestTip")} disabled={batchBusy || digestBusy || filtered.length === 0}
-                aria-busy={digestBusy} onclick={openDigestDialog}>{digestBusy ? t("ledger.saving") : t("hub.digest")}</button>
-            <!-- 243 波（收件箱分诊）：一键切片到备忘项集合（转行/完成/延后集中处理） -->
-            <button class="b3-button b3-button--outline" class:is-filtered={filterModule === "adhoc"} disabled={batchBusy}
-                aria-pressed={filterModule === "adhoc"} onclick={() => { filterModule = filterModule === "adhoc" ? undefined : "adhoc"; activeNamedViewId = undefined; persistFilter(); }}>
-                {t("hub.triageChip")}{#if filterModule === "adhoc"} ✓{/if}
-            </button>
-        </div>
-        {#if !batchMode}
-            <div class="lv-named-views-bar" role="group" aria-label={t("hub.namedViews")}>
-                <span class="lv-caption" style="font-size:11.5px;color:var(--lv-tx-3)">{t("hub.namedViews")}:</span>
-                {#each namedViews as v (v.id)}
-                    <span class="lv-named-view-chip" class:is-active={activeNamedViewId === v.id}>
-                        <button type="button" class="lv-named-view-btn"
-                            onclick={() => applyView(v)}
-                            title={`${v.name} (${v.filter ?? "all"})`}>
-                            {v.name}
-                        </button>
-                        <button type="button" class="lv-named-view-del"
-                            onclick={(e) => { e.stopPropagation(); confirmDeleteNamedView(v); }}
-                            title={t("hub.deleteView")}>
-                            ×
-                        </button>
-                    </span>
-                {/each}
-                <button type="button" class="b3-button b3-button--text lv-save-view-btn"
-                    style="font-size:12px;padding:2px 8px;color:var(--lv-accent)"
-                    onclick={promptSaveNamedView}>
-                    ＋ {t("hub.saveCurrentView")}
-                </button>
-            </div>
-        {/if}
-    </div>
-    <div class="lv-card lv-hub-action-panel">
-        <div class="lv-hub-panel-label">{t("ledger.moreActions")}</div>
-        <div class="lv-toolbar lv-hub-actions">
-            <span class="lv-tabs lv-hub-view-toggle" role="group" aria-label={t("view.list") + "/" + t("view.calendar")}>
-                <button class="lv-tabs__item" class:on={viewMode === "list"}
-                    disabled={batchBusy} aria-pressed={viewMode === "list"} onclick={() => setViewMode("list")}>{t("view.list")}</button>
-                <button class="lv-tabs__item" class:on={viewMode === "calendar"}
-                    disabled={batchBusy} aria-pressed={viewMode === "calendar"} onclick={() => setViewMode("calendar")}>{t("view.calendar")}</button>
-            </span>
-            <button class="b3-button b3-button--outline" class:is-active={todaySilentOn}
-                aria-pressed={todaySilentOn} title={t("hub.todaySilentTip")}
-                disabled={batchBusy} onclick={toggleTodaySilent}>{todaySilentOn ? "🔕 " : ""}{t("hub.todaySilent")}{todaySilentOn ? " ✓" : ""}</button>
-            <button class="b3-button b3-button--outline" class:is-active={batchMode} disabled={batchBusy} onclick={() => (batchMode ? clearSelection() : (batchMode = true))}>{t("hub.batch")}</button>
-            <button class="b3-button b3-button--outline" disabled={batchBusy || rescanning} aria-busy={rescanning} onclick={rescan}>{t("hub.rescan")}</button>
-            <button class="b3-button b3-button--outline" disabled={batchBusy || exportingIcs} aria-busy={exportingIcs} onclick={exportIcs}>{exportingIcs ? t("ledger.saving") : t("hub.icsExport")}</button>
-        </div>
-    </div>
-</section>
+<ReminderControlsBar
+    bind:filter
+    bind:filterMember
+    bind:filterModule
+    bind:dueWithin
+    bind:viewMode
+    bind:activeNamedViewId
+    bind:batchMode
+    {memberOptions}
+    {moduleOptions}
+    {namedViews}
+    {batchBusy}
+    {digestBusy}
+    {rescanning}
+    {exportingIcs}
+    {todaySilentOn}
+    filteredCount={filtered.length}
+    {t}
+    onApplyNamedView={applyView}
+    onPromptSaveNamedView={promptSaveNamedView}
+    onConfirmDeleteNamedView={confirmDeleteNamedView}
+    onOpenDigest={openDigestDialog}
+    onToggleTodaySilent={toggleTodaySilent}
+    onRescan={rescan}
+    onExportIcs={exportIcs}
+    onFilterChanged={() => {
+        if (filter === "handled") clearSelection();
+        pruneSelection();
+        void persistFilter();
+    }}
+    onClearSelection={clearSelection}
+/>
 
 {#if permissionDenied}
     <div class="lv-card" role="alert" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
@@ -803,51 +749,16 @@
     .lv-hub-summary__item span { color: var(--lv-tx-3); font-size: 11px; white-space: nowrap; }
     .lv-hub-summary__item b { font-size: 20px; line-height: 1.1; font-weight: 650; color: var(--lv-tx); }
     .lv-hub-summary__item.is-overdue b { color: var(--lv-danger); }
-    .lv-hub-controls { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 10px; margin-bottom: 18px; }
-    .lv-hub-filter-panel, .lv-hub-action-panel { padding: 12px 14px; min-width: 0; border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); background: var(--lv-surface); box-shadow: var(--lv-shadow-1); }
-    .lv-hub-panel-label {
-        margin: 0 0 7px 2px;
-        color: var(--lv-tx-3);
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-    }
-    .lv-hub-filters, .lv-hub-actions { margin: 0; gap: 6px; }
-    .lv-hub-filters .b3-select { flex: 1 1 120px; min-width: 0; }
-    .lv-hub-actions { align-items: center; }
-    .lv-hub-actions .b3-button { flex: 1 1 auto; min-width: 0; }
-    .lv-hub-view-toggle { flex: 0 0 auto; padding: 2px; }
-    .lv-hub-view-toggle .lv-tabs__item { min-height: 28px; padding: 4px 10px; font-size: 12px; }
-    .lv-hub-filters .is-filtered, .lv-hub-actions .is-active { color: var(--lv-accent); border-color: var(--lv-accent-line); background: var(--lv-accent-soft); }
     @media (max-width: 760px) {
         .lv-hub-summary { align-self: stretch; width: 100%; }
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
-        .lv-hub-controls { grid-template-columns: 1fr; gap: 8px; }
-        .lv-hub-filter-panel, .lv-hub-action-panel { padding: 10px; }
-        .lv-hub-actions .b3-button { flex: 1 1 110px; }
-    }
-    @media (max-width: 420px) {
-        .lv-hub-filters .b3-select { flex-basis: calc(50% - 4px); }
-        .lv-hub-filters .b3-button { flex-basis: 100%; }
-        .lv-hub-actions .b3-button { flex-basis: calc(50% - 4px); }
-        .lv-hub-view-toggle { width: 100%; }
-        .lv-hub-view-toggle .lv-tabs__item { flex: 1; }
     }
     /* 嵌入思源侧栏时 viewport 仍可能很宽，使用面板容器宽度复用移动布局。 */
     @container lv-home (max-width: 760px) {
         .lv-hub-summary { align-self: stretch; width: 100%; }
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
-        .lv-hub-controls { grid-template-columns: 1fr; gap: 8px; }
-        .lv-hub-filter-panel, .lv-hub-action-panel { padding: 10px; }
-        .lv-hub-actions .b3-button { flex: 1 1 110px; }
     }
     @container lv-home (max-width: 420px) {
-        .lv-hub-filters .b3-select { flex-basis: calc(50% - 4px); }
-        .lv-hub-filters .b3-button { flex-basis: 100%; }
-        .lv-hub-actions .b3-button { flex-basis: calc(50% - 4px); }
-        .lv-hub-view-toggle { width: 100%; }
-        .lv-hub-view-toggle .lv-tabs__item { flex: 1; }
         .lv-hub-summary__item { padding-inline: 9px; }
         .lv-hub-summary__item b { font-size: 17px; }
     }

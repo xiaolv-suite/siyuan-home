@@ -39,17 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.155 (Local Ready Build)
+## 🆕 What's new in v0.5.156 (Local Ready Build)
 
-This release modularizes mobile controller, context menus, and quick capture actions into dedicated core modules, taking `src/index.ts` down to 981 lines and achieving the historic sub-1,000 line milestone across the entire repository:
+This release modularizes the reminder controls bar and filter toolbar into `src/panels/screens/reminder-controls-bar.svelte`, taking `src/panels/screens/reminders.svelte` down to 765 lines:
 
-- **Refactoring (Repository-wide Sub-1,000 Line Milestone)**: Extracted `src/core/mobile-controller.ts` (130+ lines), `src/core/plugin-context-menus.ts` (190+ lines), and `src/core/quick-capture-action.ts` (60 lines);
-- **Performance**: Main plugin entrypoint `src/index.ts` dropped to **981 lines** (accumulating over 506 lines trimmed from original 1,487 lines, a 34% reduction);
-- **Historic Code Health**: 100% of all files across the repository are strictly sub-1,000 lines (concentrated in the optimal 600–980 line high-cohesion range);
-- **Test Milestone**: 132 test suites, **943 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Reminder Controls & Filter Panel)**: Extracted `src/panels/screens/reminder-controls-bar.svelte` (200 lines), encapsulating state filtering (all/overdue/soon/lead/handled), member scoping, module slicing, due-window ranges, inbox triage (`adhoc` filter chip), named view persistence, digest generation, list/calendar view mode switching, today silent toggling, and ICS export triggering;
+- **Performance**: Main reminder screen `src/panels/screens/reminders.svelte` dropped to **765 lines** (accumulating over 671 lines trimmed from original 1,436 lines, a 46.7% reduction);
+- **Test Milestone**: 133 test suites, **946 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.155 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.156 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

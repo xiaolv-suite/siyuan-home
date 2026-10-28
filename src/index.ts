@@ -1,4 +1,4 @@
-import { Plugin, showMessage, openTab, Custom, Dialog, getFrontend } from "siyuan";
+import { Plugin, showMessage, openTab, Custom, getFrontend } from "siyuan";
 import { mount, unmount } from "svelte";
 import "./index.scss";
 
@@ -13,11 +13,12 @@ import { dailyDigest, markNotified, inSilentHours, weeklyPreview, markWeeklyNoti
 import { complete, snooze, mute, unmute, renew, restore, addMemo, removeMemo, updateMemo } from "@/core/hub/actions";
 import { getProvisioningReport, provisionModule, type ProvisioningReport } from "@/core/provisioner";
 import { createSingleFlightUntilStable } from "@/core/single-flight";
-import { addDetachedRow, setCell } from "@/core/siyuan";
 import { loadRowLogs } from "@/core/rowlog";
 import { compactUserMessage, sameOriginReturnPath } from "@/core/auth";
 import { logCheckinEventSafely } from "@/libs/ecosystem-bridge-kit";
 import { initEcosystemIntegration, type EcosystemController } from "@/core/ecosystem-integration";
+import { createMobileController, type MobileController } from "@/core/mobile-controller";
+import { registerPluginContextMenus, type PluginContextMenusController } from "@/core/plugin-context-menus";
 import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
@@ -64,31 +65,15 @@ export default class LvHomePlugin extends Plugin {
     private topBarObserver?: MutationObserver;
     private isUnloading = false;
     private topBarReviveTimer?: number;
-    /** C6c 块菜单监听（onunload 精确解绑用） */
-    private captureMenuHandler?: (...args: any[]) => void;
-    /** 块图标菜单监听（click-blockicon） */
-    private blockIconHandler?: (...args: any[]) => void;
-    /** 思源插件自定义 URL 协议跳转监听（siyuan://plugins/siyuan-home/...） */
-    private siyuanUrlHandler?: (...args: any[]) => void;
-    /** 思源属性视图（AttributeView 原生数据库）行右键菜单扩展 */
-    private avMenuHandler?: (...args: any[]) => void;
-    /** PF06/18 组：他端台账变更（websocket）→ 节流补扫 [待实测] 事件名/频度以实例为准 */
-    private wsHandler?: (...args: any[]) => void;
-    private lastWsRescan = 0;
-    private static WS_RESCAN_MIN_MS = 60 * 1000;
-    /** DEVICE-07（227 波）：移动前端标识与顶栏入口（petal addTopBar 在移动端不渲染，参照 checkin 直接注入 #mobileTopBar） */
     private isMobileFrontend = false;
-    private mobileTopBarBtn?: HTMLElement;
-    private mobileTopBarRetry?: number;
-    private mobileDialog?: Dialog;
-    private mobileDialogUnmount?: () => void;
+    /** 移动前端顶栏与全屏面板适配控制器（DEVICE-07） */
+    private mobileController?: MobileController;
+    /** 原生菜单联动控制器（块菜单、块图标菜单、自定义 URL、AV 右键菜单、WS 同步监听） */
+    private contextMenusController?: PluginContextMenusController;
     /** C6c captureTo idempotency window: duplicate block-menu clicks while
      * the first kernel write is still pending must not add duplicate rows. */
     private readonly captureDedupe = new Map<string, number>();
-    /** PF13/15 组：可见性恢复补扫（休眠错过心跳的场景）；10 分钟最小间隔合并重复触发 */
-    private visibilityHandler?: () => void;
     private lastScanAt = 0;
-    private static WAKE_RESCAN_MIN_MS = 10 * 60 * 1000;
     /** 20 组：全量扫描去抖——Tab/面板快速开关 30 秒内不重复全量（增量扫描与手动强制不受限） */
     private static FULL_SCAN_MIN_MS = 30 * 1000;
     /** 状态栏角标更新（28 组：今日到期 N） */
@@ -160,6 +145,12 @@ export default class LvHomePlugin extends Plugin {
 
         // 全端无条件注册官方统一山墙小屋+烟囱火种矢量图标 (iconLvHome)
         this.isMobileFrontend = getFrontend() === "mobile" || getFrontend() === "browser-mobile";
+        this.mobileController = createMobileController({
+            plugin: this,
+            t: (k) => this.i18nText(k),
+            isMobileFrontend: this.isMobileFrontend,
+            scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
+        });
         if (typeof this.addIcons === "function") {
             this.addIcons(`<symbol id="iconLvHome" viewBox="0 0 32 32">
                 <path d="M20 9V6h3v5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -464,9 +455,7 @@ export default class LvHomePlugin extends Plugin {
         } catch { /* storage may be unavailable */ }
 
         // DEVICE-07（227 波）：移动前端标识（图标符号与按钮注入已在 registerEntrypoints 中完成）
-        if (this.isMobileFrontend) {
-            this.ensureMobileTopBarButton();
-        }
+        this.mobileController?.ensureMobileTopBarButton();
 
         // 309 波：页签/顶栏/命令/图标的注册已全部移到 registerEntrypoints()，
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
@@ -499,141 +488,19 @@ export default class LvHomePlugin extends Plugin {
             this.refreshHub().catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
         }, 30 * 60 * 1000);
 
-        // C6c：块菜单入口——选中文字 → 存入（URL 命中二级菜单分流：存为网址/存为地址；其余进常用语）
-        this.captureMenuHandler = ((event: { detail: { menu: { addItem: (item: unknown) => void } } }) => {
-            const text = (window.getSelection()?.toString() ?? "").trim();
-            if (!text) return;
-            if (/^https?:\/\/\S+$/i.test(text)) {
-                // C6c 收尾：URL 两入口可见（子项常显，未启用模块在 label 标注，点击给引导消息）
-                event.detail.menu.addItem({
-                    icon: "iconInbox",
-                    label: this.i18nText("capture.menuUrl"),
-                    submenu: ([
-                        { id: "bookmarks", labelKey: "capture.toBookmarks" },
-                        { id: "address", labelKey: "capture.toAddress" },
-                    ] as const).map((t) => ({
-                        label: this.settings.enabledModules.includes(t.id)
-                            ? this.i18nText(t.labelKey)
-                            : `${this.i18nText(t.labelKey)}（${this.i18nText(`module.${t.id}`)}${this.i18nText("capture.off")}）`,
-                        click: () => this.captureTo(t.id, text),
-                    })),
-                });
-                return;
-            }
-            event.detail.menu.addItem({
-                icon: "iconInbox",
-                label: this.i18nText("capture.menu"),
-                click: () => this.quickCapture(text),
-            });
-        }) as any;
-        this.eventBus.on("open-menu-content", this.captureMenuHandler);
-
-        // 块图标菜单（click-blockicon）：点击任何块开头的图标时，菜单中加入“收录到小驴管家”
-        this.blockIconHandler = (event?: any) => {
-            const detail = event?.detail;
-            const menu = detail?.menu;
-            const blockEl = detail?.blockElements?.[0];
-            if (!menu || !blockEl || typeof menu.addItem !== "function") return;
-            const text = (blockEl.textContent ?? "").trim();
-            if (!text) return;
-
-            menu.addItem({
-                icon: "iconLvHome",
-                label: "🏠 " + (this.i18n.butler ?? "小驴管家") + " · 收录本块",
-                submenu: ([
-                    { id: "snippets", labelKey: "capture.toSnippets", icon: "iconPaperclip" },
-                    { id: "address", labelKey: "capture.toAddress", icon: "iconLocation" },
-                    { id: "bookmarks", labelKey: "capture.toBookmarks", icon: "iconBookmark" },
-                ] as const).map((t) => ({
-                    icon: t.icon,
-                    label: this.settings.enabledModules.includes(t.id)
-                        ? this.i18nText(t.labelKey)
-                        : `${this.i18nText(t.labelKey)}（${this.i18nText(`module.${t.id}`)}${this.i18nText("capture.off")}）`,
-                    click: () => this.captureTo(t.id, text),
-                })),
-            });
-        };
-        this.eventBus.on("click-blockicon", this.blockIconHandler);
-
-        // 思源插件自定义 URL Scheme 协议监听（siyuan://plugins/siyuan-home?...）
-        this.siyuanUrlHandler = (event?: any) => {
-            const rawUrl = event?.detail?.url;
-            if (!rawUrl || typeof rawUrl !== "string") return;
-            try {
-                const urlObj = new URL(rawUrl.startsWith("siyuan://") ? rawUrl.replace("siyuan://", "http://") : rawUrl);
-                const screen = urlObj.searchParams.get("screen");
-                const mod = urlObj.searchParams.get("module");
-                const action = urlObj.searchParams.get("action");
-                if (action === "capture") {
-                    this.showTab();
-                    window.dispatchEvent(new CustomEvent("siyuan-home:open-capture", { detail: { module: mod } }));
-                    return;
-                }
-                if (mod) this.setActiveLedger(mod);
-                if (screen === "reminders") {
-                    this.openRemindersScreen();
-                } else if (screen) {
-                    this.pendingScreen = screen;
-                    if (this.panelScreenSwitch) this.panelScreenSwitch(screen);
-                    this.showTab();
-                } else {
-                    this.showTab();
-                }
-            } catch { /* ignore malformed urls */ }
-        };
-        this.eventBus.on("open-siyuan-url-plugin", this.siyuanUrlHandler);
-
-        // 思源属性视图（AttributeView 原生数据库）行右键菜单扩展
-        this.avMenuHandler = (event?: any) => {
-            const menu = event?.detail?.menu;
-            if (!menu || typeof menu.addItem !== "function") return;
-            menu.addItem({
-                icon: "iconLvHome",
-                label: "🏠 " + (this.i18n.butler ?? "小驴管家") + " · 打开管理面板",
-                click: () => this.showTab(),
-            });
-            menu.addItem({
-                icon: "iconZap",
-                label: "⚡ " + (this.i18n["faq.quickCapture"] ?? "快速记录"),
-                click: () => {
-                    this.showTab();
-                    window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
-                },
-            });
-        };
-        this.eventBus.on("open-menu-av", this.avMenuHandler);
-
-        // 28 组：状态栏已移至 registerEntrypoints()（同步登记）
-
-        // PF13/15 组：休眠/切走后恢复可见 → 补扫（错过 30min 心跳的场景）；10 分钟最小间隔合并重复触发
-        this.visibilityHandler = () => {
-            if (document.visibilityState !== "visible") return;
-            if (Date.now() - this.lastScanAt < LvHomePlugin.WAKE_RESCAN_MIN_MS) return;
-            this.refreshHub(undefined, true).catch((e) => console.warn("[LvHome] wake rescan failed:", e));
-        };
-        document.addEventListener("visibilitychange", this.visibilityHandler);
-
-        // PF06/18 组：他端台账变更（websocket 主通道消息）→ 60 秒节流补扫（多端同步信号）
-        // 过滤自身存储写入产生的广播回环事件，杜绝"写盘→收到ws→补扫→再写盘"的自激死循环
-        this.wsHandler = (event?: any) => {
-            const detail = event?.detail;
-            if (detail && typeof detail === "object") {
-                const cmd = detail.cmd;
-                if (cmd === "setAppStorage" || cmd === "push_reload") return;
-                if (detail.data) {
-                    const dataStr = typeof detail.data === "string" ? detail.data : JSON.stringify(detail.data);
-                    if (dataStr.includes("siyuan-home") || dataStr.includes("hub-runtime") || dataStr.includes("petal")) {
-                        return;
-                    }
-                }
-                const isRelevant = cmd === "databaseIndexCommit" || cmd === "transactions" || cmd === "syncing" || cmd === "synced" || cmd === "dataChanges";
-                if (!isRelevant) return;
-            }
-            if (Date.now() - this.lastWsRescan < LvHomePlugin.WS_RESCAN_MIN_MS) return;
-            this.lastWsRescan = Date.now();
-            this.refreshHub().catch((e) => console.warn("[LvHome] ws rescan failed:", e));
-        };
-        this.eventBus.on("ws-main", this.wsHandler);
+        // 注册思源原生菜单与事件监听（块菜单、块图标菜单、自定义 URL、AV 属性视图菜单、WS 变更节流同步与休眠唤醒补扫）
+        this.contextMenusController = registerPluginContextMenus({
+            plugin: this,
+            eventBus: this.eventBus,
+            t: (k) => this.i18nText(k),
+            i18n: this.i18n,
+            quickCapture: (text) => this.quickCapture(text),
+            captureTo: (moduleId, text) => this.captureTo(moduleId, text),
+            showTab: () => this.showTab(),
+            openRemindersScreen: () => this.openRemindersScreen(),
+            setActiveLedger: (mod) => this.setActiveLedger(mod),
+            refreshHub: (only, force) => this.refreshHub(only, force),
+        });
 
         // 初始化小驴生态深度联动（雷切快捷动作与小组件、服务桥 window.LvHome、打卡/考试/闪卡/任务事件）
         this.ecosystemController = initEcosystemIntegration({
@@ -882,48 +749,16 @@ export default class LvHomePlugin extends Plugin {
 
     /**
      * C6c 收尾：按目标模块写入——bookmarks.url / address.address_full / snippets.content
-     * （存入字段与各模块 capture 一致；address 场景=收货/登记地址，全文入 address_full）。
-     * 模块未启用给引导；失败保留原文（文本本就在原文档中，不丢数据）。
      */
     async captureTo(moduleId: "bookmarks" | "address" | "snippets", text: string) {
-        if (!this.settings.enabledModules.includes(moduleId)) {
-            showMessage(this.i18nText("capture.moduleOff").replace("${module}", this.i18nText(`module.${moduleId}`)), 5000, "info");
-            return;
-        }
-        const normalizedText = text.trim();
-        if (!normalizedText) {
-            showMessage(this.i18nText("capture.empty"), 3000, "info");
-            return;
-        }
-        const dedupeKey = `${moduleId}\u0000${normalizedText}`;
-        const now = Date.now();
-        for (const [key, at] of this.captureDedupe) if (now - at > 2_000) this.captureDedupe.delete(key);
-        if (this.captureDedupe.has(dedupeKey)) return;
-        this.captureDedupe.set(dedupeKey, now);
-        const operationKey = `capture:${moduleId}:${now.toString(36)}:${Math.random().toString(36).slice(2)}`;
-        try {
-            await this.ensureCoreLedgers();
-            const ref = this.settings.dbRefs[moduleId];
-            if (!ref?.avId || !ref.columns) throw new Error("ledger not provisioned");
-            const targetCol = moduleId === "bookmarks" ? ref.columns.url
-                : moduleId === "address" ? ref.columns.address_full
-                : ref.columns.content;
-            // 目标列缺失时必须在建行前失败，避免留下无法写入正文的空行并误报成功。
-            if (!targetCol) throw new Error(`target column unavailable: ${moduleId}`);
-            // 码点安全截断（Array.from 按 Unicode 码点切，emoji/生僻字不被劈成乱码）
-            const name = Array.from(normalizedText).length > 40 ? `${Array.from(normalizedText).slice(0, 40).join("")}…` : normalizedText;
-            const itemID = await addDetachedRow(ref.avId, name, { idempotencyKey: `${operationKey}:row` });
-            await setCell(ref.avId, targetCol, itemID, moduleId === "bookmarks"
-                ? { type: "url", url: { content: normalizedText } }
-                : { type: "text", text: { content: normalizedText } }, { idempotencyKey: `${operationKey}:cell` });
-            showMessage(this.i18nText("capture.saved").replace("${module}", this.i18nText(`module.${moduleId}`)), 3000, "info");
-            // 常用语/书签/地址无提醒规则——写入不触发扫描（PF06：无相关变更不重扫）
-        } catch (e) {
-            this.captureDedupe.delete(dedupeKey);
-            const { coalescedNotify } = await import("@/libs/notify-queue");
-            coalescedNotify("capture-failed", () =>
-                showMessage(this.i18nText("capture.failed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"));
-        }
+        const { executeCaptureTo } = await import("@/core/quick-capture-action");
+        await executeCaptureTo({
+            plugin: this,
+            moduleId,
+            text,
+            captureDedupe: this.captureDedupe,
+            t: (k) => this.i18nText(k),
+        });
     }
 
     showTab() {
@@ -961,81 +796,6 @@ export default class LvHomePlugin extends Plugin {
         this.pendingScreen = moduleId;
         this.showTab();
         this.panelScreenSwitch?.(moduleId);
-    }
-
-    /** 移动前端顶栏入口（DEVICE-07）：petal addTopBar 在移动端不渲染，直接注入 #mobileTopBar；
-     *  顶栏未就绪时 800ms 重试（参照 checkin ensureMobileTopBarButtonFor）。
-     *  227 波实测两处坑：① 移动工具栏在插件 onload 之后异步重建，会吞掉先注入的按钮 → 启动后
-     *  30s 内轻量自查重挂；② 不得回退挂 #toolbar（桌面元素，移动端隐藏且先于 mobileTopBar 出现）。 */
-    private ensureMobileTopBarButton() {
-        if (!this.isMobileFrontend) return;
-        const topBar = document.getElementById("mobileTopBar");
-        if (!topBar) {
-            this.mobileTopBarRetry = this.scheduleTimeout(() => {
-                this.mobileTopBarRetry = undefined;
-                this.ensureMobileTopBarButton();
-            }, 800);
-            return;
-        }
-        const existing = topBar.querySelectorAll("#lvHomeMobileTopBarButton");
-        if (existing.length > 1) {
-            for (let i = 1; i < existing.length; i++) existing[i].remove();
-            this.mobileTopBarBtn = existing[0] as HTMLElement;
-            return;
-        }
-        if (existing.length === 1) {
-            this.mobileTopBarBtn = existing[0] as HTMLElement;
-            return;
-        }
-        if (this.mobileTopBarBtn?.isConnected) return;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.id = "lvHomeMobileTopBarButton";
-        button.className = "toolbar__button";
-        const label = this.i18nText("entry.mobile");
-        button.setAttribute("aria-label", label);
-        button.setAttribute("title", label);
-        button.innerHTML = `<svg aria-hidden="true"><use xlink:href="#iconLvHome"></use></svg>`;
-        button.addEventListener("click", () => this.openMobilePanel());
-        topBar.appendChild(button);
-        this.mobileTopBarBtn = button;
-        for (const delay of [1500, 4000, 10000, 20000, 30000]) {
-            this.scheduleTimeout(() => this.ensureMobileTopBarButton(), delay);
-        }
-    }
-
-    /** 移动端面板：全屏 Dialog 承载同一 TabPanel（移动端自定义页签不可达，fail-closed 走弹层）。 */
-    private openMobilePanel() {
-        if (this.mobileDialog) {
-            this.mobileDialog.destroy();
-            return;
-        }
-        const self = this;
-        const dialog = new Dialog({
-            title: this.i18nText("butler"),
-            content: `<div class="lv-mobile-host"></div>`,
-            width: "100vw",
-            height: "100dvh",
-            destroyCallback: () => {
-                if (self.mobileDialogUnmount) {
-                    try { self.mobileDialogUnmount(); } catch { /* 已卸载 */ }
-                    self.mobileDialogUnmount = undefined;
-                }
-                if (self.mobileDialog === dialog) self.mobileDialog = undefined;
-            },
-        });
-        const host = dialog.element.querySelector(".lv-mobile-host") as HTMLElement;
-        if (!host) {
-            dialog.destroy();
-            return;
-        }
-        // 全屏化样式钩子（100vw/100dvh、无圆角、内容滚动）
-        dialog.element.classList.add("b3-dialog--lvmobile");
-        this.mobileDialogUnmount = mount(TabPanel, {
-            target: host,
-            props: { plugin: self, onMobileClose: () => dialog.destroy() },
-        }) as () => void;
-        this.mobileDialog = dialog;
     }
 
     /** 打开台账文档或定位具体块（R5 降级定位） */
@@ -1204,35 +964,10 @@ export default class LvHomePlugin extends Plugin {
         this.authRedirectScheduled = false;
         if (this.permissionDeniedHandler) window.removeEventListener("siyuan-home:permission-denied", this.permissionDeniedHandler);
         this.permissionDeniedHandler = undefined;
-        // DEVICE-07：移动顶栏按钮/重试计时器/全屏面板清理
-        if (this.mobileTopBarRetry !== undefined) {
-            window.clearTimeout(this.mobileTopBarRetry);
-            this.mobileTopBarRetry = undefined;
-        }
-        this.mobileTopBarBtn?.remove();
-        this.mobileTopBarBtn = undefined;
-        if (typeof document !== "undefined") {
-            document.querySelectorAll("#lvHomeMobileTopBarButton").forEach((b) => b.remove());
-        }
-        if (this.mobileDialog) {
-            try { this.mobileDialog.destroy(); } catch { /* 已销毁 */ }
-            this.mobileDialog = undefined;
-        }
-        // 18 组清理审计：面板 destroy 时自行移除 listener，此处兜底清空；
-        // scanSeq 自增使在途扫描结果失效（H11：卸载后不落盘/不通知/不更新 UI）；
-        // 块菜单监听与状态栏角标解绑/移除；可见性补扫解绑；ws 补扫解绑
-        if (this.captureMenuHandler) this.eventBus.off("open-menu-content", this.captureMenuHandler);
-        this.captureMenuHandler = undefined;
-        if (this.blockIconHandler) this.eventBus.off("click-blockicon", this.blockIconHandler);
-        this.blockIconHandler = undefined;
-        if (this.siyuanUrlHandler) this.eventBus.off("open-siyuan-url-plugin", this.siyuanUrlHandler);
-        this.siyuanUrlHandler = undefined;
-        if (this.avMenuHandler) this.eventBus.off("open-menu-av", this.avMenuHandler);
-        this.avMenuHandler = undefined;
-        if (this.visibilityHandler) document.removeEventListener("visibilitychange", this.visibilityHandler);
-        this.visibilityHandler = undefined;
-        if (this.wsHandler) this.eventBus.off("ws-main", this.wsHandler);
-        this.wsHandler = undefined;
+        this.mobileController?.dispose();
+        this.mobileController = undefined;
+        this.contextMenusController?.dispose();
+        this.contextMenusController = undefined;
         this.ecosystemController?.dispose();
         this.ecosystemController = undefined;
         this.statusbarEl?.remove();

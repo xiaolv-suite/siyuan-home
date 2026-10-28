@@ -18,19 +18,25 @@
 
 ---
 
-## 本次更新（v0.5.153 → v0.5.154 本地就绪版）
+## 本次更新（v0.5.154 → v0.5.155 本地就绪版）
 
-本次更新推进小驴生态集成中枢独立下沉与主入口瘦身（插件主入口降至 1,246 行，单测增至 935 项）：
-- **重构（小驴生态深度联动与中枢事件调度全面独立解耦）**：
-  - 独立抽取 `src/core/ecosystem-integration.ts`（280 余行），完整封装雷切快捷动作与小组件注册（`registerRaikiriModuleSafely`）、服务桥 `window.LvHome` 挂载与销毁、打卡强度摘要定时节流拉取（`pullCheckinSummary`）、家庭摘要快照生成（`buildHomeSummarySnapshot`）、考试/闪卡活跃度事件监听（`lv-exam:stats`, `lv-cards:reviewed`）以及任务核销联动（`tm:task-completed`）；
-  - 插件主入口 `src/index.ts` 代码行数历史性降至 **1,246 行**（从最初 1,487 行精简 **241 行**，净精简达 **16.2%**）；
-  - 插件主生命周期 `onload` / `onunload` 极其精简明晰，大幅提升了顶层架构的可读性与健壮性；
-- **测试（全量 935 项单测与五层质量门禁 100% 全绿）**：
-  - 新增生态集成中枢单元测试套件 `tests/core/ecosystem-integration.test.ts`，全仓单测套件扩增至 **129 个套件、935 项单测全部全绿**，五层静态门禁无警告；
+本次更新实现全仓代码彻底跌破千行大圆满（主入口降至 981 行，单测增至 943 项）：
+- **重构（全仓所有代码文件严格进入 1,000 行以内历史性里程碑）**：
+  - 独立抽取 `src/core/mobile-controller.ts`（130 余行），完整封装移动端顶栏入口注入、DOM 自查重挂、全屏弹层 Dialog 适配与组件惰性加载；
+  - 独立抽取 `src/core/plugin-context-menus.ts`（190 余行），完整封装选区右键菜单、块图标右键“收录本块”二级分流、思源插件自定义协议 URL Scheme 路由跳转、AV 属性视图原生数据库右键入口、WS 主通道数据变更节流同步与系统休眠唤醒补扫；
+  - 独立抽取 `src/core/quick-capture-action.ts`（60 行），原子封装划选存入常用语/书签/地址、码点截断、防抖去重与容错上报；
+  - 插件主入口 `src/index.ts` 代码行数历史性降至 **981 行**（累计精简超 **506 行**，净精简达 **34%**）；
+  - **历史性架构大圆满**：全仓无任何单个文件超过 1,000 行（全部核心收敛于 600~980 行黄金高内聚区间）！
+- **测试（全量 943 项单测与五层质量门禁 100% 全绿）**：
+  - 新增 `tests/core/mobile-controller.test.ts`、`tests/core/plugin-context-menus.test.ts`、`tests/core/quick-capture-action.test.ts` 三大自动化单元测试套件，全仓单测套件扩增至 **132 个套件、943 项单测全部全绿**，五层静态门禁无警告；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.154 本地就绪版
+- 抽取 `src/core/ecosystem-integration.ts` 独立封装雷切/服务桥/打卡/考试/闪卡联动与快照管理；
+- 插件主入口代码大幅降至 1,246 行，全仓单测增至 935 项。
 
 ### v0.5.153 本地就绪版
 - 抽取 `src/panels/screens/ledger-table.svelte` 封装虚拟化滚动数据表格与全选/行选逻辑；

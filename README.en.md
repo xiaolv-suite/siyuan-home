@@ -39,16 +39,16 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.144 (Local Ready Build)
+## 🆕 What's new in v0.5.145 (Local Ready Build)
 
-This release decouples the member form editor, extracts the member reassign and vCard export dialog hub, taking `members.svelte` down to 666 lines:
+This release unifies ledger export dispatching, decouples stock quantity adjustment, taking `ledger.svelte` down to 888 lines:
 
-- **Refactoring (Decoupled Member Form Editor & Dialogs)**: Extracted `src/panels/screens/member-form-editor.svelte` (180+ lines) and `src/core/member-dialogs.ts`, unifying member create/edit form, validation, duplicate warnings, keyboard shortcuts, reassigning ledger ownership across modules, and vCard 4.0 exports;
-- **Performance**: Main component `members.svelte` dropped to **666 lines** (169 lines trimmed from original 835 lines, a 20.2% reduction);
-- **Test Milestone**: 121 test suites, **906 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Unified Export Dispatcher & Quantity Adjuster)**: Added `dispatchLedgerModal` in `src/core/ledger-modals.ts` eliminating 20+ switch cases, extracted `quickAdjustRowQty` into `src/core/inline-edit.ts`, and unified CSV/manifest/label/ICS exports via `executeLedgerExportAction` in `src/core/ledger-export.ts`;
+- **Performance**: Main component `ledger.svelte` dropped to **888 lines** (accumulating over 5,610 lines trimmed from original ~6,500 lines, an 86.3% reduction);
+- **Test Milestone**: 121 test suites, **909 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
-## 📦 Install (v0.5.134 / v0.5.144 Local Ready)
+## 📦 Install (v0.5.134 / v0.5.145 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

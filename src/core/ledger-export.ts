@@ -295,3 +295,33 @@ export async function exportLedgerIcsFile(options: ExportIcsOptions): Promise<vo
     }
 }
 
+export interface LedgerExportContext {
+    sourceRef?: { avId?: string; docId?: string; columns?: Record<string, string> };
+    moduleId: string;
+    searchText: string;
+    sortKey?: string;
+    sortAsc: boolean;
+    schemaCatalog?: Record<string, any>;
+    members?: Array<{ avItemId?: string; name: string }>;
+    guestModeActive?: boolean;
+    t: (k: string) => string;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+    renderLedgerAllFn: (avId: string) => Promise<{ complete: boolean; rows: any[] }>;
+    cellTextFn: (cell: any, key?: string, raw?: boolean) => string;
+    rowMatchesSearchFn: (row: any, q: string, columns?: Record<string, string>) => boolean;
+    sortRowsFn: (rows: any[], sortField?: string, ascending?: boolean, sortType?: string) => any[];
+}
+
+/** 统一分发台账导出、归档清单生成与实物标签打印动作 */
+export async function executeLedgerExportAction(
+    action: "csv" | "archive" | "print" | "ics",
+    ctx: LedgerExportContext
+): Promise<void> {
+    switch (action) {
+        case "csv": return exportLedgerCsv(ctx);
+        case "archive": return exportArchiveManifestFile(ctx);
+        case "print": return printLedgerLabels(ctx);
+        case "ics": return exportLedgerIcsFile(ctx);
+    }
+}
+

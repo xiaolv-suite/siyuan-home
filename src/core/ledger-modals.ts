@@ -524,3 +524,30 @@ export async function openCsvImportModal(ctx: LedgerModalContext): Promise<void>
         showMessageFn(String(e), 5000, "error");
     }
 }
+
+/** 统一分发工具栏所触发的各专业分析与辅助模态框 */
+export function dispatchLedgerModal(action: string, ctx: LedgerModalContext): void {
+    switch (action) {
+        case "energy": return void openEnergyDashboardModal(ctx);
+        case "growth": return void openGrowthChartModal(ctx);
+        case "vaccine": return void openVaccineScheduleModal(ctx);
+        case "shopping": return void openShoppingListModal(ctx);
+        case "emergency-kit": return void openEmergencyKitModal(ctx);
+        case "store-mode": return void openStoreModeModal(ctx);
+        case "location-index": return void openLocationIndexModal(ctx);
+        case "block-ingest": return void openBlockIngestModal(ctx);
+        case "expense-trend": return void openExpenseTrendModal(ctx);
+        case "favors-report": return void openFavorsReportModal(ctx);
+        case "bookmarks-check": return void openBookmarksCheckModal(ctx);
+        case "subscription-stats": return void openSubscriptionStatsModal(ctx);
+        case "asset-valuation": return void openAssetValuationModal(ctx);
+        case "media-report": return void openMediaReportModal(ctx);
+        case "meal-plan": return void openMealPlanModal(ctx);
+        case "medicine-supply": return void openMedicineSupplyModal(ctx);
+        case "utility-tiers": return void openUtilityTiersModal(ctx);
+        case "waste-schedule": return void openWasteScheduleModal(ctx);
+        case "rewards-settle": return void openRewardsLedgerModal(ctx);
+        case "csv-import": return void openCsvImportModal(ctx);
+    }
+}
+

@@ -174,3 +174,42 @@ export function beginInlineEdit(options: InlineEditOptions): void {
 
     requestAnimationFrame(() => control.focus());
 }
+
+export interface QuickAdjustRowQtyOptions {
+    row: any;
+    fieldKey: string;
+    delta: number;
+    ref?: { avId?: string; columns?: Record<string, string> };
+    active: string;
+    plugin: any;
+    showMessageFn: (msg: string, timeout?: number, type?: string) => void;
+}
+
+/** 台账列表数量/库存快速 +1 / -1 增量微调 */
+export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Promise<number | undefined> {
+    const { row, fieldKey, delta, ref, active, plugin, showMessageFn } = options;
+    if (!ref?.avId || !ref.columns?.[fieldKey]) return undefined;
+    const colId = ref.columns[fieldKey];
+    const cell = row.cells?.[colId];
+    let cur = 0;
+    if (typeof cell?.number?.content === "number" && !isNaN(cell.number.content)) {
+        cur = cell.number.content;
+    } else if (cell?.text?.content) {
+        const parsed = parseFloat(cell.text.content);
+        if (!isNaN(parsed)) cur = parsed;
+    }
+    const next = Math.max(0, cur + delta);
+    try {
+        await setCell(ref.avId, colId, row.itemID, { type: "number", number: { content: next } });
+        if (!row.cells[colId]) row.cells[colId] = { type: "number", number: {} };
+        row.cells[colId].number = { content: next, isNotEmpty: true };
+        showMessageFn(`${delta > 0 ? "+1" : "-1"} (${next})`, 1500, "info");
+        // 库存变动后轻量触发单模块重扫，自动更新/解除到期与低库存提醒
+        void plugin.refreshHub?.(active);
+        return next;
+    } catch (e) {
+        showMessageFn(String(e), 3000, "error");
+        return undefined;
+    }
+}
+

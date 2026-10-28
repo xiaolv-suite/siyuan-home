@@ -214,28 +214,8 @@
     }
 
     async function adjustRowQty(row: any, fieldKey: string, delta: number) {
-        if (!ref?.avId || !ref.columns?.[fieldKey]) return;
-        const colId = ref.columns[fieldKey];
-        const cell = row.cells?.[colId];
-        let cur = 0;
-        if (typeof cell?.number?.content === "number" && !isNaN(cell.number.content)) {
-            cur = cell.number.content;
-        } else if (cell?.text?.content) {
-            const parsed = parseFloat(cell.text.content);
-            if (!isNaN(parsed)) cur = parsed;
-        }
-        const next = Math.max(0, cur + delta);
-        try {
-            const { setCell } = await import("@/core/siyuan");
-            await setCell(ref.avId, colId, row.itemID, { type: "number", number: { content: next } });
-            if (!row.cells[colId]) row.cells[colId] = { type: "number", number: {} };
-            row.cells[colId].number = { content: next, isNotEmpty: true };
-            showMessage(`${delta > 0 ? "+1" : "-1"} (${next})`, 1500, "info");
-            // 库存变动后轻量触发单模块重扫，自动更新/解除到期与低库存提醒
-            void plugin.refreshHub?.(active);
-        } catch (e) {
-            showMessage(String(e), 3000, "error");
-        }
+        const { quickAdjustRowQty } = await import("@/core/inline-edit");
+        await quickAdjustRowQty({ row, fieldKey, delta, ref, active, plugin, showMessageFn: showMessage });
     }
 
     const filteredRows = $derived.by(() => {
@@ -369,87 +349,50 @@
         searchText = "";
     }
 
+    function getExportContext(): import("@/core/ledger-export").LedgerExportContext {
+        return {
+            sourceRef: ref,
+            moduleId: active,
+            searchText,
+            sortKey,
+            sortAsc,
+            schemaCatalog: plugin.schemaCatalog,
+            members: plugin.settings.members,
+            guestModeActive: Boolean(plugin.runtime?.guestModeActive),
+            t,
+            showMessageFn: showMessage,
+            renderLedgerAllFn: renderLedgerAll,
+            cellTextFn: cellText,
+            rowMatchesSearchFn: rowMatchesSearch,
+            sortRowsFn: sortRows,
+        };
+    }
+
     // CSV export, archive manifest & QR labels print (326波：解耦至 core/ledger-export.ts)
     async function printLabels() {
         if (!ref?.avId || !ref.docId || printing) return;
         printing = true;
         try {
-            const { printLedgerLabels } = await import("@/core/ledger-export");
-            await printLedgerLabels({
-                sourceRef: ref,
-                searchText,
-                t,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellText,
-                rowMatchesSearchFn: rowMatchesSearch,
-            });
+            const { executeLedgerExportAction } = await import("@/core/ledger-export");
+            await executeLedgerExportAction("print", getExportContext());
         } finally {
             printing = false;
         }
     }
 
-    async function exportCsv() {
+    async function runExport(action: "csv" | "archive" | "ics") {
         if (!ref?.columns || filteredRows.length === 0 || exporting) return;
         exporting = true;
         try {
-            const { exportLedgerCsv } = await import("@/core/ledger-export");
-            await exportLedgerCsv({
-                sourceRef: ref,
-                moduleId: active,
-                searchText,
-                sortKey,
-                sortAsc,
-                schemaCatalog: plugin.schemaCatalog,
-                t,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellText,
-                rowMatchesSearchFn: rowMatchesSearch,
-                sortRowsFn: sortRows,
-            });
+            const { executeLedgerExportAction } = await import("@/core/ledger-export");
+            await executeLedgerExportAction(action, getExportContext());
         } finally {
             exporting = false;
         }
     }
-
-    async function exportArchiveManifest() {
-        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
-        exporting = true;
-        try {
-            const { exportArchiveManifestFile } = await import("@/core/ledger-export");
-            await exportArchiveManifestFile({
-                sourceRef: ref,
-                moduleId: active,
-                members: plugin.settings.members,
-                guestModeActive: Boolean(plugin.runtime?.guestModeActive),
-                t,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellText,
-            });
-        } finally {
-            exporting = false;
-        }
-    }
-
-    async function exportIcs() {
-        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
-        exporting = true;
-        try {
-            const { exportLedgerIcsFile } = await import("@/core/ledger-export");
-            await exportLedgerIcsFile({
-                sourceRef: ref,
-                moduleId: active,
-                t,
-                showMessageFn: showMessage,
-                renderLedgerAllFn: renderLedgerAll,
-                cellTextFn: cellText,
-            });
-        } finally {
-            exporting = false;
-        }
-    }
+    const exportCsv = () => runExport("csv");
+    const exportArchiveManifest = () => runExport("archive");
+    const exportIcs = () => runExport("ics");
 
     function getModalContext(): import("@/core/ledger-modals").LedgerModalContext {
         return {
@@ -473,31 +416,7 @@
     }
 
     function handleToolbarModal(action: string) {
-        const ctx = getModalContext();
-        import("@/core/ledger-modals").then((m) => {
-            switch (action) {
-                case "energy": return m.openEnergyDashboardModal(ctx);
-                case "growth": return m.openGrowthChartModal(ctx);
-                case "vaccine": return m.openVaccineScheduleModal(ctx);
-                case "shopping": return m.openShoppingListModal(ctx);
-                case "emergency-kit": return m.openEmergencyKitModal(ctx);
-                case "store-mode": return m.openStoreModeModal(ctx);
-                case "location-index": return m.openLocationIndexModal(ctx);
-                case "block-ingest": return m.openBlockIngestModal(ctx);
-                case "expense-trend": return m.openExpenseTrendModal(ctx);
-                case "favors-report": return m.openFavorsReportModal(ctx);
-                case "bookmarks-check": return m.openBookmarksCheckModal(ctx);
-                case "subscription-stats": return m.openSubscriptionStatsModal(ctx);
-                case "asset-valuation": return m.openAssetValuationModal(ctx);
-                case "media-report": return m.openMediaReportModal(ctx);
-                case "meal-plan": return m.openMealPlanModal(ctx);
-                case "medicine-supply": return m.openMedicineSupplyModal(ctx);
-                case "utility-tiers": return m.openUtilityTiersModal(ctx);
-                case "waste-schedule": return m.openWasteScheduleModal(ctx);
-                case "rewards-settle": return m.openRewardsLedgerModal(ctx);
-                case "csv-import": return m.openCsvImportModal(ctx);
-            }
-        });
+        import("@/core/ledger-modals").then((m) => m.dispatchLedgerModal(action, getModalContext()));
     }
 
     async function rebuildLedger() {

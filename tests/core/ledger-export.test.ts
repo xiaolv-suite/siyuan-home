@@ -4,6 +4,7 @@ import {
     exportArchiveManifestFile,
     printLedgerLabels,
     exportLedgerIcsFile,
+    executeLedgerExportAction,
     HIGH_CONSEQUENCE_MODULES,
 } from "@/core/ledger-export";
 
@@ -58,7 +59,7 @@ describe("ledger-export (台账导出、归档与打印引擎)", () => {
         await expect(
             exportLedgerIcsFile({
                 sourceRef: undefined,
-                moduleId: "house",
+                moduleId: "certs",
                 t: (k) => k,
                 showMessageFn,
                 renderLedgerAllFn: vi.fn(),
@@ -66,4 +67,26 @@ describe("ledger-export (台账导出、归档与打印引擎)", () => {
             })
         ).resolves.not.toThrow();
     });
+
+    it("executeLedgerExportAction 统一安全分发各项导出操作", async () => {
+        const showMessageFn = vi.fn();
+        const baseCtx = {
+            sourceRef: undefined,
+            moduleId: "certs",
+            searchText: "",
+            sortAsc: true,
+            t: (k: string) => k,
+            showMessageFn,
+            renderLedgerAllFn: vi.fn(),
+            cellTextFn: () => "",
+            rowMatchesSearchFn: () => true,
+            sortRowsFn: (r: any[]) => r,
+        };
+
+        await expect(executeLedgerExportAction("csv", baseCtx)).resolves.not.toThrow();
+        await expect(executeLedgerExportAction("archive", baseCtx)).resolves.not.toThrow();
+        await expect(executeLedgerExportAction("print", baseCtx)).resolves.not.toThrow();
+        await expect(executeLedgerExportAction("ics", baseCtx)).resolves.not.toThrow();
+    });
 });
+

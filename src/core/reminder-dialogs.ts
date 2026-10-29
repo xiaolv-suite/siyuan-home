@@ -27,7 +27,7 @@ export interface OpenReminderPlanDialogOptions {
 export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, showMessageFn, onPlanUpdated } = options;
-    const planDates = plugin.runtime?.reminderPlanDates || {};
+    const planDates = plugin.runtime?.planDates || {};
     const currentPlan = planDates[r.id] || "";
     const todayKey = localDateKey(new Date());
     const tomorrow = new Date();

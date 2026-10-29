@@ -75,12 +75,14 @@
     $effect(() => {
         if (open && !wasOpen) {
             wasOpen = true;
+            document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
             const last = identityPending || pendingRowId ? pendingModuleId : plugin.runtime?.hubQuickModule;
             moduleId = last && (modules.includes(last) || ((identityPending || pendingRowId) && last === pendingModuleId))
                 ? last
                 : (modules[0] ?? "");
         } else if (!open) {
             wasOpen = false;
+            document.querySelector(".lv-home")?.classList.remove("lv-scroll-locked");
         } else if (!identityPending && !pendingRowId && moduleId && !modules.includes(moduleId)) {
             const last = plugin.runtime?.hubQuickModule;
             moduleId = last && modules.includes(last) ? last : (modules[0] ?? "");
@@ -221,8 +223,12 @@
             void tick().then(() => {
                 if (nameEl) nameEl.focus();
                 else {
-                    const first = document.querySelector<HTMLElement>(".lv-modal.open .lv-sheet button, .lv-modal.open .lv-sheet select");
-                    first?.focus();
+                    const firstInput = document.querySelector<HTMLElement>(".lv-modal.open .lv-sheet input:not([type='hidden']), .lv-modal.open .lv-sheet textarea, .lv-modal.open .lv-sheet select");
+                    if (firstInput) firstInput.focus();
+                    else {
+                        const firstBtn = document.querySelector<HTMLElement>(".lv-modal.open .lv-sheet button");
+                        firstBtn?.focus();
+                    }
                 }
             });
         } else if (!open) {
@@ -387,17 +393,17 @@
         {#if showDiscardConfirm}
             <div class="lv-sheet-confirm-mask" role="dialog" aria-modal="true">
                 <div class="lv-sheet-confirm-card">
-                    <b style="font-size:14px;color:var(--lv-tx);display:flex;align-items:center;gap:6px">
+                    <b>
                         <UiIcon name="alert" size={16} /> {t("capture.discardUncertain")}
                     </b>
-                    <p class="lv-caption" style="margin:10px 0 16px;color:var(--lv-tx-2);line-height:1.5">
+                    <p class="lv-caption">
                         {t("capture.discardUncertainConfirm").replace("${module}", modLabel(pendingModuleId ?? moduleId))}
                     </p>
-                    <div style="display:flex;gap:8px;justify-content:flex-end">
+                    <div class="actions">
                         <button type="button" class="b3-button b3-button--cancel" onclick={() => { showDiscardConfirm = false; }}>
                             {t("cancel")}
                         </button>
-                        <button type="button" class="b3-button b3-button--text" style="color:var(--lv-danger);font-weight:600" onclick={confirmDiscardUncertain}>
+                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" style="font-weight:600" onclick={confirmDiscardUncertain}>
                             {t("capture.discardUncertain")}
                         </button>
                     </div>
@@ -422,11 +428,13 @@
             <button class="lv-iconbtn" aria-label={t("capture.closeKeepDraft")} title={t("capture.closeKeepDraft")} onclick={close} disabled={saving}><UiIcon name="close" size={16} /></button>
         </div>
         <div class="lv-sheet-body lv-cap-body">
-            <div class="lv-capture-mode-bar">
-                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "event"} onclick={() => { captureTab = "event"; }}>
+            <div class="lv-capture-mode-bar" role="tablist" aria-label={t("capture.title")}>
+                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "event"}
+                    role="tab" aria-selected={captureTab === "event"} onclick={() => { captureTab = "event"; }}>
                     <span>{t("capture.tabEvent")}</span>
                 </button>
-                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "ledger"} onclick={() => { captureTab = "ledger"; }}>
+                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "ledger"}
+                    role="tab" aria-selected={captureTab === "ledger"} onclick={() => { captureTab = "ledger"; }}>
                     <span>{t("capture.tabLedger")}</span>
                 </button>
             </div>
@@ -438,6 +446,7 @@
                     {t}
                     bind:saving
                     bind:saveError
+                    keepContext={keepContext}
                     onClose={close}
                     onSwitchToLedger={(mod) => { captureTab = "ledger"; moduleId = mod; }}
                 />

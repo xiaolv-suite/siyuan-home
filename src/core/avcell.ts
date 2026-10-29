@@ -62,8 +62,18 @@ export function cellValue(type: string, v: unknown): unknown | null {
             return typeof v === "string" ? selectCellValue(v) : null;
         case "checkbox":
             return { type: "checkbox", checkbox: { checked: Boolean(v) } };
-        case "number":
-            return typeof v === "number" && Number.isFinite(v) ? { type: "number", number: { content: v } } : null;
+        case "number": {
+            if (typeof v === "number" && Number.isFinite(v)) {
+                return { type: "number", number: { content: v } };
+            }
+            if (typeof v === "string" && v.trim() !== "") {
+                const num = Number(v.trim());
+                if (Number.isFinite(num)) {
+                    return { type: "number", number: { content: num } };
+                }
+            }
+            return null;
+        }
         case "date": {
             if (!v || v === "") return { type: "date", date: { isNotEmpty: false } };
             const num = Number(v);

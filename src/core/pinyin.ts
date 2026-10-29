@@ -38,35 +38,34 @@ const indexCache = new Map<string, string>();
 export function pinyinIndex(text: string): string {
     const cached = indexCache.get(text);
     if (cached !== undefined) return cached;
+    if (!dict) return "";
     let out = "";
-    if (dict) {
-        let full = "";
-        let init = "";
-        let ok = true;
-        for (const ch of text) {
-            const lower = ch.toLowerCase();
-            const e = dict[ch];
-            if (e) {
-                full += e[0].replace(/v/g, "u");
-                init += e[1];
+    let full = "";
+    let init = "";
+    let ok = true;
+    for (const ch of text) {
+        const lower = ch.toLowerCase();
+        const e = dict[ch];
+        if (e) {
+            full += e[0].replace(/v/g, "u");
+            init += e[1];
+        } else {
+            const code = lower.charCodeAt(0);
+            if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
+                full += lower;
+                init += lower;
+            } else if (/[\s\-_·/./(（）)]/.test(ch)) {
+                // 分隔符跳过
+            } else if (/\p{Script=Han}/u.test(ch)) {
+                ok = false; // 字典缺字：整串不产出索引（保守不误配）
+                break;
             } else {
-                const code = lower.charCodeAt(0);
-                if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
-                    full += lower;
-                    init += lower;
-                } else if (/[\s\-_·/./(（）)]/.test(ch)) {
-                    // 分隔符跳过
-                } else if (/\p{Script=Han}/u.test(ch)) {
-                    ok = false; // 字典缺字：整串不产出索引（保守不误配）
-                    break;
-                } else {
-                    full += lower;
-                    init += lower;
-                }
+                full += lower;
+                init += lower;
             }
         }
-        if (ok) out = `${full}|${init}`;
     }
+    if (ok) out = `${full}|${init}`;
     if (indexCache.size > 5000) {
         const oldest = indexCache.keys().next().value;
         if (oldest !== undefined) indexCache.delete(oldest);

@@ -48,5 +48,19 @@ describe("avcell 内核兼容层（R8 select 写读双形态）", () => {
             const emptyDate = cellValue("date", "") as any;
             expect(emptyDate.date.isNotEmpty).toBe(false);
         });
+
+        it("正确构造数字单元格（兼容 number 及字符串数字）", () => {
+            const numCell = cellValue("number", 100) as any;
+            expect(numCell).toEqual({ type: "number", number: { content: 100 } });
+
+            const strNumCell = cellValue("number", " 99.5 ") as any;
+            expect(strNumCell).toEqual({ type: "number", number: { content: 99.5 } });
+
+            expect(cellValue("number", "")).toBeNull();
+            expect(cellValue("number", "abc")).toBeNull();
+            expect(cellValue("number", NaN)).toBeNull();
+            expect(cellValue("number", Infinity)).toBeNull();
+            expect(cellValue("number", null)).toBeNull();
+        });
     });
 });

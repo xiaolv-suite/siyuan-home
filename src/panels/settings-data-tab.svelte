@@ -35,13 +35,19 @@
         onClearDemo: () => void;
     } = $props();
 
-    let dataSection: "migration" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
+    let dataSection: "migration" | "trash" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
     let importInput: HTMLInputElement | undefined = $state();
+    let trashRevision = $state(0);
+    const trashItems = $derived.by(() => {
+        void trashRevision;
+        return plugin.runtime?.trash ?? [];
+    });
 </script>
 
 <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
 <nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>
     <button class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
+    <button class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle") || "回收站"}</button>
     <button class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
     <button class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
     <button class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
@@ -59,7 +65,7 @@
                     if (!plugin.settings) plugin.settings = {};
                     plugin.settings.targetNotebookId = val || undefined;
                     await saveSettings(plugin, plugin.settings);
-                    showMessage(t("diag.rebuildAllDone"), 2000, "info");
+                    showMessage(t("saved"), 2000, "info");
                 }}>
                 <option value="">🏠 默认（使用或自动创建「🏠 小驴管家」笔记本）</option>
                 {#each notebookList as nb (nb.id)}
@@ -70,7 +76,7 @@
     </div>
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
-        <div class="lv-setcard__hint" style="color:var(--lv-warn)">⚠ {t("settings.migratePrivacy")}</div>
+        <div class="lv-setcard__hint lv-tx-warn">⚠ {t("settings.migratePrivacy")}</div>
         <div class="lv-setcard__actions">
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
@@ -81,7 +87,61 @@
             {/if}
         </div>
     </div>
-{:else if dataSection === "demo"}
+    {:else if dataSection === "trash"}
+        <div class="lv-card lv-setcard">
+            <div class="lv-setcard__title">🗑️ {t("settings.trashTitle") || "台账安全回收站"}</div>
+            <div class="lv-setcard__hint">{t("settings.trashHint") || "最近删除的 50 条台账记录快照（包含单条删除与批量删除）。"}</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+                {#if trashItems.length === 0}
+                    <div class="lv-caption lv-tx-muted" style="padding:16px 0;text-align:center">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
+                {:else}
+                    {#each trashItems as item (item.id + item.deletedAt)}
+                        <div class="lv-settings__row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;background:var(--lv-surface-2);border-radius:6px">
+                            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                                <b style="font-size:12px">{item.title}</b>
+                                <span class="lv-caption lv-tx-muted" style="font-size:11px">{item.moduleId} · {item.deletedAt.slice(0, 16).replace("T", " ")}</span>
+                            </div>
+                            <div style="display:inline-flex;align-items:center;gap:6px">
+                                <span class="lv-badge gray" style="font-size:10px">已存快照</span>
+                                <button type="button" class="b3-button b3-button--outline" style="padding:2px 8px;font-size:11px" onclick={async () => {
+                                    const { restoreTrashItem } = await import("@/core/trash");
+                                    const res = await restoreTrashItem(plugin, item.id);
+                                    if (res.success) {
+                                        trashRevision += 1;
+                                        plugin.emitHubChanged?.();
+                                        showMessage(t("settings.trashRestored") || "已成功恢复该记录到台账！", 3000, "info");
+                                    } else {
+                                        showMessage(res.error || "恢复失败", 5000, "error");
+                                    }
+                                }}>
+                                    {t("settings.trashRestore") || "恢复"}
+                                </button>
+                            </div>
+                        </div>
+                    {/each}
+                    <button type="button" class="b3-button b3-button--text ft__error" style="align-self:flex-start;margin-top:8px" onclick={async () => {
+                        const { confirm } = await import("@/libs/dialog");
+                        confirm(
+                            t("settings.trashClear") || "清空回收站",
+                            t("settings.trashClearConfirm") || "确定彻底清空安全回收站中的所有删除快照吗？清空后将无法恢复。",
+                            async () => {
+                                if (plugin.runtime) {
+                                    plugin.runtime.trash = [];
+                                    const { saveRuntime } = await import("@/core/hub/runtime");
+                                    await saveRuntime(plugin, plugin.runtime);
+                                    trashRevision += 1;
+                                    plugin.emitHubChanged?.();
+                                    showMessage(t("saved"), 2000, "info");
+                                }
+                            }
+                        );
+                    }}>
+                        {t("settings.trashClear") || "清空回收站"}
+                    </button>
+                {/if}
+            </div>
+        </div>
+    {:else if dataSection === "demo"}
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.demoTitle")}</div>
         <div class="lv-setcard__hint">{t("settings.demoHint")}</div>

@@ -180,7 +180,7 @@
     <div class="lv-cal-head">
         <b>{headLabel}</b>
         <span class="fn__flex-1"></span>
-        <span class="lv-tabs" style="padding:2px" role="group" aria-label={t("cal.title")}>
+        <span class="lv-tabs" role="group" aria-label={t("cal.title")}>
             <button class="lv-tabs__item" class:on={mode === "month"}
                 aria-pressed={mode === "month"} onclick={() => setMode("month")}>{t("view.month")}</button>
             <button class="lv-tabs__item" class:on={mode === "week"}
@@ -229,63 +229,63 @@
         {/each}
     </div>
     <div class="lv-card lv-cal-day-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="lv-cal-day-head">
             <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
             {#if dayItems.length > 0}
-                <button class="b3-button b3-button--text" style="font-size:12px;color:var(--lv-accent)" onclick={copyDayTasks}>
+                <button class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={copyDayTasks}>
                     📋 {t("hub.batchCopyTasks")}
                 </button>
             {/if}
         </div>
         {#if dayItems.length === 0}
-            <div class="lv-caption" style="margin-top:6px">{t("cal.emptyDay")}</div>
+            <div class="lv-caption lv-cal-empty-tip">{t("cal.emptyDay")}</div>
         {:else}
             <div class="lv-cal-items">
                 {#each dayItems as r (r.id)}
                     <div class="lv-cal-item">
                         <span class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></span>
                         {#if onLocate && r.moduleId !== "adhoc"}
-                            <div style="min-width:0;flex:1;cursor:pointer"
+                            <div class="lv-cal-item-t is-link"
                                 role="button"
                                 tabindex="0"
                                 title={t("act.locate")}
                                 onclick={() => onLocate?.(r)}
                                 onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLocate?.(r); } }}>
-                                <b style="font-size:13px">
-                                    {#if isPinnedFn?.(r)}<span style="color:var(--lv-accent);margin-right:2px">📌</span>{/if}
+                                <b>
+                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark">📌</span>{/if}
                                     {r.title}
                                 </b>
-                                <span class="lv-caption" style="display:block">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
+                                <span class="lv-caption">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
                             </div>
                         {:else}
-                            <div style="min-width:0;flex:1">
-                                <b style="font-size:13px">
-                                    {#if isPinnedFn?.(r)}<span style="color:var(--lv-accent);margin-right:2px">📌</span>{/if}
+                            <div class="lv-cal-item-t">
+                                <b>
+                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark">📌</span>{/if}
                                     {r.title}
                                 </b>
-                                <span class="lv-caption" style="display:block">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
+                                <span class="lv-caption">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
                             </div>
                         {/if}
                         <span class="lv-badge {r.level === "overdue" ? "red" : r.level === "soon" ? "orange" : "yellow"}">{r.level === "overdue" ? t("level.overdue") : r.level === "soon" ? t("level.soon") : t("level.lead")}</span>
-                        <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}>📋</button>
+                        <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}>📋</button>
                         {#if onTogglePin}
-                            <button class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}>{isPinnedFn?.(r) ? "📌 " + t("act.unpin") : "📌 " + t("act.pin")}</button>
+                            <button type="button" class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} aria-label={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}>{isPinnedFn?.(r) ? "📌 " + t("act.unpin") : "📌 " + t("act.pin")}</button>
                         {/if}
                         {#if r.moduleId === "adhoc"}
                             <!-- 241 波：备忘项同步提供分诊入口（与提醒中枢一致） -->
-                            <button class="b3-button b3-button--text" title={t("triage.title")} onclick={() => onConvert(r)}>{t("triage.title")}</button>
+                            <button type="button" class="b3-button b3-button--text" title={t("triage.title")} aria-label={t("triage.title")} onclick={() => onConvert(r)}>{t("triage.title")}</button>
                         {/if}
-                        <button class="b3-button b3-button--text" disabled={completing.has(r.id)} aria-busy={completing.has(r.id)} onclick={() => void completeReminder(r)}>{completing.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
+                        <button type="button" class="b3-button b3-button--text" disabled={completing.has(r.id)} aria-busy={completing.has(r.id)} onclick={() => void completeReminder(r)}>{completing.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
                     </div>
                 {/each}
             </div>
         {/if}
         <!-- 233 波：当日快捷新增备忘（日期预设为选中日） -->
-        <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--lv-line);align-items:center">
-            <input bind:this={memoInput} class="b3-text-field fn__flex-1" style="min-width:0" placeholder={t("cal.memoPlaceholder")} disabled={savingMemo}
+        <div class="lv-cal-memo-bar">
+            <input bind:this={memoInput} class="b3-text-field fn__flex-1" placeholder={t("cal.memoPlaceholder")} aria-label={t("cal.memoPlaceholder")} disabled={savingMemo}
                 bind:value={memoTitle}
                 onkeydown={(e: KeyboardEvent) => e.key === "Enter" && !e.isComposing && void addMemoForDay()} />
-            <button class="lv-btn primary sm" style="flex:none" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
+            <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
         </div>
     </div>
 </div>

@@ -24,7 +24,7 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
     const dlg = new DialogCls({
         title: t("ledger.batchMemberTitle"),
         content: `
-            <div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px;padding:12px">
+            <div class="b3-dialog__content" id="lv-batch-member-dialog" style="display:flex;flex-direction:column;gap:10px;padding:12px">
                 <label class="lv-caption">${t("ledger.batchMemberTitle")}：</label>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
                     ${membersList.map((m) => `<button type="button" class="lv-preset-tag lv-batch-mem-tag" data-id="${m.avItemId}">${m.name}</button>`).join("")}
@@ -46,6 +46,7 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
             if (!memId) return;
             dlg.destroy();
             const count = selectedItemIds.length;
+            showMessageFn(t("ledger.saving"), 2000, "info");
             try {
                 for (const rowId of selectedItemIds) {
                     await setCell(avId, targetCol, rowId, { type: "relation", relation: { blockIDs: [memId] } });
@@ -78,7 +79,7 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
     const dlg = new DialogCls({
         title: t("ledger.batchLocationTitle"),
         content: `
-            <div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px;padding:12px">
+            <div class="b3-dialog__content" id="lv-batch-loc-dialog" style="display:flex;flex-direction:column;gap:10px;padding:12px">
                 <label class="lv-caption">${t("ledger.batchLocationTitle")}：</label>
                 <input class="b3-text-field" id="lv-batch-loc-input" style="width:100%" placeholder="${t("capture.presetLocations")}" />
                 <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -113,7 +114,11 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
     if (okBtn) {
         okBtn.onclick = async function (this: HTMLButtonElement) {
             const locVal = inp?.value.trim() ?? "";
-            if (!locVal) return;
+            if (!locVal) {
+                showMessageFn(t("form.required"), 2500, "info");
+                inp?.focus();
+                return;
+            }
             this.disabled = true;
             try {
                 const count = selectedItemIds.length;

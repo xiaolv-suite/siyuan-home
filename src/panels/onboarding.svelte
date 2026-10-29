@@ -67,7 +67,7 @@
     // C7 向导 CTA：完成后直达快速记录（优先预选刚推荐并已建库的台账）。超时只提示仍在处理中，
     // 保持 busy 锁直到建库流程实际结束，避免超时后再次点击并发建库。
     async function finishAndCapture() {
-        await runOnboarding(["self", ...picked], recommended, true);
+        await runOnboarding(Array.from(new Set(["self", ...picked])), recommended, true);
     }
     function goToStep(next: number) {
         step = next;
@@ -216,13 +216,13 @@
     }
 
     .lv-onboarding .lv-wiz__step {
-        padding: 4px 8px;
+        padding: 4px 10px;
         border: 1px solid var(--lv-line);
-        border-radius: 999px;
+        border-radius: var(--lv-r-full);
         background: var(--lv-surface);
         color: var(--lv-tx-3);
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 550;
         letter-spacing: 0;
         white-space: nowrap;
     }
@@ -231,22 +231,23 @@
         display: flex;
         gap: 3px;
         width: 58px;
-        height: 3px;
+        height: 4px;
     }
 
     .lv-onboarding .lv-wiz__progress-track span {
         flex: 1;
-        border-radius: 3px;
-        background: var(--lv-line-strong);
+        border-radius: 2px;
+        background: var(--lv-line);
     }
 
-    .lv-onboarding .lv-wiz__progress-track span.active { background: var(--lv-accent); }
+    .lv-onboarding .lv-wiz__progress-track span.active { background: var(--lv-data-accent); }
 
     .lv-onboarding .lv-wiz__overview {
         margin-bottom: 18px;
         border: 1px solid var(--lv-line);
-        border-radius: var(--lv-r-2);
+        border-radius: var(--lv-r-inner);
         background: var(--lv-surface);
+        box-shadow: var(--lv-shadow-1);
     }
 
     .lv-onboarding .lv-wiz__overview summary {

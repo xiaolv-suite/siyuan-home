@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
+    import { showMessage } from "siyuan";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
@@ -102,27 +103,27 @@
     <div class="lv-rem-t" title={(r.autoRenew ? `${t("hub.autoRenew")} · ` : "") + r.dueDate}>
         <b>
             {#if isItemPinned}
-                <span class="lv-plan-badge is-planned-now" style="background:var(--lv-accent);color:#fff;margin-right:4px;padding:1px 6px" title={t("hub.pinned")}>
+                <span class="lv-plan-badge is-planned-now is-pinned" title={t("hub.pinned")}>
                     📌 {t("hub.pinned")}
                 </span>
             {/if}
             {#if stageLabel}
-                <span class="lv-plan-badge" class:is-planned-now={stage?.isUrgent} style="margin-right:4px;padding:1px 6px" title={t("hub.stageDesc").replace("${stages}", (stage?.stages ?? []).join(" / "))}>
+                <span class="lv-plan-badge" class:is-planned-now={stage?.isUrgent} title={t("hub.stageDesc").replace("${stages}", (stage?.stages ?? []).join(" / "))}>
                     ⏱ {stageLabel}
                 </span>
             {/if}
             {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
             {#if plan.hasPlan}
-                <button type="button" class="lv-plan-badge" class:is-planned-now={plan.isPlannedNow}
-                    style="cursor:pointer;border:none;margin-left:4px"
+                <button type="button" class="lv-plan-badge lv-plan-badge-btn" class:is-planned-now={plan.isPlannedNow}
                     title={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
+                    aria-label={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
                     onclick={(e) => { e.stopPropagation(); onSchedulePlan?.(r); }}>
                     🗓️ {plan.planDate}{#if plan.isPlannedNow} · 🎯 {t("hub.planActive")}{/if}
                 </button>
             {:else}
                 <button type="button" class="lv-plan-tag-add"
-                    style="cursor:pointer;border:none;background:none;font-size:11px;color:var(--lv-tx-3);padding:0 3px;margin-left:3px;opacity:0.65"
                     title={t("hub.setPlanDate")}
+                    aria-label={t("hub.setPlanDate")}
                     onclick={(e) => { e.stopPropagation(); onSchedulePlan?.(r); }}>
                     🗓️
                 </button>
@@ -146,7 +147,12 @@
         <b class="lv-num" style="color:var(--lv-{r.level === 'overdue' ? 'danger' : r.level === 'soon' ? 'warn' : 'amber'})">{relDue(r.daysLeft, r.dueDate)}</b>
     </div>
     <div class="lv-rem-ops">
-        <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => onRunAction?.(() => plugin.complete(r), r.id)}>{isBusy ? t("ledger.saving") : t("act.done")}</button>
+        <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
+            onRunAction?.(async () => {
+                await plugin.complete(r);
+                showMessage(t("hub.batchDone").replace("${n}", "1"), 2500, "info");
+            }, r.id);
+        }}>{isBusy ? t("ledger.saving") : t("act.done")}</button>
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="lv-rem-more" onclick={(e) => e.stopPropagation()}>
@@ -168,7 +174,7 @@
                 <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
                 {#if r.moduleId === "adhoc"}
                     <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
-                    <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
+                    <button class="b3-button b3-button--text ft__error lv-tx-danger" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
                     <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onTriage?.(r))}>{t("triage.title")}</button>
                 {/if}
             </div>
@@ -196,7 +202,7 @@
             {/if}
             {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
                 <div class="lv-rem-summary__item">
-                    <button class="b3-button b3-button--text" style="padding:0 4px;font-size:12px;color:var(--lv-accent)"
+                    <button class="b3-button b3-button--text lv-tx-accent" style="padding:0 4px;font-size:12px"
                         onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
                         {t("act.locate")} →
                     </button>

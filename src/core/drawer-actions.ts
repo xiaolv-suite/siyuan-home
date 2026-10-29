@@ -457,6 +457,19 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
             }
             confirm(t("ledger.delTitle"), t("ledger.delBody").replace("${name}", (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail")), async () => {
                 try {
+                    // 安全回收站快照留存：先入回收站再行物理删除
+                    if (plugin.runtime) {
+                        const trashList = plugin.runtime.trash ?? [];
+                        trashList.unshift({
+                            id: row.itemID,
+                            moduleId: active,
+                            title: (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail"),
+                            deletedAt: new Date().toISOString(),
+                            rowSnapshot: JSON.parse(JSON.stringify(row)),
+                        });
+                        if (trashList.length > 50) trashList.length = 50; // 滚动上限 50 条
+                        plugin.runtime.trash = trashList;
+                    }
                     const { removeLedgerRows } = await import("./siyuan");
                     await removeLedgerRows(ref.avId!, [row.itemID], {
                         idempotencyKey: `ledger:delete:${ref.avId!}:${row.itemID}`,
@@ -487,10 +500,8 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
                 }
                 try {
                     const { cleanupRowRuntimeData } = await import("./hub/runtime");
-                    const dirty = cleanupRowRuntimeData(plugin.runtime, row.itemID);
-                    if (dirty) {
-                        await saveRuntime(plugin, plugin.runtime);
-                    }
+                    cleanupRowRuntimeData(plugin.runtime, row.itemID);
+                    await saveRuntime(plugin, plugin.runtime);
                 } catch (e) {
                     followupErrors.push(e instanceof Error ? e.message : String(e));
                 }

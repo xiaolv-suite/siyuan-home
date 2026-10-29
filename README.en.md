@@ -1,293 +1,185 @@
+> **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
+> The latest build is protected by 1,039 automated unit tests and 5 strict quality gates, safe and ready for daily production use.
+
 <div align="center">
 
 # 🏠 Lv Home (小驴管家)
+### 24/7 Family Life Butler & Expiry Reminder Hub in SiYuan Note
 
-**A family archive that reminds you before things expire** — the family & life butler plugin for SiYuan notes.
+**Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
-[![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/ai68298100/siyuan-home)](https://github.com/ai68298100/siyuan-home/releases/latest) [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
+[![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ai68298100/siyuan-home)](https://github.com/ai68298100/siyuan-home/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-1039%20passed-brightgreen)](./CHANGELOG.md)
+[![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
-Family archive · unified expiry reminder hub · household workspace
+[⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
 
-**[⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest)** · **[🗺 Roadmap](./ROADMAP.md)** · **[📖 中文文档](./README.md)**
-
-*Local-first · No plugin-owned telemetry · Data stays in your SiYuan workspace*
+*Local-First · Zero External Cloud Dependencies · Zero Telemetry · Data Stays Strictly in Your SiYuan Workspace*
 
 </div>
 
 ---
 
-## ✨ What it solves
+## 💡 The Problem It Solves
 
-Certificates expire, medicine expires, insurance needs renewal, subscriptions auto-charge, birthdays (lunar ones too) get forgotten, kids' vaccination schedules are complex… and this information is scattered across chats, notes and memory.
+**Lv Home is a family and life management operating system built right into SiYuan Note. It consolidates scattered certificates, prescription medicine expiration dates, vehicle energy consumption, asset depreciation, recurring subscriptions, and family member profiles into native, local, searchable databases. More importantly, it derives multi-stage expiry alerts automatically from objective facts, preventing critical deadlines from slipping through the cracks.**
 
-**Lv Home brings it all into SiYuan notes**: one family ledger + one reminder hub that reaches out to you.
+Have you ever faced these scenarios:
+- Passports, driver's licenses, or IDs expired unnoticed until the exact moment you needed to travel or complete government paperwork;
+- Prescription medications expired before being finished, or duplicate purchases occurred due to messy storage;
+- Vehicle annual inspections or insurance policies lapsed, leading to traffic fines;
+- Auto-renewing software subscriptions or credit card annual fees silently charged for months without awareness;
+- Elders' lunar birthdays were forgotten, or complex children's vaccination schedules were missed;
+- Stored items could not be found, wasting time turning drawers upside down.
 
-| Capability | What it means |
-|---|---|
-| ⏰ **Unified expiry reminders** | Certificates, medicine, policies, subscriptions, inspections, birthdays (lunar supported) — all derived automatically, lead time configurable per type (passport 1 year, medicine 30 days), overdue shown in red on top |
-| 👥 **Members as first-class citizens** | Self / spouse / partner / children / elders / kin — every ledger is organized per member, filter "everything about my son" in one click |
-| 🗃 **31 life modules** | People & records · assets & shopping · daily living · parenting & school · travel · media (details below) |
-| 📋 **Rich detail drawer** | Type-specific certificate fields (ID/passport/permits/licences/qualifications/degrees/titles), full ID-card number with GB 11643 validation (region/birth/checksum), gender & birthday auto-fill, masked display, record share card (copy as image / download PNG / copy as text), quick camera/photo/PDF upload, same-origin attachment preview/download, on-demand SiYuan OCR for image attachments, renewal history, replacement chains & timeline journals |
-| 📈 **Growth charts (parenting)** | Height/weight timelines with official WHO reference bands (P3–P97, 0–13 weeks weekly + 0–60 months), percentile on hover |
-| 🛒 **Smart lists** | Shopping suggestions from low stock (editable, copy-to-clipboard), media update reminders, reciprocation reminders for received gifts |
-| 📊 **Check-in & exam integration** | Display study streaks and accuracy from 小驴考试, check-in strength summaries from 小驴打卡 |
-| 📤 **Data portability** | CSV export per module + bulk CSV import (column-mapping wizard, all modules), calendar (.ics) & contacts (.vcf) export, sanitized diagnostics bundle, settings JSON export/import with auto-backup, sample data generator |
-| 🔒 **Local-first** | Records live in your SiYuan workspace; the plugin has no author-owned server or telemetry. SiYuan sync, collaboration, backups and marketplace downloads remain host-controlled |
-| 🔗 **Native databases** | Ledgers are SiYuan attribute-view databases inside a dedicated notebook — open any ledger doc to edit, link or embed it in daily notes ("mom's passport" inside your journal) |
-| 🧩 **Modules on demand** | Disabled modules create no data and stay out of the UI; parenting/school only suggested when you have kids |
-| 🔌 **Ecosystem ready** | Quick capture sheet (⚡ / `N`, schema-driven, auto-provision), statusbar badge with scan-health pulse, service bridge (`window.LvHome`), contacts picker via 小驴人脉 |
+Lv Home does not ask you to record cumbersome daily journals. Instead, it relies on an automated **"Log once as fact ➔ System derives all reminders automatically"** loop to keep your household organized effortlessly.
 
-Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
+---
 
-## 🆕 What's new in v0.5.181 (Local Ready Build)
+## 🌟 Core Capabilities Overview
 
-This release modularizes ledger record form calculations and field validation into `ledger-record-view-model`, reaching **1,035 unit tests passing (100% green)**:
+| Domain | Key Capabilities & Features | User Value |
+|---|---|---|
+| **🏠 Overview Dashboard** | Bento-style dark accent card, weekly pulse rhythm, family milestone achievements, fast member-perspective toggle | Instant grasp of urgent tasks upon opening each day; eliminate core risks at a glance |
+| **⏰ Expiry Reminder Hub** | Dual-date model (objective deadline vs. subjective plan-date), list & calendar grid double views, multi-stage tiered warnings, saved named views, iCalendar (.ics) export & Markdown weekly digest | Total prevention of overdue tasks; agile day-of planning like Things 3; seamless syncing with phone calendars |
+| **🗂️ 31 Life Ledgers** | Covering certificates, vehicles, health, insurance, medicine, assets, contracts, chores, and schooling; virtualized high-performance table, multi-column sorting, full-field search | Structured fact repository; attachment and invoice receipts; embeddable as native SiYuan attribute views in notes |
+| **👥 Member Archive** | Family role tree (self, spouse, children, elders, pets), local avatar storage, solar & lunar birthday conversion, single-member record drill-down, vCard export | Drill down into all certificates, assets, vitals, and tasks per member without blind spots |
+| **🔍 Spotlight Search** | Universal `Ctrl+K` hotkey launcher, preloaded pinyin fuzzy indexing, keyword `<mark>` highlighting, and keyboard navigation | Locate any household item, certificate number, or storage location in milliseconds |
+| **⚡ Quick Capture** | Global `N` key trigger, natural language date parsing (e.g. "pick up health checkup tomorrow afternoon"), multi-line continuous capture | Capture thoughts and events immediately without breaking current reading or note-taking flow |
+| **📍 Storage Location Index** | Cross-module item storage index with reverse search (e.g. search by "study", "master bedroom", "storage box", "garage") | Never turn drawers upside down again; locate any item instantly |
+| **🛡️ Privacy & Safety** | Guest Mode masking sensitive financial numbers and IDs, family Emergency Card (blood type, allergies, contacts), safe Trash recovery | Safe presentation in public; fast response during emergencies; lossless recovery from accidental deletions |
 
-- **Refactoring (Record Modal Model & Field Validation)**: Extracted `src/core/ledger-record-view-model.ts` (160 lines), encapsulating certificate scalar derivations, asset slot deduplication, draft input existence checking, category switch protection, and field validation;
-- **Performance**: Ledger record modal `src/panels/screens/ledger-record-modal.svelte` slimmed down to **572 lines**;
-- **Quality Assurance**: Added `tests/core/ledger-record-view-model.test.ts`, expanding suite to **157 test files and 1,035 unit tests passing**;
-- **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
+---
 
-<details>
-<summary>Previous Releases (Click to expand)</summary>
+## 🚀 First 3 Minutes: Quick Start Guide
 
-### v0.5.180 (Local Ready Build)
-- Comprehensive quality optimization: multi-provider reminder merge, cross-member vital signs mutation prevention, table scroll reflow elimination, 1,029 tests passing.
+Experience Lv Home's core loop of "Record fact ➔ System derives reminders" in 3 simple steps:
 
-### v0.5.179 (Local Ready Build)
-- Extracted `src/core/ledger-view-model.ts` for missing schema column calculation, table keys, and cell payload builder;
-- Ledger screen down to 589 lines, 1,027 tests passing.
+### Step 1: Install & Complete Onboarding
+1. In SiYuan Note, open **Settings ➔ Marketplace ➔ Plugins**, search for **siyuan-home**, install and enable it;
+2. Click the topbar 🏠 icon or press `Ctrl+Alt+H` to open the Lv Home panel;
+3. Select your household setup in the onboarding wizard (e.g. Self, Spouse, Child). The system automatically creates your family profiles and initializes relevant modules.
 
-### v0.5.178 (Local Ready Build)
-- Extracted `src/core/reminders-view-model.ts` and `src/panels/screens/reminder-hero-bar.svelte` for reminder view model and hero bar;
-- Reminders screen down to 505 lines, 1,023 tests passing.
+### Step 2: Register Your First Certificate
+1. Switch to the **Family Ledger** tab (shortcut `3`), and select **Certificates** from the module dropdown;
+2. Click **＋ New Record** in the upper right corner, and select "ID Card" or "Passport";
+3. Enter the certificate name, holder (choose the member created in step 1), document number, and expiry date, then click **Save**.
 
-### v0.5.177 (Local Ready Build)
-- Extracted `src/core/hub/runtime-store.ts` for runtime persistence, semantic fingerprinting, and WeakMap serialization lock;
-- Runtime core `src/core/hub/runtime.ts` down to 332 lines, 1,016 tests passing.
+### Step 3: View the Auto-Generated Reminder Hub
+1. Switch to the **Reminders** hub (shortcut `2`);
+2. The newly added certificate is automatically placed into the reminder schedule: colored badges appear when approaching expiration;
+3. Click to **Complete**, **Snooze 7 days**, or **Plan Today**. You can also click the copy button to format it as a native SiYuan task block (`* [ ] Task`) and paste it into your daily journal!
 
-### v0.5.176 (Local Ready Build)
-- Extracted `src/core/plugin-entrypoints.ts` and `src/core/plugin-auth-guard.ts` for plugin entrypoints and auth guards;
-- Plugin entry file `src/index.ts` down to 627 lines, 1,010 tests passing.
+---
 
-### v0.5.175 (Local Ready Build)
-- Extracted `src/core/ledger-view-model.ts` and `src/panels/screens/ledger-empty-state.svelte` for ledger view model and empty states;
-- Ledger screen down to 628 lines, 1,005 tests passing.
+## 🖥️ Panel Anatomy & Structure
 
-### v0.5.174 (Local Ready Build)
-- Extracted `src/panels/screens/reminder-groups-list.svelte` for reminder groups list and card merging;
-- Reminders screen down to 666 lines, unit tests surpassed 1,000 mark.
-
-### v0.5.173 (Local Ready Build)
-- Extracted `src/panels/settings-members-tab.svelte` and `src/panels/settings-data-tab.svelte` for members and data tabs;
-- Main settings panel `src/panels/settings.svelte` down to 558 lines, 995 tests passing.
-
-### v0.5.170 ~ v0.5.172 Core Decoupling Waves
-- Extracted `overview-bento-grid`, `overview-upcoming-list`, `quick-capture-form`, and `drawer-actions`, reducing component line counts, tests at 991.
-
-### v0.5.160 ~ v0.5.169 Architecture Modularization
-- Extracted `triage-to-ledger`, `reminder-exporter`, `member-card`, `ledger-record-saver`, `drawer-conversions`, `drawer-domain-sections`, `schema-catalog`, `vehicle-energy-section`, `quick-capture-saver`, `overview-module-grid`, and `runtime-views`, tests at 980.
-
-### Earlier Releases (v0.1.0 ~ v0.5.159)
-- Modularized transport, context menus, mobile controller, ecosystem integration, and detail drawer. See [CHANGELOG.md](./CHANGELOG.md) for full details.
-
-</details>
-
-## 📦 Install (v0.5.178 Local Ready)
-
-1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
-2. SiYuan → Settings → Marketplace → Download → **Import** the zip
-3. Enable the plugin → complete the 2-step onboarding (household → module picks and provisioning)
-4. Press `Ctrl+Alt+H` anytime to open the hub
-
-> **Validation status:** core data paths have automated tests and isolated-kernel coverage. The v0.5.134 GitHub Release is available; Android WebView behavior remains host-specific validation. `icon.png` and `preview.png` were redesigned for v0.3.13 (brand-gradient tile + geometric mark; dark overview with sample data).
-> **Version note:** the tagged v0.5.134 package is the current GitHub release; local quality checks report 867 unit tests.
->
-> Family sharing depends on SiYuan's collaboration, permissions, sync and conflict behavior. Test with non-sensitive data before sharing; this plugin does not provide a separate permission system.
->
-> Privacy & FAQ: [privacy statement](https://github.com/ai68298100/siyuan-home/blob/main/docs/privacy.md) · [FAQ](https://github.com/ai68298100/siyuan-home/blob/main/docs/FAQ.md)
-
-## 🧩 Module Overview (6 groups, 31 modules)
-
-<details open>
-<summary><b>People & Records</b> — Members (always on) · Certificates · Medical Records · Social Security · Insurance · Certifications · Pets</summary>
-
-Rule-based expiry reminders (passport 1y / license 90d / endorsements), checkups & vaccine book, retirement countdown, policy ledger, renewal cycles, pet deworming
-</details>
-
-<details open>
-<summary><b>Assets & Shopping</b> — Physical Assets · Digital Assets · Shopping Log · Memberships · Contracts</summary>
-
-Location hierarchy & warranty tracking, account assets with password-location index (never passwords), tracking numbers & pickup codes, prepaid balances, contract expiry
-</details>
-
-<details open>
-<summary><b>Daily Living</b> — Medicine Cabinet · Stock & Pantry · Gift Ledger · Chores · Dining · Addresses · Bookmarks · Snippets · House & Schedule</summary>
-
-Medicine expiry + stock, pantry low-stock, gift net-balance per person, recurring chores, recipes & dislikes, payment days & lunar anniversaries, emergency checklist
-</details>
-
-<details open>
-<summary><b>Parenting & School</b> — Parenting · Schooling (K→college) · Allowance & Lucky Money</summary>
-
-National immunization schedule (22 doses), growth records, school phases & milestones, tuition payments, multi-account allowance
-</details>
-
-<details open>
-<summary><b>Travel & Vehicles</b> — Vehicles · Transit Cards · Trip Plans · Bookings · Packing Lists · Trip Journal</summary>
-
-Vehicle profiles, separate refueling and charging logs, consumption and cost statistics. Fuel economy uses full-to-full intervals; charging consumption is an estimate across full-charge cycles, and incomplete data is labeled clearly. Also includes service/inspection/insurance/battery reminders, itinerary timeline, voucher archive and document self-check.
-</details>
-
-<details open>
-<summary><b>Media Library</b> — Movies / TV / Variety / Books / Comics / Novels</summary>
-
-Want/doing/done states, ratings & progress, source links
-</details>
-
-> 🧮 **Modules on demand**: all 31 modules are schema-driven — enabling one provisions its database and joins the reminder hub automatically. Full list in [MODULES.md](./MODULES.md).
-
-## 🚫 Explicitly NOT doing
-
-Full accounting · password vaults · official data integrations · real-time travel info · barcode wallets · telemedicine · media streaming
-
-> Lv Home stays at the **ledger + reminders + archive** layer — professional tools do the rest.
-
-## 🗺 Roadmap
-
-The v0.5.1 release is available on GitHub, with static isolated-kernel gates and Chrome walkthrough coverage for the main UI, mobile layouts, accessibility, recovery paths and performance. The next feature slice should optimize the five-minute path from a member to a first reminder and its source record. Pinyin search, webhooks, QR labels, AI and family collaboration remain an observation pool until host capability and user evidence are available.
-
-| Phase | Content |
-|---|---|
-| ✅ v0.5.111 (current) | Spotlight fluid keyboard navigation, complete i18n, 811 tests |
-| v0.5.110 | Calendar item locate navigation, single task block copy, 811 tests |
-| v0.5.109 | Overview "Where is it?" search, decoupled event dispatch, 811 tests |
-| v0.5.108 | Ledger drawer Ctrl+Enter shortcut submission, continuous record dispatch, 811 tests |
-| v0.5.107 | Global Ctrl+Enter shortcut submission, continuous capture dispatch, 811 tests |
-| v0.5.106 | Vital signs auto-provisioning, vehicle fueling activity sync, 810 tests |
-| v0.5.105 | Quick record auto-heal, row assertion reuse, 810 tests |
-| v0.5.104 | Eliminate ghost column deadlocks, forced column provisioning, 810 tests |
-| v0.5.103 | Hardened record creation, defensive setCell wrapping, retry deadlock elimination, 809 tests |
-| v0.5.102 | Fix row identity pending & empty ledger, explicit itemID injection, primary key aliases, 809 tests |
-| v0.5.101 | Overview & calendar day task block export, full screen task coverage, 809 tests |
-| v0.5.100 | Batch copy task list, drawer task block copy, task manager bi-directional completion, 809 tests |
-| v0.5.99 | SiYuan task block integration, task manager bridge getReminders, 808 tests |
-| v0.5.98 | Direct plan date tag & badge interaction, scheduled handling shortcuts, 804 tests |
-| v0.5.97 | Settings draft discard, dual-column sticky pinning in wide ledgers, 804 tests |
-| v0.5.96 | Pinned ledger bar, draft switch guard, 279.77KB gzip bundle slimming, 804 tests |
-| v0.5.95 | Calendar overdue day ring, settings instant module search, sticky first column, 804 tests |
-| v0.5.94 | Ledger inline editing shortcuts, dynamic query match pill, 804 tests |
-| v0.5.93 | Settings unsaved changes breathing indicator, configuration loss prevention, 804 tests |
-| v0.5.92 | Member due alert direct expansion, calendar week view narrow adaptation, 804 tests |
-| v0.5.91 | On-screen weekly pulse day filtering, Alt+K capture shortcut, 804 tests |
-| v0.5.90 | Ledger toolbar responsive flow bugfix, member filter chip tactility, 804 tests |
-| v0.5.89 | Direct ledger navigation from overview reminders, memo deletion warning, 804 tests |
-| v0.5.88 | Module group accordion handle elevation, card hover lift, 804 tests |
-| v0.5.87 | Nested confirm mask frosted glass, end-to-end workflow usability auditing, 804 tests |
-| v0.5.86 | Color palette purification, elimination of color-mix impurities, 804 tests |
-| v0.5.85 | System-wide semantic color palette, zero hardcoded theme color leaks, 804 tests |
-| v0.5.84 | Page-by-page micro-refinements, vehicle hover elevation, retirement gradients |
-| v0.5.83 | Onboarding role capsule tactility, activity stream badge refinement, 804 tests |
-| v0.5.82 | Quick capture action footer alignment, button consistency, 804 tests |
-| v0.5.81 | Unified hero header architecture, calendar bar card elevation, 804 tests |
-| v0.5.80 | Empty state actionable guidance, auto-collapsing toolbar menu, 804 tests |
-| v0.5.79 | All-surface Bento micro-interactions, AAA focus rings, modal button hierarchy |
-| v0.5.78 | Glassmorphic modal scrim, obsidian pulse strip capsule, topbar elevation |
-| v0.5.77 | Self-contained design system, complete decoupling from third-party themes |
-| v0.5.76 | Modal styling deduplication across reminders & ledger, 804 tests |
-| v0.5.75 | Drawer styling deduplication and bundle slimming, 804 tests |
-| v0.5.74 | Universal modal Enter-key shortcuts, keyboard-first loop closure, 804 tests |
-| v0.5.73 | Event stream Enter shortcuts, unrestricted draft discard, 804 tests |
-| v0.5.72 | Ledger creator button lockup fix, draft reset ergonomics, 803 tests |
-| v0.5.71 | Onboarding wizard and dashboard structural separation, 803 tests |
-| v0.5.70 | Duplicate as new record dual-mode healing, auto-collapse more menu, 803 tests |
-| v0.5.69 | Fix confirm dialog z-index inversion, row identity SQLite fallback, footer cutoff fix |
-| v0.5.68 | Comprehensive example placeholders library across 31 modules, 802 tests |
-| v0.5.67 | Quick-capture footer vertical text wrap fix, realistic example placeholders |
-| v0.5.66 | Fix quick-capture vehicle stall, tabbar centering & pill alignment, hero whitespace compacting |
-| v0.5.65 | Batch concurrency locks, cross-module rescan sync, 801 tests |
-| v0.5.64 | Drawer styling deduplication, bundle size headroom, 801 tests |
-| v0.5.63 | Memo Enter shortcuts, natural-language date parsing E2E, 801 tests |
-| v0.5.62 | 800-test milestone, smart title date/amount extraction E2E |
-| v0.5.61 | Quick-capture primary block fallback, E2E suite expanded to 799 tests |
-| v0.5.60 | Member card menu contacts fallback, E2E suite expanded to 798 tests |
-| v0.5.59 | Reminder value extraction decoupling, legacy storage E2E closure |
-| v0.5.58 | E2E matrix expansion, legacy non-standard date healing, CSV header alignment |
-| v0.5.57 | Eliminate blank data after entry, dual-mode cell unwrapping, vehicle column aliases |
-| v0.5.56 | Ecosystem Integration Directive 100% compliance, iconLvHome mark closure |
-| v0.5.55 | Native block focus & highlight on locate, toolbar interaction feedback closures |
-| v0.5.54 | Network timeout recovery, detail drawer cell null-safety |
-| v0.5.53 | Virtual scrolling jitter prevention, defensive cell access null-safety |
-| v0.5.52 | CSV alias auto-alignment, Spotlight multi-dimension ranking, row log Enter shortcut |
-| v0.5.51 | Stepper number parsing & rescan, invalid date NaN defense, table purity |
-| v0.5.50 | Missing column perception & auto-repair, batch debounce protection, safe CSV export |
-| v0.5.49 | Per-module instant repair, smart candidate document sensing, full cell data tolerance |
-| v0.5.48 | Eliminate first-step provisioning failures, multi-level path self-healing, column alias compatibility |
-| v0.5.47 | Dual-track contacts picker fallback, standalone stability, marketplace cadence |
-| v0.5.46 | Ecosystem Integration Directive: 4 aliases, iconLvHome mark, mobile keyboard avoidance |
-| v0.5.45 | Code stability review: global SQL injection sanitization, pre-registration cleanup |
-| v0.5.44 | Multi-platform toolbar & status bar lifecycle closure, active ghost node convergence |
-| v0.5.43 | Fix duplicate top bar icons after reload, active DOM deduplication, onunload cleanup |
-| v0.5.42 | Deep SiYuan editor integration: Slash commands (/), block icon ingest, block embeds |
-| v0.5.41 | Command Palette suite (8 commands), clean single top bar entry with right-click menu |
-| v0.5.40 | Official lifecycle contract alignment, top bar context menu, URL scheme, AttributeView integration |
-| v0.5.39 | Top bar & UI debounce hardening, native interactive doc card, block-level editor highlight |
-| v0.5.38 | Official onDataChanged hook implementation, eliminate reload loops on wizard provisioning |
-| v0.5.37 | Deep cross-scene UI craftsmanship: Spotlight keyboard navigation, inline steppers, 4px urgency rails |
-| v0.5.36 | Deep prototype design alignment: Bento dual-temp cards, Weekly Pulse Strip, Achievements Badges |
-| v0.5.35 | UI/UX deep refinement: vector icon migration, top bar micro-interactions, batch bar frosted glass |
-| v0.5.34 | Break automatic reload loop, fix search button click, refactor overview stat card and settings sidebar |
-| v0.5.33 | Eliminate repeated welcome popups, auto-heal onboarding status for existing users, eager state persistence |
-| v0.5.32 | Fix quick capture confirmation dialog obstruction, elevate global Dialog z-index, native in-sheet confirmation |
-| v0.5.31 | Fix browser Headers non-ISO-8859-1 exception that crashed document and notebook creation; GitHub Release published |
-| v0.5.30 | Re-engineer provisioning pipeline (Issue #45 fix), guaranteed notebook activation, legacy ledger auto-adoption engine |
-| v0.5.29 | Quick capture dual-mode routing (events vs ledger), Spotlight search (Ctrl+K), shortage to shopping ledger, bind existing docs |
-| v0.5.28 | Fix Issue #39 settings save retry failure, default blank ledgers, top bar avatar alignment, quick templates, and batch management |
-| 🔜 Next | Task workbench, evidence center, inbox, health recovery |
-| 🔭 Later | Family collaboration, template packs, yearly family report, AI capabilities |
-
-Full plan: [ROADMAP.md](./ROADMAP.md)
-
-## 🤝 Ecosystem
-
-Works with the Lv plugin family: **Check-in** (numeric tracking), **Contacts** (technicians/teachers/doctors), **Quick Switch** (bookmarks/snippets), **Web Clipper** (archiving).
-
-## 🛠 Development
-
-```bash
-pnpm install
-pnpm run dev      # dev (app + kernel watch)
-pnpm run build    # dist/ + package.zip
-pnpm run check    # 5-layer gate (types + svelte + i18n + meta + audit)
-pnpm run smoke    # release package and single-file loader smoke checks
-pnpm test         # unit tests (789)
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Lv Home Screen Architecture                     │
+├───────────────┬──────────────────┬─────────────────┬───────────────────┤
+│ 🏠 Overview   │ ⏰ Reminders Hub │ 🗂️ Family Ledger│ 👥 Members        │
+├───────────────┼──────────────────┼─────────────────┼───────────────────┤
+│ · Bento Hero  │ · List & Calendar│ · 31 Modules    │ · Family Profiles │
+│ · Fast Tools  │ · Dual-Date Model│ · Virtual Table │ · Solar/Lunar Bday│
+│ · Next 7 Days │ · Tiered Alerts  │ · Pinyin Search │ · Member Drilldown│
+│ · Recent Feed │ · Batch Actions  │ · Import/Export │ · vCard Export    │
+└───────────────┴──────────────────┴─────────────────┴───────────────────┘
 ```
 
-- Setup & conventions: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- Release quality: CI runs check/test/build/smoke/size-gate on every push & PR
-- Regression checklist: [docs/testing/v0.2.md](./docs/testing/v0.2.md)
-- Questions and bug reports: [SUPPORT.md](./SUPPORT.md) · Security reports: [SECURITY.md](./SECURITY.md)
-
-## 📚 Documentation
-
-| Category | Docs |
-|---|---|
-| Usage | [FAQ](https://github.com/ai68298100/siyuan-home/blob/main/docs/FAQ.md) · [Privacy](https://github.com/ai68298100/siyuan-home/blob/main/docs/privacy.md) · [Migration](https://github.com/ai68298100/siyuan-home/blob/main/docs/migration.md) · [Glossary](https://github.com/ai68298100/siyuan-home/blob/main/docs/glossary.en.md) |
-| Design | [01 Architecture](./docs/design/01-架构总览.md) · [02 Data model](./docs/design/02-数据模型与模块规格.md) · [03 Reminder hub](./docs/design/03-提醒中枢.md) · [07 Visual language](./docs/design/07-视觉设计语言.md) · [Index](./docs/design/00-index.md) |
-| Interactive prototype | [prototype/index.html](./prototype/index.html) (open in browser — dark/light themes, 7 screens incl. style guide) |
-
-## License
-
-[MIT](./LICENSE) · Third-party data & notices: [NOTICE.md](./NOTICE.md) (WHO Child Growth Standards, CC BY-NC 3.0 IGO)
-
-<div align="center">
-
-*Start with one certificate — let the hub remember, so you don't have to.*
-
-</div>
+1. **🏠 Overview**: Family morning report and situation dashboard. Features a midnight-navy high-contrast hero card for urgent items, quick access to storage lookups, emergency cards, life resilience indexes, and weekly pulse rhythm.
+2. **⏰ Expiry Reminder Hub**: Centralized schedule for all module expiration dates. Switch between list view and native calendar grid (month/week); decouple objective deadlines from today's plan dates; save custom filters as named views; export iCalendar (.ics) or Markdown digests.
+3. **🗂️ Family Ledger**: Comprehensive structured data manager. 31 life categories backed by native SiYuan attribute views; comfortable/compact table densities; batch deletion with safe trash snapshot recovery; CSV bulk import/export.
+4. **👥 Members**: Household profile center. Tracks blood types, emergency contacts, solar & lunar birthdays; click any card to inspect all certificates, insurance policies, and tasks belonging to that member.
+5. **⚡ Quick Capture (`N`)**: Centered fast capture sheet for logging events or records without interrupting current workflows; includes natural language date parsing and Alt+K continuous flow.
+6. **🔍 Spotlight Search (`Ctrl+K`)**: Universal life spotlight search with instant pinyin matching and direct document jumping.
 
 ---
 
-### 🌐 中文
+## ⚙️ Settings Reference (Defaults & Impact)
 
-**小驴管家** —— 思源笔记的家庭与生活管家：31 个 schema 驱动的生活模块（证件/药品/保单/订阅/上学/旅行/影音…）、统一到期提醒中枢、按成员组织、本地优先零遥测。完整介绍见 [中文文档](./README.md)。
+Click the gear icon (⚙) in the topbar to configure Lv Home:
+
+| Category | Option | Path | Default | Purpose & Behavioral Impact |
+|---|---|---|---|---|
+| **Modules** | Module Toggles | Settings ➔ Modules | 6 Core Modules Active | Toggle activation of the 31 modules. Disabling a module **only hides its entry and never deletes existing ledger data**. Re-enabling restores all records. |
+| **Members** | Member Editor | Settings ➔ Members | Empty (Wizard generated) | Add, edit, or remove household members. Removing a member prompts for confirmation and only unbinds relations while preserving ledger rows. |
+| **Reminders** | Daily Digest Hour | Settings ➔ Reminders ➔ Schedule | `8` (08:00) | Hour of the day when opening SiYuan posts the daily expiration summary toast. Supports one-click reset to default. |
+| **Reminders** | Silent Hours | Settings ➔ Reminders ➔ Schedule | `22 → 8` (22:00 to 08:00) | No popup notifications will disturb the user during this period. Supports one-click reset to default. |
+| **Reminders** | Custom Lead Days | Settings ➔ Reminders ➔ Lead Days | Built-in per rule (e.g. 30 days) | Override advance alert days per rule (e.g. license 90 days). Leaving an input blank restores module default. Includes a one-click button to reset all overrides. |
+| **Reminders** | Webhook Push | Settings ➔ Reminders ➔ Webhook | Disabled (Empty URL) | Push daily summaries and overdue counts directly to your own self-hosted Bark or ntfy server without passing through any third party. |
+| **Data & Migration** | Target Notebook | Settings ➔ Data ➔ Migration | Default (Auto-creates 「🏠 小驴管家」) | Destination notebook where native attribute view documents are created. Can be switched to any personal notebook. |
+| **Data & Migration** | Settings Export & Import | Settings ➔ Data ➔ Migration | — | Export settings as a JSON file for backup or cross-device migration. Automatically creates a backup snapshot before importing. |
+| **Data & Migration** | Safe Trash | Settings ➔ Data ➔ Trash | Holds up to 50 snapshots | Retains full row snapshots from single and batch deletions. Losslessly restore records to their ledgers; clear trash prompts for double confirmation. |
+| **Data & Migration** | Demo Data | Settings ➔ Data ➔ Demo Data | — | Generate sanitized demo data to explore capabilities; provides a one-click clean button to remove demo rows without residue. |
+| **About & Diagnostic** | Health Check & Rebuild | Settings ➔ About & Diagnostics | — | Scan attribute view integrity and repair missing schema columns; reset onboarding wizard. |
+
+---
+
+## ⌨️ Keyboard Shortcuts Reference
+
+| Shortcut | Trigger Context | Description |
+|---|---|---|
+| `Ctrl+Alt+H` | Global (anywhere in SiYuan) | Open or focus the Lv Home main panel |
+| `N` or `Alt+N` | While Lv Home is focused | Open the **⚡ Quick Capture** sheet |
+| `Ctrl+K` | While Lv Home is focused | Open the **🔍 Spotlight Search** dialog |
+| `1` / `2` / `3` / `4` | While Lv Home is focused | Switch screens: 1-Overview, 2-Reminders, 3-Ledger, 4-Members |
+| `Esc` | Any modal / drawer open | Dismiss the topmost modal, release background scroll lock, and restore focus |
+| `Enter` | Capture form / search input | Submit record / search (does not trigger during IME composition) |
+| `Alt+K` | Inside Quick Capture sheet | Keep Context: saves the record and remains open for continuous entry |
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### Q1: What happens if a database column is accidentally deleted in SiYuan?
+**A**: Data remains intact thanks to Lv Home's **self-healing engine**. When missing columns are detected, a yellow alert bar appears at the top of the ledger table. Clicking **"Auto-fix Columns"** (or selecting "Rebuild all ledgers" in Settings) will automatically recreate missing columns and restore bindings in SiYuan.
+
+### Q2: How can I recover an accidentally deleted ledger record?
+**A**: Open **Settings ➔ Data & Migration ➔ Trash**. Lv Home saves complete snapshots of the last 50 deleted records (including all cell data). Click **"Restore"** on the target entry to write it back to your SiYuan database losslessly.
+
+### Q3: Why didn't I receive an expiry popup notification?
+**A**: Check the following:
+1. Is current system time inside your configured **Silent Hours** (default 22:00 to 08:00)?
+2. Is **"Today Silent"** activated for the day?
+3. Is the relevant module enabled in Settings (disabled modules do not trigger scans)?
+
+### Q4: How does multi-device synchronization (PC & Mobile) work?
+**A**: Lv Home is built on SiYuan's native storage protocol and listens to WebSocket events. When SiYuan syncs data across devices, Lv Home receives `sync` and `dataChanges` events and runs a throttled refresh. Reminders and ledgers update seamlessly without restarting the plugin.
+
+---
+
+## 🔒 Data Location & Privacy Statement
+
+- **Local-First & Data Sovereignty**:
+  - Settings are saved in your workspace: `data/storage/petal/siyuan-home/settings.json`;
+  - Runtime cache is stored in: `data/storage/petal/siyuan-home/hub-runtime.json`;
+  - All ledger records live inside native SiYuan documents and attribute views in your notebooks.
+- **Zero Telemetry & Offline Operation**:
+  - The plugin contains **no author-owned cloud servers, external APIs, analytics, or telemetry code**;
+  - All data remains strictly inside your local SiYuan workspace and is synchronized only via SiYuan's native end-to-end encryption.
+  - The only external network call is the optional user-configured private Webhook URL (e.g. self-hosted Bark), which only transmits sanitized alert counts and titles directly to your endpoint.
+
+---
+
+## 📦 Compatibility & Installation
+
+### Host Requirements
+- **SiYuan Note**: `>= v3.8.4`
+- **Supported OS**: Windows, macOS, Linux, Android, iOS, HarmonyOS, Docker Web.
+
+### Installation Methods
+- **Method 1: SiYuan Marketplace (Recommended)**
+  Open SiYuan Note, navigate to **Settings ➔ Marketplace ➔ Plugins**, search for `siyuan-home` or `小驴管家`, and click Install.
+- **Method 2: Offline Manual Installation**
+  1. Download the latest `package.zip` from [GitHub Releases](https://github.com/ai68298100/siyuan-home/releases/latest);
+  2. Unzip and rename the folder to `siyuan-home`;
+  3. Move it to your SiYuan workspace plugins directory: `data/plugins/siyuan-home/`;
+  4. Restart SiYuan Note and enable it under **Settings ➔ Plugins**.
+
+---
+
+## 📄 License
+
+Distributed under the **[MIT License](./LICENSE)**. Data sovereignty and control over your life archive always belong to you.

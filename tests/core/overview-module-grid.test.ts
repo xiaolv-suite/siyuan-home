@@ -13,12 +13,14 @@ describe("overview-module-grid (总览全功能模块网格与趋势卡片)", ()
     });
 
     it("近 5 日待办趋势火花线 (sparkline) 比例映射计算", () => {
+        const now = new Date();
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const moduleHistory = {
-            "2026-10-25": { certs: 2 },
-            "2026-10-26": { certs: 4 },
-            "2026-10-27": { certs: 6 },
-            "2026-10-28": { certs: 8 },
-            "2026-10-29": { certs: 10 },
+            [fmt(new Date(now.getTime() - 4 * 86400000))]: { certs: 2 },
+            [fmt(new Date(now.getTime() - 3 * 86400000))]: { certs: 4 },
+            [fmt(new Date(now.getTime() - 2 * 86400000))]: { certs: 6 },
+            [fmt(new Date(now.getTime() - 1 * 86400000))]: { certs: 8 },
+            [fmt(now)]: { certs: 10 },
         };
 
         const sparkOf = (mid: string): number[] | null => {

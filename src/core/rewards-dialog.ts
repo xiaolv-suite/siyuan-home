@@ -88,14 +88,14 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
     const dlg = new DialogCls({
         title: t("ledger.rewardsTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-rewards-body">
-  <div class="lv-card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--lv-surface-2);margin-bottom:10px">
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <span class="lv-caption">${t("ledger.rewardsUnsettledAll")}</span>
-      <div style="display:flex;align-items:baseline;gap:6px">
-        <b class="lv-num" style="font-size:24px;color:var(--lv-accent)">${report.unsettledPointsAll}</b>
-        <span class="lv-caption" style="font-size:12px">${t("ledger.rewardsPointsUnit")}（≈ ¥${report.settleableAmountAll}）</span>
-      </div>
-    </div>
+	  <div class="lv-card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--lv-surface-2);border-radius:var(--lv-r-inner);margin-bottom:12px">
+	    <div style="display:flex;flex-direction:column;gap:4px">
+	      <span class="lv-caption">${t("ledger.rewardsUnsettledAll")}</span>
+	      <div style="display:flex;align-items:baseline;gap:6px">
+	        <b class="lv-num" style="font-size:30px;line-height:1.1;color:var(--lv-data-accent)">${report.unsettledPointsAll}</b>
+	        <span class="lv-caption" style="font-size:12px">${t("ledger.rewardsPointsUnit")}（≈ ¥${report.settleableAmountAll}）</span>
+	      </div>
+	    </div>
     <div style="text-align:right">
       <span class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${report.totalPointsAll}</span>
       <div class="lv-caption" style="font-size:11.5px;color:var(--lv-tx-2)">${report.pointsPerYuan} 积分 = 1 元</div>
@@ -105,7 +105,7 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel" id="lv-rewards-close">${t("close")}</button>
-  <button class="b3-button b3-button--outline" id="lv-rewards-copy">${t("ledger.emergencyKitCopy")}</button>
+  <button class="b3-button b3-button--outline" id="lv-rewards-copy">📋 ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
   <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
 </div>`,
         width: "580px",
@@ -142,7 +142,7 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 
             const right = document.createElement("div");
             right.style.cssText = "text-align:right;flex-shrink:0";
-            right.innerHTML = `<b class="lv-num" style="font-size:15px;color:var(--lv-accent)">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div>`;
+            right.innerHTML = `<b class="lv-num" style="font-size:16px;color:var(--lv-data-accent)">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div>`;
 
             row.append(left, right);
             listEl.appendChild(row);

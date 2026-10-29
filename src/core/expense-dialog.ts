@@ -42,7 +42,7 @@ export function openExpenseTrendDialog(opts: ExpenseDialogOptions): void {
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button" id="lv-et-copy">${t("ledger.emergencyKitCopy")}</button>
+  <button class="b3-button" id="lv-et-copy">📋 ${t("ledger.copyExpenseReport") || "复制支出分析"}</button>
 </div>`,
         width: "580px",
     });

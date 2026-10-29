@@ -40,14 +40,15 @@ function normalizeDate(raw: string): string | undefined {
 
 function coerce(type: string, raw: string, options?: string[]): { value?: string | boolean; error?: string } {
     const v = raw.trim();
+    if (v === "—" && type !== "text") return { value: "" };
     switch (type) {
         case "number": {
-            if (v === "") return { value: "" };
+            if (v === "" || v === "—") return { value: "" };
             const n = Number(v.replace(/,/g, "")); // 容忍千分位
             return Number.isFinite(n) ? { value: String(n) } : { error: `「${raw}」不是数字` };
         }
         case "date": {
-            if (v === "") return { value: "" };
+            if (v === "" || v === "—") return { value: "" };
             const normalized = normalizeDate(v);
             return normalized ? { value: normalized } : { error: `「${raw}」不是有效日期` };
         }
@@ -55,10 +56,15 @@ function coerce(type: string, raw: string, options?: string[]): { value?: string
             if (/^(true|1|yes|y|✓|是)$/i.test(v)) return { value: true };
             if (/^(false|0|no|n|✗|否|—)$/i.test(v)) return { value: false };
             return { error: `「${raw}」不是有效的是/否值` };
-        case "select":
-            return !options || options.includes(v) ? { value: v } : { error: `「${raw}」不是该字段的有效选项` };
+        case "select": {
+            if (v === "" || v === "—") return { value: "" };
+            if (!options || options.includes(v)) return { value: v };
+            // 容错：查找是否为大小写或包含关系
+            const matched = options.find((opt) => opt.toLowerCase() === v.toLowerCase());
+            return matched ? { value: matched } : { error: `「${raw}」不是该字段的有效选项` };
+        }
         default:
-            return { value: raw };
+            return { value: v === "—" ? "" : raw };
     }
 }
 

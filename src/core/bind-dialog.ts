@@ -85,7 +85,11 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
     if (okBtn) {
         okBtn.onclick = async function (this: HTMLButtonElement) {
             const inputVal = (dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement)?.value.trim();
-            if (!inputVal) return;
+            if (!inputVal) {
+                showMessageFn(t("ledger.bindDocRequired") || "请输入思源文档链接或文档 ID", 3000, "info");
+                (dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement)?.focus();
+                return;
+            }
             this.disabled = true;
             try {
                 await bindExistingDoc(plugin.settings, active, inputVal, schema, {

@@ -42,22 +42,23 @@
         flex: none;
         overflow: hidden;
         border: 1px solid var(--lv-line);
-        border-radius: var(--lv-r-2);
+        border-radius: var(--lv-r-inner);
         background: var(--lv-surface-2);
         box-shadow: var(--lv-shadow-1);
     }
     .lv-hub-summary__item {
-        min-width: 74px;
-        padding: 8px 14px;
+        min-width: 82px;
+        padding: 10px 16px;
         display: flex;
         flex-direction: column-reverse;
-        gap: 2px;
+        gap: 3px;
         text-align: right;
         background: var(--lv-surface);
+        transition: background var(--lv-t-fast) var(--lv-ease-out);
     }
     .lv-hub-summary__item + .lv-hub-summary__item { border-left: 1px solid var(--lv-line); }
-    .lv-hub-summary__item span { color: var(--lv-tx-3); font-size: 11px; white-space: nowrap; }
-    .lv-hub-summary__item b { font-size: 20px; line-height: 1.1; font-weight: 650; color: var(--lv-tx); }
+    .lv-hub-summary__item span { color: var(--lv-tx-3); font-size: 11px; white-space: nowrap; font-weight: 500; }
+    .lv-hub-summary__item b { font-size: 28px; line-height: 1.05; font-weight: 700; color: var(--lv-tx); font-variant-numeric: tabular-nums; }
     .lv-hub-summary__item.is-overdue b { color: var(--lv-danger); }
     @media (max-width: 760px) {
         .lv-hub-summary { align-self: stretch; width: 100%; }
@@ -69,7 +70,7 @@
         .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
     }
     @container lv-home (max-width: 420px) {
-        .lv-hub-summary__item { padding-inline: 9px; }
-        .lv-hub-summary__item b { font-size: 17px; }
+        .lv-hub-summary__item { padding-inline: 10px; }
+        .lv-hub-summary__item b { font-size: 22px; }
     }
 </style>

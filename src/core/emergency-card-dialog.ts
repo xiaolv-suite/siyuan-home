@@ -106,7 +106,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
   <button class="b3-button b3-button--outline" id="lv-ecard-flashcards">📇 ${t("overview.exportFlashcards")}</button>
-  <button class="b3-button" id="lv-ecard-copy">${t("ledger.emergencyKitCopy")}</button>
+  <button class="b3-button" id="lv-ecard-copy">📋 ${t("overview.copyEmergencyCard") || "复制急救卡"}</button>
 </div>`,
         width: "600px",
     });

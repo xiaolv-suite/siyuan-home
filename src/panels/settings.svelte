@@ -268,13 +268,20 @@
     };
     const rebuildAllLedgers = async () => {
         if (diagnosticsBusy) return;
-        diagnosticsBusy = "rebuild";
-        try {
-            const { executeRebuildAllLedgers } = await import("@/core/settings-maintenance");
-            await executeRebuildAllLedgers(plugin, t, showMessage);
-        } finally {
-            diagnosticsBusy = null;
-        }
+        const { confirm } = await import("@/libs/dialog");
+        confirm(
+            t("diag.rebuildAll"),
+            t("diag.rebuildConfirm") || "将重新检查并补齐所有已启用模块的台账文档、属性视图与缺失字段（不会删除已有生活数据）。确定继续吗？",
+            async () => {
+                diagnosticsBusy = "rebuild";
+                try {
+                    const { executeRebuildAllLedgers } = await import("@/core/settings-maintenance");
+                    await executeRebuildAllLedgers(plugin, t, showMessage);
+                } finally {
+                    diagnosticsBusy = null;
+                }
+            }
+        );
     };
     const runAdoptHistoryLedgers = async () => {
         if (diagnosticsBusy) return;
@@ -422,14 +429,14 @@
 
     <div class="lv-setpane" aria-busy={saving || migrationBusy || demoBusy} inert={saving || migrationBusy || demoBusy}>
     {#if area === "modules"}
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0">
+        <div class="lv-settings__pane-header">
             <div class="lv-settings__pane-title">{t("tabModules")}</div>
-            <div style="position:relative;display:inline-flex;align-items:center;max-width:180px">
-                <input class="b3-text-field" style="width:100%;font-size:12px;padding:3px 22px 3px 8px;min-height:28px"
+            <div class="lv-set-search-wrap">
+                <input class="b3-text-field lv-set-search-input"
                     placeholder={t("dash.moduleSearch") || "搜索模块..."}
                     bind:value={moduleSearch} />
                 {#if moduleSearch}
-                    <button type="button" class="b3-button b3-button--text" style="position:absolute;right:2px;padding:0 4px;font-size:11px;color:var(--lv-tx-3)" onclick={() => { moduleSearch = ""; }}>✕</button>
+                    <button type="button" class="b3-button b3-button--text lv-set-search-clear" aria-label={t("clear")} onclick={() => { moduleSearch = ""; }}>✕</button>
                 {/if}
             </div>
         </div>
@@ -445,7 +452,7 @@
             <div class="lv-card lv-setcard">
                 <div class="lv-setcard__title">{moduleSearch.trim() ? `搜索结果 · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>
                 {#if currentModules.length === 0}
-                    <div class="lv-caption" style="padding:12px 0;color:var(--lv-tx-3)">{t("ledger.searchEmpty")}</div>
+                    <div class="lv-caption lv-tx-muted" style="padding:12px 0">{t("ledger.searchEmpty")}</div>
                 {:else}
                     {#each currentModules as mod (mod.id)}
                         <div class="fn__flex lv-settings__row">
@@ -550,7 +557,7 @@
              让"改了但还没保存"可见，不再靠猜 -->
         {#if dirty}
             <span class="lv-badge orange" role="status">● {t("settings.unsaved")}</span>
-            <button class="b3-button b3-button--text" style="font-size:12px;color:var(--lv-tx-3)" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
+            <button class="b3-button b3-button--text lv-tx-muted" style="font-size:12px" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
         {/if}
         <!-- 256 波：保存是设置视图唯一核心动作，升为主按钮（对齐原型"主按钮每视图 ≤1 个"） -->
         <button class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>

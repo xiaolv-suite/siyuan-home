@@ -318,10 +318,12 @@ export function cloneRuntime(rt: HubRuntime): HubRuntime {
 }
 
 export async function saveRuntime(plugin: Plugin, rt: HubRuntime): Promise<void> {
-    // PF09：业务语义指纹比对，无实质变化不落盘（筛选/动作/后台扫描避免无意义全量写入）
-    const snapshot = cloneRuntime(rt);
-    const fingerprint = semanticRuntimeFingerprint(snapshot);
-    return withRuntimeSaveLock(plugin, async () => persistRuntimeSnapshot(plugin, snapshot, fingerprint));
+    // PF09：业务语义指纹比对，进入串行锁内部后再拍摄快照，防止排队期间并发修改被旧快照覆盖丢失
+    return withRuntimeSaveLock(plugin, async () => {
+        const snapshot = cloneRuntime(rt);
+        const fingerprint = semanticRuntimeFingerprint(snapshot);
+        await persistRuntimeSnapshot(plugin, snapshot, fingerprint);
+    });
 }
 
 /** Persist while the caller already holds withRuntimeSaveLock. */

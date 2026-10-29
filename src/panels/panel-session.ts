@@ -5,6 +5,10 @@ export type TableDensity = "comfortable" | "compact";
 export interface PanelSessionState {
     scrollTop: Partial<Record<PluginScreen, number>>;
     ledgerSearch: string;
+    ledgerFilterMemberId?: string;
+    ledgerFilterCategory?: string;
+    ledgerNewRecordOpen?: boolean;
+    ledgerDraftByModule?: Record<string, Record<string, any>>;
     tableDensity?: TableDensity;
 }
 

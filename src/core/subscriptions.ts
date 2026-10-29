@@ -241,15 +241,15 @@ export function openSubscriptionStatsDialog(options: SubscriptionStatsDialogOpti
 
     const mCard = document.createElement("div");
     mCard.className = "lv-metric-item";
-    mCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionMonthly")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">¥${formatAmount(stats.totalMonthlyCost)}</b><span class="lv-caption">${stats.activeCount} 项在保/在用</span>`;
+    mCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionMonthly")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:22px">¥${formatAmount(stats.totalMonthlyCost)}</b><span class="lv-caption">${stats.activeCount} 项在保/在用</span>`;
 
     const aCard = document.createElement("div");
     aCard.className = "lv-metric-item";
-    aCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAnnual")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:18px">¥${formatAmount(stats.totalAnnualCost)}</b><span class="lv-caption">年化折算</span>`;
+    aCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAnnual")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:22px">¥${formatAmount(stats.totalAnnualCost)}</b><span class="lv-caption">年化折算</span>`;
 
     const rCard = document.createElement("div");
     rCard.className = "lv-metric-item";
-    rCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAutoRenew")}</span><b class="lv-num" style="font-size:18px">${stats.autoRenewRate}%</b><span class="lv-caption">${stats.autoRenewCount} 项自动续费</span>`;
+    rCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAutoRenew")}</span><b class="lv-num" style="font-size:22px">${stats.autoRenewRate}%</b><span class="lv-caption">${stats.autoRenewCount} 项自动续费</span>`;
 
     metrics.append(mCard, aCard, rCard);
     body.appendChild(metrics);

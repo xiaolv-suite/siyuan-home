@@ -68,9 +68,12 @@ export function calculateAssetDepreciation(options: {
     if (cParts[2] < pParts[2]) usedMonths--;
     usedMonths = Math.max(0, usedMonths);
 
-    const lifespanMonths = Math.max(1, Math.round(lifespanYears * 12));
-    const estimatedSalvageValue = Math.round(initialCost * salvageRate);
-    const depreciableBase = initialCost - estimatedSalvageValue;
+    const safeLifespanYears = Number.isFinite(lifespanYears) && lifespanYears > 0 ? lifespanYears : 5;
+    const safeSalvageRate = Number.isFinite(salvageRate) ? Math.max(0, Math.min(0.95, salvageRate)) : 0.05;
+
+    const lifespanMonths = Math.max(1, Math.round(safeLifespanYears * 12));
+    const estimatedSalvageValue = Math.round(initialCost * safeSalvageRate);
+    const depreciableBase = Math.max(0, initialCost - estimatedSalvageValue);
 
     // 直线折旧法：每月折旧额
     const monthlyDepreciation = depreciableBase / lifespanMonths;

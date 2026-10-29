@@ -152,6 +152,17 @@
                 <input class="b3-text-field" style="width:70px" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
                 <span class="lv-caption fn__flex-1">{t("settings.silentHoursHint")}</span>
             </div>
+            <div style="margin-top:10px">
+                <button type="button" class="b3-button b3-button--text lv-tx-muted" style="font-size:12px;padding:2px 6px"
+                    onclick={() => {
+                        draftNotifyHour = 8;
+                        draftSilentFrom = 22;
+                        draftSilentTo = 8;
+                        showMessage(t("settings.scheduleResetDone"), 2500, "info");
+                    }}>
+                    ↺ {t("settings.resetDefault")}
+                </button>
+            </div>
         </div>
     {:else if reminderSection === "webhook"}
         <div class="lv-card lv-setcard">
@@ -182,11 +193,21 @@
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">{t("settings.leadsTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.leadsHint")}</div>
-            {#if enabledLeadRules.length < leadRules.length}
-                <button type="button" class="b3-button b3-button--text lv-setcard__action" onclick={() => (showAllLeads = !showAllLeads)}>
-                    {showAllLeads ? t("settings.leadsEnabledOnly") : t("settings.leadsShowAll").replace("${n}", String(leadRules.length - enabledLeadRules.length))}
-                </button>
-            {/if}
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                {#if enabledLeadRules.length < leadRules.length}
+                    <button type="button" class="b3-button b3-button--text lv-setcard__action" onclick={() => (showAllLeads = !showAllLeads)}>
+                        {showAllLeads ? t("settings.leadsEnabledOnly") : t("settings.leadsShowAll").replace("${n}", String(leadRules.length - enabledLeadRules.length))}
+                    </button>
+                {/if}
+                {#if Object.keys(draftLeads).length > 0}
+                    <button type="button" class="b3-button b3-button--text lv-tx-muted lv-setcard__action" onclick={() => {
+                        draftLeads = {};
+                        showMessage(t("settings.leadsResetDone"), 2500, "info");
+                    }}>
+                        ↺ {t("settings.resetLeadsDefault")}
+                    </button>
+                {/if}
+            </div>
             {#each visibleLeadRules as lr (lr.key)}
                 <div class="fn__flex lv-settings__row" style={enabledIds.has(lr.moduleId) ? "" : "opacity:.55"}>
                     <span style="min-width:220px">{t(`module.${lr.moduleId}`)} · {t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}</span>
@@ -204,7 +225,7 @@
             <div class="lv-setcard__title">{t("settings.checkinBindingsTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.checkinBindingsHint")}</div>
             {#if checkinPresent === false}
-                <p class="lv-setcard__hint" style="color:var(--lv-warn)">{t("settings.checkinAbsent")}</p>
+                <p class="lv-setcard__hint lv-tx-warn">{t("settings.checkinAbsent")}</p>
             {:else if checkinPresent === null}
                 <p class="lv-setcard__hint" role="status">{t("settings.checkinLoading")}</p>
                 <button type="button" class="b3-button b3-button--outline lv-setcard__action" onclick={() => { checkinItems = []; checkinPresent = null; checkinProbe += 1; }}>{t("settings.checkinRetry")}</button>

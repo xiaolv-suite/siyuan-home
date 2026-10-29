@@ -143,7 +143,8 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
         const ruleFields = (plugin.schemaCatalog?.[mod]?.reminders ?? []).map((x: any) => x.field);
         const dateCol = schemaCols.find((c: any) => c.type === "date" && ruleFields.includes(c.key))
             ?? schemaCols.find((c: any) => c.type === "date");
-        if (dateCol && r.dueDate) await setCellSafe(dateCol.key, { type: "date", date: { content: new Date(`${r.dueDate}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } });
+        const finalDueDate = dateInput?.value?.trim() || r.dueDate;
+        if (dateCol && finalDueDate) await setCellSafe(dateCol.key, { type: "date", date: { content: new Date(`${finalDueDate}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } });
         if (selectedMember) await setCellSafe("member", { type: "relation", relation: { blockIDs: [selectedMember], contents: null } });
         await plugin.complete(r);
         dlg.destroy();

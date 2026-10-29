@@ -316,22 +316,22 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
 
     const valCard = document.createElement("div");
     valCard.className = "lv-metric-lg";
-    valCard.innerHTML = `<span class="lv-caption">${t("ledger.assetCurrentValuation")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">¥${formatAmountStr(report.totalCurrentValuation)}</b><span class="lv-caption">最新总估值</span>`;
+    valCard.innerHTML = `<span class="lv-caption">${t("ledger.assetCurrentValuation")}</span><b class="lv-num" style="color:var(--lv-data-accent);font-size:22px">¥${formatAmountStr(report.totalCurrentValuation)}</b><span class="lv-caption">最新总估值</span>`;
 
     const deltaCard = document.createElement("div");
-    const deltaColor = report.netValuationChange >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
+    const deltaColor = report.netValuationChange >= 0 ? "var(--lv-data-accent)" : "var(--lv-warn)";
     deltaCard.className = "lv-metric-lg";
-    deltaCard.innerHTML = `<span class="lv-caption">${t("ledger.assetNetChange")}</span><b class="lv-num" style="color:${deltaColor};font-size:18px">${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(report.netValuationChange))}</b><span class="lv-caption">${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}%</span>`;
+    deltaCard.innerHTML = `<span class="lv-caption">${t("ledger.assetNetChange")}</span><b class="lv-num" style="color:${deltaColor};font-size:22px">${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(report.netValuationChange))}</b><span class="lv-caption">${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}%</span>`;
 
     metrics.append(initCard, valCard, deltaCard);
     body.appendChild(metrics);
 
     if (report.depreciationEligibleCount > 0) {
         const depBanner = document.createElement("div");
-        depBanner.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);margin-bottom:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px";
+        depBanner.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:var(--lv-r-inner);border:1px solid var(--lv-line);margin-bottom:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px";
         depBanner.innerHTML = `
             <span>📉 <b>财务直线折旧测算 (${report.depreciationEligibleCount} 件)</b></span>
-            <span>折后净残值: <b style="color:var(--lv-accent)">¥${formatAmountStr(report.totalDepreciationNetValue)}</b> · 累计折旧: <b style="color:var(--lv-danger)">¥${formatAmountStr(report.totalDepreciationAccumulated)}</b></span>
+            <span>折后净残值: <b style="color:var(--lv-data-accent)">¥${formatAmountStr(report.totalDepreciationNetValue)}</b> · 累计折旧: <b style="color:var(--lv-danger)">¥${formatAmountStr(report.totalDepreciationAccumulated)}</b></span>
         `;
         body.appendChild(depBanner);
     }
@@ -362,8 +362,8 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
 
             const right = document.createElement("div");
             right.style.cssText = "text-align:right;flex-shrink:0";
-            const chgColor = it.valueDelta >= 0 ? "var(--lv-accent)" : "var(--lv-warn)";
-            right.innerHTML = `<div><b class="lv-num" style="font-size:14px;color:var(--lv-accent)">¥${formatAmountStr(it.currentValue)}</b></div><div class="lv-caption" style="color:${chgColor}">${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(it.valueDelta))} (${it.valueChangeRate >= 0 ? "+" : ""}${it.valueChangeRate}%)</div>`;
+            const chgColor = it.valueDelta >= 0 ? "var(--lv-data-accent)" : "var(--lv-warn)";
+            right.innerHTML = `<div><b class="lv-num" style="font-size:14px;color:var(--lv-data-accent)">¥${formatAmountStr(it.currentValue)}</b></div><div class="lv-caption" style="color:${chgColor}">${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(it.valueDelta))} (${it.valueChangeRate >= 0 ? "+" : ""}${it.valueChangeRate}%)</div>`;
 
             rowEl.append(left, right);
             list.appendChild(rowEl);

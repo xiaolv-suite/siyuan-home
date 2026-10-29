@@ -184,7 +184,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
         const dlg = new DialogCls({
             title: t("ledger.vaccineSchedule"),
             content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-vaccine-sched-body" style="max-height:65vh;overflow:auto"></div>
-<div class="b3-dialog__action"><button class="b3-button" id="lv-vaccine-sched-close">${t("close")}</button></div>`,
+<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-vaccine-sched-close">${t("close")}</button></div>`,
             width: "580px",
         });
         const body = dlg.element.querySelector("#lv-vaccine-sched-body") as HTMLElement;
@@ -243,13 +243,13 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             }
             const rateSpan = document.createElement("span");
             rateSpan.className = "lv-caption";
-            rateSpan.innerHTML = `${t("ledger.vaccineCompletionRate")}: <b class="lv-num" style="color:var(--lv-accent)">${report.completionRate}%</b>`;
+            rateSpan.innerHTML = `${t("ledger.vaccineCompletionRate")}: <b class="lv-num" style="color:var(--lv-data-accent);font-size:14px">${report.completionRate}%</b>`;
             topBar.appendChild(rateSpan);
             body.appendChild(topBar);
 
             const progressTrack = document.createElement("div");
             progressTrack.style.cssText = "height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%;margin-bottom:8px";
-            progressTrack.innerHTML = `<div style="height:100%;background:var(--lv-accent);width:${report.completionRate}%;border-radius:3px"></div>`;
+            progressTrack.innerHTML = `<div style="height:100%;background:var(--lv-data-accent);width:${report.completionRate}%;border-radius:3px"></div>`;
             body.appendChild(progressTrack);
 
             const metrics = document.createElement("div");

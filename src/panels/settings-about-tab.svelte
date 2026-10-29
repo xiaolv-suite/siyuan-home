@@ -66,16 +66,16 @@
                 </p>
             {/each}
             {#each diag.ledgers.filter((l: any) => l.error) as l (l.id)}
-                <p class="lv-caption" style="color:var(--lv-danger)">{t(`module.${l.id}`)}: {l.error}</p>
+                <p class="lv-caption lv-tx-danger">{t(`module.${l.id}`)}: {l.error}</p>
             {/each}
             {#if diag.errors.length > 0}
                 {#each diag.errors as e (e.moduleId)}
-                    <p class="lv-caption" style="color:var(--lv-danger)">{e.moduleId}: {e.message}</p>
+                    <p class="lv-caption lv-tx-danger">{e.moduleId}: {e.message}</p>
                 {/each}
             {/if}
             {#if diag.contracts.length > 0}
                 {#each diag.contracts as c (c)}
-                    <p class="lv-caption" style="color:var(--lv-danger)">{c}</p>
+                    <p class="lv-caption lv-tx-danger">{c}</p>
                 {/each}
             {/if}
             <div class="lv-setcard__actions" style="margin-top:8px">

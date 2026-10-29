@@ -123,8 +123,9 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
                 line.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12.5px";
                 const left = document.createElement("span");
                 const copyTag = it.source === "copy_location" ? ` <span class="lv-badge gray">${t("ledger.locCopyTag")}</span>` : "";
-                const owner = it.memberName ? ` · ${it.memberName}` : "";
-                left.innerHTML = `<b>${it.name}</b>${copyTag}<span class="lv-caption" style="margin-left:6px">${modLabel(it.moduleId)}${owner}</span>`;
+                const safeName = String(it.name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const safeOwner = it.memberName ? ` · ${String(it.memberName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}` : "";
+                left.innerHTML = `<b>${safeName}</b>${copyTag}<span class="lv-caption" style="margin-left:6px">${modLabel(it.moduleId)}${safeOwner}</span>`;
                 const gotoBtn = document.createElement("button");
                 gotoBtn.className = "b3-button b3-button--text";
                 gotoBtn.style.cssText = "font-size:11.5px;padding:0 4px";

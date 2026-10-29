@@ -35,8 +35,10 @@
     }
 
     async function batchCopyAsTasks() {
+        if (batchBusy) return;
         const selectedList = filtered.filter((r) => selected.has(r.id));
         if (selectedList.length === 0) return;
+        batchBusy = true;
         const text = selectedList
             .map((r) => {
                 const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
@@ -48,12 +50,16 @@
             showMessage(t("hub.batchTasksCopied").replace("${n}", String(selectedList.length)), 3000, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        } finally {
+            batchBusy = false;
         }
     }
 
     async function batchCopyBlockRefs() {
+        if (batchBusy) return;
         const selectedList = filtered.filter((r) => selected.has(r.id));
         if (selectedList.length === 0) return;
+        batchBusy = true;
         const refsText = selectedList
             .map((r) => `((${r.rowId || r.id} '${r.title}'))`)
             .join("\n");
@@ -62,6 +68,8 @@
             showMessage(t("hub.batchRefsCopied").replace("${n}", String(selectedList.length)), 3000, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        } finally {
+            batchBusy = false;
         }
     }
 
@@ -120,6 +128,7 @@
                 showMessage(t("hub.batchDone").replace("${n}", String(ok)), 3000, "info");
             }
             selected = new Set();
+            batchMode = false;
             if (onActionCompleted) {
                 await onActionCompleted();
             }

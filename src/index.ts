@@ -7,6 +7,7 @@ import HomeSettingsPanel from "@/panels/settings.svelte";
 import { svelteDialog } from "@/libs/dialog";
 import { loadSettings, saveSettings } from "@/core/settings";
 import { loadRuntime, saveRuntime, purgeHandled, listHandled, type HubRuntime } from "@/core/hub/runtime";
+import { localDateKey } from "@/core/hub/rule";
 import { runScan, deriveVisible, type ScanResult } from "@/core/hub/scanner";
 import { buildScanProviders } from "@/core/hub/registry";
 import { dailyDigest, markNotified, inSilentHours, weeklyPreview, markWeeklyNotified } from "@/core/hub/notify";
@@ -352,12 +353,14 @@ export default class LvHomePlugin extends Plugin {
         }
         // H03：显式清理已完成运行态记录（未处理项永不自动删），清理结果随本次落盘
         purgeHandled(this.runtime, new Date());
-        // 29 组月度应到基数：全量扫描时统计当月去重后到期提醒总数（增量扫描不更新，避免少报）
+        // 29 组月度应到基数：全量扫描时统计当月到期总数（已办结数 + 当前逾期/未办数，基数保持单调不小于已办数）
         if (!onlySet) {
             const now = new Date();
             const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-            const dueIds = new Set(scan.reminders.filter((r) => r.daysLeft <= 0).map((r) => r.id));
-            this.runtime.monthlyDueTotals = { ...(this.runtime.monthlyDueTotals ?? {}), [monthKey]: dueIds.size };
+            const dueNowCount = scan.reminders.filter((r) => r.daysLeft <= 0).length;
+            const completedCount = this.runtime.monthlyCompletions?.[monthKey] ?? 0;
+            const safeDueTotal = Math.max(dueNowCount + completedCount, this.runtime.monthlyDueTotals?.[monthKey] ?? 0);
+            this.runtime.monthlyDueTotals = { ...(this.runtime.monthlyDueTotals ?? {}), [monthKey]: safeDueTotal };
             // 266 波模块趋势条：记录当日各模块待办计数（滚动 14 天，同日覆盖），供总览模块卡 spark 渲染
             const { recordModuleHistory } = await import("@/core/hub/runtime");
             recordModuleHistory(this.runtime, scan.reminders, now);
@@ -530,11 +533,16 @@ export default class LvHomePlugin extends Plugin {
         await complete(this, r);
         // 事务完成联动打卡（Epoch 6 联邦规范）
         try {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = localDateKey(new Date());
             const rowId = r.rowId || r.id || "item";
             const modId = r.moduleId || "general";
+            // 优先匹配用户在设置中自定义配置的成员打卡习惯绑定
+            const matchedBinding = (this.settings.checkinBindings ?? []).find(
+                (b) => (!b.memberId || b.memberId === r.memberId)
+            );
+            const targetItemId = matchedBinding?.itemId || `home_${modId}`;
             await logCheckinEventSafely({
-                itemId: `home_${modId}`,
+                itemId: targetItemId,
                 externalRef: `home:${modId}:${rowId}:${today}`,
                 note: r.title ? `办结家庭事项：${r.title}` : `办结家庭事项（${modId}）`,
             });
@@ -570,6 +578,31 @@ export default class LvHomePlugin extends Plugin {
     async finishOnboarding(household: { roles: string[]; children: number }, moduleIds: string[]) {
         this.settings.household = household as any;
         this.settings.enabledModules = Array.from(new Set([...this.settings.enabledModules, ...moduleIds]));
+        // 若当前未录入成员，根据向导勾选的角色自动初始化占位成员档案，消除向导后立刻提示“暂无成员”的断层体验
+        if (!this.settings.members || this.settings.members.length === 0) {
+            const roleLabels: Record<string, string> = {
+                self: "我 (本人)",
+                spouse: "配偶",
+                partner: "伴侣",
+                elder: "长辈",
+                parent: "长辈",
+                child: "孩子",
+                kin: "亲属",
+                relative: "亲属",
+                pet: "宠物",
+            };
+            const initMembers: any[] = [];
+            for (const r of household.roles ?? ["self"]) {
+                if (r === "child" && household.children > 1) {
+                    for (let c = 1; c <= household.children; c++) {
+                        initMembers.push({ id: `mem-${Date.now()}-${c}`, name: `孩子${c}`, role: "child" });
+                    }
+                } else {
+                    initMembers.push({ id: `mem-${Date.now()}-${initMembers.length + 1}`, name: roleLabels[r] || r, role: r });
+                }
+            }
+            this.settings.members = initMembers;
+        }
         // C7c：建库批处理进度提示（31 模块串行需数秒；起止均有反馈，失败落 dbRefs.provisionError 诊断可见）
         showMessage(this.i18nText("wiz.provisioning").replace("${n}", String(moduleIds.length)), 4000, "info");
         const provisioning = await this.ensureCoreLedgers();

@@ -173,7 +173,7 @@
                 {#if plugin.settings?.dbRefs?.members?.docId}
                     <button class="b3-button b3-button--text" onclick={() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
                 {/if}
-                <button class="b3-button b3-button--text" onclick={() => onDelete()}>{t("delete")}</button>
+                <button class="b3-button b3-button--text ft__error" style="color:var(--lv-danger)" onclick={() => onDelete()}>{t("delete")}</button>
             </div>
             {#if contact}
                 <div style="display:flex;gap:8px;align-items:center">
@@ -217,7 +217,7 @@
                             <span>{t("members.retirementCareerProgress")}: {ret.careerProgressPercent}%</span>
                         </div>
                         <div style="height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%">
-                            <div style="height:100%;background:linear-gradient(90deg, var(--lv-accent), var(--lv-amber));width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
+                            <div style="height:100%;background:var(--lv-accent);width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
                         </div>
                     </div>
                 {/if}

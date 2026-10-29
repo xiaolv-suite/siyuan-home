@@ -126,6 +126,14 @@ export interface HubRuntime {
     moduleHistory?: Record<string, Record<string, number>>;
     /** 297 波：多设备家庭协作的只读访客模式激活状态（会话级/本地运行态） */
     guestModeActive?: boolean;
+    /** 台账软删除回收站（安全容灾）：保留被删除行的快照与所属模块，支持 30 天内恢复 */
+    trash?: Array<{
+        id: string;
+        moduleId: string;
+        title: string;
+        deletedAt: string;
+        rowSnapshot: Record<string, any>;
+    }>;
 }
 
 export * from "./runtime-store";
@@ -238,13 +246,15 @@ export function applyRuntime(
 ): Reminder[] {
     const out: Reminder[] = [];
     const todayKey = localDateKey(today);
+    // 归一化为本地当天 00:00:00 时间戳，避免因当前时分秒导致当日事项在午后被判定为 daysLeft = -1
+    const todayZero = parseLocal(todayKey);
     for (const r of derived) {
         if (isHiddenByHandled(rt, r, today)) continue;
         const snoozeDate = rt.snoozed[r.id];
         if (snoozeDate) {
             // snooze 未到 → 隐藏；已到 → 显示为"延后日"事项，按延后日距今分级（H06）
             if (todayKey < snoozeDate) continue;
-            const daysLeft = Math.round((parseLocal(snoozeDate) - today.getTime()) / 86400000);
+            const daysLeft = Math.round((parseLocal(snoozeDate) - todayZero) / 86400000);
             const level: ReminderLevel = daysLeft < 0 ? "overdue" : "soon";
             out.push({ ...r, dueDate: snoozeDate, daysLeft, level });
             continue;
@@ -253,7 +263,7 @@ export function applyRuntime(
     }
     for (const m of rt.memos ?? []) {
         if (m.doneAt) continue; // 已办备忘不进活跃列表（已处理视图可见可恢复）
-        const daysLeft = Math.round((parseLocal(m.dueDate) - today.getTime()) / 86400000);
+        const daysLeft = Math.round((parseLocal(m.dueDate) - todayZero) / 86400000);
         const level: ReminderLevel = daysLeft < 0 ? "overdue" : daysLeft <= 7 ? "soon" : "lead";
         out.push({
             id: `adhoc::${m.id}`,

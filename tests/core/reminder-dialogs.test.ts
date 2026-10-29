@@ -26,7 +26,7 @@ describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () 
 
     const mockPlugin = {
         runtime: {
-            reminderPlanDates: {},
+            planDates: {} as Record<string, string>,
             namedViews: [],
         },
         saveRuntime: vi.fn().mockResolvedValue(undefined),
@@ -64,6 +64,41 @@ describe("reminder-dialogs (提醒中枢业务弹窗与动作分发中枢)", () 
                 showMessageFn: vi.fn(),
             });
         }).not.toThrow();
+    });
+
+    it("openReminderPlanDialog 正确回显已有 planDates", () => {
+        (globalThis as any).document = {};
+        try {
+            let capturedContent = "";
+            class ContentCaptureDialog {
+                element = {
+                    querySelector: vi.fn().mockReturnValue({
+                        addEventListener: vi.fn(),
+                        onclick: vi.fn(),
+                        value: "2026-11-05",
+                    }),
+                    querySelectorAll: vi.fn().mockReturnValue([]),
+                };
+                destroy = vi.fn();
+                constructor(options: { content: string }) {
+                    capturedContent = options.content;
+                }
+            }
+            mockPlugin.runtime.planDates[mockReminder.id] = "2026-11-05";
+
+            openReminderPlanDialog({
+                r: mockReminder,
+                plugin: mockPlugin,
+                DialogCls: ContentCaptureDialog,
+                t: (k) => k,
+                showMessageFn: vi.fn(),
+            });
+
+            expect(capturedContent).toContain('value="2026-11-05"');
+            expect(capturedContent).toContain('id="lv-plan-clear"');
+        } finally {
+            delete (globalThis as any).document;
+        }
     });
 
     it("openNamedViewSaveDialog 安全调用不抛异常", () => {

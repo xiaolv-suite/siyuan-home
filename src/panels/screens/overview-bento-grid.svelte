@@ -63,12 +63,12 @@
                     <span class="lv-caption">📅 {urgentDueReminder.dueDate}</span>
                 </p>
             {:else}
-                <h3 class="lv-bento-hero-title" style="font-size:16px;color:var(--lv-ok)">{t("dash.bentoAllGood")}</h3>
+                <h3 class="lv-bento-hero-title is-all-good">{t("dash.bentoAllGood")}</h3>
                 <p class="lv-bento-hero-sub">{t("dash.bentoAllGoodSub")}</p>
             {/if}
         </div>
         <div class="lv-bento-hero-footer">
-            <span class="lv-link" style="font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px">
+            <span class="lv-link">
                 {t("dash.handleNow")} →
             </span>
         </div>

@@ -11,6 +11,7 @@
         t,
         saving = $bindable(false),
         saveError = $bindable(""),
+        keepContext = false,
         onClose,
         onSwitchToLedger,
     }: {
@@ -18,6 +19,7 @@
         t: (k: string) => string;
         saving: boolean;
         saveError: string;
+        keepContext?: boolean;
         onClose?: () => void;
         onSwitchToLedger?: (moduleId: string) => void;
     } = $props();
@@ -63,7 +65,7 @@
 
     async function submitQuickFueling() {
         if (!selectedVehicleId || !fuelingAmount) {
-            saveError = "请选择车辆并填写加油金额";
+            saveError = t("ledger.logInvalid");
             return;
         }
         saving = true;
@@ -86,7 +88,7 @@
             fuelingAmount = undefined;
             fuelingLiters = undefined;
             fuelingMileage = undefined;
-            onClose?.();
+            if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
         } finally {
@@ -96,7 +98,7 @@
 
     async function submitQuickVital() {
         if (!vitalMemberId) {
-            saveError = "请选择家庭成员";
+            saveError = t("members.reassignSelectTo");
             return;
         }
         saving = true;
@@ -131,7 +133,7 @@
             vitalSys = undefined;
             vitalDia = undefined;
             vitalGlucose = undefined;
-            onClose?.();
+            if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
         } finally {
@@ -141,7 +143,10 @@
 
     async function submitQuickShopping() {
         const name = quickShopName.trim();
-        if (!name) return;
+        if (!name) {
+            saveError = t("ledger.nameRequired");
+            return;
+        }
         saving = true;
         saveError = "";
         try {
@@ -153,7 +158,7 @@
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickShopName = "";
             quickShopQty = 1;
-            onClose?.();
+            if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
         } finally {
@@ -163,7 +168,10 @@
 
     async function submitQuickSnippet() {
         const text = quickSnippetText.trim();
-        if (!text) return;
+        if (!text) {
+            saveError = t("form.required");
+            return;
+        }
         saving = true;
         saveError = "";
         try {
@@ -176,7 +184,7 @@
             }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickSnippetText = "";
-            onClose?.();
+            if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
         } finally {
@@ -225,11 +233,11 @@
     });
 </script>
 
-<div class="lv-event-subnav">
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "fuel"} onclick={() => { eventSub = "fuel"; }}>{t("capture.actFuel")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "vital"} onclick={() => { eventSub = "vital"; }}>{t("capture.actVital")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "shopping"} onclick={() => { eventSub = "shopping"; }}>{t("capture.actShopping")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "snippet"} onclick={() => { eventSub = "snippet"; }}>{t("capture.actSnippet")}</button>
+<div class="lv-event-subnav" role="tablist" aria-label={t("capture.tabEvent")}>
+    <button type="button" class="lv-event-subbtn" class:active={eventSub === "fuel"} role="tab" aria-selected={eventSub === "fuel"} onclick={() => { eventSub = "fuel"; }}>{t("capture.actFuel")}</button>
+    <button type="button" class="lv-event-subbtn" class:active={eventSub === "vital"} role="tab" aria-selected={eventSub === "vital"} onclick={() => { eventSub = "vital"; }}>{t("capture.actVital")}</button>
+    <button type="button" class="lv-event-subbtn" class:active={eventSub === "shopping"} role="tab" aria-selected={eventSub === "shopping"} onclick={() => { eventSub = "shopping"; }}>{t("capture.actShopping")}</button>
+    <button type="button" class="lv-event-subbtn" class:active={eventSub === "snippet"} role="tab" aria-selected={eventSub === "snippet"} onclick={() => { eventSub = "snippet"; }}>{t("capture.actSnippet")}</button>
 </div>
 
 <div class="lv-event-card">
@@ -325,4 +333,24 @@
             <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期 (Ctrl+Enter快速保存)..." bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
         </div>
     {/if}
+    {#if saveError}
+        <div class="lv-caption lv-event-flow-error">
+            <span aria-hidden="true">⚠️</span>
+            <span>{saveError}</span>
+        </div>
+    {/if}
 </div>
+
+<style>
+    .lv-event-flow-error {
+        margin-top: 8px;
+        padding: 6px 12px;
+        background: var(--lv-surface-2);
+        border-radius: var(--lv-r-control);
+        border: 1px solid var(--lv-danger);
+        color: var(--lv-danger);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+</style>

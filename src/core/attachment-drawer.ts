@@ -28,7 +28,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
     function showOCRGuide() {
         const guide = new DialogCls({
             title: t("ledger.ocrSetupTitle"),
-            content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" style="line-height:1.7;max-height:60vh;overflow:auto"><p>${t("ledger.ocrSetupIntro")}</p><ol><li>${t("ledger.ocrSetupStep1")}</li><li>${t("ledger.ocrSetupStep2")}</li><li>${t("ledger.ocrSetupStep3")}</li></ol><p>${t("ledger.ocrSetupStorage")}</p><p>${t("ledger.ocrSetupAI")}</p></div><div class="b3-dialog__action"><button class="b3-button" id="lv-ocr-guide-close">${t("close")}</button></div>`,
+            content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" style="line-height:1.7;max-height:60vh;overflow:auto"><p>${t("ledger.ocrSetupIntro")}</p><ol><li>${t("ledger.ocrSetupStep1")}</li><li>${t("ledger.ocrSetupStep2")}</li><li>${t("ledger.ocrSetupStep3")}</li></ol><p>${t("ledger.ocrSetupStorage")}</p><p>${t("ledger.ocrSetupAI")}</p></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-guide-close">${t("close")}</button></div>`,
             width: "460px",
         });
         guide.element.querySelector("#lv-ocr-guide-close")?.addEventListener("click", () => guide.destroy());
@@ -37,7 +37,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
     function showOCRText(fileName: string, text: string, onRerun?: () => void) {
         const result = new DialogCls({
             title: t("ledger.ocrResultTitle"),
-            content: `<div class="b3-dialog__content b3-dialog__content--wrap" style="display:flex;flex-direction:column;gap:8px"><div class="ft__on-surface" id="lv-ocr-result-name" style="word-break:break-all"></div><textarea id="lv-ocr-result-text" class="b3-text-field fn__block" readonly style="min-height:180px;resize:vertical"></textarea><div class="ft__on-surface" style="font-size:12px">${t("ledger.ocrResultStored")}</div></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-rerun">${t("ledger.ocrRerun")}</button><span style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-ocr-copy" ${text ? "" : "disabled"}>${t("ledger.ocrCopy")}</button><button class="b3-button" id="lv-ocr-close">${t("close")}</button></div>`,
+            content: `<div class="b3-dialog__content b3-dialog__content--wrap" style="display:flex;flex-direction:column;gap:8px"><div class="ft__on-surface" id="lv-ocr-result-name" style="word-break:break-all"></div><textarea id="lv-ocr-result-text" class="b3-text-field fn__block" readonly style="min-height:180px;resize:vertical"></textarea><div class="ft__on-surface" style="font-size:12px">${t("ledger.ocrResultStored")}</div></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-close">${t("close")}</button><span style="flex:1"></span><button class="b3-button b3-button--outline" id="lv-ocr-rerun">${t("ledger.ocrRerun")}</button><button class="b3-button" id="lv-ocr-copy" ${text ? "" : "disabled"}>${t("ledger.ocrCopy")}</button></div>`,
             width: "520px",
         });
         const nameEl = result.element.querySelector("#lv-ocr-result-name") as HTMLElement | null;

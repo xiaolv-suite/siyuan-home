@@ -102,10 +102,12 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
         }
         for (const e of history.entries) {
             const line = document.createElement("div");
-            line.style.cssText = "display:flex;gap:6px;align-items:center;font-size:12.5px";
+            line.style.cssText = "display:flex;gap:6px;align-items:center;font-size:12px";
             const txt = document.createElement("span");
             const ptsTag = e.points ? ` <span class="lv-badge green">+${e.points}分</span>` : "";
-            txt.innerHTML = `${e.date} · ${e.memberName}${ptsTag}${e.note ? ` —— ${e.note}` : ""}`;
+            const safeNote = e.note ? String(e.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+            const safeName = String(e.memberName || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            txt.innerHTML = `${e.date} · ${safeName}${ptsTag}${safeNote ? ` —— ${safeNote}` : ""}`;
             const del = document.createElement("button");
             del.className = "b3-button b3-button--text";
             del.style.cssText = "padding:0 4px;font-size:12px";

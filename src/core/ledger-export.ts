@@ -5,6 +5,7 @@
 import { buildCsv } from "./csv";
 import { blockDeepLink, generateQRDataUrl } from "./qr";
 import { confirm } from "@/libs/dialog";
+import { localDateKey } from "./hub/rule";
 
 export const HIGH_CONSEQUENCE_MODULES = new Set([
     "health",
@@ -76,9 +77,10 @@ export async function exportLedgerCsv(options: ExportCsvOptions): Promise<void> 
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             const moduleTitle = t(`module.${moduleId}`) !== `module.${moduleId}` ? t(`module.${moduleId}`) : moduleId;
-            a.download = `小驴管家-${moduleTitle}-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `小驴管家-${moduleTitle}-${localDateKey(new Date())}.csv`;
             a.click();
             URL.revokeObjectURL(a.href);
+            showMessageFn(t("ledger.exportCsvDone") || `${moduleTitle} CSV 导出完成`, 2500, "info");
         } catch (e) {
             showMessageFn(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         }

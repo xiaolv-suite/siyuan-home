@@ -105,6 +105,25 @@
             async () => {
                 batchBusy = true;
                 try {
+	                    // 安全回收站快照留存：批量删除前为所有选定行建立完整备份
+	                    if (plugin.runtime) {
+	                        const trashList = plugin.runtime.trash ?? [];
+	                        for (const id of selectedItemIds) {
+	                            const matchedRow = rows.find((r) => r.itemID === id);
+	                            const nameCol = ref?.columns?.name;
+	                            const rawTitle = nameCol ? (matchedRow?.cells?.[nameCol]?.text?.content ?? matchedRow?.cells?.[nameCol]?.block?.content) : undefined;
+	                            const title = String(rawTitle || matchedRow?.itemID || `${count} 项批量删除条目`).trim();
+	                            trashList.unshift({
+	                                id,
+	                                moduleId: active,
+	                                title,
+	                                deletedAt: new Date().toISOString(),
+	                                rowSnapshot: matchedRow ? JSON.parse(JSON.stringify(matchedRow)) : { itemID: id },
+	                            });
+	                        }
+	                        if (trashList.length > 50) trashList.length = 50;
+	                        plugin.runtime.trash = trashList;
+	                    }
                     const { removeLedgerRows } = await import("@/core/siyuan");
                     const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
                     await removeLedgerRows(ref!.avId!, selectedItemIds, {
@@ -150,7 +169,7 @@
         <button type="button" class="b3-button b3-button--text ft__error" style="{fs12Pad310Css};color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
             🗑️ {t("ledger.batchDelete")}
         </button>
-        <button type="button" class="b3-button b3-button--text" style={pad36Fs12Css} onclick={() => { selectedItemIds = []; }} title={t("close")}>
+        <button type="button" class="b3-button b3-button--text" style={pad36Fs12Css} onclick={() => { selectedItemIds = []; }} title={t("close")} aria-label={t("close")}>
             ✕
         </button>
     </div>

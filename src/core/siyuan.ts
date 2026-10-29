@@ -166,7 +166,8 @@ export async function createAttributeView(docId: string, avIdSeed: string, optio
             );
             if (rows.length === 0) return "";
             const matched = rows.find((r) => r.markdown && r.markdown.includes(avIdSeed));
-            return (matched ?? rows[0]).id;
+            // 若匹配到 seed，或该文档仅有唯一一个 AV 块，安全返回；多块且无匹配时不抢占 rows[0]
+            return matched?.id ?? (rows.length === 1 ? rows[0].id : "");
         } catch {
             return "";
         }

@@ -130,9 +130,16 @@
         }
     }
     const ref = $derived(ledgers.find((entry) => entry.id === active)?.ref);
-    let filterMemberId = $state("");
-    let filterCategory = $state("");
+    // svelte-ignore state_referenced_locally
+    const session = panelSession(plugin);
+    let filterMemberId = $state(session.ledgerFilterMemberId ?? "");
+    let filterCategory = $state(session.ledgerFilterCategory ?? "");
     let selectedItemIds = $state<string[]>([]);
+
+    $effect(() => {
+        session.ledgerFilterMemberId = filterMemberId;
+        session.ledgerFilterCategory = filterCategory;
+    });
 
     const columnSuggestions = $derived(computeColumnSuggestions(rows, ref?.columns, cellText));
     const dynamicLocations = $derived(computeDynamicLocations(rows, ref?.columns, cellText));

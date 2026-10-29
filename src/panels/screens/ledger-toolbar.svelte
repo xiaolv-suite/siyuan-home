@@ -75,21 +75,30 @@
         else active = next;
     }
 
+    let searchTimer: number | undefined;
+
     function handleSearchInput(e: Event) {
         const val = (e.currentTarget as HTMLInputElement).value;
-        searchText = val;
-        onSearchInput?.(val);
+        if (searchTimer !== undefined) window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => {
+            searchText = val;
+            onSearchInput?.(val);
+        }, 120);
     }
 
+    let searchInputEl = $state<HTMLInputElement | undefined>(undefined);
+
     function handleSearchClear() {
+        if (searchTimer !== undefined) window.clearTimeout(searchTimer);
         searchText = "";
         onSearchClear?.();
+        requestAnimationFrame(() => searchInputEl?.focus());
     }
 </script>
 
 <div class="lv-toolbar lv-ledger-toolbar" style="margin:0 0 14px">
     {#if ledgers.length > 0}
-        <select class="b3-select" value={active} onchange={handleSwitchLedger}>
+        <select class="b3-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger") || "切换台账"}>
             {#each groupedLedgers as g (g.groupId)}
                 <optgroup label={g.groupLabel}>
                     {#each g.modules as l (l.id)}
@@ -112,18 +121,18 @@
     {:else if !ref?.avId}
         <button class="b3-button" onclick={onRebuildLedger}>{t("ledger.rebuild")}</button>
     {:else}
-        <div class="lv-search-box" style="position:relative;display:inline-flex;align-items:center">
-            <input class="b3-text-field" style="width:min(240px, 100%);padding-right:48px" type="search" placeholder={t("ledger.search")}
+        <div class="lv-search-box">
+            <input bind:this={searchInputEl} class="b3-text-field lv-search-input" type="search" placeholder={t("ledger.search")}
                 value={searchText}
                 oninput={handleSearchInput}
                 onkeydown={(event) => { if (event.key === "Escape") handleSearchClear(); }}
                 title={t("ledger.search")} />
             {#if searchText}
-                <span class="lv-badge {filteredRowsCount > 0 ? 'blue' : 'orange'}" style="position:absolute;right:22px;font-size:10.5px;padding:1px 5px;pointer-events:none;opacity:0.85">
+                <span class="lv-badge lv-search-badge {filteredRowsCount > 0 ? 'blue' : 'orange'}">
                     {filteredRowsCount}
                 </span>
-                <button class="b3-button b3-button--text" style="position:absolute;right:2px;padding:2px 5px;font-size:11px;color:var(--lv-tx-3);cursor:pointer"
-                    title={t("clear")} onclick={handleSearchClear}>✕</button>
+                <button type="button" class="b3-button b3-button--text lv-search-clear"
+                    title={t("clear")} aria-label={t("clear")} onclick={handleSearchClear}>✕</button>
             {/if}
         </div>
         <button class="b3-button b3-button--outline lv-density-btn"
@@ -143,7 +152,7 @@
                 <button class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
                     disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportIcs}>{exporting ? t("ledger.saving") : t("ledger.exportIcs")}</button>
                 <button class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
-                    disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportArchiveManifest}>{t("ledger.exportArchive")}</button>
+                    disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportArchiveManifest}>{exporting ? t("ledger.saving") : t("ledger.exportArchive")}</button>
                 <button class="b3-button b3-button--outline" title={t("ledger.printLabels")}
                     disabled={filteredRowsEmpty || printing || exporting} aria-busy={printing} onclick={onPrintLabels}>{printing ? t("ledger.saving") : t("ledger.printLabels")}</button>
                 {#if active === "vehicles"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("energy")}>{t("fuel.dashboardButton")}</button>{/if}
@@ -180,6 +189,7 @@
         <span class="lv-caption" style="font-size:11px;color:var(--lv-tx-3);margin-right:2px">📌</span>
         {#each pinnedLedgers as pid (pid)}
             <button type="button" class="lv-preset-tag" class:active={active === pid}
+                aria-pressed={active === pid}
                 onclick={() => onSwitchLedger ? onSwitchLedger(pid) : (active = pid)}>
                 {t(`module.${pid}`)}
             </button>
@@ -188,14 +198,14 @@
 {/if}
 
 {#if (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
-    <div class="lv-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:11.5px">
+    <div class="lv-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:12px">
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
             <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
                 <span class="lv-caption" style="font-size:11px;margin-right:2px">👤</span>
-                <button type="button" class="lv-preset-tag" class:active={!filterMemberId} onclick={() => { filterMemberId = ""; }}>{t("ledger.allMembers")}</button>
+                <button type="button" class="lv-preset-tag" class:active={!filterMemberId} aria-pressed={!filterMemberId} onclick={() => { filterMemberId = ""; }}>{t("ledger.allMembers")}</button>
                 {#each plugin.settings.members ?? [] as m (m.id)}
                     {#if m.avItemId}
-                        <button type="button" class="lv-preset-tag" class:active={filterMemberId === m.avItemId} onclick={() => { filterMemberId = filterMemberId === m.avItemId ? "" : m.avItemId; }}>
+                        <button type="button" class="lv-preset-tag" class:active={filterMemberId === m.avItemId} aria-pressed={filterMemberId === m.avItemId} onclick={() => { filterMemberId = filterMemberId === m.avItemId ? "" : m.avItemId; }}>
                             {m.name}
                         </button>
                     {/if}
@@ -205,9 +215,9 @@
         {#if categoryCol && availableCategories.length > 0}
             <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
                 <span class="lv-caption" style="font-size:11px;margin-right:2px">🏷️</span>
-                <button type="button" class="lv-preset-tag" class:active={!filterCategory} onclick={() => { filterCategory = ""; }}>{t("ledger.allCategories")}</button>
+                <button type="button" class="lv-preset-tag" class:active={!filterCategory} aria-pressed={!filterCategory} onclick={() => { filterCategory = ""; }}>{t("ledger.allCategories")}</button>
                 {#each availableCategories as catVal (catVal)}
-                    <button type="button" class="lv-preset-tag" class:active={filterCategory === catVal} onclick={() => { filterCategory = filterCategory === catVal ? "" : catVal; }}>
+                    <button type="button" class="lv-preset-tag" class:active={filterCategory === catVal} aria-pressed={filterCategory === catVal} onclick={() => { filterCategory = filterCategory === catVal ? "" : catVal; }}>
                         {optLabel(t, "category", catVal)}
                     </button>
                 {/each}
@@ -215,3 +225,35 @@
         {/if}
     </div>
 {/if}
+
+<style>
+    .lv-search-box {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+    .lv-search-input {
+        width: min(240px, 100%);
+        padding-right: 48px;
+    }
+    .lv-search-badge {
+        position: absolute;
+        right: 22px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        padding: 1px 5px;
+        pointer-events: none;
+        opacity: 0.85;
+    }
+    .lv-search-clear {
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 2px 5px;
+        font-size: 11px;
+        color: var(--lv-tx-3);
+        cursor: pointer;
+    }
+</style>

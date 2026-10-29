@@ -347,14 +347,16 @@
             {/if}
         </p>
         <div class="lv-hero-actions">
-            <button class="b3-button lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
-            <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openLocationIndexModal}><UiIcon name="mapPin" size={15} />{t("ledger.locSearch")}</button>
-            <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openLifeIndexModal}><UiIcon name="shield" size={15} />{t("overview.lifeIndex")}</button>
-            <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openEmergencyCardModal}><UiIcon name="alert" size={15} />{t("overview.emergencyCard")}</button>
-            <button class="b3-button b3-button--outline lv-hero-action-btn" onclick={openShareCardModal}><UiIcon name="camera" size={15} />{t("overview.shareCard")}</button>
+            <button class="lv-btn primary lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
             {#if onCapture}
-                <button class="b3-button b3-button--outline lv-hero-action-btn lv-hero-capture-btn" onclick={() => onCapture()}><UiIcon name="add" size={15} />{t("dash.quickRecord")}</button>
+                <button class="lv-btn lv-hero-action-btn lv-hero-capture-btn" onclick={() => onCapture()}><UiIcon name="add" size={15} />{t("dash.quickRecord")}</button>
             {/if}
+            <div class="lv-hero-tools-group" role="group" aria-label="快捷工具">
+                <button class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
+                <button class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
+                <button class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
+                <button class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
+            </div>
         </div>
         {#if monthlyDone > 0}<p><span class="lv-badge green">✓ {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span></p>{/if}
     </div>
@@ -368,7 +370,7 @@
                 <b class="lv-num lv-hero-stat-num">{reminders.length}</b>
             </div>
             <div class="lv-hero-stat-footer">
-                <span class="lv-badge {reminders.length > 0 ? 'orange' : 'green'}" style="font-size:11px">
+                <span class="lv-badge {reminders.length > 0 ? 'orange' : 'green'}">
                     {reminders.length > 0 ? `${reminders.length} 项需留意` : '全家就绪 · 暂无到期'}
                 </span>
             </div>
@@ -387,7 +389,7 @@
 {/if}
 
 {#if showStartGuide}
-    <details class="lv-start-guide" aria-labelledby="lv-start-guide-title">
+    <details class="lv-start-guide" open aria-labelledby="lv-start-guide-title">
         <summary class="lv-start-guide__summary">
             <span class="lv-start-guide__copy">
                 <span class="lv-kicker">{t("startGuide.kicker")}</span>
@@ -434,7 +436,7 @@
 
 <OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter />
 
-<div class="lv-members" style="margin-bottom:4px">
+<div class="lv-members">
     <button class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>
     {#each members as m (m.id)}
         <button class="lv-chip {memberFilter === m.id ? 'on' : ''}" aria-pressed={memberFilter === m.id} onclick={() => setMemberFilter(m.id)}>
@@ -474,7 +476,7 @@
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.quickRecord")}</h2><span class="lv-sub">{t("dash.quickRecordSub")}</span>
     {#if onCapture}<button class="b3-button b3-button--text" onclick={() => onCapture()}>{t("capture.openFull")}</button>{/if}
 </div>
-<div id="lv-quick-modules" class="lv-quick" style="margin-bottom:8px">
+<div id="lv-quick-modules" class="lv-quick">
     {#each quickVisibleModules as mid (mid)}
         {@const tone = moduleTone(mid)}
         <button class="lv-qbtn {tone}" onclick={() => mid === "members" ? onGoto("members") : openQuickCapture(mid)}>
@@ -491,16 +493,16 @@
     {/if}
 </div>
 <div class="lv-sec"><h2 class="lv-title-sec">{t("memo.quick")}</h2><span class="lv-sub">{t("memo.quickSub")}</span></div>
-<div class="lv-card lv-memo" style="margin-top:0">
+<div class="lv-card lv-memo">
     <!-- 261 波：回车提交（isComposing 守卫——中文输入法选词的 Enter 不算提交） -->
-    <input bind:this={memoInput} class="b3-text-field fn__flex-1" style="min-width:180px" placeholder={t("memo.placeholder")} bind:value={memoTitle}
+    <input bind:this={memoInput} class="b3-text-field fn__flex-1" style="min-width:180px" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
         disabled={savingMemo} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
     <!-- 262 波（Todoist 式即时预览）：解析命中即亮 chip，提交前就知道日期去哪了 -->
     {#if memoParsed}
         <span class="lv-parsechip" role="status"><UiIcon name="calendar" size={13} /> <span class="lv-num">{memoParsed.date}</span></span>
     {/if}
-    <input class="b3-text-field" type="date" bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-    <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
+    <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
+    <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")} aria-label={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
 </div>
 
 <OverviewModuleGrid

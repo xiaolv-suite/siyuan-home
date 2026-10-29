@@ -148,6 +148,8 @@ export async function renew(
             delete rt.snoozed[r.id];
             delete rt.muted[r.id];
             delete rt.handled[r.id];
+            delete rt.handledUntil[r.id];
+            delete rt.handledYear[r.id];
             rt.renewHistory[r.rowId] = [
                 ...(rt.renewHistory[r.rowId] ?? []),
                 { from: r.dueDate, to: newDueISO, at: new Date().toISOString() },

@@ -64,6 +64,7 @@
     <div class="lv-quick-chips" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
         {#each frequentModules as fId (fId)}
             <button type="button" class="lv-quick-chip" class:active={moduleId === fId}
+                aria-pressed={moduleId === fId}
                 onclick={() => { moduleId = fId; }}
                 disabled={saving || identityPending}
                 title={modLabel(fId)}>
@@ -75,13 +76,32 @@
 {/if}
 
 {#if currentTemplates.length > 0}
-    <div class="lv-template-bar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;font-size:11.5px;margin-bottom:6px">
-        <span class="lv-caption" style="color:var(--lv-tx-3);font-size:11px">✨ {t("capture.frequentTemplates") || "常用模板"}:</span>
+    <div class="lv-template-bar">
+        <span class="lv-caption lv-tx-muted">✨ {t("capture.frequentTemplates") || "常用模板"}:</span>
         {#each currentTemplates as tpl (tpl.id)}
-            <button type="button" class="lv-preset-tag" onclick={() => onApplyTemplate?.(tpl)} disabled={saving} style="font-size:11.5px;padding:2px 8px">
+            <button type="button" class="lv-preset-tag lv-template-tag" onclick={() => onApplyTemplate?.(tpl)} disabled={saving}>
                 {#if tpl.icon}<span>{tpl.icon}</span>{/if}
                 <span>{tpl.label}</span>
             </button>
         {/each}
     </div>
 {/if}
+
+<style>
+    .lv-template-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 6px 12px;
+        background: var(--lv-surface-2);
+        border: 1px solid var(--lv-line);
+        border-radius: var(--lv-r-control);
+        font-size: 11.5px;
+        margin-bottom: 8px;
+    }
+    .lv-template-tag {
+        font-size: 11.5px;
+        padding: 2px 8px;
+    }
+</style>

@@ -18,7 +18,6 @@
         cellText,
         ledgerTone,
         toneCls,
-        toneColor,
         onToggleSort,
         onOpenDetail,
         onAdjustQty,
@@ -37,7 +36,7 @@
         cellText: (v: any, k?: string) => string;
         ledgerTone: (r: any) => LedgerTone;
         toneCls: (tone: LedgerTone) => string;
-        toneColor: (tone: LedgerTone) => string;
+        toneColor?: (tone: LedgerTone) => string;
         onToggleSort: (k: string) => void;
         onOpenDetail: (r: any) => void;
         onAdjustQty: (r: any, k: string, delta: number) => void;
@@ -132,8 +131,8 @@
 <div class="lv-card lv-table-wrap lv-table" class:lv-table--compact={tableDensity === "compact"} style="margin-top:12px">
     <table bind:this={ledgerTableEl}>
         <thead><tr>
-            <th style="width:36px;padding:4px 6px;text-align:center">
-                <input type="checkbox" class="b3-switch" style="transform:scale(0.8);margin:0" checked={allSelected} onclick={toggleSelectAll} title="全选/取消全选" />
+            <th class="lv-check-col">
+                <input type="checkbox" class="b3-checkbox" style="cursor:pointer;margin:0" checked={allSelected} onclick={toggleSelectAll} title={t("hub.selectAll")} aria-label={t("hub.selectAll")} />
             </th>
             <!-- Severity indicator column. -->
             <th class="lv-sev-col"></th>
@@ -154,8 +153,8 @@
                 {@const tone = ledgerTone(r)}
                 {@const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail")}
                 <tr class="lv-row-link" onclick={() => onOpenDetail(r)} title={t("ledger.detail")}>
-                    <td style="width:36px;padding:4px 6px;text-align:center" onclick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" class="b3-switch" style="transform:scale(0.8);margin:0" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} />
+                    <td class="lv-check-cell" onclick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" class="b3-checkbox" style="cursor:pointer;margin:0" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} aria-label={`${t("hub.select")} ${rowName}`} />
                     </td>
                     <td class="lv-sev-cell">
                         <button type="button" class="lv-table-open" aria-label={`${t("ledger.detail")}：${rowName}`} title={t("ledger.detail")}
@@ -165,14 +164,14 @@
                     </td>
                     {#each tableKeys as k (k)}
                         {@const v = r.cells?.[ref?.columns?.[k]]}
-                        <td class="lv-num" style={k === "expiry" || k === "due" ? `color:${toneColor(tone)}` : ""}>
+                        <td class="lv-num" class:lv-tx-danger={(k === "expiry" || k === "due") && tone === "danger"} class:lv-tx-warn={(k === "expiry" || k === "due") && tone === "warn"}>
                             {#if k === "qty" || k === "stock_qty"}
                                 <div class="lv-qty-stepper">
                                     <button type="button" class="lv-qty-btn"
-                                        title={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}>−</button>
+                                        title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}>−</button>
                                     <span style="min-width:18px;text-align:center">{cellText(v, k)}</span>
                                     <button type="button" class="lv-qty-btn"
-                                        title={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}>+</button>
+                                        title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}>+</button>
                                 </div>
                             {:else}
                                 {cellText(v, k)}

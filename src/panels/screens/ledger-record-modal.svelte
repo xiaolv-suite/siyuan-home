@@ -76,6 +76,14 @@
     let recordOperationKey = $state<string | null>(null);
     let duplicateConfirmPending = $state(false);
 
+    $effect(() => {
+        if (open) {
+            document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
+        } else {
+            document.querySelector(".lv-home")?.classList.remove("lv-scroll-locked");
+        }
+    });
+
     const certificateProfile = $derived(active === "certs" && form.category ? getCertificateProfile(String(form.category)) : null);
     const certificateScalarCols = $derived(getCertificateScalarCols(plugin.schemaCatalog?.certs?.columns, certificateProfile));
 
@@ -347,6 +355,8 @@
                 if (closeAfterSave) {
                     open = false;
                     restoreNewRecordFocus();
+                } else {
+                    showMessage(t("capture.savedEvent") + (savedName ? ` (${savedName})` : ""), 2500, "info");
                 }
                 if (onRecordSaved) {
                     await onRecordSaved({ docId: ref?.docId, name: savedName, module: active });

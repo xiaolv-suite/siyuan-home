@@ -34,7 +34,7 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button" id="lv-waste-copy">${t("ledger.emergencyKitCopy")}</button>
+  <button class="b3-button" id="lv-waste-copy">📋 ${t("ledger.copyWasteSchedule") || "复制清运计划"}</button>
 </div>`,
         width: "560px",
     });

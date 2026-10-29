@@ -176,12 +176,12 @@
             <textarea class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
         </label>
         <div class="lv-member-editor-actions">
-            <button type="button" class="lv-btn primary sm" onclick={save} disabled={memberSaving} aria-busy={memberSaving}>
-                {memberSaving ? t("ledger.saving") : editId ? t("save") : `＋ ${t("add")}`}
-            </button>
             {#if editId}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
             {/if}
+            <button type="button" class="lv-btn primary sm" onclick={save} disabled={memberSaving} aria-busy={memberSaving}>
+                {memberSaving ? t("ledger.saving") : editId ? t("save") : `＋ ${t("add")}`}
+            </button>
         </div>
     </div>
 </div>
@@ -208,5 +208,6 @@
     @container lv-home (max-width: 420px) {
         .lv-member-editor-fields { grid-template-columns: 1fr; }
         .lv-member-editor-actions { grid-column: auto; }
+        .lv-member-check { padding-top: 4px; padding-bottom: 4px; min-height: 28px; }
     }
 </style>

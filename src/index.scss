@@ -5,16 +5,62 @@
 // Body 级 Dialog 不在 .lv-home 的继承树中，提供同一套令牌的安全默认值，
 // 保证详情、油耗和设置弹窗在暗色与浅色主题下都不会因为变量缺失而退化。
 :root {
-    --lv-brand: #D97706; /* 威尼斯暖木金 */
+    --lv-brand: #355a7b;
     --lv-brand-soft: color-mix(in srgb, var(--lv-brand) 12%, transparent);
-    --lv-accent-ruby: #E11D48; /* 鸽血红宝石火种点缀 */
     --lv-space-1: 4px; --lv-space-2: 8px; --lv-space-3: 12px; --lv-space-4: 16px;
     --lv-space-5: 20px; --lv-space-6: 24px; --lv-space-7: 32px; --lv-space-8: 40px;
     --lv-font-xs: 11px; --lv-font-sm: 12px; --lv-font-md: 13px;
-    --lv-font-body: 14px; --lv-font-title: 18px; --lv-font-display: 26px;
-    --lv-leading-tight: 1.25; --lv-leading-body: 1.6; --lv-leading-relaxed: 1.75;
+    --lv-font-body: 14px; --lv-font-title: 16px; --lv-font-lg: 18px; --lv-font-display: 24px;
+    --lv-leading-tight: 1.25; --lv-leading-body: 1.55; --lv-leading-relaxed: 1.65;
     --lv-weight-regular: 400; --lv-weight-medium: 500; --lv-weight-semibold: 600;
     --lv-control-sm: 32px; --lv-control-md: 36px; --lv-control-lg: 40px;
+    --lv-canvas: #f5f8fa;
+    --lv-surface: #ffffff;
+    --lv-surface-2: #edf2f6;
+    --lv-r-1: 6px;
+    --lv-r-2: 10px;
+    --lv-r-3: 16px;
+    --lv-r-4: 20px;
+    --lv-r-card: 20px;
+    --lv-r-inner: 12px;
+    --lv-r-control: 10px;
+    --lv-r-full: 999px;
+    --lv-line: rgba(35, 50, 77, 0.08);
+    --lv-line-strong: rgba(35, 50, 77, 0.16);
+    --lv-inset: rgba(255, 255, 255, .9);
+    --lv-shadow-1: 0 1px 2px rgba(15, 23, 42, .03), 0 3px 8px -2px rgba(15, 23, 42, .04);
+    --lv-shadow-2: 0 3px 6px rgba(15, 23, 42, .04), 0 10px 24px -4px rgba(15, 23, 42, .07);
+    --lv-shadow-3: 0 8px 16px rgba(15, 23, 42, .06), 0 24px 36px -8px rgba(15, 23, 42, .12);
+    --lv-shadow-pop: 0 4px 12px -2px rgba(49, 83, 114, 0.20), 0 12px 28px -4px rgba(49, 83, 114, 0.14);
+    --lv-accent: #315372;
+    --lv-accent-2: #213c54;
+    --lv-accent-soft: rgba(49, 83, 114, .10);
+    --lv-accent-glow: rgba(49, 83, 114, .18);
+    --lv-accent-line: rgba(49, 83, 114, .26);
+    --lv-data-accent: #0d9488;
+    --lv-data-2: #0f766e;
+    --lv-data-soft: rgba(13, 148, 136, .10);
+    --lv-data-glow: rgba(13, 148, 136, .18);
+    --lv-data-line: rgba(13, 148, 136, .26);
+    --lv-surface-accent-dark: #101726;
+    --lv-surface-accent-dark-2: #19243a;
+    --lv-tx-on-dark: #f8fafc;
+    --lv-tx-on-dark-sub: #94a3b8;
+    --lv-tx: #1e293b;
+    --lv-tx-2: #475569;
+    --lv-tx-3: #64748b;
+    --lv-warn: #91602e;
+    --lv-warn-soft: rgba(145, 96, 46, .10);
+    --lv-amber: #9e6b28;
+    --lv-amber-soft: rgba(158, 107, 40, .10);
+    --lv-ok: #386951;
+    --lv-ok-soft: rgba(56, 105, 81, .10);
+    --lv-danger: #a84351;
+    --lv-danger-soft: rgba(168, 67, 81, .10);
+    --lv-info: #527b98;
+    --lv-info-2: #3f6480;
+    --lv-info-soft: rgba(82, 123, 152, .12);
+    --lv-info-line: rgba(82, 123, 152, .28);
 }
 
 // ② settings.svelte 现役样式（C1c 收尾完成：dashboard 已删、类名已统一 lv-settings 命名空间；
@@ -149,11 +195,43 @@
     overflow: hidden;
 }
 
+.lv-settings__pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0;
+}
+
 .lv-settings__pane-title {
     flex: none;
-    margin: 2px 0;
+    margin: 0;
     font-size: 15px;
     font-weight: 600;
+}
+
+.lv-set-search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 180px;
+}
+
+.lv-set-search-input {
+    width: 100%;
+    font-size: 12px;
+    padding: 3px 22px 3px 8px;
+    min-height: 28px;
+}
+
+.lv-set-search-clear {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0 4px;
+    font-size: 11px;
+    color: var(--lv-tx-3);
 }
 
 .lv-settings__subnav {
@@ -455,6 +533,110 @@
     }
 }
 
+.lv-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--lv-space-2);
+    padding: 12px 16px;
+    border-top: 1px solid var(--lv-line);
+    background: var(--lv-surface);
+}
+
+.lv-detail-del-btn {
+    color: var(--lv-danger) !important;
+    &:hover { background: var(--lv-danger-soft) !important; }
+}
+
+.lv-detail-more {
+    position: relative;
+    display: inline-block;
+    summary { list-style: none; cursor: pointer; }
+    summary::-webkit-details-marker { display: none; }
+    &[open] .lv-detail-more-menu { display: grid; }
+}
+
+.lv-detail-more-menu {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    z-index: 100;
+    min-width: 176px;
+    padding: 6px;
+    border: 1px solid var(--lv-line);
+    border-radius: var(--lv-r-inner);
+    background: var(--lv-surface);
+    box-shadow: var(--lv-shadow-pop);
+    grid-template-columns: 1fr;
+    gap: 3px;
+    .b3-button { justify-content: flex-start; text-align: left; width: 100%; min-height: 32px; font-size: 12px; border-radius: var(--lv-r-1); }
+}
+
+.lv-spotlight-dialog-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 75vh;
+}
+
+.lv-spotlight-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.lv-spotlight-input {
+    width: 100%;
+    font-size: 14px;
+    padding: 9px 12px 9px 36px;
+    border-radius: var(--lv-r-control);
+    border: 1px solid var(--lv-line);
+    background: var(--lv-surface-2);
+    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    &:focus {
+        border-color: var(--lv-accent);
+        outline: none;
+        box-shadow: 0 0 0 3px var(--lv-accent-soft);
+    }
+}
+
+.lv-spotlight-cmd {
+    padding: 10px 14px;
+    border: 1px solid var(--lv-accent);
+    border-radius: var(--lv-r-inner);
+    background: var(--lv-surface-2);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    &:hover, &:focus-visible {
+        background: var(--lv-accent-soft);
+        transform: translateY(-1px);
+        box-shadow: var(--lv-shadow-1);
+    }
+}
+
+.lv-spotlight-item {
+    padding: 10px 14px;
+    border: 1px solid var(--lv-line);
+    border-radius: var(--lv-r-inner);
+    background: var(--lv-surface);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    &:hover, &:focus-visible {
+        border-color: var(--lv-line-strong);
+        background: var(--lv-surface-2);
+        transform: translateY(-1px);
+        box-shadow: var(--lv-shadow-1);
+    }
+}
+
 // 269 波：svelteDialog 宿主的 .dialog-content 是 display:flex（row），而 .lv-home 带
 // container-type:inline-size（尺寸包含）——flex item 无法从内容推导宽度，设置面板
 // 塌缩成 226px 竖条（真机审计截图实锤）。显式撑满：flex 拉伸 + 宽度 100%
@@ -487,26 +669,13 @@
 .b3-dialog:has(.lv-home),
 .b3-dialog--lvmobile {
     z-index: 1000 !important;
-    --lv-brand: #D97706;
-    --lv-brand-soft: rgba(217, 119, 6, 0.12);
-    --lv-accent-ruby: #E11D48;
-    --lv-surface: #ffffff;
-    --lv-surface-2: #f1f5f9;
-    --lv-line: #e2e8f0;
-    --lv-line-strong: #cbd5e1;
-    --lv-accent: #d97706;
-    --lv-tx: #0f172a;
-    --lv-tx-2: #334155;
-    --lv-tx-3: #64748b;
-    --lv-danger: #dc2626;
-    --lv-warn: #ea580c;
-    --lv-ok: #059669;
+    @include design-system.light-surfaces;
 
     .b3-dialog__container {
-        border-radius: 16px;
+        border-radius: var(--lv-r-card);
         background: var(--lv-surface);
         color: var(--lv-tx);
-        box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+        box-shadow: var(--lv-shadow-3);
         border: 1px solid var(--lv-line);
     }
     .b3-dialog__header { font-size: 16px; font-weight: 600; color: var(--lv-tx); }
@@ -566,23 +735,7 @@
 :root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
 html.dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
 body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog) {
-    --lv-surface: #111827;
-    --lv-surface-2: #1f2937;
-    --lv-line: #374151;
-    --lv-line-strong: #4b5563;
-    --lv-accent: #f59e0b;
-    --lv-tx: #f8fafc;
-    --lv-tx-2: #cbd5e1;
-    --lv-tx-3: #94a3b8;
-    --lv-danger: #f87171;
-    --lv-danger-soft: rgba(239, 68, 68, 0.18);
-    --lv-warn: #fbbf24;
-    --lv-warn-soft: rgba(245, 158, 11, 0.18);
-    --lv-ok: #34d399;
-    --lv-ok-soft: rgba(16, 185, 129, 0.18);
-    --lv-amber: #f59e0b;
-    --lv-amber-soft: rgba(245, 158, 11, 0.18);
-    --lv-info-soft: rgba(59, 130, 246, 0.18);
+    @include design-system.dark-surfaces;
     .b3-button { min-height: 34px; border-radius: 10px; }
     .ft__on-surface { color: var(--lv-tx-3); }
 

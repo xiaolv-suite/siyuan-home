@@ -6,6 +6,7 @@
 import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./spotlight";
 import { moduleIcon } from "./modules";
 import { showMessage } from "siyuan";
+import { ensurePinyin } from "./pinyin";
 
 function escapeHtml(str: string): string {
     return str
@@ -38,6 +39,9 @@ export interface SpotlightDialogOptions {
 export async function openSpotlightDialog(options: SpotlightDialogOptions): Promise<void> {
     const { t, plugin, DialogCls, renderLedgerAllFn, cellTextFn, onNavigateToTarget } = options;
 
+    // 预先保证拼音字典加载就绪
+    void ensurePinyin();
+
     const enabled = (plugin.settings.enabledModules ?? []).filter((id) => id !== "adhoc");
     const modLabel = (m: string) => (t(`module.${m}`) !== `module.${m}` ? t(`module.${m}`) : m);
     const memberNameMap = new Map((plugin.settings.members ?? []).map((m) => [m.avItemId ?? m.id, m.name]));
@@ -47,14 +51,13 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     const dlg = new DialogCls({
         title: "",
         content: `
-            <div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px;max-height:75vh">
-                <div style="position:relative;display:flex;align-items:center">
+            <div class="b3-dialog__content lv-spotlight-dialog-body">
+                <div class="lv-spotlight-input-wrap">
                     <span style="position:absolute;left:12px;font-size:16px;color:var(--lv-tx-3);pointer-events:none">🔍</span>
-                    <input class="b3-text-field" id="lv-spotlight-input"
-                        placeholder="${t("spotlight.placeholder") || "输入生活记录、物品、证件、存放位置或备注..."}"
-                        style="width:100%;font-size:14px;padding:9px 12px 9px 36px;border-radius:8px;border:1px solid var(--lv-line-strong);background:var(--lv-surface-2)" />
+                    <input class="b3-text-field lv-spotlight-input" id="lv-spotlight-input"
+                        placeholder="${t("spotlight.placeholder") || "输入生活记录、物品、证件、存放位置或备注..."}" />
                 </div>
-                <div id="lv-spotlight-status" class="lv-caption" style="display:flex;justify-content:space-between;align-items:center;color:var(--lv-tx-3)">
+                <div id="lv-spotlight-status" class="lv-caption lv-tx-muted" style="display:flex;justify-content:space-between;align-items:center">
                     <span>${t("spotlight.loading") || "正在索引家庭数据..."}</span>
                 </div>
                 <div id="lv-spotlight-list" class="lv-dialog-scroll-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:48vh;min-height:120px"></div>
@@ -135,12 +138,11 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         for (const cmd of matchedCmds) {
             const card = document.createElement("div");
             card.className = "lv-card lv-spotlight-cmd";
-            card.style.cssText = "padding:10px 14px;border:1px solid var(--lv-accent);border-radius:8px;background:var(--lv-surface-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all 0.15s ease";
             card.tabIndex = 0;
             card.innerHTML = `
                 <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
                     <b style="font-size:13.5px;color:var(--lv-tx)">${escapeHtml(cmd.title)}</b>
-                    <span class="lv-caption" style="color:var(--lv-tx-3)">${escapeHtml(cmd.sub)}</span>
+                    <span class="lv-caption lv-tx-muted">${escapeHtml(cmd.sub)}</span>
                 </div>
                 <span class="lv-badge" style="background:var(--lv-accent-soft);color:var(--lv-accent);font-weight:600;font-size:11px">指令</span>
             `;
@@ -150,6 +152,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                     if (cmd.action === "open-capture") window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
                     else if (cmd.action === "open-location") window.dispatchEvent(new CustomEvent("siyuan-home:open-location"));
                     else if (cmd.action === "open-emergency") window.dispatchEvent(new CustomEvent("siyuan-home:open-emergency"));
+                    else if (cmd.action === "open-life-index") window.dispatchEvent(new CustomEvent("siyuan-home:open-life-index"));
                     else if (cmd.action === "open-reminders") onNavigateToTarget({ moduleId: "adhoc", rowId: "" });
                     else if (cmd.action === "open-settings") (plugin as any).openSetting?.();
                     else if (cmd.action === "open-store-mode") window.dispatchEvent(new CustomEvent("siyuan-home:open-store"));
@@ -173,8 +176,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
 
         for (const item of matched) {
             const card = document.createElement("div");
-            card.className = "lv-card";
-            card.style.cssText = "padding:10px 14px;border:1px solid var(--lv-line);border-radius:8px;background:var(--lv-surface);cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:border-color 0.15s, background 0.15s";
+            card.className = "lv-card lv-spotlight-item";
             card.tabIndex = 0;
 
             const top = document.createElement("div");
@@ -202,7 +204,9 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                 try {
                     await navigator.clipboard.writeText(blockRefText);
                     showMessage(t("spotlight.refCopied"), 2500, "info");
-                } catch { /* soft fallback */ }
+                } catch (err) {
+                    showMessage(t("ledger.copyAsImageFail") + ` (${err instanceof Error ? err.message : String(err)})`, 4000, "error");
+                }
             };
 
             const badge = document.createElement("span");

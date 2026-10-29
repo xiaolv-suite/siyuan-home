@@ -173,7 +173,7 @@ export function calculateMedicineSupply(
 } {
     const today = options?.today || getTodayStr();
 
-    if (currentStock <= 0) {
+    if (!Number.isFinite(currentStock) || currentStock <= 0) {
         return {
             daysRemaining: 0,
             estimatedRunoutDate: today,
@@ -203,7 +203,10 @@ export function calculateMedicineSupply(
     }
 
     let status: SupplyStatus;
-    if (daysRemaining <= 7) {
+    // 若药品实际已经过期（daysUntilExpiry < 0），严禁误报为库存充足
+    if (daysUntilExpiry !== undefined && daysUntilExpiry < 0) {
+        status = "critical";
+    } else if (daysRemaining <= 7) {
         status = "critical";
     } else if (daysRemaining <= 30) {
         status = "warning";

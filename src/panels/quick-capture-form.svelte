@@ -179,12 +179,48 @@
 {#if saveError}
     <span class="lv-caption lv-capture-error-summary" role="alert" aria-live="assertive"><UiIcon name="alert" size={13} /> {saveError}</span>
 {/if}
-<div class="lv-keep-context-wrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed var(--lv-line)">
-    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--lv-tx-2);user-select:none" title={`${t("capture.keepContext")} (Alt+K)`}>
-        <input type="checkbox" class="b3-switch" style="transform:scale(0.85);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
-        <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")} <span style="opacity:0.6;font-size:10.5px">(Alt+K)</span></span>
+<div class="lv-keep-context-wrap">
+    <label class="lv-keep-context-label" title={`${t("capture.keepContext")} (Alt+K)`}>
+        <input type="checkbox" class="b3-switch lv-keep-context-switch" bind:checked={keepContext} />
+        <span class="lv-caption lv-keep-context-text">{t("capture.keepContext")} <span class="lv-keep-context-sub">(Alt+K)</span></span>
     </label>
     {#if identityPending}
-        <button type="button" class="b3-button b3-button--text" style="font-size:11.5px;color:var(--lv-danger)" onclick={onDiscardUncertain}>{t("capture.discardUncertain")}</button>
+        <button type="button" class="b3-button b3-button--text lv-discard-uncertain" onclick={onDiscardUncertain}>{t("capture.discardUncertain")}</button>
     {/if}
 </div>
+
+<style>
+    .lv-keep-context-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--lv-line);
+    }
+    .lv-keep-context-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        color: var(--lv-tx-2);
+        user-select: none;
+    }
+    .lv-keep-context-switch {
+        transform: scale(0.85);
+        transform-origin: left center;
+        flex-shrink: 0;
+    }
+    .lv-keep-context-text {
+        white-space: nowrap;
+    }
+    .lv-keep-context-sub {
+        opacity: 0.6;
+        font-size: 10.5px;
+    }
+    .lv-discard-uncertain {
+        font-size: 11.5px;
+        color: var(--lv-danger);
+    }
+</style>

@@ -91,17 +91,17 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
 
         const inCard = document.createElement("div");
         inCard.className = "lv-metric-lg";
-        inCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsInTotal")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">¥${formatAmount(report.totalIn)}</b><span class="lv-caption">${report.countIn} 笔</span>`;
+        inCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsInTotal")}</span><b class="lv-num" style="color:var(--lv-data-accent);font-size:22px">¥${formatAmount(report.totalIn)}</b><span class="lv-caption">${report.countIn} 笔</span>`;
 
         const outCard = document.createElement("div");
         outCard.className = "lv-metric-lg";
-        outCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsOutTotal")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:18px">¥${formatAmount(report.totalOut)}</b><span class="lv-caption">${report.countOut} 笔</span>`;
+        outCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsOutTotal")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:22px">¥${formatAmount(report.totalOut)}</b><span class="lv-caption">${report.countOut} 笔</span>`;
 
         const netCard = document.createElement("div");
-        const netColor = report.netAmount >= 0 ? "var(--lv-accent)" : "var(--lv-danger)";
+        const netColor = report.netAmount >= 0 ? "var(--lv-data-accent)" : "var(--lv-danger)";
         const netLabel = report.netAmount >= 0 ? t("ledger.favorsNetSurplus") : t("ledger.favorsNetDeficit");
         netCard.className = "lv-metric-lg";
-        netCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsNetAmount")}</span><b class="lv-num" style="color:${netColor};font-size:18px">${report.netAmount >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netAmount))}</b><span class="lv-caption">${netLabel}</span>`;
+        netCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsNetAmount")}</span><b class="lv-num" style="color:${netColor};font-size:22px">${report.netAmount >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netAmount))}</b><span class="lv-caption">${netLabel}</span>`;
 
         metrics.append(inCard, outCard, netCard);
         body.appendChild(metrics);
@@ -120,7 +120,7 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
                 left.textContent = p.person;
                 const right = document.createElement("span");
                 right.style.cssText = "font-size:12px";
-                const pNetColor = p.net >= 0 ? "var(--lv-accent)" : "var(--lv-danger)";
+                const pNetColor = p.net >= 0 ? "var(--lv-data-accent)" : "var(--lv-danger)";
                 right.innerHTML = `收 ¥${formatAmount(p.inAmount)} · 送 ¥${formatAmount(p.outAmount)} · <b style="color:${pNetColor}">${p.net >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(p.net))}</b>`;
                 item.append(left, right);
                 list.appendChild(item);

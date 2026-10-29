@@ -235,27 +235,48 @@
         };
         const spotlightHandler = () => void openSpotlight();
         const emergencyHandler = () => void openEmergencyCardFromGuest();
+        const lifeIndexHandler = async () => {
+            try {
+                const { openLifeIndexModal } = await import("@/core/overview-modals");
+                const allReminders = plugin.scan?.reminders ?? plugin.runtime?.cache?.reminders ?? [];
+                await openLifeIndexModal({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
+            } catch (err) {
+                console.error("[siyuan-home] failed to open life index modal", err);
+            }
+        };
+        const storeHandler = () => {
+            plugin.setActiveLedger?.("stock");
+            gotoScreen("ledger");
+        };
         window.addEventListener("siyuan-home:open-capture", captureHandler);
         window.addEventListener("siyuan-home:open-spotlight", spotlightHandler);
         window.addEventListener("siyuan-home:open-emergency", emergencyHandler);
+        window.addEventListener("siyuan-home:open-life-index", lifeIndexHandler);
+        window.addEventListener("siyuan-home:open-store", storeHandler);
         return () => {
             window.removeEventListener("siyuan-home:open-capture", captureHandler);
             window.removeEventListener("siyuan-home:open-spotlight", spotlightHandler);
             window.removeEventListener("siyuan-home:open-emergency", emergencyHandler);
+            window.removeEventListener("siyuan-home:open-life-index", lifeIndexHandler);
+            window.removeEventListener("siyuan-home:open-store", storeHandler);
         };
     });
-    // 268 波（Linear 式键盘优先）：N 键呼出快速记录、Ctrl+K 呼出全景生活检索
+    // 268 波（Linear 式键盘优先）：N 键呼出快速记录、Ctrl+K 呼出全景生活检索（仅焦点在管家内有效，防抢编辑器超链接）
     $effect(() => {
         const onKey = (e: KeyboardEvent) => {
+            const el = e.target as HTMLElement | null;
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
-                e.preventDefault();
-                void openSpotlight();
+                // 仅当焦点落在小驴管家宿主容器内部且非编辑器内部时响应，避免抢占思源官方插入超链接快捷键
+                if (homeEl && homeEl.contains(el) && !el?.isContentEditable) {
+                    e.preventDefault();
+                    void openSpotlight();
+                    return;
+                }
                 return;
             }
             if (captureOpen) return;
             if (e.key !== "n" && e.key !== "N") return;
             if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey) return;
-            const el = e.target as HTMLElement | null;
             if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
             if (document.querySelector("dialog[open], .b3-dialog, .lv-modal.open")) return; // 任意宿主或插件弹窗打开时不抢键
             e.preventDefault();
@@ -440,22 +461,22 @@
             {/each}
         </div>
         <span class="fn__flex-1"></span>
-        <!-- 259 波（对齐原型 hub-status）：呼吸状态点 + mono 扫描时间——全产品唯一常驻动效（07 §5 #5）。
-             绿=已扫描 / 橙=快照陈旧 / 红=有扫描错误（错误态不呼吸）。时间读 runtime.scannedAt：
-             plugin.scan 首轮扫描完成前为空，此前"扫描于 —"与 strip 的快照时间互相矛盾 -->
-        <span class="lv-hubstatus lv-caption" role="status"
-            aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}>
+        <!-- 259 波：呼吸状态点 + mono 扫描时间，支持点击一键触发重新扫描 -->
+        <button type="button" class="lv-hubstatus lv-caption"
+            title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · 点击立即重新扫描`}
+            aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}
+            onclick={() => void refreshInitialScan(true)}>
             <i class="lv-pulse" class:orange={plugin.scan?.stale && !plugin.scan?.errors?.length}
                 class:red={(plugin.scan?.errors?.length ?? 0) > 0} aria-hidden="true"></i>
             <span class="lv-num">{formatLocalTime(plugin.runtime?.scannedAt, { hour: "2-digit", minute: "2-digit" }) ?? "—"}</span>
             {#if plugin.scan?.stale}<span class="lv-badge orange" title={plugin.scan.errors.map((e) => e.moduleId).join(", ")}>{t("hub.stale")}</span>{/if}
-        </span>
+        </button>
         <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
         <div class="lv-tabbar-actions">
-            <button class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} style="font-size:15px" onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
-            <button class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} style={isGuestMode ? "color:var(--lv-warn)" : ""} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-            <button class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} style="font-size:15px" onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
-            <button class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} style="font-size:15px" onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
+            <button class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
+            <button class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
+            <button class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+            <button class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
             {#if onMobileClose}
                 <button class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
             {/if}
@@ -463,16 +484,16 @@
     </header>
 
     {#if isGuestMode}
-        <div class="lv-guest-banner" role="status" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:var(--lv-surface-2);border-bottom:1px solid var(--lv-line);font-size:12px;color:var(--lv-tx)">
-            <div style="display:flex;align-items:center;gap:8px;min-width:0">
-                <span class="lv-badge orange" style="font-weight:600;flex-shrink:0">{t("guest.bannerTitle")}</span>
-                <span class="lv-caption" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{t("guest.bannerDesc")}</span>
+        <div class="lv-guest-banner" role="status">
+            <div class="lv-guest-banner__left">
+                <span class="lv-badge orange">{t("guest.bannerTitle")}</span>
+                <span class="lv-caption">{t("guest.bannerDesc")}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-                <button class="b3-button b3-button--text" style="font-size:12px;padding:2px 8px" onclick={openEmergencyCardFromGuest}>
+            <div class="lv-guest-banner__right">
+                <button class="b3-button b3-button--text" onclick={openEmergencyCardFromGuest}>
                     🚨 {t("overview.emergencyCard")}
                 </button>
-                <button class="b3-button b3-button--text" style="font-size:12px;padding:2px 8px" onclick={toggleGuestMode}>
+                <button class="b3-button b3-button--text" onclick={toggleGuestMode}>
                     {t("guest.exitMode")}
                 </button>
             </div>

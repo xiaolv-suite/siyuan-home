@@ -185,10 +185,15 @@ export interface QuickAdjustRowQtyOptions {
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
 }
 
+const adjustingRowKeys = new Set<string>();
+
 /** 台账列表数量/库存快速 +1 / -1 增量微调 */
 export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Promise<number | undefined> {
     const { row, fieldKey, delta, ref, active, plugin, showMessageFn } = options;
     if (!ref?.avId || !ref.columns?.[fieldKey]) return undefined;
+    const lockKey = `${row.itemID}:${fieldKey}`;
+    if (adjustingRowKeys.has(lockKey)) return undefined;
+    adjustingRowKeys.add(lockKey);
     const colId = ref.columns[fieldKey];
     const cell = row.cells?.[colId];
     let cur = 0;
@@ -210,6 +215,8 @@ export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Prom
     } catch (e) {
         showMessageFn(String(e), 3000, "error");
         return undefined;
+    } finally {
+        adjustingRowKeys.delete(lockKey);
     }
 }
 

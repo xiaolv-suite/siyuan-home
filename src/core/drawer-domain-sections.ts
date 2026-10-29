@@ -286,7 +286,7 @@ export async function renderSchoolingStageSection(options: RenderSchoolingStageS
                   <span>${t("ledger.schoolingProgress")}: ${stage.stageProgressPercent}%</span>
                 </div>
                 <div style="height:4px;border-radius:2px;background:var(--lv-line);overflow:hidden;width:100%">
-                  <div style="height:100%;background:var(--lv-accent);width:${stage.stageProgressPercent}%;border-radius:2px"></div>
+                  <div style="height:100%;background:var(--lv-data-accent);width:${stage.stageProgressPercent}%;border-radius:2px"></div>
                 </div>`;
         }
     } catch {

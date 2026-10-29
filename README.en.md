@@ -39,27 +39,25 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.176 (Local Ready Build)
+## 🆕 What's new in v0.5.177 (Local Ready Build)
 
-This release modularizes plugin entrypoint registration, topbar living observer, and session auth guard into dedicated sub-modules, reaching **1,010 unit tests passing (100% green)**:
+This release modularizes runtime persistence, schema normalization, and instance-level lock management into dedicated sub-modules, reaching **1,016 unit tests passing (100% green)**:
 
-- **Major Refactoring (Plugin Entrypoints & Topbar Living Guard)**: Extracted `src/core/plugin-entrypoints.ts` (272 lines), encapsulating plugin startup and lifecycle registration:
-  1. Unified SVG vector icon registration (`iconLvHome`) and global tab attachment (`addTab`)
-  2. Stale node cleanup and single-instance guarantee across toolbar and statusbar
-  3. Topbar entry (`addTopBar`) and right-click context menu (quick capture, reminders, ledger, members, settings)
-  4. Desktop topbar living observer (`MutationObserver` + 300ms debounce) preventing icon disappearances
-  5. 8 command palette shortcuts and 3 native slash commands
-  6. Status bar due count badge with one-click navigation
-- **Refactoring (Auth Interception & Session Restoration)**: Extracted `src/core/plugin-auth-guard.ts` (122 lines) for session security:
-  1. Intercepts `siyuan-home:auth-expired`, caches origin return path in `sessionStorage`, marks errors, and redirects to login
-  2. Handles `siyuan-home:permission-denied` with compact messaging
-  3. Automatic return path restoration (`checkRestoredAuth`) upon login
-- **Performance**: Plugin entry file `src/index.ts` dramatically slimmed down to **627 lines** (trimmed 354 lines from 981 lines, a 36.1% reduction). All codebase files are now strictly below 666 lines;
-- **Quality Assurance**: Added `tests/core/plugin-entrypoints.test.ts` and `tests/core/plugin-auth-guard.test.ts`, expanding suite to **154 test files and 1,010 unit tests passing**;
+- **Refactoring (Runtime Store & Persistence Engine)**: Extracted `src/core/hub/runtime-store.ts` (339 lines), encapsulating data normalization and write serialization:
+  1. Default runtime factory (`defaultRuntime`) and defensive data normalization (`normalizeCache`, `normalizeHandled`, `normalizeRenewHistory`, `normalizeReminders`, `normalizeMemo`, `normalizeNamedView`)
+  2. Safe disk loading with corruption resilience (`loadRuntime`)
+  3. Semantic fingerprint comparison (`semanticRuntimeFingerprint`) stripping volatile timestamps to prevent unnecessary disk writes and host reload jitter
+  4. WeakMap-based async lock and queue mechanism (`withRuntimeSaveLock`, `saveRuntime`, `persistRuntimeUnderLock`) eliminating concurrent write overwrites
+- **Performance**: Runtime core file `src/core/hub/runtime.ts` dramatically slimmed down to **332 lines** (trimmed 319 lines from 651 lines, a 49.0% reduction), focusing cleanly on business rules and derivation;
+- **Quality Assurance**: Added `tests/core/runtime-store.test.ts`, expanding suite to **155 test files and 1,016 unit tests passing**;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.176 (Local Ready Build)
+- Extracted `src/core/plugin-entrypoints.ts` and `src/core/plugin-auth-guard.ts` for plugin entrypoints and auth guards;
+- Plugin entry file `src/index.ts` down to 627 lines, 1,010 tests passing.
 
 ### v0.5.175 (Local Ready Build)
 - Extracted `src/core/ledger-view-model.ts` and `src/panels/screens/ledger-empty-state.svelte` for ledger view model and empty states;

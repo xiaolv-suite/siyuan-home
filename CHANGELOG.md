@@ -1,3 +1,20 @@
+## v0.5.177 2026-10-29（本地就绪版）
+
+### 运行态存储持久化与并发锁独立解耦、单测增至1016项全绿、运行态精简至332行
+
+- **重构（运行态存储持久化、数据规范化与并发锁独立解耦）**：
+  - 独立抽取 `src/core/hub/runtime-store.ts`（339 行），集中封装运行态底层数据基础设施：
+    1. 默认状态构造（`defaultRuntime`）与运行态数据结构规范化清洗（`normalizeCache`、`normalizeHandled`、`normalizeRenewHistory`、`normalizeReminders`、`normalizeMemo`、`normalizeNamedView` 等）；
+    2. 安全持久化加载（`loadRuntime`），兼容思源损坏备份容错；
+    3. 业务实质指纹比对机制（`semanticRuntimeFingerprint`），剥离易变时间戳，杜绝无实质变更时频繁写盘与内核重载抖动；
+    4. 基于 WeakMap 的插件实例级异步锁与排队机制（`withRuntimeSaveLock`、`saveRuntime`、`persistRuntimeUnderLock`、`persistRuntimeSnapshot`），杜绝多面板并发写入导致状态覆盖；
+  - 运行态核心文件 `src/core/hub/runtime.ts` 代码行数由 651 行骤降至 **332 行**（净精简 **319 行**，精简幅度达 **49.0%**），专注于业务生命周期与提醒派生；
+- **质量保障与单测突破**：
+  - 新增 `tests/core/runtime-store.test.ts` 专项单元测试套件，全面覆盖版本默认值、语义指纹时间戳剥离、损坏数据自动回退降级、重复写盘自动去重与并发写入串行化锁；
+  - 全仓自动化单测扩增至 **155 个测试套件、1,016 项单元测试 100% 全绿**；
+  - 严格保持 5 层质量门禁（tsc、svelte-check 0 错误 0 警告、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）通过；
+- **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
+
 ## v0.5.176 2026-10-29（本地就绪版）
 
 ### 插件入口与鉴权守护全面解耦独立、单测增至1010项全绿、主入口降至627行

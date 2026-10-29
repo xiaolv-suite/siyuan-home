@@ -18,21 +18,23 @@
 
 ---
 
-## 本次更新（v0.5.175 → v0.5.176 本地就绪版）
+## 本次更新（v0.5.176 → v0.5.177 本地就绪版）
 
-本次更新推进插件同步入口与鉴权守护全面解耦独立，**全仓自动化单元测试增至 1,010 项全绿（1010/1010 全绿）**：
-- **重大重构（插件UI同步入口与存活守护独立解耦）**：
-  - 独立抽取 `src/core/plugin-entrypoints.ts`（272 行），集中承载图标注册、全局页签、顶栏与右键菜单、顶栏 DOM 存活复活守护、8 项命令面板指令、3 项斜杠指令与状态栏角标；
-- **重构（内核鉴权拦截与会话恢复守护独立解耦）**：
-  - 独立抽取 `src/core/plugin-auth-guard.ts`（122 行），集中承载鉴权失效拦截、权限拒绝统一提示、sessionStorage 返回点暂存与登录后同源自动恢复；
-  - 核心入口文件 `src/index.ts` 代码行数由 981 行骤降至 **627 行**（净精简 **354 行**，净精简幅度达 **36.1%**），全仓源码文件彻底控制在 666 行以内；
+本次更新推进运行态存储持久化、数据规范化与并发锁独立解耦，**全仓自动化单元测试增至 1,016 项全绿（1016/1016 全绿）**：
+- **重构（运行态存储持久化与并发锁独立解耦）**：
+  - 独立抽取 `src/core/hub/runtime-store.ts`（339 行），集中封装默认运行态构造、数据结构规范化清洗（`normalizeCache`、`normalizeHandled`、`normalizeRenewHistory`、`normalizeReminders`、`normalizeMemo`、`normalizeNamedView` 等）、业务实质指纹比对机制（`semanticRuntimeFingerprint`）与 WeakMap 实例级异步持久化锁（`withRuntimeSaveLock`、`saveRuntime`）；
+  - 运行态核心文件 `src/core/hub/runtime.ts` 代码行数由 651 行骤降至 **332 行**（净精简 **319 行**，精简幅度达 **49.0%**），聚焦于业务生命周期与提醒过滤派生；
 - **质量保障与单测突破**：
-  - 新增 `tests/core/plugin-entrypoints.test.ts` 与 `tests/core/plugin-auth-guard.test.ts` 专项单元测试，自动化单测增至 **154 个套件、1,010 项全部通过**；
+  - 新增 `tests/core/runtime-store.test.ts` 专项单元测试，自动化单测增至 **155 个套件、1,016 项全部通过**；
   - 严格通过 5 层质量门禁（tsc 0 错、svelte 0 错 0 警、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.176 本地就绪版
+- 抽取 `src/core/plugin-entrypoints.ts` 与 `src/core/plugin-auth-guard.ts` 独立封装插件同步入口与鉴权守护；
+- 插件主入口 `src/index.ts` 降至 627 行，单测增至 1,010 项。
 
 ### v0.5.175 本地就绪版
 - 抽取 `src/core/ledger-view-model.ts` 与 `src/panels/screens/ledger-empty-state.svelte` 独立封装台账视图模型与空态引导；

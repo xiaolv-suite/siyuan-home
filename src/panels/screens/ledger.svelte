@@ -1,11 +1,10 @@
 <script lang="ts">
     import { renderLedgerAll, addDetachedRow, setCell } from "@/core/siyuan";
-    import { selectCellValue, selectCellContent } from "@/core/avcell";
+    import { selectCellContent } from "@/core/avcell";
     import { showMessage, Dialog } from "siyuan";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { ensurePinyin, pinyinReady } from "@/core/pinyin";
-    import type { ColumnDef } from "@/core/schema";
     import type { ActivityTarget } from "@/core/activity";
     import LedgerRecordModal from "./ledger-record-modal.svelte";
     import LedgerToolbar from "./ledger-toolbar.svelte";
@@ -22,6 +21,10 @@
         computeDynamicLocations,
         sortLedgerRows,
         matchLedgerRowSearch,
+        computeMissingSchemaColumns,
+        computeTableKeys,
+        computeModuleWarnDays,
+        buildLedgerCellPayload,
         type LedgerTone,
     } from "@/core/ledger-view-model";
     import { onDestroy } from "svelte";
@@ -213,18 +216,7 @@
     // dbRef in settings; exposing that ref here would show stale rows after a
     // settings change and make the empty-state actions misleading.
     const schemaKeys = $derived<string[]>(ref?.columns ? Object.keys(ref.columns) : []);
-    // Keep the list useful across all modules. A fixed expiry/status list made
-    // travel, shopping and other ledgers render only an empty severity column.
-    const tableKeys = $derived.by(() => {
-        const preferred = ["name", "category", "status", "date", "expiry", "due", "amount", "brand_model", "plate", "energy_type", "mileage", "note"];
-        const keys = preferred.filter((key) => schemaKeys.includes(key));
-        const columns = plugin.schemaCatalog?.[active]?.columns ?? [];
-        for (const column of columns) {
-            if (keys.length >= 5) break;
-            if (schemaKeys.includes(column.key) && !keys.includes(column.key) && !["asset", "mAsset", "mSelect", "relation"].includes(column.type)) keys.push(column.key);
-        }
-        return keys.length > 0 ? keys : schemaKeys.slice(0, 5);
-    });
+    const tableKeys = $derived(computeTableKeys(schemaKeys, plugin.schemaCatalog?.[active]?.columns));
     const PINNED_MODULES = ["certs", "medicine", "vehicles", "stock", "shopping", "house", "contracts", "health"];
     const pinnedLedgers = $derived(PINNED_MODULES.filter((id) => ledgers.some((l) => l.id === id)).slice(0, 5));
 
@@ -301,7 +293,7 @@
             selectContentFn: selectCellContent,
             addDetachedRowFn: addDetachedRow,
             setCellFn: setCell,
-            cellValueFn: cellValue,
+            cellValueFn: (type: string, val: any) => buildLedgerCellPayload(type, val, plugin.settings.members),
             onOpenNewRecord: openNewRecord,
             onOpenDetail: openDetail,
             onReload: load,
@@ -407,17 +399,7 @@
         return () => window.removeEventListener("siyuan-home:open-location", handler);
     });
 
-    // Keep the fast path small, while exposing every supported schema field in
-    // the expandable section below. Writes still follow the declared cell type.
-    const missingSchemaCols = $derived.by(() => {
-        if (!ref?.columns || avCols.length === 0) return [] as ColumnDef[];
-        const existingIds = new Set(avCols.map((c: any) => c?.id));
-        const schemaCols = plugin.schemaCatalog?.[active]?.columns ?? [];
-        return schemaCols.filter((sc: any) => {
-            const registeredId = ref.columns?.[sc.key];
-            return !registeredId || !existingIds.has(registeredId);
-        });
-    });
+    const missingSchemaCols = $derived(computeMissingSchemaColumns(ref?.columns, avCols, plugin.schemaCatalog?.[active]?.columns));
 
     let recordModalRef: any;
     let newRecordOpen = $state(false);
@@ -431,22 +413,6 @@
         recordModalRef?.openNewRecordModal(initialForm);
     }
 
-    function cellValue(type: string, v: any): unknown | null {
-        switch (type) {
-            case "select": return selectCellValue(v);
-            case "relation": {
-                const relationID = typeof v === "string" ? v.trim() : "";
-                const linked = relationID && (plugin.settings.members ?? []).some((m) => m.avItemId === relationID);
-                return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
-            }
-            case "date": return v === "" ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: new Date(`${v}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } };
-            case "number": return v === "" || v === null ? { type: "number", number: { isNotEmpty: false } } : { type: "number", number: { content: Number(v), isNotEmpty: true } };
-            case "url": return { type: "url", url: { content: v } };
-            case "checkbox": return { type: "checkbox", checkbox: { checked: !!v } };
-            default: return { type: "text", text: { content: String(v) } };
-        }
-    }
-
     /** Format a cell for both the table and the detail drawer. */
     function cellText(v: any, colKey?: string, revealSensitive = false): string {
         return formatLedgerCellText(v, colKey, t, Boolean(plugin.runtime?.guestModeActive), revealSensitive);
@@ -455,13 +421,7 @@
     // Warning thresholds follow each module's reminder lead time.
     const warnDays = $derived.by(() => {
         void version;
-        const rules = (plugin.schemaCatalog?.[active]?.reminders ?? []) as { key: string; leadDays: number }[];
-        let max = 0;
-        for (const rule of rules) {
-            const lead = plugin.settings.leadOverrides?.[`${active}.${rule.key}`] ?? rule.leadDays;
-            if (typeof lead === "number" && lead > max) max = lead;
-        }
-        return max > 0 ? max : 30;
+        return computeModuleWarnDays(plugin.schemaCatalog?.[active]?.reminders, plugin.settings.leadOverrides, active);
     });
     const ledgerTone = (r: any): LedgerTone => calculateLedgerTone(r, ref?.columns, warnDays);
 

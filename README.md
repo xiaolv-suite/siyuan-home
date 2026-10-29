@@ -18,21 +18,23 @@
 
 ---
 
-## 本次更新（v0.5.178 本地就绪版）
+## 本次更新（v0.5.179 本地就绪版）
 
-本次更新推进提醒视图模型与页头摘要全面解耦独立，**全仓自动化单元测试增至 1,023 项全绿（1023/1023 全绿）**：
-- **重构（提醒视图模型与纯计算引擎独立解耦）**：
-  - 独立抽取 `src/core/reminders-view-model.ts`（160 行），集中封装多维过滤（`filterReminders`、`filterHandledEntries`）、分组置顶（`computeReminderDisplayGroups`、`sortPinnedFirst`）、规则多语言标签解析、提前量段位推算（`getReminderStage`）、任务块复制（`copyReminderAsTaskBlock`）与双日期今日排程（`toggleReminderQuickPlanToday`）；
-- **重构（提醒主屏页头摘要与样式独立解耦）**：
-  - 独立抽取 `src/panels/screens/reminder-hero-bar.svelte`（75 行），集中封装提醒页顶部 Hero 看板与专用响应式样式；
-  - 提醒主屏核心组件 `src/panels/screens/reminders.svelte` 代码行数降至 **505 行**（从 666 行净减 **161 行**，净精简达 **24.2%**）；
+本次更新推进台账列计算与写入载荷解耦，**全仓自动化单元测试增至 1,027 项全绿（1027/1027 全绿）**：
+- **重构（台账缺失列排查、表格展示列与写入载荷构建解耦）**：
+  - 扩展 `src/core/ledger-view-model.ts`，集中封装缺失列感知计算（`computeMissingSchemaColumns`）、表格首选展示列推算（`computeTableKeys`）、模块提醒提前期阈值推导（`computeModuleWarnDays`）与单元格写入载荷构建（`buildLedgerCellPayload`）；
+  - 彻底移除 `src/panels/screens/ledger.svelte` 中冗余重复的 `cellValue` 定义，台账主屏行数由 628 行精简至 **589 行**；
 - **质量保障与单测突破**：
-  - 新增 `tests/core/reminders-view-model.test.ts` 专项单元测试，自动化单测增至 **156 个套件、1,023 项全部通过**；
+  - 扩展 `tests/core/ledger-view-model.test.ts` 专项单元测试，自动化单测增至 **156 个套件、1,027 项全部通过**；
   - 严格通过 5 层质量门禁（tsc 0 错、svelte 0 错 0 警、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看历史版本更新（点击展开）</summary>
+
+### v0.5.178 本地就绪版
+- 抽取 `src/core/reminders-view-model.ts` 与 `src/panels/screens/reminder-hero-bar.svelte` 独立封装提醒视图模型与页头看板；
+- 提醒主屏 `src/panels/screens/reminders.svelte` 降至 505 行，单测增至 1,023 项。
 
 ### v0.5.177 本地就绪版
 - 抽取 `src/core/hub/runtime-store.ts` 独立封装运行态持久化、语义指纹比对与 WeakMap 实例级写锁；

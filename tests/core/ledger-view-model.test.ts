@@ -8,6 +8,10 @@ import {
     computeDynamicLocations,
     sortLedgerRows,
     matchLedgerRowSearch,
+    computeMissingSchemaColumns,
+    computeTableKeys,
+    computeModuleWarnDays,
+    buildLedgerCellPayload,
 } from "@/core/ledger-view-model";
 
 describe("ledger-view-model (台账视图数据模型与单元格渲染辅助引擎)", () => {
@@ -101,5 +105,74 @@ describe("ledger-view-model (台账视图数据模型与单元格渲染辅助引
         expect(matchLedgerRowSearch(row, "粤B", columns, cellTextFn)).toBe(true);
         expect(matchLedgerRowSearch(row, "比亚迪", columns, cellTextFn)).toBe(true);
         expect(matchLedgerRowSearch(row, "奔驰", columns, cellTextFn)).toBe(false);
+    });
+
+    it("computeMissingSchemaColumns 准确识别未创建或丢失的列", () => {
+        const registered = { name: "col_1", expiry: "col_2", note: "col_3" };
+        const avCols = [{ id: "col_1" }, { id: "col_2" }]; // 缺失 col_3
+        const schemaColumns = [
+            { key: "name", labelKey: "field.name" },
+            { key: "expiry", labelKey: "field.expiry" },
+            { key: "note", labelKey: "field.note" },
+            { key: "category", labelKey: "field.category" }, // 未注册
+        ];
+
+        const missing = computeMissingSchemaColumns(registered, avCols, schemaColumns);
+        expect(missing.map((m: any) => m.key)).toEqual(["note", "category"]);
+    });
+
+    it("computeTableKeys 优先展示核心预设列并动态补全", () => {
+        const schemaKeys = ["name", "expiry", "category", "extra1", "extra2", "extra3"];
+        const schemaColumns = [
+            { key: "name", type: "text" },
+            { key: "expiry", type: "date" },
+            { key: "category", type: "select" },
+            { key: "extra1", type: "text" },
+            { key: "extra2", type: "text" },
+            { key: "extra3", type: "text" },
+        ];
+
+        const keys = computeTableKeys(schemaKeys, schemaColumns);
+        expect(keys).toContain("name");
+        expect(keys).toContain("category");
+        expect(keys).toContain("expiry");
+    });
+
+    it("computeModuleWarnDays 能计算最大提前量并支持用户重载", () => {
+        const rules = [
+            { key: "exp1", leadDays: 30 },
+            { key: "exp2", leadDays: 90 },
+        ];
+        expect(computeModuleWarnDays(rules, {}, "certs")).toBe(90);
+
+        const overrides = { "certs.exp1": 180 };
+        expect(computeModuleWarnDays(rules, overrides, "certs")).toBe(180);
+    });
+
+    it("buildLedgerCellPayload 构造符合思源内核规范的写入载荷", () => {
+        // text
+        expect(buildLedgerCellPayload("text", "测试文本")).toEqual({
+            type: "text",
+            text: { content: "测试文本" },
+        });
+
+        // number
+        expect(buildLedgerCellPayload("number", 123)).toEqual({
+            type: "number",
+            number: { content: 123, isNotEmpty: true },
+        });
+
+        // checkbox
+        expect(buildLedgerCellPayload("checkbox", true)).toEqual({
+            type: "checkbox",
+            checkbox: { checked: true },
+        });
+
+        // relation with valid member
+        const members = [{ avItemId: "item_m1", name: "张三" }];
+        expect(buildLedgerCellPayload("relation", "item_m1", members)).toEqual({
+            type: "relation",
+            relation: { blockIDs: ["item_m1"], contents: null },
+        });
     });
 });

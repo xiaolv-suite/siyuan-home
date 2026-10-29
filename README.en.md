@@ -39,24 +39,25 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.178 (Local Ready Build)
+## 🆕 What's new in v0.5.179 (Local Ready Build)
 
-This release modularizes reminder view calculations and hero bar presentation into dedicated sub-modules, reaching **1,023 unit tests passing (100% green)**:
+This release modularizes ledger column calculations, table keys, and cell payload builders into `ledger-view-model`, reaching **1,027 unit tests passing (100% green)**:
 
-- **Refactoring (Reminders View Model & Pure Engine)**: Extracted `src/core/reminders-view-model.ts` (160 lines) for reminder computation:
-  1. Multi-dimensional filtering (`filterReminders`, `filterHandledEntries`) across levels, members, modules, and relative due windows
-  2. Multi-tier group rendering and pinned-first ordering (`computeReminderDisplayGroups`, `sortPinnedFirst`)
-  3. Rule and kind i18n label decoding (`getReminderRuleText`, `getReminderKindText`)
-  4. Multi-stage lead rules and urgency badge extraction (`getReminderRuleSpec`, `getReminderStage`)
-  5. Native task block markdown generation and clipboard copying (`copyReminderAsTaskBlock`)
-  6. Two-date plan status toggling and dispatch (`toggleReminderQuickPlanToday`)
-- **Refactoring (Reminder Hero Bar Component)**: Extracted `src/panels/screens/reminder-hero-bar.svelte` (75 lines) encapsulating hero title, due counter summary, and scoped container query styles;
-- **Performance**: Reminders screen `src/panels/screens/reminders.svelte` dramatically slimmed down to **505 lines** (trimmed 161 lines from 666 lines, a 24.2% reduction);
-- **Quality Assurance**: Added `tests/core/reminders-view-model.test.ts`, expanding suite to **156 test files and 1,023 unit tests passing**;
+- **Refactoring (Ledger Columns & Payload Builder Modularization)**: Extended `src/core/ledger-view-model.ts` with core grid calculations:
+  1. Sensing and computing missing schema columns (`computeMissingSchemaColumns`)
+  2. Dynamic table display columns calculation (`computeTableKeys`)
+  3. Module reminder warning thresholds calculation (`computeModuleWarnDays`)
+  4. Standardized cell payload builder (`buildLedgerCellPayload`)
+- **Performance**: Main ledger screen `src/panels/screens/ledger.svelte` slimmed down to **589 lines**;
+- **Quality Assurance**: Added unit tests to `tests/core/ledger-view-model.test.ts`, expanding suite to **156 test files and 1,027 unit tests passing**;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases (Click to expand)</summary>
+
+### v0.5.178 (Local Ready Build)
+- Extracted `src/core/reminders-view-model.ts` and `src/panels/screens/reminder-hero-bar.svelte` for reminder view model and hero bar;
+- Reminders screen down to 505 lines, 1,023 tests passing.
 
 ### v0.5.177 (Local Ready Build)
 - Extracted `src/core/hub/runtime-store.ts` for runtime persistence, semantic fingerprinting, and WeakMap serialization lock;

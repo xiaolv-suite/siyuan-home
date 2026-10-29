@@ -5,7 +5,7 @@
 
 import { optLabel, optLabelText } from "./format";
 import { maskCredentialNumber, maskIdNumber } from "./idcard";
-import { selectCellContent, cellContentText } from "./avcell";
+import { selectCellContent, selectCellValue, cellContentText } from "./avcell";
 import { localDateKey } from "./hub/rule";
 import { searchMatch } from "./pinyin";
 import { maskValueForGuest, createDefaultGuestConfig } from "./guest-mode";
@@ -157,4 +157,66 @@ export function matchLedgerRowSearch(
         .map((columnId) => cellTextFn(row.cells?.[columnId as string]))
         .join(" ");
     return searchMatch(searchable, q.trim().toLowerCase());
+}
+
+/** 计算视图中缺失的未绑定/失效列 */
+export function computeMissingSchemaColumns(
+    registeredColumns: Record<string, string> | undefined,
+    avCols: any[],
+    schemaColumns?: any[],
+): any[] {
+    if (!registeredColumns || !schemaColumns) return [];
+    const existingIds = new Set(avCols.map((c) => c?.id));
+    return schemaColumns.filter((sc) => {
+        const registeredId = registeredColumns[sc.key];
+        return !registeredId || !existingIds.has(registeredId);
+    });
+}
+
+/** 动态推算台账主表格展示列 */
+export function computeTableKeys(
+    schemaKeys: string[],
+    schemaColumns?: any[],
+    preferred = ["name", "category", "status", "date", "expiry", "due", "amount", "brand_model", "plate", "energy_type", "mileage", "note"],
+): string[] {
+    const keys = preferred.filter((key) => schemaKeys.includes(key));
+    const columns = schemaColumns ?? [];
+    for (const column of columns) {
+        if (keys.length >= 5) break;
+        if (schemaKeys.includes(column.key) && !keys.includes(column.key) && !["asset", "mAsset", "mSelect", "relation"].includes(column.type)) {
+            keys.push(column.key);
+        }
+    }
+    return keys.length > 0 ? keys : schemaKeys.slice(0, 5);
+}
+
+/** 推导当前模块的提醒提前期阈值 */
+export function computeModuleWarnDays(
+    rules: { key: string; leadDays: number }[] | undefined,
+    leadOverrides: Record<string, number> | undefined,
+    activeModule: string,
+): number {
+    let max = 0;
+    for (const rule of rules ?? []) {
+        const lead = leadOverrides?.[`${activeModule}.${rule.key}`] ?? rule.leadDays;
+        if (typeof lead === "number" && lead > max) max = lead;
+    }
+    return max > 0 ? max : 30;
+}
+
+/** 构造思源单元格写入值载荷 */
+export function buildLedgerCellPayload(type: string, v: any, members?: any[]): unknown | null {
+    switch (type) {
+        case "select": return selectCellValue(v);
+        case "relation": {
+            const relationID = typeof v === "string" ? v.trim() : "";
+            const linked = relationID && (members ?? []).some((m) => m.avItemId === relationID);
+            return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
+        }
+        case "date": return v === "" ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: new Date(`${v}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } };
+        case "number": return v === "" || v === null ? { type: "number", number: { isNotEmpty: false } } : { type: "number", number: { content: Number(v), isNotEmpty: true } };
+        case "url": return { type: "url", url: { content: v } };
+        case "checkbox": return { type: "checkbox", checkbox: { checked: !!v } };
+        default: return { type: "text", text: { content: String(v) } };
+    }
 }

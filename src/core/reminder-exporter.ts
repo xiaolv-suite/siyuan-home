@@ -1,0 +1,118 @@
+/**
+ * 提醒中枢摘要周报与日历 ICS 导出引擎
+ * 解耦自 reminder-dialogs.ts，封装周报摘要 Markdown 生成、差值记录、日历 ICS 导出与隐私二次确认
+ */
+
+import type { Reminder } from "@/types";
+import { saveRuntime } from "./hub/runtime";
+
+export interface OpenReminderDigestDialogOptions {
+    filtered: Reminder[];
+    plugin: any;
+    DialogCls: any;
+    t: (k: string) => string;
+    showMessageFn: (m: string, timeout?: number, type?: string) => void;
+}
+
+/** 提醒中枢周报/月报摘要弹窗（含差值对比与剪贴板复制） */
+export async function openReminderDigestDialog(options: OpenReminderDigestDialogOptions): Promise<void> {
+    if (typeof document === "undefined") return;
+    const { filtered, plugin, DialogCls, t, showMessageFn } = options;
+    try {
+        const { buildReminderDigest, formatDigestMarkdown } = await import("./reminder-digest");
+        const input = filtered.map((r) => ({
+            id: r.id,
+            moduleId: r.moduleId,
+            title: r.title,
+            dueDate: r.dueDate,
+            daysLeft: r.daysLeft,
+            level: r.level,
+        }));
+        const history = plugin.runtime?.digestHistory;
+        const digest = buildReminderDigest(input, {
+            periodLabel: t("hub.digestThisWeek"),
+            previousOverdue: typeof history?.overdue === "number" ? history.overdue : null,
+        });
+        const markdown = formatDigestMarkdown(digest, (id) => (t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id));
+
+        const dlg = new DialogCls({
+            title: t("hub.digestTitle"),
+            content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption" style="white-space:pre-wrap;line-height:1.7;margin:0"></pre></div>
+<div class="b3-dialog__action">
+  <button class="b3-button b3-button--cancel">${t("close")}</button>
+  <button class="b3-button" id="lv-digest-copy">${t("hub.digestCopy")}</button>
+</div>`,
+            width: "600px",
+        });
+
+        const pre = dlg.element.querySelector("pre");
+        if (pre) pre.textContent = markdown;
+        const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
+        if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
+        const copyBtn = dlg.element.querySelector("#lv-digest-copy") as HTMLButtonElement | null;
+        if (copyBtn) {
+            copyBtn.onclick = async () => {
+                try {
+                    await navigator.clipboard.writeText(markdown);
+                    showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+                } catch {
+                    showMessageFn(t("hub.digestCopyFailed"), 4000, "error");
+                }
+            };
+        }
+
+        // 记录本次快照，供下期生成对比差值
+        if (!plugin.runtime) plugin.runtime = {};
+        plugin.runtime.digestHistory = { overdue: digest.counts.overdue, at: digest.generatedAt };
+        await saveRuntime(plugin, plugin.runtime);
+    } catch (e) {
+        showMessageFn(t("hub.digestFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+    }
+}
+
+const HIGH_CONSEQUENCE_MODULES = new Set([
+    "health", "parenting", "certs", "insurance", "assets-real", "assets-virtual", "contracts", "medicine", "schooling"
+]);
+
+export interface ExportReminderIcsOptions {
+    list: Reminder[];
+    t: (k: string) => string;
+    showMessageFn: (m: string, timeout?: number, type?: string) => void;
+    confirmFn: (title: string, body: string, onConfirm: () => void) => void;
+}
+
+/** 提醒中枢日历 ICS 导出（含敏感模块二次确认） */
+export async function exportReminderIcs(options: ExportReminderIcsOptions): Promise<void> {
+    const { list, t, showMessageFn, confirmFn } = options;
+    if (list.length === 0) {
+        showMessageFn(t("hub.icsEmpty"), 3000, "error");
+        return;
+    }
+    const download = async () => {
+        if (typeof document === "undefined") return;
+        try {
+            const { buildIcs } = await import("./ics");
+            const events = list.map((r: Reminder) => ({
+                uid: `${r.id}@lvhome.local`,
+                date: r.dueDate,
+                summary: r.title,
+                description: r.moduleId === "adhoc" ? t("adhoc.name") : (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId),
+            }));
+            const ics = buildIcs(t("hub.title"), events);
+            const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `lvhome-reminders-${new Date().toISOString().slice(0, 10)}.ics`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showMessageFn(t("hub.icsDone").replace("${n}", String(list.length)), 3000, "info");
+        } catch (e) {
+            showMessageFn(t("hub.icsFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        }
+    };
+    if (list.some((r: Reminder) => HIGH_CONSEQUENCE_MODULES.has(r.moduleId))) {
+        confirmFn(t("hub.icsTitle"), t("hub.icsBody").replace("${n}", String(list.length)), () => { void download(); });
+        return;
+    }
+    await download();
+}

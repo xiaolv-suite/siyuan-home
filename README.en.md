@@ -39,19 +39,24 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.169 (Local Ready Build)
+## 🆕 What's new in v0.5.170 (Local Ready Build)
 
-This release modularizes inbox memo triage and reminder digest/calendar exporters into `src/core/triage-to-ledger.ts` and `src/core/reminder-exporter.ts`, taking `src/core/reminder-dialogs.ts` down to 335 lines:
+This release modularizes detail drawer doc template generation and row operation transactions into `src/core/drawer-actions.ts`, taking `src/core/ledger-detail-drawer.ts` down to 533 lines:
 
-- **Refactoring (Modularized Triage Engine & Exporters)**: Extracted two domain modules:
-  1. `src/core/triage-to-ledger.ts` (167 lines): Encapsulates target ledger selection, automatic database provisioning (`provisionModule`), member validation, detached row creation (`addDetachedRow`), and retry safe cell writes (`setCellSafe`)
-  2. `src/core/reminder-exporter.ts` (118 lines): Encapsulates weekly Markdown digest generation with delta comparisons (`openReminderDigestDialog`) and ICS calendar event export with sensitive category confirmation (`exportReminderIcs`)
-- **Performance**: Reminder dialogs core `src/core/reminder-dialogs.ts` down to **335 lines** (trimmed 268 lines from 603 lines, a 44.4% reduction);
-- **Test Milestone**: 145 test suites, **981 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Drawer Actions & Doc Templates)**: Extended `src/core/drawer-actions.ts` (expanded to 515 lines), encapsulating drawer footer and document generation pipelines:
+  1. Dynamic markdown document template generator button group with variable substitution (`renderDrawerDocTemplates`)
+  2. Complete row cloning wizard with smart extraction and prefill (`bindDrawerRowOperations` duplicate)
+  3. Row deletion cascade cleanup including member relations, runtime data, and row logs (`bindDrawerRowOperations` delete)
+- **Performance**: Detail drawer core `src/core/ledger-detail-drawer.ts` down to **533 lines** (trimmed 108 lines from 641 lines, a 16.8% reduction);
+- **Test Milestone**: 145 test suites, **983 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.169 (Local Ready Build)
+- Extracted `src/core/triage-to-ledger.ts` and `src/core/reminder-exporter.ts` for triage and exporters;
+- Reminder dialogs core `src/core/reminder-dialogs.ts` down to 335 lines, 981 tests passing.
 
 ### v0.5.168 (Local Ready Build)
 - Extracted `src/panels/screens/member-card.svelte` for member card component;

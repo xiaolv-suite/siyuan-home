@@ -9,13 +9,11 @@ import { selectCellContent } from "./avcell";
 import { getCertificateProfile } from "./schema";
 import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "./idcard";
 import { AMOUNT_KEYS, formatAmount } from "./format";
-import { localDateKey, parseDate } from "./hub/rule";
+import { localDateKey } from "./hub/rule";
 import { blockDeepLink } from "./qr";
-import { confirm } from "@/libs/dialog";
 import { openContactPicker } from "@/libs/contact-picker";
-import { saveRuntime } from "./hub/runtime";
-import { saveSettings } from "./settings";
 import { renderRowLogSection, renderDrawerQrSection } from "./drawer-sections";
+import { renderDrawerDocTemplates, bindDrawerRowOperations } from "./drawer-actions";
 
 export interface OpenLedgerDetailDrawerOptions {
     row: any;
@@ -36,7 +34,6 @@ export interface OpenLedgerDetailDrawerOptions {
 
 const substRowCss = "padding:2px 0;font-size:12.5px";
 const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
-const btnSmCss = "margin-top:8px;font-size:12px";
 const pad06Fs12Css = "padding:0 6px;font-size:12px";
 const minW96Shrink0Css = "min-width:96px;flex-shrink:0";
 const wordBreakAllCss = "word-break:break-all";
@@ -398,43 +395,18 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         showMessageFn(t("ledger.logReadFailed") + " (" + (error instanceof Error ? error.message : String(error)) + ")", 6000, "error");
     });
 
-    (async () => {
-        const tplList = ((plugin.schemaCatalog?.[active] as any)?.templates ?? []) as { key: string; nameKey: string; file: string }[];
-        for (const tp of tplList) {
-            const label = t(tp.nameKey) !== tp.nameKey ? t(tp.nameKey) : tp.key;
-            const btn = document.createElement("button");
-            btn.className = "b3-button b3-button--outline";
-            btn.style.cssText = btnSmCss;
-            btn.textContent = `${t("ledger.genDoc")} · ${label}`;
-            btn.onclick = async () => {
-                try {
-                    const { getTemplate, renderTemplate, sanitizeDocTitle } = await import("./templates");
-                    const { sql, createDocWithMd } = await import("./siyuan");
-                    const file = getTemplate(tp.file);
-                    if (!file) throw new Error("template missing: " + tp.file);
-                    const rows = await sql<{ box: string }>(`SELECT box FROM blocks WHERE id='${ref.docId!.replace(/'/g, "''")}' LIMIT 1`);
-                    const notebook = rows[0]?.box;
-                    if (!notebook) throw new Error("notebook not found for " + ref.docId);
-                    const vars: Record<string, string> = { name: String(cellTextFn(row.cells[ref.columns!.name])), date: localDateKey(new Date()) };
-                    for (const c of schemaCols) vars[c.key] = cellTextFn(row.cells[ref.columns![c.key]]);
-                    const title = sanitizeDocTitle(`${vars.name} · ${label} · ${vars.date}`);
-                    confirm(t("ledger.genDoc"), t("ledger.genDocConfirm").replace("${title}", title), async () => {
-                        try {
-                            const docId = await createDocWithMd(notebook, `/${title}`, renderTemplate(file, vars));
-                            showMessageFn(t("ledger.genDocDone").replace("${title}", title), 3000, "info");
-                            dlg.destroy();
-                            plugin.showTabDocs(docId);
-                        } catch (e) {
-                            showMessageFn(t("ledger.genDocFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                        }
-                    });
-                } catch (e) {
-                    showMessageFn(t("ledger.genDocFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                }
-            };
-            body.appendChild(btn);
-        }
-    })();
+    renderDrawerDocTemplates({
+        body,
+        dlg,
+        row,
+        ref,
+        active,
+        schemaCols,
+        plugin,
+        t,
+        cellTextFn,
+        showMessageFn,
+    });
 
     import("./drawer-sections").then(({
         renderRxToMedicineButton,
@@ -544,98 +516,17 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         });
     });
 
-    const dupBtn = dlg.element.querySelector("#lv-detail-duplicate") as HTMLButtonElement | null;
-    if (dupBtn) {
-        dupBtn.onclick = () => {
-            const rowName = (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || "";
-            const cloneName = rowName ? `${rowName} (副本)` : "";
-            const copiedValues: Record<string, any> = { name: cloneName };
-            for (const col of schemaCols) {
-                if (col.key === "name" || ["asset", "mAsset", "relation"].includes(col.type)) continue;
-                const v = ref.columns?.[col.key] ? row.cells?.[ref.columns[col.key]] : undefined;
-                if (v) {
-                    if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
-                    else if (col.type === "number") {
-                        const raw = v.number?.content ?? (v as any).content ?? (v as any).value?.number?.content ?? v;
-                        const num = Number(raw);
-                        copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
-                    } else if (col.type === "date") {
-                        const raw = v.date?.content ?? (v as any).content ?? (v as any).value?.date?.content;
-                        if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
-                        else if (typeof raw === "string" && raw.trim()) {
-                            const parsed = parseDate(raw.trim());
-                            copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
-                        }
-                    } else if (col.type === "checkbox") {
-                        copiedValues[col.key] = v.checkbox?.checked ?? (v as any).checked ?? (v as any).value?.checkbox?.checked;
-                    } else {
-                        copiedValues[col.key] = cellTextFn(v, col.key);
-                    }
-                }
-            }
-            dlg.destroy();
-            openNewRecordFn(copiedValues);
-            showMessageFn(t("ledger.duplicateSuccess").replace("${name}", cloneName || rowName), 3000, "info");
-        };
-    }
-
-    (dlg.element.querySelector("#lv-detail-del") as HTMLButtonElement).onclick = () => {
-        if (plugin.runtime?.guestModeActive) {
-            showMessageFn(t("guest.writeBlocked"), 4000, "info");
-            return;
-        }
-        confirm(t("ledger.delTitle"), t("ledger.delBody").replace("${name}", (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail")), async () => {
-            try {
-                const { removeLedgerRows } = await import("./siyuan");
-                await removeLedgerRows(ref.avId!, [row.itemID], {
-                    idempotencyKey: `ledger:delete:${ref.avId!}:${row.itemID}`,
-                    retries: 1,
-                });
-            } catch (e) {
-                showMessageFn(t("ledger.delFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
-                return;
-            }
-            showMessageFn(t("ledger.delDone"), 2500, "info");
-            dlg.destroy();
-            const followupErrors: string[] = [];
-            try {
-                const memberRef = plugin.settings.dbRefs.members;
-                if (memberRef?.avId === ref.avId) {
-                    const linkedMembers = (plugin.settings.members ?? []).filter((member: any) => member.avItemId === row.itemID);
-                    if (linkedMembers.length) {
-                        for (const member of linkedMembers) {
-                            member.avItemId = undefined;
-                            member.syncError = "ledger row deleted";
-                            member.avRowCreatePending = undefined;
-                        }
-                        await saveSettings(plugin, plugin.settings);
-                    }
-                }
-            } catch (e) {
-                followupErrors.push(`${t("ledger.memberLinkCleanupFailed")} (${e instanceof Error ? e.message : String(e)})`);
-            }
-            try {
-                const { cleanupRowRuntimeData } = await import("./hub/runtime");
-                const dirty = cleanupRowRuntimeData(plugin.runtime, row.itemID);
-                if (dirty) {
-                    await saveRuntime(plugin, plugin.runtime);
-                }
-            } catch (e) {
-                followupErrors.push(e instanceof Error ? e.message : String(e));
-            }
-            try {
-                const { updateRowLogs, removeRowLog } = await import("./rowlog");
-                await updateRowLogs(plugin, (current) => removeRowLog(current, ref.avId!, row.itemID));
-            } catch (e) {
-                followupErrors.push(e instanceof Error ? e.message : String(e));
-            }
-            try {
-                await onReload();
-                await plugin.refreshHub([active]);
-            } catch (e) {
-                followupErrors.push(e instanceof Error ? e.message : String(e));
-            }
-            if (followupErrors.length) showMessageFn(t("ledger.delFollowupFailed").replace("${msg}", followupErrors.join("; ")), 6000, "error");
-        });
-    };
+    bindDrawerRowOperations({
+        dlg,
+        row,
+        ref,
+        active,
+        schemaCols,
+        plugin,
+        t,
+        cellTextFn,
+        showMessageFn,
+        openNewRecordFn,
+        onReload,
+    });
 }

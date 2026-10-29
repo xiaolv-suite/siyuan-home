@@ -3,7 +3,6 @@
     import Onboarding from "../onboarding.svelte";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
-    import { fade } from "svelte/transition";
     import { localDateKey } from "@/core/hub/rule";
     import { parseNaturalDate } from "@/core/dateparse";
     import { formatLocalTime } from "@/core/date-display";
@@ -22,6 +21,8 @@
         openYearlyShareCardModal as showShareCard,
     } from "@/core/overview-modals";
     import OverviewModuleGrid from "./overview-module-grid.svelte";
+    import OverviewBentoGrid from "./overview-bento-grid.svelte";
+    import OverviewUpcomingList from "./overview-upcoming-list.svelte";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
         plugin: HomePluginLike;
@@ -412,64 +413,16 @@
     </details>
 {/if}
 
-<div class="lv-focus lv-bento-grid" aria-label={t("dash.focusLabel")}>
-    <!-- 324波：中枢规范大方块 Bento 特征卡（最近到期与倒计时核心看板） -->
-    <button type="button" class="lv-bento-card lv-bento-card--hero" onclick={() => { if (urgentDueReminder) { if (urgentDueReminder.moduleId !== 'adhoc') openLedgerFor(urgentDueReminder.moduleId); else onGoto('reminders'); } else { onGoto('reminders'); } }} aria-label={urgentDueReminder ? `${urgentDueReminder.title}：${urgentDueReminder.daysLeft}天` : t("dash.bentoAllGood")}>
-        <div class="lv-bento-hero-header">
-            <span class="lv-badge {urgentDueReminder && urgentDueReminder.daysLeft <= 0 ? 'red' : urgentDueReminder && urgentDueReminder.daysLeft <= 7 ? 'orange' : 'amber'}">
-                {#if urgentDueReminder}
-                    ⏱️ {t("dash.bentoUrgentTitle")} · {t(`module.${urgentDueReminder.moduleId}`) !== `module.${urgentDueReminder.moduleId}` ? t(`module.${urgentDueReminder.moduleId}`) : t("adhoc.name")}
-                {:else}
-                    🛡️ {t("dash.bentoAllGood")}
-                {/if}
-            </span>
-            {#if urgentDueReminder}
-                <span class="lv-bento-hero-badge lv-num">
-                    {urgentDueReminder.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-urgentDueReminder.daysLeft)) : urgentDueReminder.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(urgentDueReminder.daysLeft))}
-                </span>
-            {/if}
-        </div>
-        <div class="lv-bento-hero-body">
-            {#if urgentDueReminder}
-                <h3 class="lv-bento-hero-title">{urgentDueReminder.title}</h3>
-                <p class="lv-bento-hero-sub">
-                    {#if memberOf(urgentDueReminder.memberId)}
-                        <span class="lv-caption">👤 {memberOf(urgentDueReminder.memberId)?.name} · </span>
-                    {/if}
-                    <span class="lv-caption">📅 {urgentDueReminder.dueDate}</span>
-                </p>
-            {:else}
-                <h3 class="lv-bento-hero-title" style="font-size:16px;color:var(--lv-ok)">{t("dash.bentoAllGood")}</h3>
-                <p class="lv-bento-hero-sub">{t("dash.bentoAllGoodSub")}</p>
-            {/if}
-        </div>
-        <div class="lv-bento-hero-footer">
-            <span class="lv-link" style="font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px">
-                {t("dash.handleNow")} →
-            </span>
-        </div>
-    </button>
-
-    <!-- 双小方块 Bento 副卡：今日待办与资料核对 -->
-    <div class="lv-bento-side">
-        <button type="button" class="lv-focus-card lv-focus-card--today" onclick={() => onGoto("reminders")} aria-label={`${t("dash.focusToday")}：${overdueCount + soon7Count}`}>
-            <div class="lv-focus-copy">
-                <span class="lv-focus-label">{t("dash.focusToday")}</span>
-                <strong class="lv-focus-num lv-num">{overdueCount + soon7Count}</strong>
-                <span class="lv-focus-sub">{t("dash.focusTodayBody").replace("${od}", String(overdueCount)).replace("${s}", String(soon7Count))}</span>
-            </div>
-            <span class="lv-focus-icon" aria-hidden="true"><UiIcon name="clock" size={20} /></span>
-        </button>
-        <button type="button" class="lv-focus-card lv-focus-card--review" onclick={() => onGoto("members")} aria-label={`${t("dash.focusReview")}：${syncErrCount}`}>
-            <div class="lv-focus-copy">
-                <span class="lv-focus-label">{t("dash.focusReview")}</span>
-                <strong class="lv-focus-num lv-num">{syncErrCount}</strong>
-                <span class="lv-focus-sub">{syncErrCount > 0 ? t("dash.focusReviewBody").replace("${n}", String(syncErrCount)) : t("dash.focusReviewOk")}</span>
-            </div>
-            <span class="lv-focus-icon" aria-hidden="true"><UiIcon name="users" size={20} /></span>
-        </button>
-    </div>
-</div>
+<OverviewBentoGrid
+    {urgentDueReminder}
+    {overdueCount}
+    {soon7Count}
+    {syncErrCount}
+    {memberOf}
+    {t}
+    {onGoto}
+    onOpenLedger={openLedgerFor}
+/>
 
 <OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter />
 
@@ -483,84 +436,30 @@
     <button class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>
 </div>
 
-<div class="lv-sec">
-    <h2 class="lv-title-sec">{t("dash.upcoming")}</h2>
-    <span class="lv-sub">{t("dash.upcomingSub")}</span>
-    {#if pulseDateFilter}
-        <button type="button" class="lv-badge blue" style="cursor:pointer;border:none;margin-left:8px" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
-            🗓️ {pulseDateFilter} ✕
-        </button>
-    {/if}
-    <button class="b3-button b3-button--text" onclick={viewAllReminders}>{t("dash.viewAll")} →</button>
-</div>
-{#if reminders.length === 0 && (initialScanError || scanErrors.length > 0)}
-    <div class="lv-card"><div class="lv-empty" role="alert">
-        <div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("dash.scanUnavailable")}</b>
-        <span>{initialScanError || t("dash.focusDataErr").replace("${t}", snapshotLabel).replace("${n}", String(scanErrors.length))}</span>
-        <button class="b3-button b3-button--outline" style="margin-top:8px" disabled={retryingScan} aria-busy={retryingScan} onclick={retryScan}>
-            {retryingScan ? t("ledger.saving") : t("hub.rescan")}
-        </button>
-    </div></div>
-{:else if reminders.length === 0 && memberFilter}
-    <!-- 174 波（对齐原型空态解释）：筛选导致的空 ≠ 无资料，说明并给清除出口 -->
-    <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("dash.filteredEmpty")}</b><span>{t("dash.filteredEmptyHint")}</span>
-        <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => setMemberFilter(undefined)}>{t("dash.clearFilter")}</button>
-    </div></div>
-{:else if reminders.length === 0}
-    {#if firstScanPending}
-        <!-- 260 波：首扫骨架（未知 ≠ 全部完成） -->
-        <div class="lv-card lv-rems" aria-busy="true" role="status">
-            {#each [0, 1, 2] as i (i)}
-                <div class="lv-rem">
-                    <div class="lv-skel" style="width:38px;height:38px;border-radius:11px;flex:none"></div>
-                    <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
-                        <div class="lv-skel" style="height:13px;width:42%"></div>
-                        <div class="lv-skel" style="height:11px;width:26%"></div>
-                    </div>
-                </div>
-            {/each}
-        </div>
-        <p class="lv-caption" style="margin:8px 2px">{t("hub.firstScan")}</p>
-    {:else}
-        <div class="lv-card lv-empty-compact" role="status">
-            <div class="eic-sm"><UiIcon name="check" size={18} /></div>
-            <div class="lv-empty-compact__text">
-                <b>{t("dash.allClear")}</b>
-                <span>{t("hub.emptyHint")}</span>
-            </div>
-            {#if starterModule}
-                <button class="b3-button b3-button--outline" onclick={openStarterRecord}>
-                    ＋ {t("ledger.newRecord")}
-                </button>
-            {/if}
-        </div>
-    {/if}
-{:else}
-    <div class="lv-card lv-rems">
-        {#each top as r (r.id)}
-            <!-- 261 波：离场淡出（对齐提醒页；完成/延后不再瞬消失） -->
-            <div class="lv-rem {r.level}" out:fade={{ duration: 150 }}>
-                <!-- 259 波：图标砖收回中性（对齐原型 .rem .ic = surface-2）——级别语义由色轨+
-                     右侧相对时间大字承载，彩色砖让整列提醒过度用色 -->
-                <div class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></div>
-                <div class="lv-rem-t" role="button" tabindex="0" style="cursor:pointer"
-                    onclick={() => { if (r.moduleId !== 'adhoc') openLedgerFor(r.moduleId); else onGoto('reminders'); }}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (r.moduleId !== 'adhoc') openLedgerFor(r.moduleId); else onGoto('reminders'); } }}
-                    title={t("dash.heroOpen")}>
-                    <b>{r.title}</b><span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : t("adhoc.name")}{#if !r.memberId} · {t("members.unassigned")}{/if}{r.lunar ? " 🌙" : ""}{r.autoRenew ? " 🔄" : ""}</span>
-                </div>
-                <div class="lv-rem-when"><b class="lv-num" style="color:var(--lv-{r.level === 'overdue' ? 'danger' : r.level === 'soon' ? 'warn' : 'amber'})">
-                    {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
-                </b><span class="lv-num">{r.dueDate}</span></div>
-                <div class="lv-rem-ops">
-                    <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} onclick={() => copyAsTaskBlock(r)}>📋</button>
-                    <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => void runOverviewAction(r.id, () => plugin.complete(r))}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
-                    <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => void runOverviewAction(r.id, () => plugin.snooze(r.id, 7))}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>
-                </div>
-            </div>
-        {/each}
-    </div>
-{/if}
+<OverviewUpcomingList
+    {reminders}
+    {top}
+    {memberFilter}
+    bind:pulseDateFilter
+    {initialScanError}
+    {scanErrors}
+    {snapshotLabel}
+    {firstScanPending}
+    {starterModule}
+    {retryingScan}
+    {overviewBusy}
+    {memberOf}
+    {t}
+    onViewAll={viewAllReminders}
+    onClearMemberFilter={() => void setMemberFilter(undefined)}
+    onRetryScan={retryScan}
+    onOpenStarterRecord={openStarterRecord}
+    onOpenLedger={openLedgerFor}
+    {onGoto}
+    onCopyTaskBlock={copyAsTaskBlock}
+    onCompleteReminder={(r) => void runOverviewAction(r.id, () => plugin.complete(r))}
+    onSnoozeReminder={(r, days) => void runOverviewAction(r.id, () => plugin.snooze(r.id, days))}
+/>
 
 <ActivityFeed {plugin} {t} {version} compact={true} />
 

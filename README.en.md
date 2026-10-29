@@ -39,24 +39,31 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.174 (Local Ready Build)
+## 🆕 What's new in v0.5.175 (Local Ready Build)
 
-This release modularizes reminder group rendering and merged card streams into `src/panels/screens/reminder-groups-list.svelte`, **surpassing 1,000 unit tests (1000/1000 passing)**:
+This release modularizes the ledger view model and empty state guidance into dedicated sub-modules, reaching **1,005 unit tests passing (100% green)**:
 
-- **Major Milestone (1,000 Unit Tests Reached)**:
-  - Added `tests/core/reminder-groups-list.test.ts` covering relative due calculations, merged cards toggling, and progressive pagination slicing;
-  - Test suite expanded to **151 test suites with 1,000 unit tests passing (100% green)**;
-  - Upgraded `vitest.config.ts` pool to `pool: "threads"` for rock-solid process stability on Windows;
-- **Refactoring (Modularized Reminder Groups List & Merged Cards)**: Extracted `src/panels/screens/reminder-groups-list.svelte` (228 lines), encapsulating the core reminder stream:
-  1. Multi-tier group rendering (overdue, soon, lead) with progressive page slicing (`renderLimit` / `REMINDER_PAGE_SIZE`)
-  2. Same-member same-day card merging (`display(g.items)`) with accordion toggling (`toggleMerge`)
-  3. Multi-state scan views (first-scan skeleton state, scan error notifications, filtered empty states, and all-clear cards)
-  4. Card action dispatching and relaying for `ReminderCard`
-- **Performance**: Reminders screen `src/panels/screens/reminders.svelte` down to **666 lines** (trimmed 99 lines from 765 lines, a 12.9% reduction);
+- **Refactoring (Ledger View Model & Computation Engine)**: Extracted `src/core/ledger-view-model.ts` (160 lines) for ledger data representation and computation:
+  1. Cell text formatting and guest mode masking (`formatLedgerCellText`)
+  2. Urgency tone and styling calculation (`calculateLedgerTone`, `toneCls`, `toneColor`)
+  3. Dynamic column suggestions (`computeColumnSuggestions`) and location presets (`computeDynamicLocations`)
+  4. Numeric and locale string safe sorting (`sortLedgerRows`)
+  5. Multi-column pinyin & text search matching (`matchLedgerRowSearch`)
+- **Refactoring (Ledger Empty States & Skeleton Loading)**: Extracted `src/panels/screens/ledger-empty-state.svelte` (102 lines) for multi-state ledger feedback:
+  1. Skeleton loading and error retry actions
+  2. Unenabled modules and quick settings button
+  3. Default blank ledger guidance (instant build, bind existing doc, new record)
+  4. Search empty state with clear button and module empty state with CSV import
+- **Performance**: Ledger screen `src/panels/screens/ledger.svelte` slimmed down to **628 lines** (trimmed 148 lines from 776 lines, a 19.1% reduction);
+- **Quality Assurance**: Added `tests/core/ledger-view-model.test.ts`, expanding suite to **152 test files and 1,005 unit tests passing**;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.174 (Local Ready Build)
+- Extracted `src/panels/screens/reminder-groups-list.svelte` for reminder groups list and card merging;
+- Reminders screen down to 666 lines, unit tests surpassed 1,000 mark.
 
 ### v0.5.173 (Local Ready Build)
 - Extracted `src/panels/settings-members-tab.svelte` and `src/panels/settings-data-tab.svelte` for members and data tabs;

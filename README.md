@@ -18,24 +18,25 @@
 
 ---
 
-## 本次更新（v0.5.173 → v0.5.174 本地就绪版）
+## 本次更新（v0.5.174 → v0.5.175 本地就绪版）
 
-本次更新推进提醒分组渲染与合并流独立解耦，**全仓自动化单元测试突破 1,000 项大关（1000/1000 全绿）**：
-- **重大里程碑（全仓自动化单元测试突破 1,000 项大关）**：
-  - 新增 `tests/core/reminder-groups-list.test.ts` 专项测试套件，覆盖扫描工作台视角相对到期日生成、同成员同日合并卡状态折叠展开、超大列表分页渐进切片；
-  - 全仓自动化单测套件扩增至 **151 个测试套件、1,000 项单元测试 100% 全部通过**（0 失败）；
-  - 全面升级 `vitest.config.ts` 测试线程池为 `pool: "threads"`，彻底解决 Windows 多核环境高并发下的子进程关闭竞态；
-- **重构（提醒分组渲染、合并卡流与空态呈现独立解耦）**：
-  - 独立抽取 `src/panels/screens/reminder-groups-list.svelte`（228 行），集中承载提醒列表流核心呈现：
-    1. 多层级分组渲染（逾期、临期、提前量）与分批渐进式加载（`renderLimit` / `REMINDER_PAGE_SIZE`）
-    2. 同成员同日多提醒聚合合并卡片（`display(g.items)`）与就地折叠展开（`toggleMerge`）
-    3. 扫描状态多态呈现（首扫骨架屏态、部分扫描异常、筛选条件空态与全家就绪状态）
-    4. 提醒卡片（`ReminderCard`）事件驱动与业务动作中继
-  - 提醒主屏组件 `src/panels/screens/reminders.svelte` 代码行数历史性降至 **666 行**（从最初 765 行精简 **99 行**，净精简达 **12.9%**）；
+本次更新推进台账视图模型与空态引导全面解耦独立，**全仓自动化单元测试增至 1,005 项全绿（1005/1005 全绿）**：
+- **重构（台账视图模型与数据计算中枢独立解耦）**：
+  - 独立抽取 `src/core/ledger-view-model.ts`（160 行），集中封装单元格格式化、脱敏（`formatLedgerCellText`）、色调（`calculateLedgerTone`）、列建议（`computeColumnSuggestions`）、位置预设（`computeDynamicLocations`）、安全排序（`sortLedgerRows`）与拼音多列搜索（`matchLedgerRowSearch`）；
+- **重构（台账多态空态呈现与骨架屏引导独立解耦）**：
+  - 独立抽取 `src/panels/screens/ledger-empty-state.svelte`（102 行），集中承载骨架屏、加载异常重试、未启用模块、未建库引导与搜索无匹配空态；
+  - 台账主屏组件 `src/panels/screens/ledger.svelte` 代码行数大幅精简至 **628 行**（从最初 776 行精简 **148 行**，净精简达 **19.1%**）；
+- **质量保障与单测突破**：
+  - 新增 `tests/core/ledger-view-model.test.ts` 专项单元测试，自动化单测增至 **152 个套件、1,005 项全部通过**；
+  - 严格通过 5 层质量门禁（tsc 0 错、svelte 0 错 0 警、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.174 本地就绪版
+- 抽取 `src/panels/screens/reminder-groups-list.svelte` 独立封装多层级分组渲染、合并卡流与空态呈现；
+- 提醒主屏 `src/panels/screens/reminders.svelte` 降至 666 行，单测正式突破 1,000 项大关。
 
 ### v0.5.173 本地就绪版
 - 抽取 `src/panels/settings-members-tab.svelte` 与 `src/panels/settings-data-tab.svelte` 独立封装成员设置与数据管理；

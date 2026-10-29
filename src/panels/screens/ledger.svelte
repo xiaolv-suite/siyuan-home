@@ -1,13 +1,10 @@
 <script lang="ts">
     import { renderLedgerAll, addDetachedRow, setCell } from "@/core/siyuan";
-    import { optLabel, optLabelText } from "@/core/format";
-    import { maskCredentialNumber, maskIdNumber } from "@/core/idcard";
-    import { selectCellValue, selectCellContent, cellContentText } from "@/core/avcell";
-    import { localDateKey } from "@/core/hub/rule";
+    import { selectCellValue, selectCellContent } from "@/core/avcell";
     import { showMessage, Dialog } from "siyuan";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
-    import { ensurePinyin, pinyinReady, searchMatch } from "@/core/pinyin";
+    import { ensurePinyin, pinyinReady } from "@/core/pinyin";
     import type { ColumnDef } from "@/core/schema";
     import type { ActivityTarget } from "@/core/activity";
     import LedgerRecordModal from "./ledger-record-modal.svelte";
@@ -15,10 +12,20 @@
     import LedgerBatchBar from "./ledger-batch-bar.svelte";
     import LedgerVehicleGrid from "./ledger-vehicle-grid.svelte";
     import LedgerTable from "./ledger-table.svelte";
+    import LedgerEmptyState from "./ledger-empty-state.svelte";
+    import {
+        formatLedgerCellText,
+        calculateLedgerTone,
+        toneCls,
+        toneColor,
+        computeColumnSuggestions,
+        computeDynamicLocations,
+        sortLedgerRows,
+        matchLedgerRowSearch,
+        type LedgerTone,
+    } from "@/core/ledger-view-model";
     import { onDestroy } from "svelte";
-    import UiIcon from "@/ui/icon.svelte";
     import { panelSession, type TableDensity } from "../panel-session";
-    import { maskValueForGuest, createDefaultGuestConfig } from "@/core/guest-mode";
     import { getGroupedModules } from "@/core/modules";
     import { getQuickTemplates } from "@/core/quick-templates";
 
@@ -122,42 +129,8 @@
     let filterCategory = $state("");
     let selectedItemIds = $state<string[]>([]);
 
-    const columnSuggestions = $derived.by(() => {
-        const map: Record<string, string[]> = {};
-        if (!ref?.columns) return map;
-        for (const [colKey, colId] of Object.entries(ref.columns)) {
-            if (["name", "location", "store_place", "copy_location", "brand_model", "channel", "hospital", "doctor", "party", "unit"].includes(colKey)) {
-                const valuesSet = new Set<string>();
-                for (const r of rows) {
-                    const txt = String(cellText(r.cells?.[colId], colKey) ?? "").trim();
-                    if (txt && txt !== "—" && txt.length <= 40) {
-                        valuesSet.add(txt);
-                    }
-                }
-                if (valuesSet.size > 0) {
-                    map[colKey] = Array.from(valuesSet).slice(0, 15);
-                }
-            }
-        }
-        return map;
-    });
-
-    const dynamicLocations = $derived.by(() => {
-        const set = new Set<string>();
-        for (const l of ["主卧抽屉", "客厅药箱", "玄关柜", "书房书架", "储藏室", "冰箱冷藏", "厨房吊柜"]) {
-            set.add(l);
-        }
-        const locCols = [ref?.columns?.location, ref?.columns?.store_place, ref?.columns?.copy_location].filter(Boolean);
-        for (const colId of locCols) {
-            for (const r of rows) {
-                const txt = String(cellText(r.cells?.[colId as string]) ?? "").trim();
-                if (txt && txt !== "—" && txt.length <= 20) {
-                    set.add(txt);
-                }
-            }
-        }
-        return Array.from(set).slice(0, 12);
-    });
+    const columnSuggestions = $derived(computeColumnSuggestions(rows, ref?.columns, cellText));
+    const dynamicLocations = $derived(computeDynamicLocations(rows, ref?.columns, cellText));
 
     const memberCol = $derived(ref?.columns?.member);
     const categoryCol = $derived(ref?.columns?.category);
@@ -226,31 +199,14 @@
     });
 
     function sortRows(list: any[], keyID?: string, ascending = true, keyType?: string) {
-        if (!keyID) return list;
-        return [...list].sort((a, b) => {
-            const av = cellText(a.cells?.[keyID]);
-            const bv = cellText(b.cells?.[keyID]);
-            const an = Number(av);
-            const bn = Number(bv);
-            // Only numeric schema columns use numeric comparison. Date strings
-            // such as 2026-10-11 must compare as dates, not as the year 2026.
-            const cmp = keyType === "number" && Number.isFinite(an) && Number.isFinite(bn) && av !== "—" && bv !== "—"
-                ? an - bn
-                : av.localeCompare(bv, undefined, { numeric: true });
-            return ascending ? cmp : -cmp;
-        });
+        return sortLedgerRows(list, keyID, ascending, keyType, cellText);
     }
     // 普通台账表格使用完整结果集配合窗口化渲染；车辆卡片保留渐进加载，
     // 以便图片卡片按批次进入 DOM，避免首次进入触发大量资源解码。
     const visibleRows = $derived(active === "vehicles" ? filteredRows.slice(0, renderLimit) : filteredRows);
 
     function rowMatchesSearch(row: any, q: string, columns?: Record<string, string>) {
-        // Search every scalar column so plate numbers, categories, dates and
-        // certificate numbers are discoverable without opening each row.
-        const searchable = Object.values(columns ?? {})
-            .map((columnId) => cellText(row.cells?.[columnId as string]))
-            .join(" ");
-        return searchMatch(searchable, q);
+        return matchLedgerRowSearch(row, q, columns, cellText);
     }
 
     // Resolve only enabled modules. A disabled module may still have an old
@@ -493,54 +449,9 @@
 
     /** Format a cell for both the table and the detail drawer. */
     function cellText(v: any, colKey?: string, revealSensitive = false): string {
-        if (!v) return "—";
-        // 297 波：访客模式下对敏感财务金额与代码做受控脱敏遮蔽
-        if (plugin.runtime?.guestModeActive) {
-            const guestConfig = createDefaultGuestConfig(true);
-            const rawVal = v.type === "number" && v.number?.isNotEmpty ? v.number.content : (v.text?.content ?? "");
-            const masked = maskValueForGuest(rawVal, colKey ?? "", guestConfig);
-            if (masked !== rawVal) return String(masked);
-        }
-        switch (v.type) {
-            case "text": {
-                const content = v.text?.content ?? "—";
-                // 完整证件号在表格默认掩码（防侧窥）；详情抽屉内可显文明本
-                if (!revealSensitive && colKey === "x_cert_id_number" && content !== "—") return maskIdNumber(content);
-                if (!revealSensitive && ["holder_no", "x_cert_birth_registration_no_last4", "x_cert_vocational_registration_last4", "x_cert_professional_registration_last4", "x_cert_graduation_no_last4", "x_cert_degree_no_last4"].includes(colKey ?? "") && content !== "—") return maskCredentialNumber(content);
-                return content;
-            }
-            case "date": {
-                if (v.date?.content === undefined || v.date.content === null) return "—";
-                const raw = v.date.content;
-                const num = Number(raw);
-                const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
-                return isNaN(d.getTime()) ? "—" : localDateKey(d);
-            }
-            case "select": {
-                // Select values can be stored as either scalar or mSelect cells.
-                const s = selectCellContent(v) ?? "—";
-                return colKey && s !== "—" ? optLabel(t, colKey, s) : s;
-            }
-            case "mSelect": {
-                const list = v.mSelect?.length ? v.mSelect.map((o: any) => o?.content).filter(Boolean).join(", ") : "—";
-                return colKey && list !== "—" ? optLabelText(t, colKey, list) : list;
-            }
-            case "number": return typeof v.number?.content === "number" && !isNaN(v.number.content) ? String(v.number.content) : (v.number?.content !== undefined && !isNaN(Number(v.number.content)) ? String(Number(v.number.content)) : "—");
-            case "url": return v.url?.content ?? "—";
-            case "checkbox": return v.checkbox?.checked ? "是" : "—";
-            case "block": return v.block?.content ?? "—";
-            case "relation": return (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").join(", ") || "—";
-            case "mAsset": return (v.mAsset ?? []).map((asset: any) => asset?.name ?? asset?.content ?? "").filter(Boolean).join(", ") || "—";
-            default: {
-                const fallback = cellContentText(v);
-                return fallback || "—";
-            }
-        }
+        return formatLedgerCellText(v, colKey, t, Boolean(plugin.runtime?.guestModeActive), revealSensitive);
     }
 
-    // 252 波（对齐原型台账状态语义）：由到期日推导展示级色调——只读日期比较，
-    // 不写数据、不参与提醒派生
-    type LedgerTone = "danger" | "warn" | "ok" | "none";
     // Warning thresholds follow each module's reminder lead time.
     const warnDays = $derived.by(() => {
         void version;
@@ -552,23 +463,7 @@
         }
         return max > 0 ? max : 30;
     });
-    function ledgerTone(r: any): LedgerTone {
-        const col = ref?.columns?.expiry ?? ref?.columns?.due;
-        if (!col) return "none";
-        const v = r.cells?.[col];
-        const s = v?.type === "date" && v.date?.isNotEmpty ? localDateKey(new Date(v.date.content)) : "";
-        if (!s) return "none";
-        const today = localDateKey(new Date());
-        if (s < today) return "danger";
-        const end = localDateKey(new Date(Date.now() + warnDays * 86400000));
-        return s <= end ? "warn" : "ok";
-    }
-    function toneCls(tone: LedgerTone): string {
-        return tone === "danger" ? "red" : tone === "warn" ? "orange" : tone === "ok" ? "green" : "gray";
-    }
-    function toneColor(tone: LedgerTone): string {
-        return tone === "danger" ? "var(--lv-danger)" : tone === "warn" ? "var(--lv-warn)" : "";
-    }
+    const ledgerTone = (r: any): LedgerTone => calculateLedgerTone(r, ref?.columns, warnDays);
 
     // Row click opens a detail drawer; user content is assigned through DOM APIs (327波抽离减负).
     async function openDetail(row: any, vehicleAction?: "fuel" | "charging" | "maintenance" | "edit", activityTarget?: ActivityTarget) {
@@ -655,68 +550,25 @@
     }}
 />
 
-{#if loading}
-    <div class="lv-card" style="padding:20px"><div class="lv-skel" style="height:16px;width:60%"></div></div>
-{:else if loadError}
-    <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{loadError}</b>
-        <button class="b3-button b3-button--outline" onclick={() => void load()}>{t("ledger.retryRead")}</button>
-    </div></div>
-{:else if filteredRows.length === 0}
-    {#if ledgers.length === 0}
-        <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="settings" size={22} /></div><b>{t("ledger.noEnabledModules")}</b><span>{t("ledger.noEnabledModulesHint")}</span>
-            <button class="lv-btn primary" style="margin-top:4px" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
-        </div></div>
-    {:else if !ref?.avId}
-        <div class="lv-card">
-            <div class="lv-empty" role="status">
-                <div class="eic"><UiIcon name="archive" size={24} /></div>
-                <b>{t("ledger.defaultBlankTitle")}</b>
-                <span style="max-width:480px;line-height:1.6">{t("ledger.defaultBlankDesc")}</span>
-                {#if ref?.provisionError}
-                    <div class="lv-caption" style="color:var(--lv-warn);margin-top:4px;max-width:520px;line-height:1.4">
-                        ⚠️ {ref.provisionError}
-                    </div>
-                {/if}
-                <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;justify-content:center">
-                    <button class="b3-button b3-button--outline" onclick={rebuildLedger} disabled={rebuilding}>
-                        🚀 {rebuilding ? t("diag.rebuilding") : t("ledger.buildNow")}
-                    </button>
-                    <button class="b3-button b3-button--outline" onclick={openBindExistingDocModal} disabled={rebuilding}>
-                        {t("ledger.bindDoc")}
-                    </button>
-                    <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>
-                        + {t("ledger.newRecord")}
-                    </button>
-                </div>
-            </div>
-        </div>
-    {:else if rows.length > 0}
-        <!-- Empty state for a search with no matches. -->
-        <div class="lv-card">
-            <div class="lv-empty" role="status">
-                <div class="eic"><UiIcon name="search" size={22} /></div>
-                <b>{t("ledger.searchEmpty")}</b>
-                <span>{t("ledger.searchEmptyHint").replace("${q}", searchText.trim())}</span>
-                <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => { searchText = ""; panelMemory.ledgerSearch = ""; }}>
-                    {t("clear")} (Esc)
-                </button>
-            </div>
-        </div>
-    {:else}
-        <div class="lv-card">
-            <div class="lv-empty" role="status">
-                <div class="eic"><UiIcon name="folder" size={22} /></div>
-                <b>{t("ledger.empty")}</b>
-                <span>{t("ledger.emptyHint")}</span>
-                <div style="display:flex;gap:8px;margin-top:6px;align-items:center;justify-content:center;flex-wrap:wrap">
-                    <button class="lv-btn primary" onclick={openNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
-                    {#if active !== "members" && active !== "adhoc"}
-                        <button class="b3-button b3-button--outline" onclick={() => handleToolbarModal("csv-import")} disabled={rebuilding}>📥 {t("ledger.importCsv")}</button>
-                    {/if}
-                </div>
-            </div>
-        </div>
-    {/if}
+{#if loading || loadError || filteredRows.length === 0}
+    <LedgerEmptyState
+        {loading}
+        {loadError}
+        {ledgers}
+        {ref}
+        {rows}
+        {active}
+        {searchText}
+        {rebuilding}
+        {t}
+        onLoad={() => void load()}
+        onOpenSettings={() => plugin.openSetting()}
+        onRebuildLedger={rebuildLedger}
+        onOpenBindDoc={openBindExistingDocModal}
+        onOpenNewRecord={openNewRecord}
+        onClearSearch={() => { searchText = ""; panelMemory.ledgerSearch = ""; }}
+        onImportCsv={() => handleToolbarModal("csv-import")}
+    />
 {:else if active === "vehicles"}
     <LedgerVehicleGrid
         {visibleRows}

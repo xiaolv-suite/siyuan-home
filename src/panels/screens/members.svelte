@@ -1,18 +1,16 @@
 <script lang="ts">
     import type { Reminder, FamilyMember } from "@/types";
-    import { Menu, showMessage, Dialog } from "siyuan";
+    import { showMessage, Dialog } from "siyuan";
     import { confirm } from "@/libs/dialog";
     import { removeMember } from "@/core/members";
     import { renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
-    import { memberHue } from "@/core/format";
     import { openContactPicker, getContactsBridge } from "@/libs/contact-picker";
-    import { calculateRetirement } from "@/core/retirement";
     import MemberFormEditor from "./member-form-editor.svelte";
+    import MemberCard from "./member-card.svelte";
     import { openMemberReassignDialog, exportMemberVcf } from "@/core/member-dialogs";
     import UiIcon from "@/ui/icon.svelte";
-    import ActivityFeed from "../activity-feed.svelte";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
@@ -167,39 +165,7 @@
     function toggleExpand(id: string) {
         expandedId = expandedId === id ? null : id;
     }
-    // 菜单从卡片内的明确按钮打开，键盘和触屏都能发现排序、删除等操作。
-    function cardMenu(m: FamilyMember, x: number, y: number) {
-        // 思源 3.8.x 的 document click 清理会在当前点击传播期间清空共享 Menu 容器，
-        // 延迟到宏任务后再创建，避免“更多操作”打开空菜单。
-        setTimeout(() => {
-            const menu = new Menu("lv-member-card");
-            menu.addItem({ label: t("members.edit"), click: () => startEdit(m) });
-            const docId = plugin.settings.dbRefs?.members?.docId;
-            if (docId) menu.addItem({ label: t("members.openLedger"), click: () => plugin.showTabDocs(docId) });
-            // 296 波：个人资产与合约全景时间轴
-            menu.addItem({ label: t("members.assetTimeline"), click: () => void openMemberAssetTimeline(m) });
-            // 225 波：头像上传/联系人绑定收入菜单（头行只留编辑，修复 230px 窄卡按钮挤爆姓名排版）
-            menu.addItem({ label: t("members.uploadAvatar"), click: () => pickAvatar(m) });
-            if (contactOf(m)) {
-                menu.addItem({
-                    label: t("members.contactUnlink"),
-                    click: () => void unlinkContact(m),
-                });
-            } else if (getContactsBridge()) {
-                menu.addItem({
-                    label: t("members.contactLink"),
-                    click: () => linkContact(m),
-                });
-            }
-            // 17 组/197 波：上移/下移（拖拽排序的键盘可达替代）
-            const idx = members.findIndex((x) => x.id === m.id);
-            menu.addItem({ label: t("members.moveUp"), disabled: reorderBusy || idx <= 0, click: () => move(m, -1) });
-            menu.addItem({ label: t("members.moveDown"), disabled: reorderBusy || idx === members.length - 1, click: () => move(m, 1) });
-            menu.addItem({ label: t("members.reassignThis"), disabled: reassignBusy || members.length <= 1, click: () => openReassignDialog(m) });
-            menu.addItem({ label: t("delete"), click: () => confirmRemove(m) });
-            menu.open({ x, y });
-        }, 0);
-    }
+
     let reorderBusy = $state(false);
     async function persistMemberOrder(ids: string[]) {
         if (reorderBusy) return;
@@ -245,10 +211,6 @@
         if (from < 0 || to < 0) return;
         ids.splice(to, 0, ids.splice(from, 1)[0]);
         await persistMemberOrder(ids);
-    }
-    function openCardMenu(m: FamilyMember, e: MouseEvent) {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        cardMenu(m, rect.right, rect.bottom);
     }
     // 26.7 删除文案升级：说明数据保留语义（仅移除引用，台账行保留）
     // H16：删除成员后复位指向它的失效筛选（总览与提醒页）
@@ -459,142 +421,41 @@
     </div></div>
 {:else}
     <div class="lv-people">
-        {#each members as m (m.id)}
-            <div class="lv-card lv-person" role="group" aria-label={m.name}
-            draggable={!reorderBusy}
-            ondragstart={(e: DragEvent) => onDragStart(m, e)}
-            ondragover={(e: DragEvent) => { e.preventDefault(); dragOverId = m.id; }}
-            ondragleave={() => { if (dragOverId === m.id) dragOverId = null; }}
-            ondrop={(e: DragEvent) => void onDrop(m, e)}
-            ondragend={() => { dragId = null; dragOverId = null; }}
-            class:lv-drag-over={dragOverId === m.id && dragId !== m.id}>
-        <div class="lv-person-head">
-            <button class="lv-person-toggle" type="button" aria-expanded={expandedId === m.id}
-                aria-controls={expandedId === m.id ? `member-details-${m.id}` : undefined} aria-label={t("members.toggleDetails").replace("${name}", m.name)}
-                onclick={() => toggleExpand(m.id)}
-                >
-            {#if avatars[m.id]}
-                <!-- 17 组/192 波：头像图（资产相对路径 → 内核 origin） -->
-                <img class="lv-avatar lg lv-person-avatar-image" src={new URL(avatars[m.id], location.origin).href}
-                    alt={m.name} width="44" height="44" decoding="async" loading="lazy" />
-            {:else}
-                <!-- 225 波：个性化色相（id 哈希 → 稳定渐变），与总览 chips 同源 -->
-                <span class="lv-avatar lg lv-person-avatar-fallback" style="background:linear-gradient(135deg, hsl({memberHue(m.id)} 62% 52%), hsl({(memberHue(m.id) + 42) % 360} 62% 40%))">{m.name.slice(0, 1)}</span>
-            {/if}
-            <div class="lv-person-name">
-                <b>{m.name}</b>
-                <div class="lv-caption">{t(`role.${m.role}`)}{m.sex ? ` · ${t(`members.sex.${m.sex}`)}` : ""}{m.lunarBirthday ? ` · ${t("members.lunar")}` : ""} {m.birthday ?? ""}</div>
-            </div>
-            </button>
-            <!-- 操作保持常显，鼠标、键盘和触屏均能直接发现。 -->
-            <button class="lv-iconbtn" title={t("members.uploadAvatar")} aria-label={t("members.uploadAvatar")}
-                disabled={avatarBusy.has(m.id)} aria-busy={avatarBusy.has(m.id)}
-                onclick={() => pickAvatar(m)}>{avatarBusy.has(m.id) ? "…" : "头像"}</button>
-            <button class="b3-button b3-button--text lv-member-edit" onclick={() => startEdit(m)}>{t("members.edit")}</button>
-            <button class="b3-button b3-button--text" title={t("members.moreActions")} aria-label={t("members.moreActions")}
-                onclick={(e) => openCardMenu(m, e)}>⋯</button>
-        </div>
-        {#if m.syncError}
-            <div class="lv-caption lv-member-sync-error" role="alert">{t("members.syncError")}: {m.syncError}</div>
-        {/if}
-        {#if statsOf(m.id).chips.length > 0 || statsOf(m.id).birthday}
-            {@const s = statsOf(m.id)}
-            <div class="lv-person-info">
-                {#each s.chips as c (c.label)}
-                    <!-- 259 波：统计 chips 归入 lv 徽章体系（b3-chip 的黄绿底与三级文字层次冲突） -->
-                    <span class="lv-badge gray">{c.label} <b class="lv-num">{c.n}</b></span>
-                {/each}
-                {#if s.birthday}
-                    <!-- 17 组/219 波：生日倒计时 chip（单遍预计算，数据来自提醒中枢既有派生） -->
-                    <span class="lv-badge lv-member-birthday">生日 · {s.birthday}</span>
-                {/if}
-            </div>
-        {/if}
-        {#if alertsFor(m.id).length > 0}
-            <button type="button" class="lv-person-alert"
-                style="background:none;border:none;padding:0;cursor:pointer;font:inherit;text-align:left;display:inline-flex;align-items:center;gap:6px"
-                title="点击展开该成员详情与到期提醒"
-                onclick={() => { if (expandedId !== m.id) toggleExpand(m.id); }}>
-                <span>⚠️ 需关注 · <b>{alertsFor(m.id).length}</b> {alertsFor(m.id).length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
-                <span class="lv-caption" style="color:var(--lv-warn);font-size:11px">→</span>
-            </button>
-        {/if}
-        {#if expandedId === m.id}
-            <!-- 260 波：展开区入场动画（对齐抽屉编排语言；lv-rise 180ms） -->
-            <div id={`member-details-${m.id}`} class="lv-person-expanded" style="border-top:1px solid var(--lv-line);padding-top:10px;display:flex;flex-direction:column;gap:6px">
-                {#if m.notes}<p class="lv-member-notes">{m.notes}</p>{/if}
-                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-                    <button class="b3-button b3-button--text" disabled={reorderBusy || members.findIndex((x) => x.id === m.id) <= 0} aria-busy={reorderBusy} onclick={() => void move(m, -1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
-                    <button class="b3-button b3-button--text" disabled={reorderBusy || members.findIndex((x) => x.id === m.id) >= members.length - 1} aria-busy={reorderBusy} onclick={() => void move(m, 1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
-                    {#if plugin.settings.dbRefs?.members?.docId}
-                        <button class="b3-button b3-button--text" onclick={() => plugin.showTabDocs(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
-                    {/if}
-                    <button class="b3-button b3-button--text" onclick={() => confirmRemove(m)}>{t("delete")}</button>
-                </div>
-                {#if contactOf(m)}
-                    <div style="display:flex;gap:8px;align-items:center">
-                        <span class="lv-caption lv-member-contact" title={contactOf(m) ?? ""}>{t("field.contact")}: {contactOf(m)?.split(" [")[0]}</span>
-                        <span style="flex:1"></span>
-                        <button class="b3-button b3-button--text" disabled={!!contactBusy[m.id]} onclick={() => void unlinkContact(m)}>{t("members.contactUnlink")}</button>
-                    </div>
-                {:else if getContactsBridge()}
-                    <div style="display:flex;gap:8px;align-items:center">
-                        <span class="lv-caption">{t("members.contactLink")}</span>
-                        <span style="flex:1"></span>
-                        <button class="b3-button b3-button--text" disabled={!!contactBusy[m.id]} onclick={() => linkContact(m)}>{t("members.contactLink")}</button>
-                    </div>
-                {/if}
-                {#if alertsFor(m.id).length === 0}
-                    <span class="lv-caption">{t("dash.allClear")}</span>
-                {:else}
-                    {#each alertsFor(m.id) as r (r.id)}
-                        <div style="display:flex;gap:8px;align-items:center;font-size:12.5px">
-                            <span class="lv-badge {r.level === 'overdue' ? 'red' : r.level === 'soon' ? 'orange' : 'yellow'}">{r.dueDate}</span>
-                            <span>{r.title}</span>
-                            <span style="flex:1"></span>
-                            <button class="b3-button b3-button--text" disabled={memberActionBusy.has(r.id)} aria-busy={memberActionBusy.has(r.id)} onclick={() => void runMemberAction(r.id, () => plugin.complete(r))}>{memberActionBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
-                        </div>
-                    {/each}
-                {/if}
-                {#if m.birthday}
-                    {@const ret = calculateRetirement({ birthday: m.birthday, sex: m.sex })}
-                    {#if ret}
-                        <div class="lv-member-retire-card" style="padding:10px 14px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:7px;font-size:12px;margin:6px 0">
-                            <div style="display:flex;align-items:center;justify-content:space-between">
-                                <span style="font-weight:600;color:var(--lv-tx)">{t("members.retirementTitle")}</span>
-                                {#if ret.isRetired}
-                                    <span class="lv-badge green">{t("members.retirementRetired")}</span>
-                                {:else}
-                                    <span class="lv-badge orange">{t("members.retirementDaysLeft").replace("${n}", String(ret.daysLeft))}</span>
-                                {/if}
-                            </div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;color:var(--lv-tx-2);font-size:11.5px">
-                                <span>{t("members.retirementTarget")}: <b>{ret.targetRetireDate}</b> ({t("members.retirementAge").replace("${age}", String(ret.targetRetireAge))}{ret.delayedMonths > 0 ? ` · ${t("members.retirementDelay").replace("${n}", String(ret.delayedMonths))}` : ""})</span>
-                                <span>{t("members.retirementCareerProgress")}: {ret.careerProgressPercent}%</span>
-                            </div>
-                            <div style="height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%">
-                                <div style="height:100%;background:linear-gradient(90deg, var(--lv-accent), #f59e0b);width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
-                            </div>
-                        </div>
-                    {/if}
-                {/if}
-                <div class="lv-member-timeline-card" style="margin:4px 0">
-                    <button class="b3-button b3-button--outline" style="width:100%;font-size:12px;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;border-radius:6px"
-                        onclick={() => void openMemberAssetTimeline(m)}>
-                        <span style="display:flex;align-items:center;gap:6px">
-                            <span style="font-size:13px">📑</span>
-                            <b style="color:var(--lv-tx)">{t("members.assetTimeline")}</b>
-                        </span>
-                        <span class="lv-caption" style="display:flex;align-items:center;gap:4px">
-                            <span>{t("members.timelineCertsCount")} / {t("members.timelineContractsCount")}</span>
-                            <span>→</span>
-                        </span>
-                    </button>
-                </div>
-                <ActivityFeed {plugin} {t} {version} memberId={m.id} compact />
-            </div>
-        {/if}
-            </div>
+        {#each members as m, index (m.id)}
+            <MemberCard
+                member={m}
+                {plugin}
+                {t}
+                {version}
+                avatarPath={avatars[m.id]}
+                isAvatarBusy={avatarBusy.has(m.id)}
+                alerts={alertsFor(m.id)}
+                stats={statsOf(m.id)}
+                contact={contactOf(m)}
+                isContactBusy={!!contactBusy[m.id]}
+                {reorderBusy}
+                reassignDisabled={reassignBusy || members.length <= 1}
+                isFirst={index === 0}
+                isLast={index === members.length - 1}
+                expanded={expandedId === m.id}
+                isDragOver={dragOverId === m.id && dragId !== m.id}
+                actionBusy={memberActionBusy.has(m.id)}
+                onToggleExpand={() => toggleExpand(m.id)}
+                onStartEdit={() => startEdit(m)}
+                onPickAvatar={() => pickAvatar(m)}
+                onOpenAssetTimeline={() => void openMemberAssetTimeline(m)}
+                onLinkContact={() => linkContact(m)}
+                onUnlinkContact={() => void unlinkContact(m)}
+                onMove={(delta) => void move(m, delta)}
+                onDelete={() => confirmRemove(m)}
+                onReassign={() => openReassignDialog(m)}
+                onCompleteAlert={(r) => void runMemberAction(r.id, () => plugin.complete(r))}
+                onDragStart={(e) => onDragStart(m, e)}
+                onDragOver={(e) => { e.preventDefault(); dragOverId = m.id; }}
+                onDragLeave={() => { if (dragOverId === m.id) dragOverId = null; }}
+                onDrop={(e) => void onDrop(m, e)}
+                onDragEnd={() => { dragId = null; dragOverId = null; }}
+            />
         {/each}
     </div>
 {/if}
@@ -628,39 +489,10 @@
 
     .lv-member-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin: 0 2px 14px; }
     .lv-member-tools > button { min-height: 40px; }
-    .lv-member-notes { margin: 0; color: var(--lv-tx-2); font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-
     .lv-members-screen .lv-people { gap: var(--member-gap); }
-    .lv-members-screen .lv-person { min-width: 0; }
-    .lv-members-screen .lv-person-head { cursor: default; }
-    .lv-members-screen .lv-person-toggle { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; background: transparent; border: 0; padding: 0; color: inherit; text-align: left; font: inherit; cursor: pointer; }
-    .lv-members-screen .lv-person-avatar-image { width: 44px; height: 44px; object-fit: cover; flex-shrink: 0; }
-    .lv-members-screen .lv-person-avatar-fallback { flex-shrink: 0; }
-    .lv-members-screen .lv-person-head .lv-iconbtn,
-    .lv-members-screen .lv-person-head .lv-member-edit,
-    .lv-members-screen .lv-person-head > .b3-button { display: inline-flex !important; }
-    .lv-members-screen .lv-person-head .lv-iconbtn { width: auto; min-width: 42px; padding-inline: 7px; font-size: 11px; border-color: var(--lv-line); }
-    .lv-members-screen .lv-person-head .lv-member-edit { min-height: 30px; padding-inline: 7px; }
-    .lv-members-screen .lv-person-head > .b3-button[title] { width: 30px; min-width: 30px; padding-inline: 0; }
-    .lv-members-screen .lv-person-head > .b3-button[title] { font-size: 17px; line-height: 1; }
-    .lv-members-screen .lv-person-head > .b3-button[title] { color: var(--lv-tx-2); }
-    .lv-members-screen .lv-person-head > .b3-button[title]:hover { color: var(--lv-tx); background: var(--lv-surface-2); }
-    .lv-members-screen .lv-member-contact { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lv-members-screen .lv-member-sync-error { color: var(--lv-danger); }
-    .lv-members-screen .lv-member-birthday { color: var(--lv-accent); background: var(--lv-accent-soft); }
-    .lv-members-screen .lv-drag-over { outline: 2px dashed var(--lv-accent); outline-offset: -2px; }
 
     @container lv-home (max-width: 420px) {
         .lv-members-hero-count { display: none; }
         .lv-member-tools > button { min-height: 44px; }
-        .lv-members-screen .lv-person-head { align-items: flex-start; flex-wrap: wrap; }
-        .lv-members-screen .lv-person-toggle { min-width: calc(100% - 12px); }
-        .lv-members-screen .lv-person-head .lv-iconbtn,
-        .lv-members-screen .lv-person-head .lv-member-edit,
-        .lv-members-screen .lv-person-head > .b3-button[title] { margin-top: 2px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .lv-members-screen .lv-person-expanded { animation: none; }
     }
 </style>

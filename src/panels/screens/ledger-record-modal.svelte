@@ -5,9 +5,17 @@
     import { localDateKey } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";
     import { parseIdNumber } from "@/core/idcard";
-    import { getCertificateProfile, getCertificateReminderField, type ColumnDef } from "@/core/schema";
-    import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
+    import { getCertificateProfile, type ColumnDef } from "@/core/schema";
+    import { getCaptureFields, getFormFields, getFieldPlaceholder } from "@/core/capture";
     import { executeLedgerRecordSave, smartExtractTitleFields } from "@/core/ledger-record-saver";
+    import {
+        getCertificateScalarCols,
+        getQuickAssetCols,
+        hasAnyFormInput,
+        canSubmitRecord,
+        prepareCategoryChange,
+        validateFieldInput,
+    } from "@/core/ledger-record-view-model";
     import LedgerRecordAttachments from "./ledger-record-attachments.svelte";
     import UiIcon from "@/ui/icon.svelte";
 
@@ -69,15 +77,7 @@
     let duplicateConfirmPending = $state(false);
 
     const certificateProfile = $derived(active === "certs" && form.category ? getCertificateProfile(String(form.category)) : null);
-    const certificateScalarCols = $derived.by(() => {
-        if (!certificateProfile) return [] as { key: string; type: string; options?: string[] }[];
-        const schemaColsLocal: any[] = plugin.schemaCatalog?.certs?.columns ?? [];
-        const keys = new Set(["x_cert_holder_name", "holder_no", "x_cert_id_number", "issue_date", "x_cert_valid_from", "issuance_rule", "store_place", "location", "copy_location", "note", ...certificateProfile.fieldKeys]);
-        if (!getCertificateReminderField(certificateProfile.category)) keys.add("due");
-        if (certificateProfile.category === "id") keys.delete("holder_no");
-        return schemaColsLocal.filter((col: any) => keys.has(col.key) && col.type !== "mAsset")
-            .map((col: any) => ({ key: col.key, type: col.type, options: col.options }));
-    });
+    const certificateScalarCols = $derived(getCertificateScalarCols(plugin.schemaCatalog?.certs?.columns, certificateProfile));
 
     const idcardCheck = $derived.by(() => {
         const v = String(form.x_cert_id_number ?? "").trim();
@@ -89,24 +89,7 @@
         if (check?.ok && check.sex && !form.x_cert_id_gender) form.x_cert_id_gender = check.sex;
     });
 
-    const certificateAssetCols = $derived.by(() => active === "certs"
-        ? [
-            ...schemaCols.filter((col) => col.key === "attachments" && col.type === "mAsset"),
-            ...(certificateProfile?.columns.filter((col) => col.type === "mAsset") ?? []),
-        ]
-        : []);
-
-    const quickAssetCols = $derived.by(() => {
-        const seen = new Set<string>();
-        const out: { key: string; type: string; labelKey?: string }[] = [];
-        const genericAssetCols = schemaCols.filter((entry) => entry.type === "mAsset" && !entry.key.startsWith("x_cert_"));
-        for (const col of [...genericAssetCols, ...certificateAssetCols]) {
-            if (seen.has(col.key)) continue;
-            seen.add(col.key);
-            out.push({ key: col.key, type: "mAsset", labelKey: col.labelKey });
-        }
-        return out;
-    });
+    const quickAssetCols = $derived(getQuickAssetCols(schemaCols, certificateProfile, active));
 
     let certificateFiles: Record<string, File[]> = $state({});
     let uploadedCertificateFiles: Record<string, { name: string; content: string }[]> = $state({});
@@ -119,16 +102,16 @@
             || Object.values(uploadedCertificateFiles).some((files) => files.length > 0)
             || !!pendingItemID
         );
-        if (lastCertificateCategory && category !== lastCertificateCategory && hasDraft) {
+        const res = prepareCategoryChange(category, lastCertificateCategory, hasDraft, form, certificateFiles, uploadedCertificateFiles);
+        if (res.blocked) {
             showMessage(t("ledger.categoryChangeBlocked"), 5000, "error");
             form = { ...form, category: lastCertificateCategory };
             return;
         }
         lastCertificateCategory = category;
-        const keep = new Set(["name", "member", "expiry", "status", "x_cert_holder_name", "holder_no", "issue_date", "x_cert_valid_from", "issuance_rule", "store_place", "location", "copy_location", "note"]);
-        form = { ...Object.fromEntries(Object.entries(form).filter(([key]) => keep.has(key))), category };
-        certificateFiles = Object.fromEntries(Object.entries(certificateFiles).filter(([key]) => key === "attachments"));
-        uploadedCertificateFiles = Object.fromEntries(Object.entries(uploadedCertificateFiles).filter(([key]) => key === "attachments"));
+        if (res.newForm) form = res.newForm;
+        if (res.newFiles) certificateFiles = res.newFiles;
+        if (res.newUploaded) uploadedCertificateFiles = res.newUploaded;
     }
 
     function fieldLabel(key: string): string {
@@ -142,21 +125,9 @@
     function fieldMetaPlaceholder(field: ColumnDef): string {
         return getFieldPlaceholder(field, active, t);
     }
-    function captureValidationMessage(field: ColumnDef, issue: CaptureInputError): string {
-        return t(`capture.validation.${issue}`)
-            .replace("${field}", fieldLabel(field.key))
-            .replace("${min}", String(field.min ?? ""))
-            .replace("${max}", String(field.max ?? ""));
-    }
     function formFieldError(field: ColumnDef): string {
         if (!validationAttempted) return "";
-        const issue = validateCaptureInput(field, form[field.key]);
-        if (issue) return captureValidationMessage(field, issue);
-        if (field.type === "relation") {
-            const relationID = String(form[field.key] ?? "").trim();
-            if (relationID && !(plugin.settings.members ?? []).some((member) => member.avItemId === relationID)) return t("members.notLinked");
-        }
-        return "";
+        return validateFieldInput(field, form[field.key], plugin.settings.members, t);
     }
     function focusCaptureField(key: string) {
         const control = document.getElementById(`lv-new-${key}`);
@@ -240,14 +211,9 @@
         void createRow();
     }
 
-    const hasAnyInput = $derived(supportableCols.some((e) => {
-        const v = form[e.key];
-        return e.key === "name" ? !!(v && String(v).trim()) : v !== undefined && v !== "" && v !== false;
-    }) || certificateScalarCols.some((e) => form[e.key] !== undefined && form[e.key] !== "" && form[e.key] !== false)
-        || quickAssetCols.some((e) => (certificateFiles[e.key]?.length ?? 0) > 0 || (uploadedCertificateFiles[e.key]?.length ?? 0) > 0));
-
+    const hasAnyInput = $derived(hasAnyFormInput(supportableCols, certificateScalarCols, quickAssetCols, form, certificateFiles, uploadedCertificateFiles));
     const nameMissing = $derived(hasAnyInput && !(form.name && String(form.name).trim()));
-    const canSubmitNewRecord = $derived(!saving && !nameMissing && !(active === "certs" && !form.category));
+    const canSubmitNewRecord = $derived(canSubmitRecord(saving, form.name, hasAnyInput, active, form.category));
 
     function resetForm() {
         form = {};

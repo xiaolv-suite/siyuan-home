@@ -39,19 +39,23 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.172 (Local Ready Build)
+## 🆕 What's new in v0.5.173 (Local Ready Build)
 
-This release modularizes the Bento grid focus board and upcoming reminders list into `src/panels/screens/overview-bento-grid.svelte` and `src/panels/screens/overview-upcoming-list.svelte`, taking `src/panels/screens/overview.svelte` down to 514 lines:
+This release modularizes the settings data management and members configuration tabs into `src/panels/settings-data-tab.svelte` and `src/panels/settings-members-tab.svelte`, taking `src/panels/settings.svelte` down to 558 lines:
 
-- **Refactoring (Modularized Bento Grid & Upcoming Reminders List)**: Extracted two specialized overview components:
-  1. `src/panels/screens/overview-bento-grid.svelte` (96 lines): Large hero Bento card for urgent upcoming deadlines with countdown badges, plus dual side Bento cards for today focus count and member profile verification
-  2. `src/panels/screens/overview-upcoming-list.svelte` (131 lines): Upcoming reminder list with section headers, date filter clearing chips, first-scan skeleton state, scan error alerts, member-filtered empty states, and row action triggers (copy task block, complete, snooze)
-- **Performance**: Main overview screen `src/panels/screens/overview.svelte` down to **514 lines** (trimmed 101 lines from 615 lines, a 16.4% reduction);
-- **Test Milestone**: 148 test suites, **991 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Settings Data & Members Tabs)**: Extracted two specialized settings tab components:
+  1. `src/panels/settings-members-tab.svelte` (197 lines): Family members settings editor, 7 role options enum, birthday/sex/lunar fields, add/delete actions, and 120 lines of dedicated responsive styling
+  2. `src/panels/settings-data-tab.svelte` (112 lines): Data and ecosystem management tab covering notebook selection, export/import settings with pre-import restore (`executeRestorePreImport`), demo data generation/cleaning, ecosystem status, and global shortcuts
+- **Performance**: Main settings panel `src/panels/settings.svelte` down to **558 lines** (trimmed 230 lines from 788 lines, a 29.2% reduction);
+- **Test Milestone**: 150 test suites, **995 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.172 (Local Ready Build)
+- Extracted `src/panels/screens/overview-bento-grid.svelte` and `src/panels/screens/overview-upcoming-list.svelte` for Bento grid and upcoming reminders;
+- Main overview screen `src/panels/screens/overview.svelte` down to 514 lines, 991 tests passing.
 
 ### v0.5.171 (Local Ready Build)
 - Extracted `src/panels/quick-capture-form.svelte` for quick capture form fields;

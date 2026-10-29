@@ -5,9 +5,11 @@
     import { MODULE_GROUPS, modulesByGroup, BUILT_IN_MODULES } from "@/core/modules";
     import { newMember, saveSettings, normalizeCheckinBindings } from "@/core/settings";
     import type { ProvisioningReport } from "@/core/provisioner";
-    import type { HomeSettings, MemberRole, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
+    import type { HomeSettings, FamilyMember, CheckinBinding, ModuleGroupId } from "@/types";
     import { formatLocalDateTime } from "@/core/date-display";
+    import SettingsMembersTab from "@/panels/settings-members-tab.svelte";
     import SettingsRemindersTab from "@/panels/settings-reminders-tab.svelte";
+    import SettingsDataTab from "@/panels/settings-data-tab.svelte";
     import SettingsAboutTab from "@/panels/settings-about-tab.svelte";
     import UiIcon from "@/ui/icon.svelte";
 
@@ -59,7 +61,6 @@
             ? BUILT_IN_MODULES.filter((m) => (t(`module.${m.id}`) + m.id).toLowerCase().includes(moduleSearch.trim().toLowerCase()))
             : modulesByGroup(moduleGroup)
     );
-    let dataSection: "migration" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
     let saving = $state(false);
     // 33.4 编辑事务：draft 副本，保存才落盘（取消/关闭不污染 settings）。
     // 此处捕获初始快照是设计意图，抑制 svelte 的 locally-referenced 提示。
@@ -102,7 +103,6 @@
         return rows.sort((a, b) => a.key.localeCompare(b.key));
     });
 
-    const ROLES: MemberRole[] = ["self", "spouse", "partner", "child", "elder", "kin", "other"];
     const enabledIds = $derived(new Set(draftEnabled));
 
     // EC09（D20）：打卡绑定 draft——习惯→成员指标映射，只读消费不写打卡数据
@@ -218,7 +218,6 @@
     }
 
     // 24 组：设置导出/导入（跨设备/重装迁移辅助）
-    let importInput: HTMLInputElement | undefined = $state();
     // UG03/DL07：导入前自动备份当前设置，可一键恢复（导入链的数据安全闭环）
     let preImportBackupExists = $state(false);
     let migrationBusy = $state(false);
@@ -478,62 +477,12 @@
             </div>
         </div>
     {:else if area === "members"}
-        <div class="lv-settings__pane-title">{t("tabMembers")}</div>
-        <div class="lv-settings__scroll">
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__hint">{t("settings.membersHint")}</div>
-            {#if draftMembers.length === 0}
-                <div class="lv-setcard__hint ft__on-surface">{t("members.empty")}</div>
-            {/if}
-            {#each draftMembers as m, i (m.id)}
-                <section class="lv-settings-member" aria-labelledby={`lv-settings-member-${m.id}`}>
-                    <div class="lv-settings-member__head">
-                        <h3 id={`lv-settings-member-${m.id}`}>
-                            <span class="lv-settings-member__number" aria-hidden="true">{i + 1}</span>
-                            <span>{m.name.trim() || t("members.name")}</span>
-                        </h3>
-                        <button class="b3-button b3-button--text lv-settings-member__delete" type="button"
-                            aria-label={`${t("delete")} ${m.name.trim() || t("members.name")}`} onclick={() => removeMember(m.id)}>
-                            {t("delete")}
-                        </button>
-                    </div>
-                    <div class="lv-settings-member__fields">
-                        <label class="lv-settings-member__field">
-                            <span>{t("members.name")}</span>
-                            <input class="b3-text-field" placeholder={t("members.name")} bind:value={draftMembers[i].name} />
-                        </label>
-                        <label class="lv-settings-member__field">
-                            <span>{t("members.role")}</span>
-                            <select class="b3-select" bind:value={draftMembers[i].role}>
-                                {#each ROLES as r (r)}
-                                    <option value={r}>{t(`role.${r}`)}</option>
-                                {/each}
-                            </select>
-                        </label>
-                        <label class="lv-settings-member__field">
-                            <span>{t("members.sex")}</span>
-                            <select class="b3-select" bind:value={draftMembers[i].sex}>
-                                <option value="">{t("members.sex.unknown")}</option>
-                                <option value="male">{t("members.sex.male")}</option>
-                                <option value="female">{t("members.sex.female")}</option>
-                            </select>
-                        </label>
-                        <label class="lv-settings-member__field">
-                            <span>{t("members.birthday")}</span>
-                            <input class="b3-text-field" type="date" bind:value={draftMembers[i].birthday} />
-                        </label>
-                        <label class="lv-settings-member__calendar">
-                            <span>{t("members.lunar")}</span>
-                            <input type="checkbox" class="b3-switch" bind:checked={draftMembers[i].lunarBirthday} />
-                        </label>
-                    </div>
-                </section>
-            {/each}
-            <button class="b3-button b3-button--outline lv-setcard__action lv-settings-member__add" type="button" onclick={addMember}>
-                <UiIcon name="add" size={15} /> {t("add")}
-            </button>
-        </div>
-        </div>
+        <SettingsMembersTab
+            bind:draftMembers
+            {t}
+            onAddMember={addMember}
+            onRemoveMember={removeMember}
+        />
     {:else if area === "reminders"}
         <SettingsRemindersTab
             bind:draftNotifyHour
@@ -552,79 +501,22 @@
             onSwitchArea={(a) => (area = a)}
         />
     {:else if area === "data"}
-        <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
-        <nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>
-            <button class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
-            <button class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
-            <button class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
-            <button class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
-        </nav>
-        <div class="lv-settings__scroll">
-        {#if dataSection === "migration"}
-        <!-- 设置导出/导入（跨设备/重装迁移辅助） -->
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.targetNotebook")}</div>
-            <div class="lv-setcard__hint">{t("settings.targetNotebookHint")}</div>
-            <div style="margin-top:8px">
-                <select class="b3-select" style="max-width:360px;width:100%"
-                    value={plugin.settings.targetNotebookId ?? ""}
-                    onchange={async (e) => {
-                        const val = (e.currentTarget as HTMLSelectElement).value;
-                        plugin.settings.targetNotebookId = val || undefined;
-                        await saveSettings(plugin as any, plugin.settings);
-                        showMessage(t("diag.rebuildAllDone"), 2000, "info");
-                    }}>
-                    <option value="">🏠 默认（使用或自动创建「🏠 小驴管家」笔记本）</option>
-                    {#each notebookList as nb (nb.id)}
-                        <option value={nb.id}>📚 {nb.name}</option>
-                    {/each}
-                </select>
-            </div>
-        </div>
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
-            <div class="lv-setcard__hint" style="color:var(--lv-warn)">⚠ {t("settings.migratePrivacy")}</div>
-            <div class="lv-setcard__actions">
-                <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={exportSettings}>{t("settings.export")}</button>
-                <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
-                <input type="file" accept="application/json,.json" style="display:none"
-                    bind:this={importInput} onchange={(e) => importSettings(e)} />
-                {#if preImportBackupExists}
-                    <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={restorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
-                {/if}
-            </div>
-        </div>
-        {:else if dataSection === "demo"}
-        <!-- 示例数据一键生成/清除 -->
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.demoTitle")}</div>
-            <div class="lv-setcard__hint">{t("settings.demoHint")}</div>
-            <div class="lv-setcard__actions">
-                <button class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "generate"} onclick={generateDemo}>{demoAction === "generate" ? t("ledger.saving") : t("settings.demoGenerate")}</button>
-                <button class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "clear"} onclick={clearDemo}>{demoAction === "clear" ? t("ledger.saving") : t("settings.demoClear")}</button>
-            </div>
-        </div>
-        {:else if dataSection === "ecosystem"}
-        <!-- 生态分区占位：明确标为规划能力，避免禁用开关被误解为故障。 -->
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">{t("settings.ecoTitle")}</div>
-            <div class="lv-setcard__hint">{t("settings.ecoHint")} · {t("settings.ecoPlanned")}</div>
-            {#each ["qiandao", "contacts", "glean", "exam", "flashcard", "leiqie"] as eco (eco)}
-                <div class="fn__flex lv-settings__row">
-                    <span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="repeat" size={14} /></span>
-                    <span class="fn__flex-1">{t(`eco.${eco}`)}</span>
-                    <span class="lv-badge gray">{t("settings.ecoPlanned")}</span>
-                </div>
-            {/each}
-        </div>
-        {:else}
-        <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">⌨ {t("faq.shortcuts")}</div>
-            <p class="lv-caption" style="margin:2px 0">· {t("openButler")}：{t("faq.topbarOrCommand")}</p>
-            <p class="lv-caption" style="margin:2px 0">· {t("faq.quickCapture")}：{t("faq.topbarBolt")}</p>
-        </div>
-        {/if}
-        </div>
+        <SettingsDataTab
+            {plugin}
+            {t}
+            {notebookList}
+            {saving}
+            {migrationBusy}
+            {migrationAction}
+            {demoBusy}
+            {demoAction}
+            {preImportBackupExists}
+            onExportSettings={exportSettings}
+            onImportSettings={importSettings}
+            onRestorePreImport={restorePreImport}
+            onGenerateDemo={generateDemo}
+            onClearDemo={clearDemo}
+        />
     {:else}
         <SettingsAboutTab
             {plugin}
@@ -664,125 +556,3 @@
         <button class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>
     </div>
 </div>
-
-<style>
-    .lv-settings-member {
-        padding: 16px;
-        margin-top: 12px;
-        border: 1px solid var(--lv-line);
-        border-radius: 14px;
-        background: var(--lv-surface);
-        min-width: 0;
-    }
-
-    .lv-settings-member__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .lv-settings-member__head h3 {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-        margin: 0;
-        color: var(--lv-tx);
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .lv-settings-member__head h3 > span:last-child {
-        overflow-wrap: anywhere;
-    }
-
-    .lv-settings-member__number {
-        display: grid;
-        place-items: center;
-        flex: none;
-        width: 24px;
-        height: 24px;
-        border-radius: 8px;
-        background: var(--lv-surface-2);
-        color: var(--lv-tx-3);
-        font-size: 11px;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .lv-settings-member__delete {
-        flex: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        min-height: 36px;
-        color: var(--lv-tx-3);
-    }
-
-    .lv-settings-member__delete:hover {
-        color: var(--lv-danger);
-        background: var(--lv-danger-soft);
-    }
-
-    .lv-settings-member__fields {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px 16px;
-    }
-
-    .lv-settings-member__field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-width: 0;
-        color: var(--lv-tx-2);
-        font-size: 12px;
-    }
-
-    .lv-settings-member__field :is(input, select) {
-        width: 100%;
-        min-width: 0;
-        min-height: 40px;
-        box-sizing: border-box;
-    }
-
-    .lv-settings-member__calendar {
-        grid-column: 1 / -1;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        min-height: 40px;
-        padding-top: 10px;
-        border-top: 1px solid var(--lv-line);
-        color: var(--lv-tx-2);
-        font-size: 12px;
-        cursor: pointer;
-    }
-
-    .lv-settings-member__calendar input { flex: none; }
-
-    .lv-settings-member__add {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 40px;
-    }
-
-    @container lv-home (max-width: 480px) {
-        .lv-settings-member { padding: 12px; }
-        .lv-settings-member__fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-        .lv-settings-member__field :is(input, select),
-        .lv-settings-member__delete,
-        .lv-settings-member__add { min-height: 44px; }
-    }
-
-    @media (max-width: 480px) {
-        .lv-settings-member { padding: 12px; }
-        .lv-settings-member__fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-        .lv-settings-member__field :is(input, select),
-        .lv-settings-member__delete,
-        .lv-settings-member__add { min-height: 44px; }
-    }
-</style>

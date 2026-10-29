@@ -18,24 +18,28 @@
 
 ---
 
-## 本次更新（v0.5.172 → v0.5.173 本地就绪版）
+## 本次更新（v0.5.173 → v0.5.174 本地就绪版）
 
-本次更新推进设置数据管理与成员维护双分区解耦（settings.svelte 降至 558 行，单测 995 项全绿）：
-- **重构（设置面板数据管理分区与成员维护分区独立解耦）**：
-  - 独立抽取 `src/panels/settings-members-tab.svelte`（197 行），集中承载家庭成员设置列表、7 大家庭角色枚举、姓名/性别/公农历生日编辑、增删成员及 120 行专用响应式样式；
-  - 独立抽取 `src/panels/settings-data-tab.svelte`（112 行），集中承载数据管理与生态分区：
-    1. 目标笔记本切换与配置即时落盘
-    2. 设置 JSON 导出、导入、导入前备份恢复（`executeRestorePreImport`）
-    3. 示例数据一键生成与清除管理
-    4. 生态规划功能清单呈现与全局快捷键指南
-  - 设置主面板组件 `src/panels/settings.svelte` 代码行数大幅精简至 **558 行**（从最初 788 行累计精简 **230 行**，净精简达 **29.2%**），完全消除单组件样式冗余；
-- **测试与工程质量（全量 995 项单测与五层质量门禁 100% 全绿）**：
-  - 新增专项测试套件 `tests/core/settings-data-tab.test.ts` 与 `tests/core/settings-members-tab.test.ts`，全仓单测扩展至 **150 个测试套件、995 项单测全部通过**；
-  - 五层静态门禁无警告，构建产物保持 0.71 MB；
+本次更新推进提醒分组渲染与合并流独立解耦，**全仓自动化单元测试突破 1,000 项大关（1000/1000 全绿）**：
+- **重大里程碑（全仓自动化单元测试突破 1,000 项大关）**：
+  - 新增 `tests/core/reminder-groups-list.test.ts` 专项测试套件，覆盖扫描工作台视角相对到期日生成、同成员同日合并卡状态折叠展开、超大列表分页渐进切片；
+  - 全仓自动化单测套件扩增至 **151 个测试套件、1,000 项单元测试 100% 全部通过**（0 失败）；
+  - 全面升级 `vitest.config.ts` 测试线程池为 `pool: "threads"`，彻底解决 Windows 多核环境高并发下的子进程关闭竞态；
+- **重构（提醒分组渲染、合并卡流与空态呈现独立解耦）**：
+  - 独立抽取 `src/panels/screens/reminder-groups-list.svelte`（228 行），集中承载提醒列表流核心呈现：
+    1. 多层级分组渲染（逾期、临期、提前量）与分批渐进式加载（`renderLimit` / `REMINDER_PAGE_SIZE`）
+    2. 同成员同日多提醒聚合合并卡片（`display(g.items)`）与就地折叠展开（`toggleMerge`）
+    3. 扫描状态多态呈现（首扫骨架屏态、部分扫描异常、筛选条件空态与全家就绪状态）
+    4. 提醒卡片（`ReminderCard`）事件驱动与业务动作中继
+  - 提醒主屏组件 `src/panels/screens/reminders.svelte` 代码行数历史性降至 **666 行**（从最初 765 行精简 **99 行**，净精简达 **12.9%**）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.173 本地就绪版
+- 抽取 `src/panels/settings-members-tab.svelte` 与 `src/panels/settings-data-tab.svelte` 独立封装成员设置与数据管理；
+- 设置主面板 `src/panels/settings.svelte` 降至 558 行，单测增至 995 项。
 
 ### v0.5.172 本地就绪版
 - 抽取 `src/panels/screens/overview-bento-grid.svelte` 与 `src/panels/screens/overview-upcoming-list.svelte` 独立封装 Bento 英雄看板与近期提醒列表；

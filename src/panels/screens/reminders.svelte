@@ -6,14 +6,13 @@
         saveRuntime, applyNamedView, type ReminderNamedView,
         getReminderPlanStatus, type ReminderPlanStatus,
     } from "@/core/hub/runtime";
-    import { buildDisplay as display } from "@/core/hub/display";
-    import { relativeDue, weekdayKey, localDateKey } from "@/core/hub/rule";
+    import { localDateKey } from "@/core/hub/rule";
     import { toggleReminderPin } from "@/core/hub/actions";
     import { isReminderPinned } from "@/core/hub/runtime";
     import { stageBadgeLabel, stageBadge, stagesOf } from "@/core/reminder-stage";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import Calendar from "@/panels/screens/calendar.svelte";
-    import ReminderCard from "@/panels/screens/reminder-card.svelte";
+    import ReminderGroupsList from "@/panels/screens/reminder-groups-list.svelte";
     import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
     import ReminderHandledList from "@/panels/screens/reminder-handled-list.svelte";
     import ReminderControlsBar from "@/panels/screens/reminder-controls-bar.svelte";
@@ -408,29 +407,6 @@
         }
         return [{ key: filter, label: "", items: pinnedFirst(filtered) }];
     });
-    // Rendering every reminder at once makes a large inbox expensive even
-    // though filtering and batch actions still need the complete data set.
-    // Keep the data model complete but progressively mount rows in chunks.
-    const REMINDER_PAGE_SIZE = 120;
-    let renderLimit = $state(REMINDER_PAGE_SIZE);
-    $effect(() => {
-        void filter;
-        void filterMember;
-        void filterModule;
-        void dueWithin;
-        void version;
-        renderLimit = REMINDER_PAGE_SIZE;
-    });
-    const renderedGroups = $derived.by(() => {
-        let remaining = renderLimit;
-        return displayGroups
-            .map((group) => {
-                const items = remaining > 0 ? group.items.slice(0, remaining) : [];
-                remaining -= items.length;
-                return { ...group, items, total: group.items.length };
-            })
-            .filter((group) => group.items.length > 0);
-    });
 
     // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
     function toLedgerDialog(r: Reminder) {
@@ -490,69 +466,7 @@
         void version;
         return !plugin.runtime?.scannedAt && !(plugin.scan?.errors?.length) && all.length === 0;
     });
-
-    let expandedMerges = $state<Set<string>>(new Set());
-    function toggleMerge(key: string) {
-        const next = new Set(expandedMerges);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        expandedMerges = next;
-    }
-    function memberName(id: string): string {
-        return (plugin.settings.members ?? []).find((m) => m.id === id)?.name ?? t("members.unassigned");
-    }
-    // 17 组/186 波：相对到期短语（今天/明天/N 天后/逾期 N 天）；完整日期走 title 悬浮 + 标题下方 meta 行
-    function relDue(daysLeft: number, fallback: string): string {
-        const rel = relativeDue(daysLeft);
-        if (!rel) {
-            // 225 波对齐原型：提醒中枢右侧 30 天内一律相对短语（扫描工作台视角）；
-            // 星期几仍只对 ≤6 天附注（205 波）；>30 天沿用 ISO（行下方已带完整日期）
-            if (daysLeft >= 7 && daysLeft <= 30) return t("days.after").replace("${n}", String(Math.floor(daysLeft)));
-            return fallback;
-        }
-        const base = rel.n === undefined ? t(rel.key) : t(rel.key).replace("${n}", String(rel.n));
-        if (rel.key === "days.after" && daysLeft <= 6) {
-            const wk = weekdayKey(fallback);
-            if (wk) return `${base} · ${t(wk)}`; // 205 波：N 天后附星期几（原待办「下周三」半边的补齐）
-        }
-        return base;
-    }
 </script>
-
-{#snippet remRow(r: Reminder)}
-    <ReminderCard
-        {r}
-        {plugin}
-        {t}
-        {batchMode}
-        {viewMode}
-        {filter}
-        {batchBusy}
-        {selected}
-        {expandedReminders}
-        {planStatusOf}
-        {stageOf}
-        {stageLabelOf}
-        {isPinned}
-        {memberOf}
-        {relDue}
-        {ruleText}
-        {kindText}
-        {reminderBusy}
-        onToggleSelect={toggleSelect}
-        onToggleExpand={toggleReminderExpand}
-        onRunAction={runReminderAction}
-        onRenew={renewDialog}
-        onSchedulePlan={schedulePlanDialog}
-        onCopyTask={copyAsTaskBlock}
-        onTogglePin={(rem) => runReminderAction(async () => { await toggleReminderPin(plugin, rem.id); await plugin.refreshHub(); }, rem.id)}
-        onQuickPlanToday={quickPlanToday}
-        onSnooze={snoozeMenu}
-        onEditMemo={editMemoDialog}
-        onDeleteMemo={confirmDeleteMemo}
-        onTriage={toLedgerDialog}
-    />
-{/snippet}
 
 <div class="lv-hero lv-hub-hero" aria-labelledby="lv-hub-title">
     <div class="lv-hero-copy">
@@ -652,66 +566,53 @@
         onLocate={(r: Reminder) => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}
         onAddMemo={(title: string, due: string) => plugin.addMemo(title, due)}
         onConvert={(r: Reminder) => toLedgerDialog(r)} />
-{:else if filtered.length === 0}
-    {#if firstScanPending}
-        <!-- 260 波：首扫骨架（未知 ≠ 全部完成） -->
-        <div class="lv-card lv-rems" aria-busy="true" role="status">
-            {#each [0, 1, 2] as i (i)}
-                <div class="lv-rem">
-                    <div class="lv-skel" style="width:38px;height:38px;border-radius:11px;flex:none"></div>
-                    <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
-                        <div class="lv-skel" style="height:13px;width:42%"></div>
-                        <div class="lv-skel" style="height:11px;width:26%"></div>
-                    </div>
-                </div>
-            {/each}
-        </div>
-        <p class="lv-caption" style="margin:8px 2px">{t("hub.firstScan")}</p>
-    {:else if plugin.scan?.errors?.length}
-        <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("hub.partialScanTitle")}</b><span>{t("hub.partialScanBody").replace("${n}", String(plugin.scan.errors.length))}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" disabled={rescanning} onclick={rescan}>{rescanning ? t("diag.rebuilding") : t("hub.rescan")}</button>
-        </div></div>
-    {:else if filter !== "all" || filterMember || filterModule || dueWithin !== "all"}
-        <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("hub.filteredEmpty")}</b><span>{t("hub.filteredEmptyHint")}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => { filter = "all"; filterMember = undefined; filterModule = undefined; dueWithin = "all"; pruneSelection(); persistFilter(); }}>{t("hub.clearFilters")}</button>
-        </div></div>
-    {:else}
-        <div class="lv-card"><div class="lv-empty"><div class="eic"><UiIcon name="checkCircle" size={22} /></div><b>{t("dash.allClear")}</b><span>{t("hub.emptyHint")}</span></div></div>
-    {/if}
 {:else}
-    {#each renderedGroups as g (g.key)}
-        {#if g.label}<div class="lv-group-label">{g.label} · {g.total}</div>{/if}
-        <div class="lv-card lv-rems">
-            {#each display(g.items) as entry (entry.key)}
-                {#if entry.merged}
-                    <!-- 29 组：同成员同日合并卡；PL13：Enter/Space 等价 + aria-expanded -->
-                    <div class="lv-rem lead" role="button" tabindex="0"
-                        aria-expanded={expandedMerges.has(entry.key)}
-                        onkeydown={(e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggleMerge(entry.key))}
-                        onclick={() => toggleMerge(entry.key)}>
-                        <div class="lv-rem-ic" aria-hidden="true"><UiIcon name="users" size={18} /></div>
-                        <div class="lv-rem-t" title={`${memberName(entry.memberId)} · ${entry.dueDate}`}><b>{memberName(entry.memberId)} · {relDue(entry.row.daysLeft, entry.dueDate)}</b><span class="lv-caption">{t("hub.mergeHint")}</span></div>
-                        <span class="lv-badge orange">{entry.items.length}</span>
-                        <div class="lv-rem-ops"><span class="lv-caption" aria-hidden="true">{expandedMerges.has(entry.key) ? "▾" : "▸"}</span></div>
-                    </div>
-                    {#if expandedMerges.has(entry.key)}
-                        {#each entry.items as sub (sub.id)}
-                            {@render remRow(sub)}
-                        {/each}
-                    {/if}
-                {:else}
-                    {@render remRow(entry.row)}
-                {/if}
-            {/each}
-        </div>
-    {/each}
-    {#if filtered.length > renderLimit}
-        <div class="lv-card" style="display:flex;justify-content:center;padding:12px">
-            <button class="b3-button b3-button--outline" onclick={() => (renderLimit += REMINDER_PAGE_SIZE)}>
-                {t("ledger.loadMore").replace("${n}", String(filtered.length - renderLimit))}
-            </button>
-        </div>
-    {/if}
+    <ReminderGroupsList
+        {plugin}
+        {t}
+        {filtered}
+        {displayGroups}
+        {firstScanPending}
+        {rescanning}
+        {filter}
+        {filterMember}
+        {filterModule}
+        {dueWithin}
+        {batchMode}
+        {viewMode}
+        {batchBusy}
+        {selected}
+        {expandedReminders}
+        {reminderBusy}
+        {planStatusOf}
+        {stageOf}
+        {stageLabelOf}
+        {isPinned}
+        {memberOf}
+        {ruleText}
+        {kindText}
+        onToggleSelect={toggleSelect}
+        onToggleExpand={toggleReminderExpand}
+        onRunAction={runReminderAction}
+        onRenew={renewDialog}
+        onSchedulePlan={schedulePlanDialog}
+        onCopyTask={copyAsTaskBlock}
+        onTogglePin={(rem) => runReminderAction(async () => { await toggleReminderPin(plugin, rem.id); await plugin.refreshHub(); }, rem.id)}
+        onQuickPlanToday={quickPlanToday}
+        onSnooze={snoozeMenu}
+        onEditMemo={editMemoDialog}
+        onDeleteMemo={confirmDeleteMemo}
+        onTriage={toLedgerDialog}
+        onRescan={rescan}
+        onClearFilters={() => {
+            filter = "all";
+            filterMember = undefined;
+            filterModule = undefined;
+            dueWithin = "all";
+            pruneSelection();
+            void persistFilter();
+        }}
+    />
 {/if}
 
 <style>

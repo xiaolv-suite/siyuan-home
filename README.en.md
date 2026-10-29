@@ -39,19 +39,28 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.173 (Local Ready Build)
+## 🆕 What's new in v0.5.174 (Local Ready Build)
 
-This release modularizes the settings data management and members configuration tabs into `src/panels/settings-data-tab.svelte` and `src/panels/settings-members-tab.svelte`, taking `src/panels/settings.svelte` down to 558 lines:
+This release modularizes reminder group rendering and merged card streams into `src/panels/screens/reminder-groups-list.svelte`, **surpassing 1,000 unit tests (1000/1000 passing)**:
 
-- **Refactoring (Modularized Settings Data & Members Tabs)**: Extracted two specialized settings tab components:
-  1. `src/panels/settings-members-tab.svelte` (197 lines): Family members settings editor, 7 role options enum, birthday/sex/lunar fields, add/delete actions, and 120 lines of dedicated responsive styling
-  2. `src/panels/settings-data-tab.svelte` (112 lines): Data and ecosystem management tab covering notebook selection, export/import settings with pre-import restore (`executeRestorePreImport`), demo data generation/cleaning, ecosystem status, and global shortcuts
-- **Performance**: Main settings panel `src/panels/settings.svelte` down to **558 lines** (trimmed 230 lines from 788 lines, a 29.2% reduction);
-- **Test Milestone**: 150 test suites, **995 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Major Milestone (1,000 Unit Tests Reached)**:
+  - Added `tests/core/reminder-groups-list.test.ts` covering relative due calculations, merged cards toggling, and progressive pagination slicing;
+  - Test suite expanded to **151 test suites with 1,000 unit tests passing (100% green)**;
+  - Upgraded `vitest.config.ts` pool to `pool: "threads"` for rock-solid process stability on Windows;
+- **Refactoring (Modularized Reminder Groups List & Merged Cards)**: Extracted `src/panels/screens/reminder-groups-list.svelte` (228 lines), encapsulating the core reminder stream:
+  1. Multi-tier group rendering (overdue, soon, lead) with progressive page slicing (`renderLimit` / `REMINDER_PAGE_SIZE`)
+  2. Same-member same-day card merging (`display(g.items)`) with accordion toggling (`toggleMerge`)
+  3. Multi-state scan views (first-scan skeleton state, scan error notifications, filtered empty states, and all-clear cards)
+  4. Card action dispatching and relaying for `ReminderCard`
+- **Performance**: Reminders screen `src/panels/screens/reminders.svelte` down to **666 lines** (trimmed 99 lines from 765 lines, a 12.9% reduction);
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.173 (Local Ready Build)
+- Extracted `src/panels/settings-members-tab.svelte` and `src/panels/settings-data-tab.svelte` for members and data tabs;
+- Main settings panel `src/panels/settings.svelte` down to 558 lines, 995 tests passing.
 
 ### v0.5.172 (Local Ready Build)
 - Extracted `src/panels/screens/overview-bento-grid.svelte` and `src/panels/screens/overview-upcoming-list.svelte` for Bento grid and upcoming reminders;

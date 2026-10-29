@@ -39,21 +39,26 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.166 (Local Ready Build)
+## 🆕 What's new in v0.5.167 (Local Ready Build)
 
-This release modularizes cross-ledger conversion pipelines into `src/core/drawer-conversions.ts`, slimming `src/core/drawer-sections.ts` to 380 lines:
+This release modularizes the ledger record save transaction engine into `src/core/ledger-record-saver.ts`, slimming `src/panels/screens/ledger-record-modal.svelte` to 586 lines:
 
-- **Refactoring (Modularized Cross-Ledger Conversions)**: Extracted `src/core/drawer-conversions.ts` (340+ lines), encapsulating 3 key workflows:
-  1. Prescription to medicine ledger linking (`renderRxToMedicineButton`)
-  2. Shopping list medicine stock-in wizard with quantity reconciliation dialog (`renderStockInButton`)
-  3. One-click conversion from shopping item to fixed asset real archive (`renderShoppingToAssetButton`)
-- **Performance**: Drawer sections core `src/core/drawer-sections.ts` down to **380 lines** (trimmed 328 lines from 708 lines, a 46.3% reduction);
-- **Drawer Codebase Health**: All detail drawer components and sections are now cleanly modularized between 200 and 640 lines;
-- **Test Milestone**: 141 test suites, **970 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Ledger Record Save Transaction Engine)**: Extracted `src/core/ledger-record-saver.ts` (230+ lines), encapsulating the end-to-end ledger creation pipeline:
+  1. Dynamic form cell conversions & member relationship checks (`convertFormCellValue`)
+  2. Smart natural language title parsing (`smartExtractTitleFields`)
+  3. Column auto-healing (`healColumnMapping`), detached row insertion, pending identity recovery (`RowIdentityPendingError`), and retried cell updates (`tryCell`)
+  4. Asset and certificate attachment uploads with fingerprint deduplication (`uploadAsset`, `fileFingerprint`)
+  5. Default status column completion & error notification coalescing
+- **Performance**: Modal dialog `src/panels/screens/ledger-record-modal.svelte` down to **586 lines** (trimmed 110 lines from 696 lines, a 15.8% reduction);
+- **Test Milestone**: 142 test suites, **974 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.166 (Local Ready Build)
+- Extracted `src/core/drawer-conversions.ts` for cross-ledger conversion pipelines;
+- Drawer sections core `src/core/drawer-sections.ts` down to 380 lines, 970 tests passing.
 
 ### v0.5.165 (Local Ready Build)
 - Extracted `src/core/drawer-domain-sections.ts` for 6 domain analysis cards;

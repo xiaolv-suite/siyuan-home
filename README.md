@@ -18,23 +18,28 @@
 
 ---
 
-## 本次更新（v0.5.165 → v0.5.166 本地就绪版）
+## 本次更新（v0.5.166 → v0.5.167 本地就绪版）
 
-本次更新推进跨台账流转入库引擎全面解耦与抽屉扩展区块精炼瘦身（drawer-sections.ts 降至 380 行，单测 970 项全绿）：
-- **重构（跨台账流转入库与资产转换引擎独立解耦）**：
-  - 独立抽取 `src/core/drawer-conversions.ts`（340 余行），集中承载 3 大高频跨台账数据流转与入库交互动作：
-    1. 就医台账处方流转入药箱快捷按钮与关系对齐（`renderRxToMedicineButton`）
-    2. 采购清单条目药箱入库增量合并与多行匹配对齐弹窗（`renderStockInButton`）
-    3. 采购条目一键转固定资产档案与分类映射（`renderShoppingToAssetButton`）
-  - 抽屉扩展区块核心 `src/core/drawer-sections.ts` 代码行数历史性降至 **380 行**（从最初 708 行精简 **328 行**，净精简达 **46.3%**）；
-  - 全仓所有抽屉文件全员平稳收敛至 200~640 行极致精炼区间；
-- **测试与工程质量（全量 970 项单测与五层质量门禁 100% 全绿）**：
-  - 新增抽屉跨台账流转专项测试套件 `tests/core/drawer-conversions.test.ts`，全仓单测扩展至 **141 个测试套件、970 项单测全部通过**；
-  - 五层静态门禁无警告，构建产物仅 0.71 MB；
+本次更新推进台账新增记录保存事务引擎独立解耦与录入弹窗精炼瘦身（ledger-record-modal.svelte 降至 586 行，单测 974 项全绿）：
+- **重构（台账新增记录保存事务引擎与列自愈独立解耦）**：
+  - 独立抽取 `src/core/ledger-record-saver.ts`（230 余行），集中封装新增台账记录全链路持久化引擎：
+    1. 动态表单数据类型转换与成员关联校验（`convertFormCellValue`）
+    2. 自然语言输入智能分离清洗（`smartExtractTitleFields`）
+    3. 模块列自愈（`healColumnMapping`）、悬决身份恢复（`RowIdentityPendingError`）、原子行插入与列重试（`tryCell`）
+    4. 资产与证书附件上传及指纹去重（`uploadAsset`, `fileFingerprint`）
+    5. 状态列默认值自动补全与错误队列收敛
+  - 新增记录弹窗组件 `src/panels/screens/ledger-record-modal.svelte` 代码行数大幅精简至 **586 行**（从最初 696 行精简 **110 行**，净精简达 **15.8%**）；
+- **测试与工程质量（全量 974 项单测与五层质量门禁 100% 全绿）**：
+  - 新增台账保存事务引擎专项测试套件 `tests/core/ledger-record-saver.test.ts`，全仓单测扩展至 **142 个测试套件、974 项单测全部通过**；
+  - 五层静态门禁无警告，构建产物保持 0.71 MB；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.166 本地就绪版
+- 抽取 `src/core/drawer-conversions.ts` 独立封装处方转药品、采购入库与转固定资产；
+- 抽屉区块核心 `src/core/drawer-sections.ts` 降至 380 行，单测增至 970 项。
 
 ### v0.5.165 本地就绪版
 - 抽取 `src/core/drawer-domain-sections.ts` 独立承载 6 大生活领域的智能富卡片与业务闭环交互；

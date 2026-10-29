@@ -1,15 +1,14 @@
 <script lang="ts">
-    import { addDetachedRow, setCell, RowIdentityPendingError, renderLedgerAll } from "@/core/siyuan";
-    import { selectCellValue } from "@/core/avcell";
-    import { localDateKey } from "@/core/hub/rule";
-    import { smartExtractFieldsFromTitle } from "@/core/block-capture";
+    import { RowIdentityPendingError } from "@/core/siyuan";
     import { showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
+    import { localDateKey } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";
     import { parseIdNumber } from "@/core/idcard";
     import { getCertificateProfile, getCertificateReminderField, type ColumnDef } from "@/core/schema";
     import { getCaptureFields, getFormFields, validateCaptureInput, getFieldPlaceholder, type CaptureInputError } from "@/core/capture";
-    import LedgerRecordAttachments, { fileFingerprint } from "./ledger-record-attachments.svelte";
+    import { executeLedgerRecordSave, smartExtractTitleFields } from "@/core/ledger-record-saver";
+    import LedgerRecordAttachments from "./ledger-record-attachments.svelte";
     import UiIcon from "@/ui/icon.svelte";
 
     let {
@@ -241,22 +240,6 @@
         void createRow();
     }
 
-    function cellValue(type: string, v: any): unknown | null {
-        switch (type) {
-            case "select": return selectCellValue(v);
-            case "relation": {
-                const relationID = typeof v === "string" ? v.trim() : "";
-                const linked = relationID && (plugin.settings.members ?? []).some((m) => m.avItemId === relationID);
-                return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
-            }
-            case "date": return v === "" ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: new Date(`${v}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } };
-            case "number": return v === "" || v === null ? { type: "number", number: { isNotEmpty: false } } : { type: "number", number: { content: Number(v), isNotEmpty: true } };
-            case "url": return { type: "url", url: { content: v } };
-            case "checkbox": return { type: "checkbox", checkbox: { checked: !!v } };
-            default: return { type: "text", text: { content: String(v) } };
-        }
-    }
-
     const hasAnyInput = $derived(supportableCols.some((e) => {
         const v = form[e.key];
         return e.key === "name" ? !!(v && String(v).trim()) : v !== undefined && v !== "" && v !== false;
@@ -292,16 +275,14 @@
 
     function handleNewRecordNameBlur() {
         if (!form.name || typeof form.name !== "string") return;
-        const res = smartExtractFieldsFromTitle(form.name);
+        const res = smartExtractTitleFields(form.name, schemaCols);
         if (res.cleanTitle !== form.name) {
             form.name = res.cleanTitle;
-            const dateCol = schemaCols.find((c) => c.type === "date" && ["expiry", "due", "date"].includes(c.key));
-            if (dateCol && res.extractedDate && !form[dateCol.key]) {
-                form[dateCol.key] = res.extractedDate;
+            if (res.dateColKey && res.extractedDate && !form[res.dateColKey]) {
+                form[res.dateColKey] = res.extractedDate;
             }
-            const numCol = schemaCols.find((c) => c.type === "number" && ["amount", "price", "deposit"].includes(c.key));
-            if (numCol && res.extractedAmount !== undefined && !form[numCol.key]) {
-                form[numCol.key] = res.extractedAmount;
+            if (res.numColKey && res.extractedAmount !== undefined && !form[res.numColKey]) {
+                form[res.numColKey] = res.extractedAmount;
             }
         }
     }
@@ -366,126 +347,36 @@
         identityPending = false;
         saving = true;
         saveError = "";
-        if (missingSchemaCols.length > 0 && ref?.avId) {
-            try { await plugin.repairModule?.(active); } catch { /* soft heal */ }
-        }
-        if (!recordOperationKey) {
-            try { recordOperationKey = `ledger:${crypto.randomUUID()}`; }
-            catch { recordOperationKey = `ledger:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
-        }
+
         try {
-            let itemID = pendingItemID;
-            if (!itemID && hadIdentityPending) {
-                try {
-                    const all = await renderLedgerAll(ref.avId, 50);
-                    const nameCol = ref.columns?.name;
-                    const title = String(form.name ?? "").trim();
-                    if (nameCol && title) {
-                        const matched = all.rows.find((row) => {
-                            const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
-                            return val === title;
-                        });
-                        if (matched) {
-                            itemID = matched.itemID;
-                            pendingItemID = itemID;
-                        }
-                    }
-                } catch { /* soft reconciliation */ }
-            }
-            if (!itemID) {
-                itemID = await addDetachedRow(ref.avId, String(form.name ?? "").trim() || t("ledger.unnamed"), {
-                    idempotencyKey: `${recordOperationKey}:row`,
-                });
-                pendingItemID = itemID;
-            }
-            const cols = plugin.settings.dbRefs[active]?.columns ?? ref.columns ?? {};
-            const failed: string[] = [];
-            const tryCell = async (label: string, colKey: string, keyId: string | undefined, value: unknown) => {
-                if (value === null) { failed.push(label); return; }
-                let currentKey = keyId;
-                if (!currentKey) {
-                    try {
-                        const { healColumnMapping } = await import("@/core/provisioner");
-                        currentKey = await healColumnMapping(plugin, active, colKey);
-                    } catch { /* soft */ }
-                }
-                if (!currentKey) { failed.push(label); return; }
-                try {
-                    await setCell(ref!.avId!, currentKey, itemID, value, {
-                        idempotencyKey: `${recordOperationKey}:cell:${colKey}`,
-                    });
-                } catch (err) {
-                    const msg = err instanceof Error ? err.message : String(err);
-                    if (msg.includes("key not found")) {
-                        try {
-                            const { healColumnMapping } = await import("@/core/provisioner");
-                            const healedKey = await healColumnMapping(plugin, active, colKey);
-                            if (healedKey && healedKey !== currentKey) {
-                                try {
-                                    await setCell(ref!.avId!, healedKey, itemID, value, {
-                                        idempotencyKey: `${recordOperationKey}:cell:${colKey}:healed`,
-                                    });
-                                    return;
-                                } catch { /* soft */ }
-                            }
-                        } catch { /* soft */ }
-                    }
-                    failed.push(label);
-                }
-            };
-            for (const e of supportableCols) {
-                const v = form[e.key];
-                if (e.key !== "name" && (v === undefined || v === "" || v === false)) continue;
-                if (e.key === "name" && !(v && String(v).trim()) && pendingItemID) continue;
-                if (e.type === "number" && (v === undefined || isNaN(Number(v)))) continue;
-                await tryCell(t(`field.${e.key}`), e.key, cols[e.key], cellValue(e.type, e.key === "name" ? String(v ?? "").trim() : v));
-            }
-            for (const e of certificateScalarCols) {
-                const v = form[e.key];
-                if (v === undefined || v === "" || v === false) continue;
-                if (e.type === "number" && isNaN(Number(v))) continue;
-                await tryCell(t(`field.${e.key}`), e.key, cols[e.key], cellValue(e.type, v));
-            }
-            if (quickAssetCols.length > 0) {
-                for (const target of quickAssetCols) {
-                    const previous = uploadedCertificateFiles[target.key] ?? [];
-                    const uploaded = [...previous];
-                    const failedFiles: File[] = [];
-                    if (!cols[target.key]) {
-                        failed.push(t(`field.${target.key}`));
-                        continue;
-                    }
-                    for (const file of certificateFiles[target.key] ?? []) {
-                        try {
-                            const { uploadAsset } = await import("@/core/siyuan");
-                            const { name, path } = await uploadAsset(file, "/assets/siyuan-home/", {
-                                idempotencyKey: `${recordOperationKey}:asset:${target.key}:${fileFingerprint(file)}`,
-                            });
-                            uploaded.push({ name, content: path });
-                        } catch (e) {
-                            failed.push(`${t(`field.${target.key}`)}: ${file.name} (${e instanceof Error ? e.message : String(e)})`);
-                            failedFiles.push(file);
-                        }
-                    }
-                    certificateFiles = { ...certificateFiles, [target.key]: failedFiles };
-                    if (uploaded.length === 0) continue;
-                    uploadedCertificateFiles = { ...uploadedCertificateFiles, [target.key]: uploaded };
-                    await tryCell(t(`field.${target.key}`), target.key, cols[target.key], {
-                        type: "mAsset",
-                        mAsset: uploaded.map(({ name, content }) => ({ name, content })),
-                    });
-                }
-            }
-            const statusCol = (plugin.schemaCatalog?.[active]?.columns ?? []).find((c: any) => c.key === "status");
-            if (statusCol?.options?.length && (form.status === undefined || form.status === "")) {
-                await tryCell(t("field.status"), "status", cols.status, selectCellValue(statusCol.default ?? statusCol.options[0]));
-            }
-            if (failed.length > 0) {
-                saveError = t("ledger.savePartial").replace("${fields}", failed.join(", "));
+            const res = await executeLedgerRecordSave({
+                plugin,
+                active,
+                ref: ref as { avId: string; docId?: string; columns?: Record<string, string> },
+                form,
+                supportableCols,
+                certificateScalarCols,
+                quickAssetCols,
+                certificateFiles,
+                uploadedCertificateFiles,
+                missingSchemaCols,
+                pendingItemID,
+                hadIdentityPending,
+                recordOperationKey,
+                t,
+            });
+
+            pendingItemID = res.itemID ?? pendingItemID;
+            recordOperationKey = res.recordOperationKey;
+            if (res.remainingFiles) certificateFiles = res.remainingFiles;
+            if (res.uploadedFiles) uploadedCertificateFiles = res.uploadedFiles;
+
+            if (!res.success && res.failedFields.length > 0) {
+                saveError = t("ledger.savePartial").replace("${fields}", res.failedFields.join(", "));
                 const { coalescedNotify } = await import("@/libs/notify-queue");
                 coalescedNotify("ledger-save-error", () => showMessage(saveError, 6000, "error"));
             } else {
-                const savedName = String(form.name ?? "").trim();
+                const savedName = res.savedName;
                 resetForm();
                 if (closeAfterSave) {
                     open = false;

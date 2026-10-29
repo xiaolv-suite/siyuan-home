@@ -126,6 +126,9 @@ export function computeDynamicLocations(
     return Array.from(set).slice(0, 12);
 }
 
+const numericCollator = new Intl.Collator(undefined, { numeric: true });
+const rowSearchableTextCache = new WeakMap<object, string>();
+
 export function sortLedgerRows(
     list: any[],
     keyID?: string,
@@ -133,17 +136,22 @@ export function sortLedgerRows(
     keyType?: string,
     cellTextFn?: (cell: any, key?: string) => string,
 ): any[] {
-    if (!keyID || !cellTextFn) return list;
-    return [...list].sort((a, b) => {
-        const av = cellTextFn(a.cells?.[keyID]);
-        const bv = cellTextFn(b.cells?.[keyID]);
-        const an = Number(av);
-        const bn = Number(bv);
-        const cmp = keyType === "number" && Number.isFinite(an) && Number.isFinite(bn) && av !== "—" && bv !== "—"
-            ? an - bn
-            : av.localeCompare(bv, undefined, { numeric: true });
+    if (!keyID || !cellTextFn || list.length <= 1) return list;
+    const isNum = keyType === "number";
+    // 施瓦茨变换：每行预先提取一次键值，避免排序内部高频重复执行正则掩码与格式化
+    const decorated = list.map((item) => {
+        const txt = cellTextFn(item?.cells?.[keyID]);
+        const num = isNum ? Number(txt) : NaN;
+        const validNum = isNum && Number.isFinite(num) && txt !== "—";
+        return { item, txt, num, validNum };
+    });
+    decorated.sort((a, b) => {
+        const cmp = a.validNum && b.validNum
+            ? a.num - b.num
+            : numericCollator.compare(a.txt, b.txt);
         return ascending ? cmp : -cmp;
     });
+    return decorated.map((d) => d.item);
 }
 
 export function matchLedgerRowSearch(
@@ -152,10 +160,16 @@ export function matchLedgerRowSearch(
     columns?: Record<string, string>,
     cellTextFn?: (cell: any, key?: string) => string,
 ): boolean {
-    if (!columns || !cellTextFn) return false;
-    const searchable = Object.values(columns)
-        .map((columnId) => cellTextFn(row.cells?.[columnId as string]))
-        .join(" ");
+    if (!columns || !cellTextFn || !row) return false;
+    let searchable = rowSearchableTextCache.get(row);
+    if (searchable === undefined) {
+        searchable = Object.values(columns)
+            .map((columnId) => cellTextFn(row.cells?.[columnId as string]))
+            .join(" ");
+        if (typeof row === "object" && row !== null) {
+            rowSearchableTextCache.set(row, searchable);
+        }
+    }
     return searchMatch(searchable, q.trim().toLowerCase());
 }
 

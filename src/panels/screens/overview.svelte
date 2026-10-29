@@ -148,13 +148,21 @@
     });
 
     // 170/171 波（对齐原型质感，不低于）：context-strip 状态条 + focus-row 三重点卡
-    const overdueCount = $derived.by(() => { void version; return allReminders.filter((r: Reminder) => r.level === "overdue").length; });
-    const soon7Count = $derived.by(() => { void version; return allReminders.filter((r: Reminder) => r.daysLeft >= 0 && r.daysLeft <= 7).length; });
-    const urgentDueReminder = $derived.by(() => {
+    const reminderSummary = $derived.by(() => {
         void version;
-        if (!allReminders.length) return undefined;
-        return allReminders.slice().sort((a, b) => a.daysLeft - b.daysLeft)[0];
+        let overdue = 0;
+        let soon7 = 0;
+        let urgent: Reminder | undefined = undefined;
+        for (const r of allReminders) {
+            if (r.level === "overdue") overdue++;
+            if (r.daysLeft >= 0 && r.daysLeft <= 7) soon7++;
+            if (!urgent || r.daysLeft < urgent.daysLeft) urgent = r;
+        }
+        return { overdue, soon7, urgent };
     });
+    const overdueCount = $derived(reminderSummary.overdue);
+    const soon7Count = $derived(reminderSummary.soon7);
+    const urgentDueReminder = $derived(reminderSummary.urgent);
     const syncErrCount = $derived.by(() => { void version; return members.filter((m) => m.syncError).length; });
     const scanErrors = $derived.by(() => { void version; return plugin.scan?.errors ?? []; });
     const permissionDenied = $derived(scanErrors.some((error) => error.moduleId === "permission"));

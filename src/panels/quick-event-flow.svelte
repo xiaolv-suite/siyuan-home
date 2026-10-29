@@ -113,12 +113,14 @@
             });
             const healthRef = await ensureTargetRef("health");
             const all = await renderLedgerAll(healthRef.avId!);
-            let row = (all.rows ?? []).find((r) => r.cells?.[healthRef.columns?.member ?? ""]?.relation?.blockIDs?.includes(vitalMemberId)) || all.rows?.[0];
+            let row = vitalMemberId
+                ? (all.rows ?? []).find((r) => r.cells?.[healthRef.columns?.member ?? ""]?.relation?.blockIDs?.includes(vitalMemberId))
+                : (all.rows?.[0]);
             if (!row) {
                 const targetMember = plugin.settings.members?.find((m) => m.avItemId === vitalMemberId);
-                const memberName = targetMember?.name || "家庭成员健康档案";
-                const rowId = await addDetachedRow(healthRef.avId!, memberName, { idempotencyKey: `vital:init:${vitalMemberId}:${Date.now()}` });
-                if (healthRef.columns?.member) {
+                const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
+                const rowId = await addDetachedRow(healthRef.avId!, memberName, { idempotencyKey: `vital:init:${vitalMemberId || "default"}:${Date.now()}` });
+                if (healthRef.columns?.member && vitalMemberId) {
                     await setCell(healthRef.avId!, healthRef.columns.member, rowId, { type: "relation", relation: { blockIDs: [vitalMemberId] } });
                 }
                 row = { itemID: rowId, cells: {} };

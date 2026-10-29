@@ -64,8 +64,12 @@ export function cellValue(type: string, v: unknown): unknown | null {
             return { type: "checkbox", checkbox: { checked: Boolean(v) } };
         case "number":
             return typeof v === "number" && Number.isFinite(v) ? { type: "number", number: { content: v } } : null;
-        case "date":
-            return typeof v === "string" && v ? { type: "date", date: { content: v, isNotEmpty: true } } : null;
+        case "date": {
+            if (!v || v === "") return { type: "date", date: { isNotEmpty: false } };
+            const num = Number(v);
+            const time = !isNaN(num) && num > 100000000 ? num : new Date(String(v).includes("T") ? String(v) : `${v}T00:00:00`).getTime();
+            return isNaN(time) ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: time, isNotEmpty: true, isNotTime: true } };
+        }
         case "text":
         default:
             return typeof v === "string" ? { type: "text", text: { content: v } } : null;

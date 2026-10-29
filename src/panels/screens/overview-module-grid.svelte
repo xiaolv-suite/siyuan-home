@@ -81,21 +81,31 @@
         moduleGroupOpen = { ...moduleGroupOpen, [id]: open };
     }
 
-    function sparkOf(mid: string): number[] | null {
-        const days: number[] = [];
-        let known = 0;
-        let max = 0;
+    const moduleSparks = $derived.by(() => {
+        const map = new Map<string, number[] | null>();
+        const now = Date.now();
+        const dateKeys: string[] = [];
         for (let i = 4; i >= 0; i--) {
-            const d = new Date(Date.now() - i * 86400000);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            const v = moduleHistory[key]?.[mid];
-            if (typeof v === "number") known++;
-            days.push(typeof v === "number" ? v : 0);
-            if (v > max) max = v;
+            const d = new Date(now - i * 86400000);
+            dateKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
         }
-        if (known < 3) return null;
-        return days.map((v) => (max > 0 ? Math.max(15, Math.round((v / max) * 100)) : 15));
-    }
+        for (const mid of moduleCards) {
+            const days: number[] = [];
+            let known = 0;
+            let max = 0;
+            for (const key of dateKeys) {
+                const v = moduleHistory[key]?.[mid];
+                if (typeof v === "number") known++;
+                const count = typeof v === "number" ? v : 0;
+                days.push(count);
+                if (count > max) max = count;
+            }
+            map.set(mid, known < 3 ? null : days.map((v) => (max > 0 ? Math.max(15, Math.round((v / max) * 100)) : 15)));
+        }
+        return map;
+    });
+
+    const sparkOf = (mid: string): number[] | null => moduleSparks.get(mid) ?? null;
 </script>
 
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>

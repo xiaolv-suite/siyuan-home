@@ -91,6 +91,14 @@ describe("scanner.runScan", () => {
         );
         expect(res.reminders.map((r) => r.moduleId)).toEqual(["adhoc"]);
     });
+
+    it("同模块多个 provider（如日期与数量阈值）结果合并而非覆盖", async () => {
+        const p1: DataProvider = { moduleId: "stock", collect: async () => [rem("r1::stock.expiry", 5, "soon", "stock")] };
+        const p2: DataProvider = { moduleId: "stock", collect: async () => [rem("r2::stock.qty", 0, "overdue", "stock")] };
+        const res = await runScan([p1, p2], settings(["stock", "members"]), defaultRuntime(), TODAY);
+        expect(res.reminders).toHaveLength(2);
+        expect(res.reminders.map((r) => r.id)).toEqual(["r2::stock.qty", "r1::stock.expiry"]);
+    });
 });
 
 describe("CertsProvider（mock transport，读路径）", () => {

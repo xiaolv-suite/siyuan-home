@@ -61,10 +61,12 @@
     const panelMemory = panelSession(plugin);
     // Search matches title/note and pinyin; it is independent from member filtering.
     let searchText = $state(panelMemory.ledgerSearch);
+    let savedDismissTimer: ReturnType<typeof setTimeout> | undefined;
     onDestroy(() => {
         loadRequest++;
         loadController?.abort();
         loadController = undefined;
+        if (savedDismissTimer) clearTimeout(savedDismissTimer);
         if (plugin.pendingActivityTarget?.moduleId === active) plugin.pendingActivityTarget = undefined;
     });
 
@@ -325,25 +327,29 @@
         }
     }
 
-    async function load() {
+    async function load(isModuleSwitch = false) {
         const avID = ref?.avId;
         const request = ++loadRequest;
         loadController?.abort();
         const controller = new AbortController();
         loadController = controller;
         loadError = "";
-        rows = [];
-        avCols = [];
+        if (isModuleSwitch || rows.length === 0) {
+            rows = [];
+            avCols = [];
+            loading = true;
+        }
         if (!avID) {
             if (plugin.pendingActivityTarget?.moduleId === active) {
                 plugin.pendingActivityTarget = undefined;
                 showMessage(t("activity.navigationUnavailable"), 4000, "error");
             }
             loading = false;
+            rows = [];
+            avCols = [];
             if (loadController === controller) loadController = undefined;
             return;
         }
-        loading = true;
         try {
             // Bound each render request to the kernel page size.
             // 表格永远只显示前 50 行——改用分页聚合的 renderLedgerAll
@@ -392,7 +398,15 @@
             }
         }
     }
-    $effect(() => { void version; void active; void plugin.scan?.scannedAt; load(); });
+    let lastLoadedActive = "";
+    $effect(() => {
+        void version;
+        void plugin.scan?.scannedAt;
+        const currentActive = active;
+        const isSwitch = currentActive !== lastLoadedActive;
+        lastLoadedActive = currentActive;
+        load(isSwitch);
+    });
     $effect(() => {
         const handler = () => void handleToolbarModal("location-index");
         window.addEventListener("siyuan-home:open-location", handler);
@@ -504,7 +518,8 @@
         savedRecordName = name;
         savedDocId = docId ?? "";
         savedModule = module;
-        setTimeout(() => { savedModule = ""; }, 8000);
+        if (savedDismissTimer) clearTimeout(savedDismissTimer);
+        savedDismissTimer = setTimeout(() => { savedModule = ""; }, 8000);
         await load();
         try { await plugin.refreshHub([active]); } catch { /* soft */ }
     }}

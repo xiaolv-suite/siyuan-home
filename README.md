@@ -18,19 +18,23 @@
 
 ---
 
-## 本次更新（v0.5.179 本地就绪版）
+## 本次更新（v0.5.180 本地就绪版）
 
-本次更新推进台账列计算与写入载荷解耦，**全仓自动化单元测试增至 1,027 项全绿（1027/1027 全绿）**：
-- **重构（台账缺失列排查、表格展示列与写入载荷构建解耦）**：
-  - 扩展 `src/core/ledger-view-model.ts`，集中封装缺失列感知计算（`computeMissingSchemaColumns`）、表格首选展示列推算（`computeTableKeys`）、模块提醒提前期阈值推导（`computeModuleWarnDays`）与单元格写入载荷构建（`buildLedgerCellPayload`）；
-  - 彻底移除 `src/panels/screens/ledger.svelte` 中冗余重复的 `cellValue` 定义，台账主屏行数由 628 行精简至 **589 行**；
+本次更新对插件展开全面质量优化与缺陷修复，**全仓自动化单元测试增至 1,029 项全绿（1029/1029 全绿）**：
+- **核心逻辑与数据安全修复**：修复多 Provider 结果覆盖、生理体征跨成员篡改、`openModuleTab` 导航越界、AttributeView 日期毫秒时间戳规范与生命指数统计；全面消除计时器泄漏；
+- **核心性能瓶颈突破与防抖**：切断后台扫描对台账的清屏重载闪烁；虚拟表格消除滚动同步重排（Layout Thrashing）；排序与搜索引入施瓦茨变换与弱引用缓存；总览单趟聚合归约；
+- **UI 一致性与无障碍闭环**：收敛硬编码颜色，补齐暗色模式状态色，提升输入聚焦指示对比度（符合 WCAG 2.1 AA），完善模态框双向 Tab 循环焦点捕获，统一毛玻璃与骨架屏质感；
 - **质量保障与单测突破**：
-  - 扩展 `tests/core/ledger-view-model.test.ts` 专项单元测试，自动化单测增至 **156 个套件、1,027 项全部通过**；
+  - 全仓自动化单测扩增至 **156 个套件、1,029 项全部通过**；
   - 严格通过 5 层质量门禁（tsc 0 错、svelte 0 错 0 警、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看历史版本更新（点击展开）</summary>
+
+### v0.5.179 本地就绪版
+- 抽取 `src/core/ledger-view-model.ts` 集中封装缺失列感知、表格展示列、提前期推导与写入载荷构建；
+- 台账主屏 `src/panels/screens/ledger.svelte` 降至 589 行，单测增至 1,027 项。
 
 ### v0.5.178 本地就绪版
 - 抽取 `src/core/reminders-view-model.ts` 与 `src/panels/screens/reminder-hero-bar.svelte` 独立封装提醒视图模型与页头看板；

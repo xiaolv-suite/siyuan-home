@@ -56,13 +56,19 @@ export async function runScan(
                 return;
             }
             try {
-                derivedByModule.set(p.moduleId, await p.collect(today));
+                const collected = await p.collect(today);
+                const existing = derivedByModule.get(p.moduleId);
+                if (existing) {
+                    derivedByModule.set(p.moduleId, [...existing, ...collected]);
+                } else {
+                    derivedByModule.set(p.moduleId, collected);
+                }
                 atByModule.set(p.moduleId, now);
             } catch (e) {
                 currentErrors.push({ moduleId: p.moduleId, message: e instanceof Error ? e.message : String(e) });
                 // H04：失败模块保留旧提醒，数据时间也是旧的（不冒充新扫描）
                 const prev = prevByModule[p.moduleId];
-                if (prev) {
+                if (prev && !derivedByModule.has(p.moduleId)) {
                     derivedByModule.set(p.moduleId, prev.reminders);
                     atByModule.set(p.moduleId, prev.at);
                 }

@@ -39,7 +39,24 @@
 </script>
 
 {#if loading}
-    <div class="lv-card" style="padding:20px"><div class="lv-skel" style="height:16px;width:60%"></div></div>
+    <div class="lv-card" style="padding:20px;display:flex;flex-direction:column;gap:12px" aria-busy="true" role="status">
+        <div style="display:flex;gap:12px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--lv-line)">
+            <div class="lv-skel" style="height:14px;width:30px;border-radius:4px"></div>
+            <div class="lv-skel" style="height:14px;width:25%;border-radius:4px"></div>
+            <div class="lv-skel" style="height:14px;width:20%;border-radius:4px"></div>
+            <div class="lv-skel" style="height:14px;width:15%;border-radius:4px"></div>
+            <div class="lv-skel" style="height:14px;width:20%;border-radius:4px"></div>
+        </div>
+        {#each [0, 1, 2, 3] as i (i)}
+            <div style="display:flex;gap:12px;align-items:center;padding:4px 0">
+                <div class="lv-skel" style="height:12px;width:30px;border-radius:4px"></div>
+                <div class="lv-skel" style="height:12px;width:{35 + (i * 7) % 25}%;border-radius:4px"></div>
+                <div class="lv-skel" style="height:12px;width:18%;border-radius:4px"></div>
+                <div class="lv-skel" style="height:12px;width:15%;border-radius:4px"></div>
+                <div class="lv-skel" style="height:12px;width:18%;border-radius:4px"></div>
+            </div>
+        {/each}
+    </div>
 {:else if loadError}
     <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{loadError}</b>
         <button class="b3-button b3-button--outline" onclick={onLoad}>{t("ledger.retryRead")}</button>

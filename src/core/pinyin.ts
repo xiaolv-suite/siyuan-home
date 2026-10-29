@@ -49,22 +49,28 @@ export function pinyinIndex(text: string): string {
             if (e) {
                 full += e[0].replace(/v/g, "u");
                 init += e[1];
-            } else if (/[a-z0-9]/.test(lower)) {
-                full += lower;
-                init += lower;
-            } else if (/[\s\-_·/./(（）)]/.test(ch)) {
-                // 分隔符跳过
-            } else if (/\p{Script=Han}/u.test(ch)) {
-                ok = false; // 字典缺字：整串不产出索引（保守不误配）
-                break;
             } else {
-                full += lower;
-                init += lower;
+                const code = lower.charCodeAt(0);
+                if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
+                    full += lower;
+                    init += lower;
+                } else if (/[\s\-_·/./(（）)]/.test(ch)) {
+                    // 分隔符跳过
+                } else if (/\p{Script=Han}/u.test(ch)) {
+                    ok = false; // 字典缺字：整串不产出索引（保守不误配）
+                    break;
+                } else {
+                    full += lower;
+                    init += lower;
+                }
             }
         }
         if (ok) out = `${full}|${init}`;
     }
-    if (indexCache.size > 5000) indexCache.clear();
+    if (indexCache.size > 5000) {
+        const oldest = indexCache.keys().next().value;
+        if (oldest !== undefined) indexCache.delete(oldest);
+    }
     indexCache.set(text, out);
     return out;
 }
@@ -76,7 +82,9 @@ export function searchMatch(text: string, q: string): boolean {
     if (!q || !/[a-z]/.test(q)) return false;
     const idx = pinyinIndex(text);
     if (!idx) return false;
-    const [full, init] = idx.split("|");
+    const sep = idx.indexOf("|");
+    const full = sep >= 0 ? idx.slice(0, sep) : idx;
+    const init = sep >= 0 ? idx.slice(sep + 1) : "";
     const qU = q.replace(/v/g, "u");
     return full.includes(q) || init.includes(q) || (qU !== q && full.includes(qU));
 }

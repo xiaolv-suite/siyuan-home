@@ -21,6 +21,8 @@ export function createMobileController(options: MobileControllerOptions): Mobile
     let mobileTopBarRetry: number | undefined;
     let mobileDialog: Dialog | undefined;
     let mobileDialogUnmount: (() => void) | undefined;
+    let staggeredTimers: number[] = [];
+    let isDisposed = false;
 
     const runTimeout = (fn: () => void, ms: number): number => {
         if (scheduleTimeout) return scheduleTimeout(fn, ms);
@@ -107,7 +109,10 @@ export function createMobileController(options: MobileControllerOptions): Mobile
         mobileTopBarBtn = button;
 
         for (const delay of [1500, 4000, 10000, 20000, 30000]) {
-            runTimeout(() => ensureMobileTopBarButton(), delay);
+            const tid = runTimeout(() => {
+                if (!isDisposed) ensureMobileTopBarButton();
+            }, delay);
+            staggeredTimers.push(tid);
         }
     };
 
@@ -115,8 +120,11 @@ export function createMobileController(options: MobileControllerOptions): Mobile
         ensureMobileTopBarButton,
         openMobilePanel,
         dispose: () => {
+            isDisposed = true;
             clearRunTimeout(mobileTopBarRetry);
             mobileTopBarRetry = undefined;
+            for (const id of staggeredTimers) clearRunTimeout(id);
+            staggeredTimers = [];
             mobileTopBarBtn?.remove();
             mobileTopBarBtn = undefined;
             if (typeof document !== "undefined") {

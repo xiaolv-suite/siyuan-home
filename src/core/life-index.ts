@@ -6,6 +6,8 @@
  */
 import { formatAmount } from "./format";
 import type { Reminder, DbRef } from "@/types";
+import { selectCellContent } from "./avcell";
+import { localDateKey } from "./hub/rule";
 
 export type LifeDimension = "health_safety" | "finance_contracts" | "daily_efficiency" | "culture_growth";
 export type LifeScoreLevel = "excellent" | "good" | "fair" | "needs_attention";
@@ -282,7 +284,13 @@ export async function collectFamilyLifeContext(
     const medExp = plugin.settings.dbRefs?.medicine?.columns?.expiry;
     if (medExp) {
         for (const r of medRows) {
-            const exp = String(r.cells[medExp]?.date?.content ?? r.cells[medExp]?.text?.content ?? "");
+            const raw = r.cells[medExp]?.date?.content ?? r.cells[medExp]?.text?.content ?? "";
+            let exp = "";
+            if (typeof raw === "number" || (!isNaN(Number(raw)) && Number(raw) > 100000000)) {
+                exp = localDateKey(new Date(Number(raw)));
+            } else if (raw) {
+                exp = String(raw).slice(0, 10);
+            }
             if (exp && exp < today) expiredMedicineCount++;
         }
     }
@@ -302,7 +310,7 @@ export async function collectFamilyLifeContext(
     const mediaSt = plugin.settings.dbRefs?.media?.columns?.status;
     if (mediaSt) {
         for (const r of mediaRows) {
-            const st = String(r.cells[mediaSt]?.select?.content ?? "");
+            const st = selectCellContent(r.cells[mediaSt]) ?? "";
             if (st === "done" || st === "已看" || st === "已读") mediaCompletedCount++;
         }
     }
@@ -310,7 +318,7 @@ export async function collectFamilyLifeContext(
     const stockRows = await readRows(plugin.settings.dbRefs?.stock);
     const stockCat = plugin.settings.dbRefs?.stock?.columns?.category;
     if (stockCat) {
-        hasEmergencyKit = stockRows.some((r) => String(r.cells[stockCat]?.select?.content ?? "") === "emergency_st");
+        hasEmergencyKit = stockRows.some((r) => (selectCellContent(r.cells[stockCat]) ?? "") === "emergency_st");
     }
 
     return {

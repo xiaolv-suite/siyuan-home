@@ -42,6 +42,8 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     const modLabel = (m: string) => (t(`module.${m}`) !== `module.${m}` ? t(`module.${m}`) : m);
     const memberNameMap = new Map((plugin.settings.members ?? []).map((m) => [m.avItemId ?? m.id, m.name]));
 
+    let debounceTimer: number | undefined;
+
     const dlg = new DialogCls({
         title: "",
         content: `
@@ -246,6 +248,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                 }
             };
             card.onclick = () => {
+                if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
                 dlg.destroy();
                 onNavigateToTarget({ moduleId: item.moduleId, rowId: item.rowId });
             };
@@ -256,7 +259,6 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
 
     renderResults("");
 
-    let debounceTimer: number | undefined;
     inp.oninput = () => {
         if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
         debounceTimer = window.setTimeout(() => {
@@ -266,6 +268,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
 
     inp.onkeydown = (e) => {
         if (e.key === "Escape") {
+            if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
             dlg.destroy();
         } else if (e.key === "ArrowDown") {
             e.preventDefault();

@@ -39,21 +39,22 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.179 (Local Ready Build)
+## 🆕 What's new in v0.5.180 (Local Ready Build)
 
-This release modularizes ledger column calculations, table keys, and cell payload builders into `ledger-view-model`, reaching **1,027 unit tests passing (100% green)**:
+Comprehensive quality optimization, bug fixing, and rendering performance improvements across all screens, reaching **1,029 unit tests passing (100% green)**:
 
-- **Refactoring (Ledger Columns & Payload Builder Modularization)**: Extended `src/core/ledger-view-model.ts` with core grid calculations:
-  1. Sensing and computing missing schema columns (`computeMissingSchemaColumns`)
-  2. Dynamic table display columns calculation (`computeTableKeys`)
-  3. Module reminder warning thresholds calculation (`computeModuleWarnDays`)
-  4. Standardized cell payload builder (`buildLedgerCellPayload`)
-- **Performance**: Main ledger screen `src/panels/screens/ledger.svelte` slimmed down to **589 lines**;
-- **Quality Assurance**: Added unit tests to `tests/core/ledger-view-model.test.ts`, expanding suite to **156 test files and 1,027 unit tests passing**;
+- **Critical Bug & Security Fixes**: Fixed multi-provider reminder overwrite, prevented cross-member vital signs mutation in quick flow, fixed `openModuleTab` navigation boundary, standardized AttributeView date timestamps, and eliminated timer leaks;
+- **Performance & Rendering Smoothness**: Eliminated background scan ledger flushing and layout thrashing on table scroll; introduced Schwartzian transform and weak caches in sorting and search; optimized overview to single-pass reduction;
+- **UI Consistency & Accessibility**: Removed hardcoded colors, added dark-mode status tokens, upgraded focus ring contrast (WCAG 2.1 AA), unified frosted glass scrims, and completed focus traps;
+- **Quality Assurance**: Expanded unit tests to **156 test files and 1,029 unit tests passing**;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases (Click to expand)</summary>
+
+### v0.5.179 (Local Ready Build)
+- Extracted `src/core/ledger-view-model.ts` for missing schema column calculation, table keys, and cell payload builder;
+- Ledger screen down to 589 lines, 1,027 tests passing.
 
 ### v0.5.178 (Local Ready Build)
 - Extracted `src/core/reminders-view-model.ts` and `src/panels/screens/reminder-hero-bar.svelte` for reminder view model and hero bar;

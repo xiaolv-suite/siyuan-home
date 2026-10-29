@@ -75,14 +75,14 @@
         }
     }
 
+    let cachedTableTop = $state(0);
+
     const virtualRange = $derived.by(() => {
         void ledgerScrollTop;
         void ledgerViewportHeight;
         const total = visibleRows.length;
         if (total <= 80) return { start: 0, end: total };
-        const tableTop = ledgerTableEl && virtualRoot
-            ? ledgerTableEl.getBoundingClientRect().top - virtualRoot.getBoundingClientRect().top + virtualRoot.scrollTop
-            : 0;
+        const tableTop = cachedTableTop;
         const first = Math.max(0, Math.floor((ledgerScrollTop - tableTop) / virtualRowHeight) - VIRTUAL_OVERSCAN);
         const count = Math.ceil(ledgerViewportHeight / virtualRowHeight) + VIRTUAL_OVERSCAN * 2;
         const start = Math.max(0, Math.min(first, Math.max(0, total - count)));
@@ -95,6 +95,11 @@
         if (!virtualRoot) return;
         ledgerViewportHeight = virtualRoot.clientHeight || 640;
         ledgerScrollTop = virtualRoot.scrollTop;
+        if (ledgerTableEl) {
+            try {
+                cachedTableTop = ledgerTableEl.getBoundingClientRect().top - virtualRoot.getBoundingClientRect().top + virtualRoot.scrollTop;
+            } catch { /* soft measure */ }
+        }
     }
 
     $effect(() => {
@@ -103,12 +108,20 @@
         const root = table.closest<HTMLElement>(".lv-home");
         if (!root) return;
         virtualRoot = root;
-        const onScroll = () => { ledgerScrollTop = root.scrollTop; };
+        let scrollRaf = 0;
+        const onScroll = () => {
+            if (scrollRaf) return;
+            scrollRaf = requestAnimationFrame(() => {
+                scrollRaf = 0;
+                ledgerScrollTop = root.scrollTop;
+            });
+        };
         root.addEventListener("scroll", onScroll, { passive: true });
         const resize = new ResizeObserver(measureLedgerViewport);
         resize.observe(root);
         measureLedgerViewport();
         return () => {
+            if (scrollRaf) cancelAnimationFrame(scrollRaf);
             root.removeEventListener("scroll", onScroll);
             resize.disconnect();
             if (virtualRoot === root) virtualRoot = undefined;

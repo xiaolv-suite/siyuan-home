@@ -403,10 +403,30 @@
     function onNewRecordKeydown(event: KeyboardEvent) {
         if (!open) return;
         if (duplicateConfirmPending) return;
-        if (event.key === "Tab" && saving) {
-            event.preventDefault();
-            document.querySelector<HTMLElement>(".lv-record-modal.open[role='dialog']")?.focus();
-            return;
+        if (event.key === "Tab") {
+            if (saving) {
+                event.preventDefault();
+                document.querySelector<HTMLElement>(".lv-record-modal.open[role='dialog']")?.focus();
+                return;
+            }
+            const sheet = document.querySelector(".lv-record-modal.open .lv-sheet");
+            if (sheet) {
+                const focusables = Array.from(sheet.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+                    .filter((el) => !el.hasAttribute("disabled") && el.getClientRects().length > 0);
+                if (focusables.length > 0) {
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                        return;
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                        return;
+                    }
+                }
+            }
         }
         if (saving) return;
         if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {

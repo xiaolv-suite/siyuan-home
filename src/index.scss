@@ -553,17 +553,19 @@
         &:focus {
             background-color: var(--lv-surface);
             border-color: var(--lv-accent);
-            outline: 2px solid rgba(217, 119, 6, 0.2);
+            outline: 2px solid var(--lv-accent);
+            outline-offset: 1px;
         }
+    }
+    .b3-dialog__scrim {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 }
 
-:root[data-theme-mode="dark"] .b3-dialog:has([id^="lv-"]),
-:root[data-theme-mode="dark"] .b3-dialog:has(.lv-home),
-html.dark .b3-dialog:has([id^="lv-"]),
-html.dark .b3-dialog:has(.lv-home),
-body.theme--dark .b3-dialog:has([id^="lv-"]),
-body.theme--dark .b3-dialog:has(.lv-home) {
+:root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
+html.dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
+body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog) {
     --lv-surface: #111827;
     --lv-surface-2: #1f2937;
     --lv-line: #374151;
@@ -572,6 +574,15 @@ body.theme--dark .b3-dialog:has(.lv-home) {
     --lv-tx: #f8fafc;
     --lv-tx-2: #cbd5e1;
     --lv-tx-3: #94a3b8;
+    --lv-danger: #f87171;
+    --lv-danger-soft: rgba(239, 68, 68, 0.18);
+    --lv-warn: #fbbf24;
+    --lv-warn-soft: rgba(245, 158, 11, 0.18);
+    --lv-ok: #34d399;
+    --lv-ok-soft: rgba(16, 185, 129, 0.18);
+    --lv-amber: #f59e0b;
+    --lv-amber-soft: rgba(245, 158, 11, 0.18);
+    --lv-info-soft: rgba(59, 130, 246, 0.18);
     .b3-button { min-height: 34px; border-radius: 10px; }
     .ft__on-surface { color: var(--lv-tx-3); }
 

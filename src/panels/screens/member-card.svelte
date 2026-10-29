@@ -217,7 +217,7 @@
                             <span>{t("members.retirementCareerProgress")}: {ret.careerProgressPercent}%</span>
                         </div>
                         <div style="height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%">
-                            <div style="height:100%;background:linear-gradient(90deg, var(--lv-accent), #f59e0b);width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
+                            <div style="height:100%;background:linear-gradient(90deg, var(--lv-accent), var(--lv-amber));width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
                         </div>
                     </div>
                 {/if}

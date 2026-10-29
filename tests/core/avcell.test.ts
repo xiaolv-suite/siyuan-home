@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectCellValue, selectCellContent, cellContentText } from "../../src/core/avcell";
+import { selectCellValue, selectCellContent, cellContentText, cellValue } from "../../src/core/avcell";
 
 describe("avcell 内核兼容层（R8 select 写读双形态）", () => {
     it("写入 payload 同时携带 select 单值与 mSelect 数组（新旧内核双命中）", () => {
@@ -34,6 +34,19 @@ describe("avcell 内核兼容层（R8 select 写读双形态）", () => {
             expect(cellContentText({ url: { content: "https://example.com" } })).toBe("https://example.com");
             expect(cellContentText(undefined)).toBe("");
             expect(cellContentText(null)).toBe("");
+        });
+    });
+
+    describe("cellValue 构造思源写入对象", () => {
+        it("正确构造日期单元格毫秒时间戳", () => {
+            const dateCell = cellValue("date", "2026-10-28") as any;
+            expect(dateCell.type).toBe("date");
+            expect(dateCell.date.content).toBe(new Date("2026-10-28T00:00:00").getTime());
+            expect(dateCell.date.isNotEmpty).toBe(true);
+            expect(dateCell.date.isNotTime).toBe(true);
+
+            const emptyDate = cellValue("date", "") as any;
+            expect(emptyDate.date.isNotEmpty).toBe(false);
         });
     });
 });

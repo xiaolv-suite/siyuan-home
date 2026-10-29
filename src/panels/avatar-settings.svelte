@@ -345,7 +345,7 @@
     .lv-avatar-dialog { width: min(460px, calc(100vw - 28px)); max-height: min(680px, calc(100dvh - 28px)); overflow: auto; padding: 20px;
         border: 1px solid var(--lv-line-strong); border-radius: var(--lv-r-3); background: var(--lv-surface); color: var(--lv-tx);
         box-shadow: var(--lv-shadow-3); }
-    .lv-avatar-dialog::backdrop { background: rgba(15, 20, 26, .52); backdrop-filter: blur(4px); }
+    .lv-avatar-dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(6px); }
     .lv-avatar-head { display: flex; align-items: flex-start; gap: 12px; }
     .lv-avatar-head h2, .lv-avatar-dialog > h2 { margin: 0; font-size: 16px; font-weight: 650; }
     .lv-avatar-head p, .lv-avatar-dialog > p { margin: 5px 0 0; color: var(--lv-tx-3); font-size: 12px; line-height: 1.5; }
@@ -366,7 +366,7 @@
     .lv-avatar-actions > :first-child { margin-right: auto; }
     .lv-avatar-status { min-height: 18px; }
     .lv-avatar-crop-stage { display: grid; grid-template-columns: minmax(0, 1fr) 64px; align-items: center; justify-items: center; gap: 12px; margin-top: 16px; padding: 12px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); }
-    .lv-avatar-crop-canvas { width: min(100%, 300px); aspect-ratio: 1; touch-action: none; border-radius: 8px; background: #e8edf3; cursor: grab; outline-offset: 3px; }
+    .lv-avatar-crop-canvas { width: min(100%, 300px); aspect-ratio: 1; touch-action: none; border-radius: 8px; background: var(--lv-surface-2); cursor: grab; outline-offset: 3px; }
     .lv-avatar-crop-canvas:active { cursor: grabbing; }
     .lv-avatar-preview { width: 60px; height: 60px; border: 1px solid var(--lv-line); border-radius: 50%; background: var(--lv-surface); }
     .lv-avatar-crop-tools { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 12px; margin-top: 14px; }

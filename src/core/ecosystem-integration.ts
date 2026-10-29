@@ -193,6 +193,8 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
         onBridgeDisposed: () => { disposeLvHomeBridge = undefined; },
     });
 
+    const checkinPullTimers: number[] = [];
+
     if (typeof window !== "undefined") {
         // EC21：消费 lv-exam:stats 聚合
         examStatsHandler = (e: Event) => {
@@ -240,8 +242,8 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
         window.addEventListener("tm:task-completed", taskHorizonCompletedHandler);
 
         // 启动时拉取一次
-        window.setTimeout(() => void pullCheckinSummary(), 3000);
-        window.setTimeout(() => void pullCheckinSummary(), 5000);
+        checkinPullTimers.push(window.setTimeout(() => void pullCheckinSummary(), 3000));
+        checkinPullTimers.push(window.setTimeout(() => void pullCheckinSummary(), 5000));
 
         ensureSpeedSwitchActions();
     }
@@ -251,6 +253,8 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
         buildHomeSummarySnapshot,
         ensureSpeedSwitchActions,
         dispose: () => {
+            for (const t of checkinPullTimers) window.clearTimeout(t);
+            checkinPullTimers.length = 0;
             if (typeof window !== "undefined") {
                 if (examStatsHandler) window.removeEventListener("lv-exam:stats", examStatsHandler);
                 if (cardsReviewedHandler) window.removeEventListener("lv-cards:reviewed", cardsReviewedHandler);

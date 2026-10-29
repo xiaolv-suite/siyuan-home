@@ -186,7 +186,14 @@
     // R6（2026-10-09）：对外入口（状态栏角标/服务桥 openReminders/命令面板）在面板已挂载时
     // 直切页签——pendingScreen 只在挂载时消费，SiYuan 恢复的旧页签路径永远走不到挂载消费
     $effect(() => {
-        const switchScreen = (s: string) => gotoScreen(s as ScreenId);
+        const switchScreen = (s: string) => {
+            if (isScreen(s)) {
+                gotoScreen(s);
+            } else {
+                plugin.setActiveLedger(s);
+                gotoScreen("ledger");
+            }
+        };
         plugin.panelScreenSwitch = switchScreen;
         return () => { if (plugin.panelScreenSwitch === switchScreen) plugin.panelScreenSwitch = undefined; };
     });
@@ -260,9 +267,16 @@
     // 状态栏/通知入口可预选页签（plugin.pendingScreen，消费后清空）——初始快照为设计意图。
     // 单次读取落局部量：快照语义不变，且消除同逻辑两处 state_referenced_locally 警告
     // svelte-ignore state_referenced_locally
-    const pendingScreen = plugin.pendingScreen as ScreenId | undefined;
+    const rawPending = plugin.pendingScreen;
     // svelte-ignore state_referenced_locally
     plugin.pendingScreen = undefined;
+    if (rawPending && !isScreen(rawPending)) {
+        // svelte-ignore state_referenced_locally
+        plugin.setActiveLedger(rawPending);
+    }
+    const pendingScreen: ScreenId | undefined = isScreen(rawPending)
+        ? rawPending
+        : (rawPending ? "ledger" : undefined);
     function readLastScreen(): ScreenId | undefined {
         try {
             const value = sessionStorage.getItem("siyuan-home:last-screen");

@@ -56,7 +56,7 @@ This release modularizes reminder view calculations and hero bar presentation in
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
-<summary>Previous Releases</summary>
+<summary>Previous Releases (Click to expand)</summary>
 
 ### v0.5.177 (Local Ready Build)
 - Extracted `src/core/hub/runtime-store.ts` for runtime persistence, semantic fingerprinting, and WeakMap serialization lock;
@@ -78,47 +78,18 @@ This release modularizes reminder view calculations and hero bar presentation in
 - Extracted `src/panels/settings-members-tab.svelte` and `src/panels/settings-data-tab.svelte` for members and data tabs;
 - Main settings panel `src/panels/settings.svelte` down to 558 lines, 995 tests passing.
 
-### v0.5.172 (Local Ready Build)
-- Extracted `src/panels/screens/overview-bento-grid.svelte` and `src/panels/screens/overview-upcoming-list.svelte` for Bento grid and upcoming reminders;
-- Main overview screen `src/panels/screens/overview.svelte` down to 514 lines, 991 tests passing.
+### v0.5.170 ~ v0.5.172 Core Decoupling Waves
+- Extracted `overview-bento-grid`, `overview-upcoming-list`, `quick-capture-form`, and `drawer-actions`, reducing component line counts, tests at 991.
 
-### v0.5.171 (Local Ready Build)
-- Extracted `src/panels/quick-capture-form.svelte` for quick capture form fields;
-- Quick capture modal `src/panels/quick-capture.svelte` down to 515 lines, 987 tests passing.
+### v0.5.160 ~ v0.5.169 Architecture Modularization
+- Extracted `triage-to-ledger`, `reminder-exporter`, `member-card`, `ledger-record-saver`, `drawer-conversions`, `drawer-domain-sections`, `schema-catalog`, `vehicle-energy-section`, `quick-capture-saver`, `overview-module-grid`, and `runtime-views`, tests at 980.
 
-### v0.5.170 (Local Ready Build)
-- Extended `src/core/drawer-actions.ts` for doc templates, duplicate cloning, and cascade deletion;
-- Detail drawer core `src/core/ledger-detail-drawer.ts` down to 533 lines, 983 tests passing.
+### Earlier Releases (v0.1.0 ~ v0.5.159)
+- Modularized transport, context menus, mobile controller, ecosystem integration, and detail drawer. See [CHANGELOG.md](./CHANGELOG.md) for full details.
 
-### v0.5.169 (Local Ready Build)
-- Extracted `src/core/triage-to-ledger.ts` and `src/core/reminder-exporter.ts` for triage and exporters;
-- Reminder dialogs core `src/core/reminder-dialogs.ts` down to 335 lines, 981 tests passing.
+</details>
 
-### v0.5.168 (Local Ready Build)
-- Extracted `src/panels/screens/member-card.svelte` for member card component;
-- Members screen `src/panels/screens/members.svelte` down to 498 lines, 977 tests passing.
-
-### v0.5.167 (Local Ready Build)
-- Extracted `src/core/ledger-record-saver.ts` for ledger record save engine;
-- Modal dialog `src/panels/screens/ledger-record-modal.svelte` down to 586 lines, 974 tests passing.
-
-### v0.5.166 (Local Ready Build)
-- Extracted `src/core/drawer-conversions.ts` for cross-ledger conversion pipelines;
-- Drawer sections core `src/core/drawer-sections.ts` down to 380 lines, 970 tests passing.
-
-### v0.5.165 (Local Ready Build)
-- Extracted `src/core/drawer-domain-sections.ts` for 6 domain analysis cards;
-- `src/core/drawer-module-sections.ts` down to 265 lines, unit tests at 968 passing.
-
-### v0.5.164 (Local Ready Build)
-- Extracted `src/core/schema-catalog.ts` for 31-module schemas and column factories;
-- Schema core `src/core/schema.ts` reduced to 172 lines, 966 tests passing.
-
-### v0.5.163 (Local Ready Build)
-- Extracted `src/core/vehicle-energy-section.ts` for vehicle energy logs and bezier consumption charts;
-- Vehicle drawer dropped to 393 lines, unit tests at 966 passing.
-
-## 📦 Install (v0.5.134 / v0.5.163 Local Ready)
+## 📦 Install (v0.5.178 Local Ready)
 
 1. Download `package.zip` from [Releases](https://github.com/ai68298100/siyuan-home/releases/latest)
 2. SiYuan → Settings → Marketplace → Download → **Import** the zip

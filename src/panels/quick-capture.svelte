@@ -3,16 +3,17 @@
     // 未建库自动建库（triage 同链路）。常驻挂载：关闭仅收起弹层，草稿保留到下次打开（对齐原型）。
     import { showMessage } from "siyuan";
     import { tick } from "svelte";
-    import { getCaptureFields, getFieldPlaceholder } from "@/core/capture";
+    import { getCaptureFields } from "@/core/capture";
     import { getGroupedModules, moduleIcon } from "@/core/modules";
     import { localDateKey } from "@/core/hub/rule";
     import { getQuickTemplates, type QuickRecordTemplate } from "@/core/quick-templates";
     import QuickEventFlow from "./quick-event-flow.svelte";
     import QuickSmartBar from "./quick-smart-bar.svelte";
+    import QuickCaptureForm from "./quick-capture-form.svelte";
     import type { ColumnDef, ModuleSchema } from "@/core/schema";
     import type { HomeSettings } from "@/types";
     import UiIcon from "@/ui/icon.svelte";
-    import { smartExtractFieldsFromTitle, type ParsedCaptureResult } from "@/core/block-capture";
+    import type { ParsedCaptureResult } from "@/core/block-capture";
 
     interface ICapturePluginLike {
         i18n: Record<string, unknown>;
@@ -93,17 +94,6 @@
     function fieldLabel(field: ColumnDef): string {
         const key = field.labelKey ?? `field.${field.key}`;
         return t(key) !== key ? t(key) : field.key;
-    }
-    function fieldPlaceholder(field: ColumnDef): string {
-        return getFieldPlaceholder(field, moduleId, t);
-    }
-    function fieldDetail(key: string | undefined): string {
-        if (!key) return "";
-        const value = t(key);
-        return value === key ? "" : value;
-    }
-    function fieldRequired(field: ColumnDef): boolean {
-        return field.required === true;
     }
 
     let values: Record<string, string | number | boolean | undefined> = $state({});
@@ -270,20 +260,6 @@
     const frequentModules = $derived(FREQUENT_MODULE_CANDIDATES.filter((id) => modules.includes(id)).slice(0, 7));
 
     let keepContext = $state(false);
-    const COMMON_LOCATIONS = ["主卧抽屉", "客厅药箱", "玄关柜", "书房书架", "储藏室", "冰箱冷藏", "厨房吊柜"];
-
-    function applyDatePreset(key: string, daysAhead: number) {
-        const d = new Date();
-        d.setDate(d.getDate() + daysAhead);
-        values[key] = localDateKey(d);
-        clearFieldError(key);
-    }
-
-    function applyLocationPreset(key: string, loc: string) {
-        values[key] = loc;
-        clearFieldError(key);
-    }
-
     const activeTarget = $derived(plugin.settings.dbRefs?.[moduleId]);
     const currentTemplates = $derived(getQuickTemplates(moduleId));
 
@@ -292,35 +268,6 @@
             values[k] = v;
             clearFieldError(k);
         }
-    }
-
-    function handleNameBlur() {
-        if (!values.name || typeof values.name !== "string") return;
-        const res = smartExtractFieldsFromTitle(values.name);
-        if (res.cleanTitle !== values.name) {
-            values.name = res.cleanTitle;
-            const dateField = captureFields.find((f) => f.type === "date");
-            if (dateField && res.extractedDate && !values[dateField.key]) {
-                values[dateField.key] = res.extractedDate;
-                clearFieldError(dateField.key);
-            }
-            const numField = captureFields.find((f) => f.type === "number" && ["amount", "price", "cost"].includes(f.key));
-            if (numField && res.extractedAmount !== undefined && !values[numField.key]) {
-                values[numField.key] = res.extractedAmount;
-                clearFieldError(numField.key);
-            }
-        }
-    }
-    const filledCaptureCount = $derived.by(() => captureFields.filter((field: any) => {
-        const value = values[field.key];
-        return value !== undefined && value !== null && value !== "" && value !== false;
-    }).length);
-
-    function fieldDescriptionIds(field: ColumnDef): string | undefined {
-        const ids = new Set<string>();
-        if ((field.helpKey && fieldDetail(field.helpKey)) || (field.unitKey && fieldDetail(field.unitKey))) ids.add(`lv-cap-help-${field.key}`);
-        if (fieldErrors[field.key]) ids.add(`lv-cap-error-${field.key}`);
-        return ids.size ? [...ids].join(" ") : undefined;
     }
 
     function clearFieldError(key: string) {
@@ -522,92 +469,23 @@
                     onApplyTemplate={applyTemplate}
                 />
 
-                <div class="lv-capture-context" role="status" aria-live="polite">
-                    <div class="lv-capture-context__main">
-                        <span class="lv-capture-context__eyebrow">{t("capture.contextTitle")}</span>
-                        <strong>{modLabel(moduleId)}</strong>
-                    </div>
-                    <span class="lv-capture-context__count">{t("capture.fieldCount").replace("${filled}", String(filledCaptureCount)).replace("${total}", String(captureFields.length))}</span>
-                    <span class="lv-capture-context__hint">
-                        {activeTarget?.avId
-                            ? t("capture.contextHint").replace("${module}", modLabel(moduleId))
-                            : t("capture.noTarget").replace("${module}", modLabel(moduleId))}
-                    </span>
-                </div>
-                {#each captureFields as f (f.key)}
-                    <div class="lv-frow">
-                        {#if f.key === "name"}
-                            <label for="lv-cap-name">{fieldLabel(f)} <small class="lv-capture-required">{t("capture.required")}</small></label>
-                            <input bind:this={nameEl} id="lv-cap-name" class="b3-text-field" type="text"
-                                placeholder={fieldPlaceholder(f)} bind:value={values.name} disabled={saving} required={fieldRequired(f)}
-                                aria-invalid={fieldErrors.name ? "true" : undefined}
-                                aria-describedby={fieldDescriptionIds(f)}
-                                oninput={() => clearFieldError(f.key)}
-                                onblur={handleNameBlur}
-                                onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) save(false); }} />
-                        {:else}
-                            <label for="lv-cap-{f.key}">{fieldLabel(f)}{#if fieldRequired(f)} <small class="lv-capture-required">{t("capture.required")}</small>{/if}</label>
-                        {/if}
-                        {#if f.key !== "name" && f.type === "select"}
-                            <select id="lv-cap-{f.key}" class="b3-select" bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} onchange={() => clearFieldError(f.key)}>
-                                <option value="">{t("capture.selectOptional")}</option>
-                                {#each f.options ?? [] as opt (opt)}
-                                    <option value={opt}>{t(`field.${f.key}.opt.${opt}`) !== `field.${f.key}.opt.${opt}` ? t(`field.${f.key}.opt.${opt}`) : opt}</option>
-                                {/each}
-                            </select>
-                        {:else if f.key !== "name" && f.type === "relation"}
-                            <select id="lv-cap-{f.key}" class="b3-select" bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} onchange={() => clearFieldError(f.key)}>
-                                <option value="">{t("capture.selectOptional")}</option>
-                                {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
-                                    <option value={m.avItemId ?? ""} disabled={!m.avItemId}>
-                                        {m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}
-                                    </option>
-                                {/each}
-                            </select>
-                        {:else if f.key !== "name" && f.type === "date"}
-                            <input id="lv-cap-{f.key}" class="b3-text-field" type="date" bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => clearFieldError(f.key)} />
-                            <div class="lv-preset-tags">
-                                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 0)}>{t("capture.presetToday")}</button>
-                                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 1)}>{t("capture.presetTomorrow")}</button>
-                                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 7)}>{t("capture.presetNextWeek")}</button>
-                                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 30)}>{t("capture.presetNextMonth")}</button>
-                                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 365)}>{t("capture.presetNextYear")}</button>
-                            </div>
-                        {:else if f.key !== "name" && f.type === "number"}
-                            <input id="lv-cap-{f.key}" class="b3-text-field" type="number" min={f.min} max={f.max} step={f.step ?? "any"} placeholder={fieldPlaceholder(f)} bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => clearFieldError(f.key)} />
-                        {:else if f.key !== "name" && f.type === "checkbox"}
-                            <input id="lv-cap-{f.key}" class="b3-switch" type="checkbox" checked={values[f.key] === true} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} onchange={(event) => { values[f.key] = event.currentTarget.checked; clearFieldError(f.key); }} />
-                        {:else if f.key !== "name"}
-                            <input id="lv-cap-{f.key}" class="b3-text-field" type={f.type === "url" ? "url" : "text"} placeholder={fieldPlaceholder(f)} bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => clearFieldError(f.key)} />
-                            {#if f.key === "location" || f.key === "store_place"}
-                                <div class="lv-preset-tags">
-                                    {#each COMMON_LOCATIONS as loc (loc)}
-                                        <button type="button" class="lv-preset-tag" onclick={() => applyLocationPreset(f.key, loc)}>{loc}</button>
-                                    {/each}
-                                </div>
-                            {/if}
-                        {/if}
-                        {#if f.key !== "name" && (fieldDetail(f.helpKey) || fieldDetail(f.unitKey))}
-                            <small id="lv-cap-help-{f.key}" class="lv-capture-field-hint">
-                                {fieldDetail(f.helpKey)}{#if fieldDetail(f.helpKey) && fieldDetail(f.unitKey)} · {/if}{#if fieldDetail(f.unitKey)}{t("capture.unitLabel")}：{fieldDetail(f.unitKey)}{/if}
-                            </small>
-                        {/if}
-                        {#if fieldErrors[f.key]}<small id="lv-cap-error-{f.key}" class="lv-capture-field-error">{fieldErrors[f.key]}</small>{/if}
-                    </div>
-                {/each}
-                {#if saving}<span class="lv-caption lv-capture-saving" role="status" aria-live="polite">{t("ledger.saving")}</span>{/if}
-                {#if saveError}
-                    <span class="lv-caption lv-capture-error-summary" role="alert" aria-live="assertive"><UiIcon name="alert" size={13} /> {saveError}</span>
-                {/if}
-                <div class="lv-keep-context-wrap" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed var(--lv-line)">
-                    <label class="lv-keep-context-label" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--lv-tx-2);user-select:none" title={`${t("capture.keepContext")} (Alt+K)`}>
-                        <input type="checkbox" class="b3-switch" style="transform:scale(0.85);transform-origin:left center;flex-shrink:0" bind:checked={keepContext} />
-                        <span class="lv-caption" style="white-space:nowrap">{t("capture.keepContext")} <span style="opacity:0.6;font-size:10.5px">(Alt+K)</span></span>
-                    </label>
-                    {#if identityPending}
-                        <button type="button" class="b3-button b3-button--text" style="font-size:11.5px;color:var(--lv-danger)" onclick={discardUncertainDraft}>{t("capture.discardUncertain")}</button>
-                    {/if}
-                </div>
+                <QuickCaptureForm
+                    {moduleId}
+                    {captureFields}
+                    {activeTarget}
+                    {plugin}
+                    {t}
+                    {saving}
+                    {saveError}
+                    bind:fieldErrors
+                    bind:values
+                    bind:keepContext
+                    {identityPending}
+                    bind:nameEl
+                    onSave={(continueAfter) => void save(continueAfter)}
+                    onClearFieldError={clearFieldError}
+                    onDiscardUncertain={discardUncertainDraft}
+                />
             {/if}
             {/if}
         </div>

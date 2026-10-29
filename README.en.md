@@ -39,20 +39,26 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.170 (Local Ready Build)
+## 🆕 What's new in v0.5.171 (Local Ready Build)
 
-This release modularizes detail drawer doc template generation and row operation transactions into `src/core/drawer-actions.ts`, taking `src/core/ledger-detail-drawer.ts` down to 533 lines:
+This release modularizes the quick capture form fields section into `src/panels/quick-capture-form.svelte`, taking `src/panels/quick-capture.svelte` down to 515 lines:
 
-- **Refactoring (Modularized Drawer Actions & Doc Templates)**: Extended `src/core/drawer-actions.ts` (expanded to 515 lines), encapsulating drawer footer and document generation pipelines:
-  1. Dynamic markdown document template generator button group with variable substitution (`renderDrawerDocTemplates`)
-  2. Complete row cloning wizard with smart extraction and prefill (`bindDrawerRowOperations` duplicate)
-  3. Row deletion cascade cleanup including member relations, runtime data, and row logs (`bindDrawerRowOperations` delete)
-- **Performance**: Detail drawer core `src/core/ledger-detail-drawer.ts` down to **533 lines** (trimmed 108 lines from 641 lines, a 16.8% reduction);
-- **Test Milestone**: 145 test suites, **983 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
+- **Refactoring (Modularized Quick Capture Form & Presets)**: Extracted `src/panels/quick-capture-form.svelte` (190 lines), encapsulating entity record form fields and interactions:
+  1. Context status header (`lv-capture-context`), filled field counter, and target ledger readiness indicators
+  2. Full-featured field inputs (name input with title cleaning, select dropdowns, member relations, date inputs with preset tags, number bounds, switches, and location presets)
+  3. Realtime field validation and error message clearing on change (`onClearFieldError`)
+  4. Field help texts (`helpKey`) and unit display (`unitKey`)
+  5. Saving status indicators, error banners, context preservation toggle (`keepContext`), and uncertain draft discard confirmation
+- **Performance**: Quick capture modal shell `src/panels/quick-capture.svelte` down to **515 lines** (trimmed 122 lines from 637 lines, a 19.2% reduction);
+- **Test Milestone**: 146 test suites, **987 unit tests passing** (100% green), TypeScript, Svelte, i18n (1983 keys), metadata, and package smoke all green;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.170 (Local Ready Build)
+- Extended `src/core/drawer-actions.ts` for doc templates, duplicate cloning, and cascade deletion;
+- Detail drawer core `src/core/ledger-detail-drawer.ts` down to 533 lines, 983 tests passing.
 
 ### v0.5.169 (Local Ready Build)
 - Extracted `src/core/triage-to-ledger.ts` and `src/core/reminder-exporter.ts` for triage and exporters;

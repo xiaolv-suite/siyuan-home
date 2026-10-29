@@ -39,21 +39,28 @@ Certificates expire, medicine expires, insurance needs renewal, subscriptions au
 
 Image OCR uses the engine configured in SiYuan Settings → OCR. It runs only when requested and does not require automatic OCR to be enabled. AI OCR asks before each run because the image is sent to the selected AI service. Results are saved to SiYuan OCR text and included in search; re-running replaces the previous result. Encrypted notebook images and PDFs are not supported, and OCR text is never written into ledger fields automatically.
 
-## 🆕 What's new in v0.5.177 (Local Ready Build)
+## 🆕 What's new in v0.5.178 (Local Ready Build)
 
-This release modularizes runtime persistence, schema normalization, and instance-level lock management into dedicated sub-modules, reaching **1,016 unit tests passing (100% green)**:
+This release modularizes reminder view calculations and hero bar presentation into dedicated sub-modules, reaching **1,023 unit tests passing (100% green)**:
 
-- **Refactoring (Runtime Store & Persistence Engine)**: Extracted `src/core/hub/runtime-store.ts` (339 lines), encapsulating data normalization and write serialization:
-  1. Default runtime factory (`defaultRuntime`) and defensive data normalization (`normalizeCache`, `normalizeHandled`, `normalizeRenewHistory`, `normalizeReminders`, `normalizeMemo`, `normalizeNamedView`)
-  2. Safe disk loading with corruption resilience (`loadRuntime`)
-  3. Semantic fingerprint comparison (`semanticRuntimeFingerprint`) stripping volatile timestamps to prevent unnecessary disk writes and host reload jitter
-  4. WeakMap-based async lock and queue mechanism (`withRuntimeSaveLock`, `saveRuntime`, `persistRuntimeUnderLock`) eliminating concurrent write overwrites
-- **Performance**: Runtime core file `src/core/hub/runtime.ts` dramatically slimmed down to **332 lines** (trimmed 319 lines from 651 lines, a 49.0% reduction), focusing cleanly on business rules and derivation;
-- **Quality Assurance**: Added `tests/core/runtime-store.test.ts`, expanding suite to **155 test files and 1,016 unit tests passing**;
+- **Refactoring (Reminders View Model & Pure Engine)**: Extracted `src/core/reminders-view-model.ts` (160 lines) for reminder computation:
+  1. Multi-dimensional filtering (`filterReminders`, `filterHandledEntries`) across levels, members, modules, and relative due windows
+  2. Multi-tier group rendering and pinned-first ordering (`computeReminderDisplayGroups`, `sortPinnedFirst`)
+  3. Rule and kind i18n label decoding (`getReminderRuleText`, `getReminderKindText`)
+  4. Multi-stage lead rules and urgency badge extraction (`getReminderRuleSpec`, `getReminderStage`)
+  5. Native task block markdown generation and clipboard copying (`copyReminderAsTaskBlock`)
+  6. Two-date plan status toggling and dispatch (`toggleReminderQuickPlanToday`)
+- **Refactoring (Reminder Hero Bar Component)**: Extracted `src/panels/screens/reminder-hero-bar.svelte` (75 lines) encapsulating hero title, due counter summary, and scoped container query styles;
+- **Performance**: Reminders screen `src/panels/screens/reminders.svelte` dramatically slimmed down to **505 lines** (trimmed 161 lines from 666 lines, a 24.2% reduction);
+- **Quality Assurance**: Added `tests/core/reminders-view-model.test.ts`, expanding suite to **156 test files and 1,023 unit tests passing**;
 - **Release Status**: **Local ready build (pending GitHub unblock per user instructions, not pushed to remote)**.
 
 <details>
 <summary>Previous Releases</summary>
+
+### v0.5.177 (Local Ready Build)
+- Extracted `src/core/hub/runtime-store.ts` for runtime persistence, semantic fingerprinting, and WeakMap serialization lock;
+- Runtime core `src/core/hub/runtime.ts` down to 332 lines, 1,016 tests passing.
 
 ### v0.5.176 (Local Ready Build)
 - Extracted `src/core/plugin-entrypoints.ts` and `src/core/plugin-auth-guard.ts` for plugin entrypoints and auth guards;

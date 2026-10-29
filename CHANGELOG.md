@@ -1,3 +1,24 @@
+## v0.5.178 2026-10-29（本地就绪版）
+
+### 提醒视图模型与页头摘要全面解耦、单测增至1023项全绿、提醒主屏降至505行
+
+- **重构（提醒视图模型与纯计算引擎独立解耦）**：
+  - 独立抽取 `src/core/reminders-view-model.ts`（160 行），集中承载提醒列表纯计算与数据交互中枢：
+    1. 活跃提醒与已办记录多维过滤（`filterReminders`、`filterHandledEntries`），覆盖级别、成员、模块与相对到期时间窗口；
+    2. 多层级分组与置顶排序合并推算（`computeReminderDisplayGroups`、`sortPinnedFirst`）；
+    3. 提醒规则多语言标签解析（`getReminderRuleText`、`getReminderKindText`）；
+    4. 多段提前量规则提取与阶梯紧迫度徽章推算（`getReminderRuleSpec`、`getReminderStage`）；
+    5. 思源原生任务块语法生成与一键写入剪贴板（`copyReminderAsTaskBlock`）；
+    6. 双日期计划处理日快速切换与状态同步（`toggleReminderQuickPlanToday`）；
+- **重构（提醒主屏页头摘要与响应式样式独立解耦）**：
+  - 独立抽取 `src/panels/screens/reminder-hero-bar.svelte`（75 行），集中封装提醒页顶部 Hero 导览、到期总数与逾期高亮看板，以及 48 行独立容器查询响应式样式；
+  - 提醒主屏核心组件 `src/panels/screens/reminders.svelte` 代码行数历史性精简至 **505 行**（从 666 行净减 **161 行**，净精简达 **24.2%**）；
+- **质量保障与单测突破**：
+  - 新增 `tests/core/reminders-view-model.test.ts` 专项单元测试套件，全面覆盖多维筛选、时间窗裁切、分组置顶、提前量段位推算、剪贴板任务块格式化与快速计划排程；
+  - 全仓自动化单测扩增至 **156 个测试套件、1,023 项单元测试 100% 全绿**；
+  - 严格保持 5 层质量门禁（tsc、svelte-check 0 错误 0 警告、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）通过；
+- **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
+
 ## v0.5.177 2026-10-29（本地就绪版）
 
 ### 运行态存储持久化与并发锁独立解耦、单测增至1016项全绿、运行态精简至332行

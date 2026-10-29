@@ -9,16 +9,26 @@
     import { localDateKey } from "@/core/hub/rule";
     import { toggleReminderPin } from "@/core/hub/actions";
     import { isReminderPinned } from "@/core/hub/runtime";
-    import { stageBadgeLabel, stageBadge, stagesOf } from "@/core/reminder-stage";
-    import { formatAsTaskBlock } from "@/core/block-capture";
     import Calendar from "@/panels/screens/calendar.svelte";
+    import ReminderHeroBar from "@/panels/screens/reminder-hero-bar.svelte";
     import ReminderGroupsList from "@/panels/screens/reminder-groups-list.svelte";
     import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
     import ReminderHandledList from "@/panels/screens/reminder-handled-list.svelte";
     import ReminderControlsBar from "@/panels/screens/reminder-controls-bar.svelte";
     import { openReminderDigestDialog, exportReminderIcs } from "@/core/reminder-dialogs";
+    import {
+        filterReminders,
+        filterHandledEntries,
+        computeReminderDisplayGroups,
+        getReminderRuleText,
+        getReminderKindText,
+        getReminderStage,
+        copyReminderAsTaskBlock,
+        toggleReminderQuickPlanToday,
+    } from "@/core/reminders-view-model";
     import UiIcon from "@/ui/icon.svelte";
-    import type { Reminder, ReminderKind } from "@/types";
+    import type { Reminder } from "@/types";
+
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
 
     // 就地展开摘要（§17）：不打开抽屉直接查看派生规则、所属模块与责任成员
@@ -29,21 +39,8 @@
         else next.add(id);
         expandedReminders = next;
     }
-    function ruleText(ruleKey: string): string {
-        const key = `rule.${ruleKey}`;
-        const val = t(key);
-        return val === key ? ruleKey : val;
-    }
-    function kindText(kind?: ReminderKind): string {
-        if (!kind) return "";
-        const map: Record<string, string> = {
-            recurring: t("hub.kindRecurring"),
-            anniversary: t("hub.kindAnniversary"),
-            oneoff: t("hub.kindOneoff"),
-            after: t("hub.kindAfter"),
-        };
-        return map[kind] ?? kind;
-    }
+    const ruleText = (ruleKey: string): string => getReminderRuleText(ruleKey, t);
+    const kindText = (kind?: any): string => getReminderKindText(kind, t);
 
     // version（H02）：hub 变更时递增，驱动派生重算（plugin.* 为普通对象引用）
     const all = $derived.by(() => {
@@ -84,37 +81,8 @@
         });
     }
 
-    async function copyAsTaskBlock(r: Reminder) {
-        const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
-        const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
-        try {
-            await navigator.clipboard.writeText(text);
-            showMessage(t("hub.taskBlockCopied"), 3000, "info");
-        } catch {
-            showMessage(t("hub.digestCopyFailed"), 3000, "error");
-        }
-    }
-
-    async function quickPlanToday(r: Reminder) {
-        const todayKey = localDateKey(new Date());
-        const planDates = plugin.runtime.planDates ?? {};
-        const isAlreadyToday = planDates[r.id] === todayKey;
-        try {
-            if (isAlreadyToday) {
-                const { clearReminderPlanDate } = await import("@/core/hub/runtime");
-                clearReminderPlanDate(plugin.runtime, r.id);
-                showMessage(t("hub.planDateCleared"), 2000, "info");
-            } else {
-                const { setReminderPlanDate } = await import("@/core/hub/runtime");
-                setReminderPlanDate(plugin.runtime, r.id, todayKey);
-                showMessage(t("hub.planDateSaved"), 2000, "info");
-            }
-            await saveRuntime(plugin, plugin.runtime);
-            await plugin.refreshHub?.(undefined, true);
-        } catch (e) {
-            showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-        }
-    }
+    const copyAsTaskBlock = (r: Reminder) => copyReminderAsTaskBlock(r, t, showMessage);
+    const quickPlanToday = (r: Reminder) => toggleReminderQuickPlanToday(r, plugin, t, showMessage);
 
     // 命名视图（§17）：筛选组合一键保存与切换
     const namedViews = $derived.by(() => {
@@ -187,20 +155,8 @@
             showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         }
     }
-    const filtered = $derived.by(() => {
-        const level = filter;
-        let list = level === "all" ? all : level === "handled" ? [] : all.filter((r: Reminder) => r.level === level);
-        if (filterMember) list = list.filter((r: Reminder) => !r.memberId || r.memberId === filterMember);
-        if (filterModule) list = list.filter((r: Reminder) => r.moduleId === filterModule);
-        if (dueWithin !== "all") {
-            // 时间窗含逾期：dueDate ≤ 今天+N（yyyy-MM-dd 字符串比较安全；逾期恒在窗内）
-            const today = new Date();
-            const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(dueWithin));
-            const endKey = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
-            list = list.filter((r: Reminder) => r.dueDate <= endKey);
-        }
-        return list;
-    });
+    const filtered = $derived(filterReminders(all, filter, filterMember, filterModule, dueWithin));
+
     // Index the scan once so handled filtering does not repeatedly scan the
     // complete derived cache for every archived entry (O(n*m) on large hubs).
     const reminderById = $derived.by(() => {
@@ -209,7 +165,6 @@
         for (const reminder of plugin.runtime?.cache?.derived ?? []) map.set(reminder.id, reminder);
         return map;
     });
-    // 225 波：行级级别徽章撤除（级别由色轨+右侧相对时间大字承载，避免重复）——levelBadge 随之移除
 
     // UG11 v1：提醒导出 .ics（当前筛选为范围；G1 同款——含高后果模块先点名确认）
     let exportingIcs = $state(false);
@@ -232,25 +187,7 @@
         void version;
         return plugin.listHandled?.() ?? [];
     });
-    const handledFiltered = $derived.by(() => {
-        let list = handledEntries;
-        if (filterMember) {
-            list = list.filter((entry) => {
-                const reminder = reminderById.get(entry.id);
-                // 运行态留痕可能比派生缓存更久（模块扫描失败、历史行删除或缓存迁移时尤甚）。
-                // 无法确认成员归属时保留条目，避免用户在成员筛选下误以为已处理记录丢失。
-                return !reminder || !reminder.memberId || reminder.memberId === filterMember;
-            });
-        }
-        if (filterModule) list = list.filter((entry) => entry.moduleId === filterModule);
-        if (dueWithin !== "all") {
-            const today = new Date();
-            const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(dueWithin));
-            const endKey = [end.getFullYear(), String(end.getMonth() + 1).padStart(2, "0"), String(end.getDate()).padStart(2, "0")].join("-");
-            list = list.filter((entry) => !!entry.dueDate && entry.dueDate <= endKey);
-        }
-        return list;
-    });
+    const handledFiltered = $derived(filterHandledEntries(handledEntries, reminderById, filterMember, filterModule, dueWithin));
 
     async function restoreEntry(id: string) {
         await runReminderAction(async () => {
@@ -364,48 +301,14 @@
 
     // 311 波（G2）：多段提醒割点——从 schema 规则查得 leadStages 后算出当前段位
     const schemaRuleCache = new Map<string, { leadStages?: number[]; leadDays: number }>();
-    function ruleOf(r: Reminder): { leadStages?: number[]; leadDays: number } {
-        const key = `${r.moduleId}.${r.ruleKey}`;
-        const hit = schemaRuleCache.get(key);
-        if (hit) return hit;
-        const spec = (plugin.schemaCatalog?.[r.moduleId]?.reminders ?? []).find((x: any) => x.key === r.ruleKey);
-        const rule = { leadStages: spec?.leadStages, leadDays: typeof spec?.leadDays === "number" ? spec.leadDays : 30 };
-        schemaRuleCache.set(key, rule);
-        return rule;
-    }
-    function stageOf(r: Reminder): { label: string; isUrgent: boolean; stages: number[] } | null {
-        const rule = ruleOf(r);
-        if (!rule.leadStages || rule.leadStages.length === 0) return null;
-        const label = stageBadgeLabel(r.daysLeft, rule, t);
-        if (!label) return null;
-        const badge = stageBadge(r.daysLeft, rule);
-        return { label, isUrgent: badge.isUrgentStage, stages: stagesOf(rule) };
-    }
-    function stageLabelOf(r: Reminder): string {
-        return stageOf(r)?.label ?? "";
-    }
+    const stageOf = (r: Reminder) => getReminderStage(plugin.schemaCatalog, schemaRuleCache, r, t);
+    const stageLabelOf = (r: Reminder): string => stageOf(r)?.label ?? "";
 
     // 246 波（收件箱深化）& 304 波（重要提醒与证件紧急置顶）：置顶项在所属分组内排最前
-    function isPinned(r: Reminder): boolean {
-        return isReminderPinned(plugin.runtime, r);
-    }
-    function pinnedFirst(items: Reminder[]): Reminder[] {
-        return [...items].sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)));
-    }
-    // 29 组：同成员同日多条合并为一条可展开卡；175 波 O(n) 分组、179 波抽纯函数（core/hub/display，带单测）
-    // 181 波：DisplayEntry 平铺化（key/row/items 恒有值），模板无需联合收窄。
-    // Keep grouping and pin sorting in one derived pass. The old template
-    // rebuilt three filtered arrays and three sorted arrays on every update.
+    const isPinned = (r: Reminder): boolean => isReminderPinned(plugin.runtime, r);
     const displayGroups = $derived.by(() => {
         void version;
-        if (filter === "all") {
-            return [
-                { key: "overdue", label: t("hub.groupOverdue"), items: pinnedFirst(filtered.filter((r: Reminder) => r.level === "overdue")) },
-                { key: "soon", label: t("hub.groupSoon"), items: pinnedFirst(filtered.filter((r: Reminder) => r.level === "soon")) },
-                { key: "lead", label: t("hub.groupLead"), items: pinnedFirst(filtered.filter((r: Reminder) => r.level === "lead")) },
-            ].filter((g) => g.items.length > 0);
-        }
-        return [{ key: filter, label: "", items: pinnedFirst(filtered) }];
+        return computeReminderDisplayGroups(filtered, filter, t, isPinned);
     });
 
     // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
@@ -468,19 +371,7 @@
     });
 </script>
 
-<div class="lv-hero lv-hub-hero" aria-labelledby="lv-hub-title">
-    <div class="lv-hero-copy">
-        <span class="lv-hub-eyebrow">{t("dash.upcoming")}</span>
-        <h1 id="lv-hub-title">{t("hub.title")}</h1>
-        <p class="lv-hero-lead">{t("hub.subtitle")}</p>
-    </div>
-    <div class="lv-hero-tools">
-        <div class="lv-hub-summary" aria-label={t("hub.title")}>
-            <div class="lv-hub-summary__item"><span>{t("hub.filterAll")}</span><b class="lv-num">{all.length}</b></div>
-            <div class="lv-hub-summary__item is-overdue"><span>{t("hub.groupOverdue")}</span><b class="lv-num">{overdueCount}</b></div>
-        </div>
-    </div>
-</div>
+<ReminderHeroBar {t} allCount={all.length} {overdueCount} />
 
 <ReminderControlsBar
     bind:filter
@@ -538,8 +429,6 @@
         }}
     />
 {/if}
-
-
 
 {#if filter === "handled"}
     <ReminderHandledList
@@ -614,53 +503,3 @@
         }}
     />
 {/if}
-
-<style>
-    /* 提醒页局部视觉层级：页头负责摘要，控制区分成筛选与动作两层，避免长工具条抢占内容。 */
-    .lv-hub-eyebrow {
-        display: block;
-        color: var(--lv-accent);
-        font-size: 11px;
-        font-weight: 650;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        margin-bottom: 2px;
-    }
-    .lv-hub-summary {
-        display: flex;
-        align-items: stretch;
-        gap: 1px;
-        flex: none;
-        overflow: hidden;
-        border: 1px solid var(--lv-line);
-        border-radius: var(--lv-r-2);
-        background: var(--lv-surface-2);
-        box-shadow: var(--lv-shadow-1);
-    }
-    .lv-hub-summary__item {
-        min-width: 74px;
-        padding: 8px 14px;
-        display: flex;
-        flex-direction: column-reverse;
-        gap: 2px;
-        text-align: right;
-        background: var(--lv-surface);
-    }
-    .lv-hub-summary__item + .lv-hub-summary__item { border-left: 1px solid var(--lv-line); }
-    .lv-hub-summary__item span { color: var(--lv-tx-3); font-size: 11px; white-space: nowrap; }
-    .lv-hub-summary__item b { font-size: 20px; line-height: 1.1; font-weight: 650; color: var(--lv-tx); }
-    .lv-hub-summary__item.is-overdue b { color: var(--lv-danger); }
-    @media (max-width: 760px) {
-        .lv-hub-summary { align-self: stretch; width: 100%; }
-        .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
-    }
-    /* 嵌入思源侧栏时 viewport 仍可能很宽，使用面板容器宽度复用移动布局。 */
-    @container lv-home (max-width: 760px) {
-        .lv-hub-summary { align-self: stretch; width: 100%; }
-        .lv-hub-summary__item { flex: 1; min-width: 0; text-align: left; }
-    }
-    @container lv-home (max-width: 420px) {
-        .lv-hub-summary__item { padding-inline: 9px; }
-        .lv-hub-summary__item b { font-size: 17px; }
-    }
-</style>

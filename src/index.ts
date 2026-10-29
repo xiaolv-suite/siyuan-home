@@ -1,5 +1,5 @@
-import { Plugin, showMessage, openTab, Custom, getFrontend } from "siyuan";
-import { mount, unmount } from "svelte";
+import { Plugin, showMessage, openTab } from "siyuan";
+import { mount } from "svelte";
 import "./index.scss";
 
 import TabPanel from "@/panels/tab-panel.svelte";
@@ -14,15 +14,14 @@ import { complete, snooze, mute, unmute, renew, restore, addMemo, removeMemo, up
 import { getProvisioningReport, provisionModule, type ProvisioningReport } from "@/core/provisioner";
 import { createSingleFlightUntilStable } from "@/core/single-flight";
 import { loadRowLogs } from "@/core/rowlog";
-import { compactUserMessage, sameOriginReturnPath } from "@/core/auth";
 import { logCheckinEventSafely } from "@/libs/ecosystem-bridge-kit";
 import { initEcosystemIntegration, type EcosystemController } from "@/core/ecosystem-integration";
-import { createMobileController, type MobileController } from "@/core/mobile-controller";
 import { registerPluginContextMenus, type PluginContextMenusController } from "@/core/plugin-context-menus";
+import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE } from "@/core/plugin-entrypoints";
+import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
-const TAB_TYPE = "hub-tab";
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
 const PLUGIN_VERSION = __PLUGIN_VERSION__;
 
@@ -37,11 +36,6 @@ export default class LvHomePlugin extends Plugin {
     private heartbeat: number | undefined;
     /** 所有延迟回调统一登记，确保卸载时没有匿名计时器继续访问插件实例。 */
     private readonly timeoutIds = new Set<number>();
-    /** 统一处理内核鉴权失效，避免每个面板各自跳转或留下空白状态。 */
-    private authExpiredHandler?: (event: Event) => void;
-    private permissionDeniedHandler?: (event: Event) => void;
-    /** Multiple providers can fail with the same expired token in one scan. */
-    private authRedirectScheduled = false;
     /** moduleId → schema 目录（193 波收口为 SCHEMA_CATALOG 单源；UI 按需读取列定义/枚举，与 ensureCoreLedgers 同源） */
     schemaCatalog: Record<string, any> = SCHEMA_CATALOG;
     /** Tab 面板刷新回调（支持多实例，33.1：所有打开的管家面板同步刷新） */
@@ -58,16 +52,11 @@ export default class LvHomePlugin extends Plugin {
     pendingScreen?: string;
     /** 已挂载面板的页签直切回调（tab-panel 挂载时注册、卸载时清空） */
     panelScreenSwitch?: (screen: string) => void;
-    private statusbarEl?: HTMLElement;
-    /** 309 波：addTopBar 返回的顶栏元素（存活守护用；onunload 清理） */
-    private topBarEl?: HTMLElement;
-    /** 309 波：顶栏被宿主重建后的重挂守护 */
-    private topBarObserver?: MutationObserver;
     private isUnloading = false;
-    private topBarReviveTimer?: number;
-    private isMobileFrontend = false;
-    /** 移动前端顶栏与全屏面板适配控制器（DEVICE-07） */
-    private mobileController?: MobileController;
+    /** 思源 UI 同步入口控制器（顶栏、页签、命令面板、状态栏、斜杠指令及存活守护） */
+    private entrypointsController?: PluginEntrypointsController;
+    /** 内核鉴权失效、权限拦截与会话恢复守护控制器 */
+    private authGuardController?: PluginAuthGuardController;
     /** 原生菜单联动控制器（块菜单、块图标菜单、自定义 URL、AV 右键菜单、WS 同步监听） */
     private contextMenusController?: PluginContextMenusController;
     /** C6c captureTo idempotency window: duplicate block-menu clicks while
@@ -78,226 +67,12 @@ export default class LvHomePlugin extends Plugin {
     private static FULL_SCAN_MIN_MS = 30 * 1000;
     /** 状态栏角标更新（28 组：今日到期 N） */
     private updateStatusbar(count: number) {
-        if (!this.statusbarEl) return;
-        this.statusbarEl.textContent = `⏰ ${count}`;
-        this.statusbarEl.style.display = count > 0 ? "" : "none";
-        this.statusbarEl.setAttribute("aria-label", this.i18nText("statusbar.tip").replace("${n}", String(count)));
-        this.statusbarEl.title = this.i18nText("statusbar.tip").replace("${n}", String(count));
+        this.entrypointsController?.updateStatusbar(count);
     }
 
     /** i18n 取值（1.2.8 起 i18n 为 JSONValue，字符串位置统一转 string） */
     i18nText(key: string): string {
         return String(this.i18n[key] ?? key);
-    }
-
-    private createTopBarOptions() {
-        return {
-            id: "siyuan-home-topbar",
-            icon: "iconLvHome",
-            title: String(this.i18n.butler ?? "Lv Home"),
-            callback: () => this.showTab(),
-            contextMenu: (menu: any) => {
-                if (!menu || typeof menu.addItem !== "function") return;
-                menu.addItem({
-                    icon: "iconZap",
-                    label: "⚡ " + (this.i18n["faq.quickCapture"] ?? "快速记录"),
-                    click: () => {
-                        this.showTab();
-                        window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
-                    },
-                });
-                menu.addItem({
-                    icon: "iconClock",
-                    label: "⏰ " + (this.i18n.tabReminders ?? "到期提醒"),
-                    click: () => this.openRemindersScreen(),
-                });
-                menu.addItem({
-                    icon: "iconFolder",
-                    label: "🗂️ " + (this.i18n.tabLedger ?? "家庭台账"),
-                    click: () => this.openModuleTab(this.activeLedger),
-                });
-                menu.addItem({
-                    icon: "iconUser",
-                    label: "👥 " + (this.i18n.tabMembers ?? "家庭成员"),
-                    click: () => {
-                        this.pendingScreen = "members";
-                        if (this.panelScreenSwitch) this.panelScreenSwitch("members");
-                        this.showTab();
-                    },
-                });
-                if (typeof menu.addSeparator === "function") menu.addSeparator();
-                menu.addItem({
-                    icon: "iconSettings",
-                    label: "⚙️ " + (this.i18n.settingsTitle ?? "管家设置"),
-                    click: () => this.openSetting(),
-                });
-            },
-        };
-    }
-
-    /**
-     * 309 波：所有思源 UI 入口的同步登记（页签/顶栏/命令/状态栏/图标）。
-     * 必须在 onload 的首个 await 之前调用：宿主在 onload 返回前完成顶栏与页签装配，
-     * 位于 await 之后的登记可能落不到 toolbar —— 这正是“顶栏图标突然消失”的根因。
-     */
-    private registerEntrypoints(): void {
-        const self = this;
-
-        // 全端无条件注册官方统一山墙小屋+烟囱火种矢量图标 (iconLvHome)
-        this.isMobileFrontend = getFrontend() === "mobile" || getFrontend() === "browser-mobile";
-        this.mobileController = createMobileController({
-            plugin: this,
-            t: (k) => this.i18nText(k),
-            isMobileFrontend: this.isMobileFrontend,
-            scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
-        });
-        if (typeof this.addIcons === "function") {
-            this.addIcons(`<symbol id="iconLvHome" viewBox="0 0 32 32">
-                <path d="M20 9V6h3v5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M4 14 16 4.5 28 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M7 13.5V26c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V13.5" fill="none" stroke="currentColor" stroke-width="2"/>
-                <path d="M13 28v-6c0-1.7 1.3-3 3-3s3 1.3 3 3v6" fill="currentColor"/>
-                <circle cx="21.5" cy="4" r="2.5" fill="currentColor"/>
-            </symbol>`);
-        }
-
-        // Tab 面板：init 时挂载 Svelte，destroy 时卸载（同一 Tab 可多次打开）
-        const unmounts = new WeakMap<Element, () => void>();
-        this.addTab({
-            type: TAB_TYPE,
-            init(this: Custom) {
-                const um = mount(TabPanel, { target: this.element, props: { plugin: self } });
-                unmounts.set(this.element, um as () => void);
-            },
-            destroy(this: Custom) {
-                const um = unmounts.get(this.element);
-                if (um) unmount(um as any);
-            },
-        });
-
-        // 启动前排查并清除任何残留的历史顶栏与状态栏节点，确保全局唯一
-        if (typeof document !== "undefined") {
-            const staleIcons = document.querySelectorAll('#toolbar [data-id="siyuan-home-topbar"], #toolbar [id*="siyuan-home"], #toolbar [aria-label*="小驴管家"], #toolbar [aria-label*="Lv Home"]');
-            staleIcons.forEach((el) => el.remove());
-            const staleStatus = document.querySelectorAll('#status .lv-statusbar, .lv-statusbar');
-            staleStatus.forEach((el) => el.remove());
-            const staleMobile = document.querySelectorAll("#lvHomeMobileTopBarButton");
-            staleMobile.forEach((el) => el.remove());
-        }
-
-        // 顶栏入口（桌面端图标 + 点击开面板，支持固定 id 幂等注册与原生右键菜单）
-        this.topBarEl = this.addTopBar(this.createTopBarOptions());
-        this.ensureTopBarIconAlive();
-
-        const butlerLabel = String(this.i18n.butler ?? "小驴管家");
-
-        // 1. 命令面板：打开小驴管家主面板
-        this.addCommand({
-            langKey: "openButler",
-            langText: `${butlerLabel}：${this.i18nText("openButler")}`,
-            hotkey: "Ctrl+Alt+H",
-            callback: () => this.showTab(),
-        });
-
-        // 2. 命令面板：⚡ 快速记录流水/便签/档案
-        this.addCommand({
-            langKey: "quickCapture",
-            langText: `${butlerLabel}：${this.i18n["faq.quickCapture"] ?? "快速记录流水/便签"}`,
-            hotkey: "",
-            callback: () => {
-                this.showTab();
-                window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
-            },
-        });
-
-        // 3. 命令面板：🔍 全景生活检索
-        this.addCommand({
-            langKey: "spotlightSearch",
-            langText: `${butlerLabel}：${this.i18n["spotlight.title"] ?? "全景生活检索"}`,
-            hotkey: "",
-            callback: () => {
-                this.showTab();
-                window.dispatchEvent(new CustomEvent("siyuan-home:open-spotlight"));
-            },
-        });
-
-        // 4. 命令面板：⏰ 到期提醒中枢
-        this.addCommand({
-            langKey: "openReminders",
-            langText: `${butlerLabel}：${this.i18n.tabReminders ?? "到期提醒中枢"}`,
-            hotkey: "",
-            callback: () => this.openRemindersScreen(),
-        });
-
-        // 5. 命令面板：🗂️ 家庭台账列表
-        this.addCommand({
-            langKey: "openLedger",
-            langText: `${butlerLabel}：${this.i18n.tabLedger ?? "家庭台账列表"}`,
-            hotkey: "",
-            callback: () => this.openModuleTab(this.activeLedger),
-        });
-
-        // 6. 命令面板：🚨 家庭急救卡与医疗资料
-        this.addCommand({
-            langKey: "openEmergencyCard",
-            langText: `${butlerLabel}：${this.i18n["overview.emergencyCard"] ?? "家庭急救卡与医疗资料"}`,
-            callback: () => {
-                this.showTab();
-                window.dispatchEvent(new CustomEvent("siyuan-home:open-emergency"));
-            },
-        });
-
-        // 7. 命令面板：👥 家庭成员档案管理
-        this.addCommand({
-            langKey: "openMembers",
-            langText: `${butlerLabel}：${this.i18n.tabMembers ?? "家庭成员档案"}`,
-            callback: () => {
-                this.pendingScreen = "members";
-                if (this.panelScreenSwitch) this.panelScreenSwitch("members");
-                this.showTab();
-            },
-        });
-
-        // 8. 命令面板：⚙️ 管家设置选项
-        this.addCommand({
-            langKey: "openSettings",
-            langText: `${butlerLabel}：${this.i18n.settingsTitle ?? "管家设置选项"}`,
-            callback: () => this.openSetting(),
-        });
-
-        // 9. 思源原生编辑器斜杠菜单（Slash Commands）深度联动
-        this.protyleSlash = [
-            {
-                filter: ["lvhome", "guanjiia", "xiaolv", "管家", "快速记录", "记一笔", "记账"],
-                html: `<div class="b3-list-item__first"><span class="b3-list-item__text">⚡ ${butlerLabel}：${this.i18n["faq.quickCapture"] ?? "快速记录流水/便签"}</span></div>`,
-                id: "lvHomeSlashQuickCapture",
-                callback: (_protyle: any, nodeElement: HTMLElement) => {
-                    const text = nodeElement?.textContent?.trim() ?? "";
-                    this.showTab();
-                    window.dispatchEvent(new CustomEvent("siyuan-home:open-capture", { detail: { text } }));
-                },
-            },
-            {
-                filter: ["lvhome", "home", "guanjiia", "管家", "家庭管家", "小驴管家"],
-                html: `<div class="b3-list-item__first"><span class="b3-list-item__text">🏠 ${butlerLabel}：${this.i18nText("openButler")}</span></div>`,
-                id: "lvHomeSlashOpen",
-                callback: () => this.showTab(),
-            },
-            {
-                filter: ["lvrem", "tixing", "提醒", "到期提醒", "中枢"],
-                html: `<div class="b3-list-item__first"><span class="b3-list-item__text">⏰ ${butlerLabel}：${this.i18n.tabReminders ?? "到期提醒中枢"}</span></div>`,
-                id: "lvHomeSlashReminders",
-                callback: () => this.openRemindersScreen(),
-            },
-        ];
-
-        // 28 组：状态栏「今日到期 N」角标（点击打开管家并预选提醒页）
-        const statusEl = document.createElement("div");
-        statusEl.className = "lv-statusbar";
-        statusEl.style.cssText = "cursor:pointer;padding:0 6px;font-size:12px;display:none";
-        statusEl.onclick = () => this.openRemindersScreen();
-        this.addStatusBar({ element: statusEl });
-        this.statusbarEl = statusEl;
     }
 
     private scheduleTimeout(callback: () => void, delay: number): number {
@@ -308,57 +83,6 @@ export default class LvHomePlugin extends Plugin {
         }, delay);
         this.timeoutIds.add(timer);
         return timer;
-    }
-
-    /**
-     * 309 波：顶栏图标存活守护。宿主会在主题切换/窗口重建/插件热重载时重建 #toolbar，
-     * 把已注册的条目元素丢掉——表现为图标“突然消失”。这里用一次轻量 MutationObserver
-     * 观察顶栏容器，一旦发现我们的按钮离开文档，就重新调用 addTopBar 登记（同插件内幂等）。
-     * 增加卸载守卫与 300ms 防抖，彻底避免在宿主卸载/销毁插件时与 DOM 清理发生瞬间抢挂与排布闪烁。
-     * 只在桌面端生效；卸载时断开观察。
-     */
-    private ensureTopBarIconAlive(): void {
-        if (this.isMobileFrontend || typeof MutationObserver === "undefined" || typeof document === "undefined") return;
-        const toolbar = document.getElementById("toolbar");
-        if (!toolbar) return;
-        this.topBarObserver?.disconnect();
-        const observer = new MutationObserver(() => {
-            if (this.isUnloading) return;
-            // 自动排重守护：查找 toolbar 中所有属于管家的按钮
-            const icons = toolbar.querySelectorAll('[data-id="siyuan-home-topbar"], [id*="siyuan-home"], [aria-label*="小驴管家"], [aria-label*="Lv Home"]');
-            if (icons.length > 1) {
-                // 如果发现多个同名图标，自动清理多余的，严格只保留 1 个！
-                for (let i = 1; i < icons.length; i++) {
-                    icons[i].remove();
-                }
-                return;
-            }
-            if (icons.length === 1) {
-                this.topBarEl = icons[0] as HTMLElement;
-                return; // 已经有且仅有 1 个，绝不重复创建！
-            }
-            if (this.topBarEl && this.topBarEl.isConnected) return;
-            if (!document.getElementById("toolbar")) return;
-            if (this.topBarReviveTimer !== undefined) window.clearTimeout(this.topBarReviveTimer);
-            this.topBarReviveTimer = window.setTimeout(() => {
-                this.topBarReviveTimer = undefined;
-                if (this.isUnloading) return;
-                const checkAgain = toolbar.querySelectorAll('[data-id="siyuan-home-topbar"], [id*="siyuan-home"], [aria-label*="小驴管家"], [aria-label*="Lv Home"]');
-                if (checkAgain.length > 0) {
-                    for (let i = 1; i < checkAgain.length; i++) checkAgain[i].remove();
-                    this.topBarEl = checkAgain[0] as HTMLElement;
-                    return;
-                }
-                if (!document.getElementById("toolbar")) return;
-                try {
-                    this.topBarEl = this.addTopBar(this.createTopBarOptions());
-                } catch {
-                    // 宿主尚未装配完成：留给下一次 DOM 变更重试
-                }
-            }, 300);
-        });
-        observer.observe(toolbar, { childList: true });
-        this.topBarObserver = observer;
     }
 
     private hubChangedScheduled = false;
@@ -377,85 +101,35 @@ export default class LvHomePlugin extends Plugin {
         // 历史实现在 `await loadSettings/loadRuntime` 之后才 addTopBar，注册时机落在装配窗口之外，
         // 重载/热更新后条目就会丢失（图标“突然消失”，面板同时被重新渲染）。
         // 修法：所有 UI 登记全部提到第一个 await 之前，同步完成。
-        this.registerEntrypoints();
+        this.entrypointsController = registerPluginEntrypoints({
+            plugin: this,
+            t: (k) => this.i18nText(k),
+            i18n: this.i18n,
+            showTab: () => this.showTab(),
+            openRemindersScreen: () => this.openRemindersScreen(),
+            openModuleTab: (m) => this.openModuleTab(m),
+            openSetting: () => this.openSetting(),
+            getActiveLedger: () => this.activeLedger,
+            setPendingScreen: (s) => { this.pendingScreen = s; },
+            getPanelScreenSwitch: () => this.panelScreenSwitch,
+            scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
+            mountTab: (element) => mount(TabPanel, { target: element, props: { plugin: this } }) as () => void,
+        });
 
         this.settings = await loadSettings(this);
         this.runtime = await loadRuntime(this);
 
-        // All API wrappers dispatch the same event for expired sessions. Keep
-        // the current location in sessionStorage so the host login page can
-        // return here, and fail closed while credentials are being renewed.
-        this.authExpiredHandler = (event: Event) => {
-            const detail = (event as CustomEvent<{ returnTo?: unknown }>).detail;
-            const currentLocation = typeof location !== "undefined"
-                ? `${location.pathname}${location.search}${location.hash}`
-                : "/";
-            const candidate = typeof detail?.returnTo === "string" && detail.returnTo ? detail.returnTo : currentLocation;
-            const returnTo = sameOriginReturnPath(candidate, location.origin, currentLocation);
-            try { sessionStorage.setItem("siyuan-home:auth-return", returnTo); } catch { /* storage may be unavailable */ }
-            if (this.runtime?.cache) {
-                const errors = (this.runtime.cache.errors ?? []).filter((error) => error.moduleId !== "auth");
-                this.runtime.cache = { ...this.runtime.cache, errors: [...errors, { moduleId: "auth", message: this.i18nText("auth.expired") }] };
-            }
-            if (this.scan) {
-                const errors = (this.scan.errors ?? []).filter((error) => error.moduleId !== "auth");
-                this.scan = { ...this.scan, stale: true, errors: [...errors, { moduleId: "auth", message: this.i18nText("auth.expired") }] };
-            }
-            this.emitHubChanged();
-            showMessage(this.i18nText("auth.expired"), 7000, "error");
-            const authPath = "/check-auth";
-            if (!this.authRedirectScheduled && location.pathname !== authPath && !location.pathname.startsWith(`${authPath}/`)) {
-                const target = `${authPath}?returnTo=${encodeURIComponent(returnTo)}`;
-                this.authRedirectScheduled = true;
-                this.scheduleTimeout(() => {
-                    // Avoid racing a successful login or repeatedly redirecting
-                    // if several requests fail in the same render cycle.
-                    if (location.pathname === authPath || location.pathname.startsWith(`${authPath}/`)) return;
-                    location.assign(target);
-                }, 0);
-            }
-        };
-        window.addEventListener("siyuan-home:auth-expired", this.authExpiredHandler);
-        this.permissionDeniedHandler = (event: Event) => {
-            const detail = (event as CustomEvent<{ message?: unknown }>).detail;
-            const message = compactUserMessage(detail?.message, this.i18nText("permission.denied"));
-            if (this.runtime?.cache) {
-                const errors = (this.runtime.cache.errors ?? []).filter((error) => error.moduleId !== "permission");
-                this.runtime.cache = {
-                    ...this.runtime.cache,
-                    errors: [...errors, { moduleId: "permission", message }],
-                };
-            }
-            if (this.scan) {
-                const errors = (this.scan.errors ?? []).filter((error) => error.moduleId !== "permission");
-                this.scan = { ...this.scan, stale: true, errors: [...errors, { moduleId: "permission", message }] };
-            }
-            this.emitHubChanged();
-            showMessage(message, 7000, "error");
-        };
-        window.addEventListener("siyuan-home:permission-denied", this.permissionDeniedHandler);
-        try {
-            const restored = sessionStorage.getItem("siyuan-home:auth-return");
-            if (restored) {
-                const current = `${location.pathname}${location.search}${location.hash}`;
-                const targetPath = sameOriginReturnPath(restored, location.origin, current);
-                if (targetPath && targetPath !== current) {
-                    // Some SiYuan versions honor returnTo themselves and some
-                    // return to the workspace root. Restore the same-origin
-                    // location saved before redirect in either case.
-                    location.replace(new URL(targetPath, location.origin).href);
-                } else {
-                    sessionStorage.removeItem("siyuan-home:auth-return");
-                    this.scheduleTimeout(() => {
-                        this.showTab();
-                        showMessage(this.i18nText("auth.restored"), 3500, "info");
-                    }, 100);
-                }
-            }
-        } catch { /* storage may be unavailable */ }
+        this.authGuardController = initPluginAuthGuard({
+            plugin: this,
+            t: (k) => this.i18nText(k),
+            emitHubChanged: () => this.emitHubChanged(),
+            scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
+            showTab: () => this.showTab(),
+        });
+        this.authGuardController.checkRestoredAuth();
 
-        // DEVICE-07（227 波）：移动前端标识（图标符号与按钮注入已在 registerEntrypoints 中完成）
-        this.mobileController?.ensureMobileTopBarButton();
+        // DEVICE-07（227 波）：移动前端标识（图标符号与按钮注入已在 registerPluginEntrypoints 中完成）
+        this.entrypointsController.getMobileController()?.ensureMobileTopBarButton();
 
         // 309 波：页签/顶栏/命令/图标的注册已全部移到 registerEntrypoints()，
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
@@ -936,45 +610,18 @@ export default class LvHomePlugin extends Plugin {
 
     onunload() {
         this.isUnloading = true;
-        if (this.topBarReviveTimer !== undefined) {
-            window.clearTimeout(this.topBarReviveTimer);
-            this.topBarReviveTimer = undefined;
-        }
-        // 309 波：断开顶栏复活观察器，避免卸载后重建条目
-        if (this.topBarObserver) {
-            this.topBarObserver.disconnect();
-            this.topBarObserver = undefined;
-        }
-        // 显式清理顶栏图标，避免重载时旧实例的 DOM 节点滞留在 toolbar 中导致两个图标
-        try {
-            this.removeTopBar("siyuan-home-topbar");
-        } catch { /* soft cleanup */ }
-        this.topBarEl?.remove();
-        this.topBarEl = undefined;
-        if (typeof document !== "undefined") {
-            const staleIcons = document.querySelectorAll('#toolbar [data-id="siyuan-home-topbar"], #toolbar [id*="siyuan-home"], #toolbar [aria-label*="小驴管家"], #toolbar [aria-label*="Lv Home"]');
-            staleIcons.forEach((el) => el.remove());
-        }
+        this.entrypointsController?.dispose();
+        this.entrypointsController = undefined;
+        this.authGuardController?.dispose();
+        this.authGuardController = undefined;
         if (this.heartbeat) window.clearInterval(this.heartbeat);
         this.heartbeat = undefined;
         for (const timer of this.timeoutIds) window.clearTimeout(timer);
         this.timeoutIds.clear();
-        if (this.authExpiredHandler) window.removeEventListener("siyuan-home:auth-expired", this.authExpiredHandler);
-        this.authExpiredHandler = undefined;
-        this.authRedirectScheduled = false;
-        if (this.permissionDeniedHandler) window.removeEventListener("siyuan-home:permission-denied", this.permissionDeniedHandler);
-        this.permissionDeniedHandler = undefined;
-        this.mobileController?.dispose();
-        this.mobileController = undefined;
         this.contextMenusController?.dispose();
         this.contextMenusController = undefined;
         this.ecosystemController?.dispose();
         this.ecosystemController = undefined;
-        this.statusbarEl?.remove();
-        this.statusbarEl = undefined;
-        if (typeof document !== "undefined") {
-            document.querySelectorAll(".lv-statusbar").forEach((el) => el.remove());
-        }
         this.hubListeners.clear();
         this.scanSeq++;
     }

@@ -18,21 +18,25 @@
 
 ---
 
-## 本次更新（v0.5.174 → v0.5.175 本地就绪版）
+## 本次更新（v0.5.175 → v0.5.176 本地就绪版）
 
-本次更新推进台账视图模型与空态引导全面解耦独立，**全仓自动化单元测试增至 1,005 项全绿（1005/1005 全绿）**：
-- **重构（台账视图模型与数据计算中枢独立解耦）**：
-  - 独立抽取 `src/core/ledger-view-model.ts`（160 行），集中封装单元格格式化、脱敏（`formatLedgerCellText`）、色调（`calculateLedgerTone`）、列建议（`computeColumnSuggestions`）、位置预设（`computeDynamicLocations`）、安全排序（`sortLedgerRows`）与拼音多列搜索（`matchLedgerRowSearch`）；
-- **重构（台账多态空态呈现与骨架屏引导独立解耦）**：
-  - 独立抽取 `src/panels/screens/ledger-empty-state.svelte`（102 行），集中承载骨架屏、加载异常重试、未启用模块、未建库引导与搜索无匹配空态；
-  - 台账主屏组件 `src/panels/screens/ledger.svelte` 代码行数大幅精简至 **628 行**（从最初 776 行精简 **148 行**，净精简达 **19.1%**）；
+本次更新推进插件同步入口与鉴权守护全面解耦独立，**全仓自动化单元测试增至 1,010 项全绿（1010/1010 全绿）**：
+- **重大重构（插件UI同步入口与存活守护独立解耦）**：
+  - 独立抽取 `src/core/plugin-entrypoints.ts`（272 行），集中承载图标注册、全局页签、顶栏与右键菜单、顶栏 DOM 存活复活守护、8 项命令面板指令、3 项斜杠指令与状态栏角标；
+- **重构（内核鉴权拦截与会话恢复守护独立解耦）**：
+  - 独立抽取 `src/core/plugin-auth-guard.ts`（122 行），集中承载鉴权失效拦截、权限拒绝统一提示、sessionStorage 返回点暂存与登录后同源自动恢复；
+  - 核心入口文件 `src/index.ts` 代码行数由 981 行骤降至 **627 行**（净精简 **354 行**，净精简幅度达 **36.1%**），全仓源码文件彻底控制在 666 行以内；
 - **质量保障与单测突破**：
-  - 新增 `tests/core/ledger-view-model.test.ts` 专项单元测试，自动化单测增至 **152 个套件、1,005 项全部通过**；
+  - 新增 `tests/core/plugin-entrypoints.test.ts` 与 `tests/core/plugin-auth-guard.test.ts` 专项单元测试，自动化单测增至 **154 个套件、1,010 项全部通过**；
   - 严格通过 5 层质量门禁（tsc 0 错、svelte 0 错 0 警、i18n 1983 键对齐、元数据合规、安全审计、加载器生命周期验证）；
 - **发版状态**：**本地就绪版（遵从用户指示，暂未向 GitHub 远程仓库推送）**。
 
 <details>
 <summary>查看此前版本更新</summary>
+
+### v0.5.175 本地就绪版
+- 抽取 `src/core/ledger-view-model.ts` 与 `src/panels/screens/ledger-empty-state.svelte` 独立封装台账视图模型与空态引导；
+- 台账主屏 `src/panels/screens/ledger.svelte` 降至 628 行，单测增至 1,005 项。
 
 ### v0.5.174 本地就绪版
 - 抽取 `src/panels/screens/reminder-groups-list.svelte` 独立封装多层级分组渲染、合并卡流与空态呈现；

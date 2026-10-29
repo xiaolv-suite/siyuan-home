@@ -10,3 +10,5 @@ export const showMessage = () => {};
 export const confirm = (_title: string, _text: string, confirmCallback?: () => void) => { confirmCallback?.(); };
 export const Dialog = class {};
 export const Menu = class {};
+export const getFrontend = () => "desktop";
+export const openTab = () => {};

@@ -152,7 +152,7 @@ export async function openAmbiguityDialog(
     const picks: Record<number, string> = {};
     const dlg = new DialogCls({
         title: t("diag.ambigTitle"),
-        content: `<div class="b3-dialog__content" id="lv-ambig-body" style="max-height:60vh;overflow:auto"></div>
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ambig-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ambig-cancel">${t("cancel")}</button><button class="b3-button" id="lv-ambig-ok">${t("save")}</button></div>`,
         width: "520px",
     });
@@ -160,13 +160,12 @@ export async function openAmbiguityDialog(
     let applyingAmbiguity = false;
     ambiguous.forEach((a, ai) => {
         const head = document.createElement("div");
-        head.className = "ft__on-surface";
-        head.style.cssText = "margin-top:10px;font-size:12px";
+        head.className = "ft__on-surface lv-caption";
         head.textContent = a.member;
         body.appendChild(head);
         for (const c of a.candidates) {
             const line = document.createElement("label");
-            line.style.cssText = "display:flex;gap:6px;align-items:center;padding:2px 0 2px 14px;font-size:13px";
+            line.className = "lv-row-field";
             const radio = document.createElement("input");
             radio.type = "radio";
             radio.name = `lv-ambig-${ai}`;

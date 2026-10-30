@@ -48,15 +48,14 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
         btn.onclick = () => {
             const picker = new DialogCls({
                 title: t("ledger.pickNew"),
-                content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-pick-body" style="max-height:50vh;overflow:auto;padding:12px"></div>`,
+                content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-pick-body"></div>`,
                 width: "420px",
             });
             const list = picker.element.querySelector("#lv-pick-body") as HTMLElement;
             for (const r of rows) {
                 if (r.itemID === row.itemID) continue;
                 const b = document.createElement("button");
-                b.className = "b3-button b3-button--text";
-                b.style.cssText = "display:block;width:100%;text-align:left;font-size:13px;padding:6px 8px";
+                b.className = "b3-button b3-button--text fn__block fn__text-left";
                 const exp = ref.columns!.expiry ? cellTextFn(r.cells[ref.columns!.expiry]) : "";
                 b.textContent = `${String(cellTextFn(r.cells[ref.columns!.name]))}${exp && exp !== "—" ? ` · ${exp}` : ""}`;
                 b.onclick = async () => {
@@ -76,7 +75,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
                 };
                 list.appendChild(b);
             }
-            if (!list.children.length) list.innerHTML = `<div class="ft__on-surface" style="font-size:13px">${t("ledger.noOtherRows")}</div>`;
+            if (!list.children.length) list.innerHTML = `<div class="ft__on-surface fn__text-center">${t("ledger.noOtherRows")}</div>`;
         };
         return btn;
     };

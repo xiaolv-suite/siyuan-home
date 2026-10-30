@@ -22,7 +22,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
     const series = collectGrowthSeries(rows, columns, members);
     const dlg = new DialogCls({
         title: t("ledger.growthChart"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-growth-body" style="max-height:65vh;overflow:auto"></div>`,
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-growth-body"></div>`,
         width: "560px",
     });
     const body = dlg.element.querySelector("#lv-growth-body") as HTMLElement;
@@ -191,7 +191,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
         let selectedChildId = candidate[0].id;
         const dlg = new DialogCls({
             title: t("ledger.vaccineSchedule"),
-            content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-vaccine-sched-body" style="max-height:65vh;overflow:auto"></div>
+            content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-vaccine-sched-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-vaccine-sched-close">${t("close")}</button></div>`,
             width: "580px",
         });
@@ -319,18 +319,18 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                     recordBtn.onclick = () => {
                         const rdlg = new DialogCls({
                             title: `${t("ledger.recordVaccineTitle")} · ${it.vaccine}`,
-                            content: `<div class="b3-dialog__content" style="display:flex;flex-direction:column;gap:10px;padding:12px">
-                                <label style="display:flex;flex-direction:column;gap:4px">
+                            content: `<div class="b3-dialog__content lv-dialog-col">
+                                <label class="lv-form-group">
                                     <span class="lv-caption">${t("field.date")}</span>
-                                    <input class="b3-text-field" id="lv-vrec-date" type="date" value="${it.targetDate}" style="width:100%" />
+                                    <input class="b3-text-field" id="lv-vrec-date" type="date" value="${it.targetDate}" />
                                 </label>
-                                <label style="display:flex;flex-direction:column;gap:4px">
+                                <label class="lv-form-group">
                                     <span class="lv-caption">${t("field.vaccine_batch")}</span>
-                                    <input class="b3-text-field" id="lv-vrec-batch" placeholder="${t("field.vaccine_batch")}" style="width:100%" />
+                                    <input class="b3-text-field" id="lv-vrec-batch" placeholder="${t("field.vaccine_batch")}" />
                                 </label>
-                                <label style="display:flex;flex-direction:column;gap:4px">
+                                <label class="lv-form-group">
                                     <span class="lv-caption">${t("field.vaccine_site")}</span>
-                                    <input class="b3-text-field" id="lv-vrec-site" placeholder="${t("field.vaccine_site")}" style="width:100%" />
+                                    <input class="b3-text-field" id="lv-vrec-site" placeholder="${t("field.vaccine_site")}" />
                                 </label>
                             </div>
                             <div class="b3-dialog__action">

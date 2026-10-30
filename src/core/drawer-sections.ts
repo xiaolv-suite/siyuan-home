@@ -224,7 +224,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
                 if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
             }
             const text = document.createElement("span");
-            text.textContent = format(e);
+            text.innerHTML = format(e);
             const del = document.createElement("button");
             del.className = "b3-button b3-button--text lv-btn-text-sm";
             del.textContent = t("delete");

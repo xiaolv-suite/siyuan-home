@@ -119,7 +119,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "moves", e)); },
-            format: (e) => `${e.date} · ${e.from} → ${e.to}`,
+            format: (e) => `${e.date} · ${e.from} ${uiIcon("forward", "", 12)} ${e.to}`,
         });
     } else if (active === "shopping") {
         (async () => {
@@ -201,7 +201,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "transfers", e)); },
-            format: (e) => `${e.date} · ${e.from} → ${e.to}`,
+            format: (e) => `${e.date} · ${e.from} ${uiIcon("forward", "", 12)} ${e.to}`,
         });
         await renderSchoolingStageSection({ body, row, ref, t, cellTextFn });
     } else if (active === "house") {

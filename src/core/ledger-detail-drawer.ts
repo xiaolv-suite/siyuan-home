@@ -152,7 +152,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         for (const h of history) {
             const line = document.createElement("div");
             line.className = active === "vehicles" ? "lv-dialog-row-text lv-detail-wide" : "lv-dialog-row-text";
-            line.textContent = `${h.from} → ${h.to} · ${h.at.slice(0, 10)}`;
+            line.innerHTML = `${h.from} ${uiIcon("forward", "", 12)} ${h.to} · <span class="lv-dialog-row-sub">${h.at.slice(0, 10)}</span>`;
             body.appendChild(line);
         }
     }

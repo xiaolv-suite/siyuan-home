@@ -64,7 +64,9 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
   it('preserves essential container query breakpoints for mobile & split panes', () => {
     expect(scssContent).toContain('@container lv-home (max-width: 760px)');
     expect(scssContent).toContain('@container lv-home (max-width: 640px)');
+    expect(scssContent).toContain('@container lv-home (max-width: 480px)');
     expect(scssContent).toContain('@container lv-home (max-width: 400px)');
+    expect(scssContent).toMatch(/\.lv-hub-batchbar\s*\{[^}]*flex-wrap:\s*wrap;/);
   });
 
   it('tab-panel 顶栏主页签左右两侧具备对称弹性占位，实现完美水平居中', () => {
@@ -124,6 +126,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       '../../src/panels/screens/reminder-batch-bar.svelte',
       '../../src/core/drawer-conversions.ts',
       '../../src/core/bookmarks.ts',
+      '../../src/core/drawer-module-sections.ts',
     ];
 
     for (const rel of filesToCheck) {
@@ -139,6 +142,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).not.toMatch(/>\s*[＋+]\s*\{t\(/);
       expect(content).not.toMatch(/textContent\s*=\s*`[＋+]/);
       expect(content).not.toMatch(/textContent\s*=\s*`\${t\("ledger\.openDoc"\)}\s*→`/);
+      expect(content).not.toMatch(/textContent\s*=\s*`\$\{h\.from\}\s*→/);
       expect(content).not.toMatch(/textContent\s*=\s*`✓/);
       expect(content).not.toMatch(/innerHTML\s*=\s*`<span[^>]*>[✔] /);
       expect(content).not.toMatch(/innerHTML\s*=.*[★]/);

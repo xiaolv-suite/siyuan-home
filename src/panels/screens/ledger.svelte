@@ -14,6 +14,12 @@
     import LedgerEmptyState from "./ledger-empty-state.svelte";
     import LedgerSaveStatus from "./ledger-save-status.svelte";
     import LedgerMissingColsBanner from "./ledger-missing-cols-banner.svelte";
+    import { fetchLedgerDataset } from "@/core/ledger-data-loader";
+    import { executeLedgerExportAction } from "@/core/ledger-export";
+    import { dispatchLedgerModal } from "@/core/ledger-modals";
+    import { openLedgerDetailDrawer } from "@/core/ledger-detail-drawer";
+    import { openBindExistingDocDialog } from "@/core/bind-dialog";
+    import { quickAdjustRowQty } from "@/core/inline-edit";
     import {
         formatLedgerCellText,
         calculateLedgerTone,
@@ -165,7 +171,6 @@
         const schema = plugin.schemaCatalog?.[active];
         if (!schema) return;
         try {
-            const { openBindExistingDocDialog } = await import("@/core/bind-dialog");
             openBindExistingDocDialog({
                 active,
                 schema,
@@ -173,19 +178,15 @@
                 t,
                 DialogCls: Dialog,
                 showMessageFn: showMessage,
-                onSuccess: async () => {
-                    await load();
-                },
+                onSuccess: async () => { await load(); },
             });
         } catch (e) {
             showMessage(String(e), 5000, "error");
         }
     }
 
-    async function adjustRowQty(row: any, fieldKey: string, delta: number) {
-        const { quickAdjustRowQty } = await import("@/core/inline-edit");
-        await quickAdjustRowQty({ row, fieldKey, delta, ref, active, plugin, showMessageFn: showMessage });
-    }
+    const adjustRowQty = (row: any, fieldKey: string, delta: number) =>
+        quickAdjustRowQty({ row, fieldKey, delta, ref, active, plugin, showMessageFn: showMessage });
 
     const filteredRows = $derived.by(() => {
         const q = searchText.trim().toLowerCase();
@@ -245,53 +246,40 @@
         searchText = "";
     }
 
-    function getExportContext(): import("@/core/ledger-export").LedgerExportContext {
-        return {
-            sourceRef: ref,
-            moduleId: active,
-            searchText,
-            sortKey,
-            sortAsc,
-            schemaCatalog: plugin.schemaCatalog,
-            members: plugin.settings.members,
-            guestModeActive: Boolean(plugin.runtime?.guestModeActive),
-            t,
-            showMessageFn: showMessage,
-            renderLedgerAllFn: renderLedgerAll,
-            cellTextFn: cellText,
-            rowMatchesSearchFn: rowMatchesSearch,
-            sortRowsFn: sortRows,
-        };
-    }
-
-    // CSV export, archive manifest & QR labels print (326波：解耦至 core/ledger-export.ts)
-    async function printLabels() {
-        if (!ref?.avId || !ref.docId || printing) return;
-        printing = true;
+    async function runExport(action: "csv" | "archive" | "print" | "ics") {
+        if (!ref?.columns || exporting || printing) return;
+        if (action === "print") {
+            if (!ref.avId || !ref.docId) return;
+            printing = true;
+        } else {
+            if (filteredRows.length === 0) return;
+            exporting = true;
+        }
         try {
-            const { executeLedgerExportAction } = await import("@/core/ledger-export");
-            await executeLedgerExportAction("print", getExportContext());
+            await executeLedgerExportAction(action, {
+                sourceRef: ref,
+                moduleId: active,
+                searchText,
+                sortKey,
+                sortAsc,
+                schemaCatalog: plugin.schemaCatalog,
+                members: plugin.settings.members,
+                guestModeActive: Boolean(plugin.runtime?.guestModeActive),
+                t,
+                showMessageFn: showMessage,
+                renderLedgerAllFn: renderLedgerAll,
+                cellTextFn: cellText,
+                rowMatchesSearchFn: rowMatchesSearch,
+                sortRowsFn: sortRows,
+            });
         } finally {
+            exporting = false;
             printing = false;
         }
     }
 
-    async function runExport(action: "csv" | "archive" | "ics") {
-        if (!ref?.columns || filteredRows.length === 0 || exporting) return;
-        exporting = true;
-        try {
-            const { executeLedgerExportAction } = await import("@/core/ledger-export");
-            await executeLedgerExportAction(action, getExportContext());
-        } finally {
-            exporting = false;
-        }
-    }
-    const exportCsv = () => runExport("csv");
-    const exportArchiveManifest = () => runExport("archive");
-    const exportIcs = () => runExport("ics");
-
-    function getModalContext(): import("@/core/ledger-modals").LedgerModalContext {
-        return {
+    const handleToolbarModal = (action: string) =>
+        dispatchLedgerModal(action, {
             active,
             ref,
             rows,
@@ -308,12 +296,7 @@
             onOpenNewRecord: openNewRecord,
             onOpenDetail: openDetail,
             onReload: load,
-        };
-    }
-
-    function handleToolbarModal(action: string) {
-        import("@/core/ledger-modals").then((m) => m.dispatchLedgerModal(action, getModalContext()));
-    }
+        });
 
     async function rebuildLedger() {
         rebuilding = true;
@@ -348,48 +331,32 @@
             avCols = [];
             loading = true;
         }
-        if (!avID) {
-            if (plugin.pendingActivityTarget?.moduleId === active) {
-                plugin.pendingActivityTarget = undefined;
-                showMessage(t("activity.navigationUnavailable"), 4000, "error");
-            }
-            loading = false;
-            rows = [];
-            avCols = [];
-            if (loadController === controller) loadController = undefined;
-            return;
-        }
         try {
-            // Bound each render request to the kernel page size.
-            // 表格永远只显示前 50 行——改用分页聚合的 renderLedgerAll
-            const res = await renderLedgerAll(avID, 200, {
+            const res = await fetchLedgerDataset({
+                avId: avID,
+                moduleId: active,
                 signal: controller.signal,
-                latestKey: `ledger:${active}`,
+                pendingTarget: plugin.pendingActivityTarget,
+                t,
+                onTargetResolved: (targetRow, target) => {
+                    plugin.pendingActivityTarget = undefined;
+                    if (targetRow) openDetail(targetRow, undefined, target);
+                    else showMessage(t("activity.recordNotFound"), 4500, "error");
+                },
+                onNavigationError: () => {
+                    plugin.pendingActivityTarget = undefined;
+                    showMessage(t("activity.navigationUnavailable"), 4000, "error");
+                },
             });
             if (request !== loadRequest || avID !== ref?.avId) return;
-            if (!res.complete) {
-                loadError = t("ledger.loadIncomplete");
+            rows = res.rows;
+            avCols = res.columns;
+            if (res.error) {
+                loadError = res.error;
                 if (plugin.pendingActivityTarget?.moduleId === active) {
                     plugin.pendingActivityTarget = undefined;
                     showMessage(t("activity.recordNotFound"), 4500, "error");
                 }
-                return;
-            }
-            rows = res.rows;
-            avCols = res.columns ?? [];
-            const pendingTarget = plugin.pendingActivityTarget;
-            if (pendingTarget && pendingTarget.moduleId === active) {
-                const targetRow = rows.find((row) => row.itemID === pendingTarget.rowId);
-                requestAnimationFrame(() => {
-                    if (plugin.pendingActivityTarget?.requestId !== pendingTarget.requestId) return;
-                    plugin.pendingActivityTarget = undefined;
-                    if (!targetRow) {
-                        showMessage(t("activity.recordNotFound"), 4500, "error");
-                        return;
-                    }
-                    if (active !== pendingTarget.moduleId) return;
-                    openDetail(targetRow, undefined, pendingTarget);
-                });
             }
         } catch (e) {
             if (controller.signal.aborted || (e instanceof Error && (e.name === "RequestSupersededError" || e.name === "RequestAbortedError"))) return;
@@ -451,7 +418,6 @@
     // Row click opens a detail drawer; user content is assigned through DOM APIs (327波抽离减负).
     async function openDetail(row: any, vehicleAction?: "fuel" | "charging" | "maintenance" | "edit", activityTarget?: ActivityTarget) {
         if (!ref?.columns) return;
-        const { openLedgerDetailDrawer } = await import("@/core/ledger-detail-drawer");
         await openLedgerDetailDrawer({
             row,
             vehicleAction,
@@ -498,10 +464,10 @@
     onSearchInput={(val) => { panelMemory.ledgerSearch = val; }}
     onSearchClear={() => { panelMemory.ledgerSearch = ""; }}
     onRebuildLedger={rebuildLedger}
-    onExportCsv={exportCsv}
-    onExportIcs={exportIcs}
-    onExportArchiveManifest={exportArchiveManifest}
-    onPrintLabels={printLabels}
+    onExportCsv={() => runExport("csv")}
+    onExportIcs={() => runExport("ics")}
+    onExportArchiveManifest={() => runExport("archive")}
+    onPrintLabels={() => runExport("print")}
     onOpenModal={handleToolbarModal}
 />
 {#if savedModule}

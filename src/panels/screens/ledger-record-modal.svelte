@@ -78,11 +78,19 @@
     let recordOperationKey = $state<string | null>(null);
     let duplicateConfirmPending = $state(false);
 
+    let wasOpen = false;
     $effect(() => {
-        if (open) {
+        if (open && !wasOpen) {
+            wasOpen = true;
             document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
-        } else {
+            if (!newRecordTrigger && document.activeElement instanceof HTMLElement) {
+                newRecordTrigger = document.activeElement;
+            }
+            requestAnimationFrame(() => nameInput?.focus());
+        } else if (!open && wasOpen) {
+            wasOpen = false;
             document.querySelector(".lv-home")?.classList.remove("lv-scroll-locked");
+            restoreNewRecordFocus();
         }
     });
 

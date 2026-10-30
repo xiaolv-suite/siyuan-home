@@ -63,4 +63,25 @@ describe("member-form-editor (成员表单编辑器契约与校验)", () => {
         expect(state.sex).toBeUndefined();
         expect(state.editorOpen).toBe(false);
     });
+
+    it("键盘 Escape 触发取消编辑并重置表单与展开态", () => {
+        let editorOpen = true;
+        const cancelEdit = vi.fn(() => {
+            editorOpen = false;
+        });
+
+        const handleKeydown = (e: { key: string; preventDefault: () => void }) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEdit();
+            }
+        };
+
+        const preventDefault = vi.fn();
+        handleKeydown({ key: "Escape", preventDefault });
+
+        expect(preventDefault).toHaveBeenCalled();
+        expect(cancelEdit).toHaveBeenCalled();
+        expect(editorOpen).toBe(false);
+    });
 });

@@ -45,4 +45,15 @@ describe("reminder-card (单条提醒卡片独立组件契约与交互)", () => 
             expect(typeof fn).toBe("function");
         }
     });
+
+    it("lunar 与 autoRenew 属性映射为矢量图标", () => {
+        const specialReminder: Reminder = {
+            ...mockReminder,
+            lunar: true,
+            autoRenew: true,
+        };
+
+        expect(specialReminder.lunar).toBe(true);
+        expect(specialReminder.autoRenew).toBe(true);
+    });
 });

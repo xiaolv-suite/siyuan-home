@@ -12,6 +12,7 @@ import {
     mapPointsToAllowanceRow,
     type RewardRecordItem,
 } from "./rewards-ledger";
+import { uiIcon } from "@/ui/icons";
 
 export interface RewardsDialogOptions {
     t: (k: string) => string;
@@ -103,11 +104,11 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 	  </div>
 	  <div id="lv-rewards-list" class="lv-ecard-list"></div>
 	</div>
-	<div class="b3-dialog__action">
-	  <button class="b3-button b3-button--cancel" id="lv-rewards-close">${t("close")}</button>
-	  <button class="b3-button b3-button--outline" id="lv-rewards-copy">📋 ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
-	  <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
-	</div>`,
+		<div class="b3-dialog__action">
+		  <button class="b3-button b3-button--cancel" id="lv-rewards-close">${t("close")}</button>
+		  <button class="b3-button b3-button--outline" id="lv-rewards-copy">${uiIcon("copy", "", 13)} ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
+		  <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
+		</div>`,
         width: "580px",
     });
 

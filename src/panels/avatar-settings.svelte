@@ -3,6 +3,7 @@
     import { confirm } from "@/libs/dialog";
     import { saveSettings } from "@/core/settings";
     import { AVATAR_IMAGE_LIMIT, AVATAR_PRESETS, DEFAULT_AVATAR, normalizeAvatarImage, normalizeAvatarText } from "@/core/avatar";
+    import UiIcon from "@/ui/icon.svelte";
     import type { HomeSettings } from "@/types";
     import type { HomePluginLike } from "@/types/plugin";
 
@@ -304,7 +305,7 @@
     {:else}
         <div class="lv-avatar-head">
             <div><h2 id="lv-avatar-title">{t("avatar.title")}</h2><p>{t("avatar.hint")}</p></div>
-            <button class="lv-avatar-close" type="button" aria-label={t("avatar.close")} title={t("avatar.close")} onclick={closeSettings}>×</button>
+            <button class="lv-avatar-close" type="button" aria-label={t("avatar.close")} title={t("avatar.close")} onclick={closeSettings}><UiIcon name="close" size={16} /></button>
         </div>
         <div class="lv-avatar-current">
             {#if avatarImage && !avatarImageFailed}<img src={avatarImage} alt="" width="42" height="42" decoding="async" onerror={handleAvatarImageError} />{:else}<span>{avatarText}</span>{/if}

@@ -140,7 +140,7 @@
             {#if member}
                 <span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>
             {/if}
-            {r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{r.dueDate}{#if !r.memberId} · {t("members.unassigned")}{/if}{r.lunar ? " 🌙" : ""}{r.autoRenew ? " 🔄" : ""}
+            {r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{r.dueDate}{#if !r.memberId} · {t("members.unassigned")}{/if}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}
         </span>
     </div>
     <div class="lv-rem-when">
@@ -157,7 +157,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="lv-rem-more" onclick={(e) => e.stopPropagation()}>
             <button class="b3-button b3-button--text lv-rem-more-toggle" type="button" aria-expanded={moreOpen} aria-haspopup="true" aria-controls={`lv-rem-more-${r.id}`}
-                onclick={() => { moreOpen = !moreOpen; }}>{t("ledger.detailMore")} <span aria-hidden="true">⌄</span></button>
+                onclick={() => { moreOpen = !moreOpen; }}>{t("ledger.detailMore")} <UiIcon name={moreOpen ? "chevronUp" : "chevronDown"} size={11} /></button>
             <div id={`lv-rem-more-${r.id}`} class="lv-rem-more-menu" role="group" aria-label={t("ledger.detailMore")} data-open={moreOpen ? "true" : "false"}>
                 {#if ["certs", "insurance", "contracts"].includes(r.moduleId)}
                     <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
@@ -170,7 +170,7 @@
                 <button class="b3-button b3-button--text" title={isItemPinned ? t("act.unpin") : t("act.pin")}
                     disabled={batchBusy || isBusy} aria-busy={isBusy}
                     onclick={() => handleMoreAction(() => onTogglePin?.(r))}>{isBusy ? t("ledger.saving") : (isItemPinned ? t("act.unpin") : t("act.pin"))}</button>
-                <button class="b3-button b3-button--text" aria-haspopup="menu" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : `${t("act.snooze")} ▾`}</button>
+                <button class="b3-button b3-button--text" aria-haspopup="menu" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : t("act.snooze")} <UiIcon name="chevronDown" size={11} /></button>
                 <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
                 {#if r.moduleId === "adhoc"}
                     <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
@@ -184,7 +184,7 @@
         <div class="lv-rem-summary" role="region" aria-label={t("hub.summary")}>
             <div class="lv-rem-summary__item">
                 <span class="label">{t("hub.summaryRule")}:</span>
-                <span>{r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{ruleText(r.ruleKey)}{r.kind ? `（${kindText(r.kind)}）` : ""}{r.lunar ? " · 🌙" : ""}{r.autoRenew ? " · 🔄" : ""}</span>
+                <span>{r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{ruleText(r.ruleKey)}{r.kind ? `（${kindText(r.kind)}）` : ""}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}</span>
             </div>
             <div class="lv-rem-summary__item">
                 <span class="label">{t("hub.summaryMember")}:</span>

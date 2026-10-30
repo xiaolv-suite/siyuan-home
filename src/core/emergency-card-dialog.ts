@@ -8,6 +8,7 @@
 import { buildFamilyEmergencyCard, formatEmergencyCardText, generateEmergencyCards, formatEmergencyCardsMarkdown, type HealthRowLike, type CertRowLike, type StockRowLike } from "./emergency-card";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
+import { uiIcon } from "@/ui/icons";
 
 export interface EmergencyCardDialogOptions {
     t: (k: string) => string;
@@ -100,13 +101,13 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     const dlg = new DialogCls({
         title: t("overview.emergencyCardTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ecard-body">
-  ${card.emergencyKitLocation ? `<div class="lv-ecard-location"><span>📦 ${t("overview.emergencyKitLocation")}: <b>${card.emergencyKitLocation}</b></span></div>` : ""}
+  ${card.emergencyKitLocation ? `<div class="lv-ecard-location"><span>${uiIcon("box", "", 13)} ${t("overview.emergencyKitLocation")}: <b>${card.emergencyKitLocation}</b></span></div>` : ""}
   <div id="lv-ecard-members" class="lv-ecard-list"></div>
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button b3-button--outline" id="lv-ecard-flashcards">📇 ${t("overview.exportFlashcards")}</button>
-  <button class="b3-button" id="lv-ecard-copy">📋 ${t("overview.copyEmergencyCard") || "复制急救卡"}</button>
+  <button class="b3-button b3-button--outline" id="lv-ecard-flashcards">${uiIcon("idCard", "", 13)} ${t("overview.exportFlashcards")}</button>
+  <button class="b3-button" id="lv-ecard-copy">${uiIcon("copy", "", 13)} ${t("overview.copyEmergencyCard") || "复制急救卡"}</button>
 </div>`,
         width: "600px",
     });
@@ -126,7 +127,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
         const roleLabel = t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role;
         nameLine.innerHTML = `<b>${m.name}</b><span class="lv-badge gray">${roleLabel}</span>`;
         if (m.bloodType) {
-            nameLine.innerHTML += `<span class="lv-badge orange">🩸 ${m.bloodType}</span>`;
+            nameLine.innerHTML += `<span class="lv-badge orange">${uiIcon("heartPulse", "", 11)} ${m.bloodType}</span>`;
         }
 
         const contact = document.createElement("span");

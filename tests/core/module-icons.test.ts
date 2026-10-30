@@ -17,10 +17,18 @@ describe("modules.moduleIcon", () => {
     });
 
     it("UI_ICON_PATHS 包含折叠/展开与导轨基础图标定义", async () => {
-        const { UI_ICON_PATHS } = await import("@/ui/icons");
+        const { UI_ICON_PATHS, uiIcon } = await import("@/ui/icons");
         expect(UI_ICON_PATHS.chevronDown).toBeDefined();
         expect(UI_ICON_PATHS.chevronUp).toBeDefined();
         expect(UI_ICON_PATHS.home).toBeDefined();
         expect(UI_ICON_PATHS.settings).toBeDefined();
+        expect(UI_ICON_PATHS.moon).toBeDefined();
+        expect(UI_ICON_PATHS.copy).toBeDefined();
+        expect(UI_ICON_PATHS.link).toBeDefined();
+
+        const rendered = uiIcon("moon", "test-cls", 14);
+        expect(rendered).toContain('width="14"');
+        expect(rendered).toContain('height="14"');
+        expect(rendered).toContain("test-cls");
     });
 });

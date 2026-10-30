@@ -101,24 +101,14 @@
     }
 
     let values: Record<string, string | number | boolean | undefined> = $state({});
-    // Keep one small draft per module. Switching the destination is common
-    // during batch entry; silently clearing the previous form makes it easy
-    // to lose a name or a date.
+    // Keep one small draft per module. Switching destination is common during batch entry.
     let valuesByModule: Record<string, Record<string, string | number | boolean | undefined>> = $state({});
     let currentModuleId = "";
     $effect(() => {
         void moduleId;
         if (!moduleId) return;
-        if (!currentModuleId) {
-            currentModuleId = moduleId;
-            values = { ...(valuesByModule[moduleId] ?? {}) };
-            initSmartDefaults();
-            saveError = "";
-            fieldErrors = {};
-            return;
-        }
-        if (currentModuleId !== moduleId) {
-            valuesByModule = { ...valuesByModule, [currentModuleId]: { ...values } };
+        if (!currentModuleId || currentModuleId !== moduleId) {
+            if (currentModuleId) valuesByModule = { ...valuesByModule, [currentModuleId]: { ...values } };
             currentModuleId = moduleId;
             values = { ...(valuesByModule[moduleId] ?? {}) };
             initSmartDefaults();
@@ -180,6 +170,21 @@
     }
     function onWindowKeydown(e: KeyboardEvent) {
         if (!open) return;
+        if (showDiscardConfirm) {
+            if (e.key === "Escape") { e.preventDefault(); showDiscardConfirm = false; return; }
+            if (e.key === "Tab") {
+                const card = document.querySelector(".lv-sheet-confirm-card");
+                if (card) {
+                    const btns = Array.from(card.querySelectorAll<HTMLElement>("button:not([disabled])"));
+                    if (btns.length > 0) {
+                        const first = btns[0], last = btns[btns.length - 1];
+                        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); return; }
+                        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); return; }
+                    }
+                }
+            }
+            return;
+        }
         if (e.key === "Tab" && saving) {
             // All form fields are disabled during save; retain focus in the modal.
             e.preventDefault();
@@ -368,12 +373,7 @@
     }
 
     let showDiscardConfirm = $state(false);
-
-    function discardUncertainDraft() {
-        if (saving) return;
-        showDiscardConfirm = true;
-    }
-
+    function discardUncertainDraft() { if (!saving) showDiscardConfirm = true; }
     function confirmDiscardUncertain() {
         values = {};
         pendingRowId = undefined;

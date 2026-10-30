@@ -3,6 +3,7 @@
     import { confirm } from "@/libs/dialog";
     import { addMember, updateMember } from "@/core/members";
     import { newSiYuanId } from "@/core/siyuan";
+    import UiIcon from "@/ui/icon.svelte";
     import type { MemberRole } from "@/types";
 
     let {
@@ -137,7 +138,8 @@
     }
 </script>
 
-<div id="lv-member-editor" class="lv-card lv-member-editor" hidden={!editorOpen}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div id="lv-member-editor" class="lv-card lv-member-editor" hidden={!editorOpen} onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); cancelEdit(); } }}>
     <div class="lv-member-editor-head">
         <div>
             <h2>{editId ? t("members.editing") : t("add")}</h2>
@@ -176,11 +178,11 @@
             <textarea class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
         </label>
         <div class="lv-member-editor-actions">
-            {#if editId}
+            {#if editorOpen}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
             {/if}
             <button type="button" class="lv-btn primary sm" onclick={save} disabled={memberSaving} aria-busy={memberSaving}>
-                {memberSaving ? t("ledger.saving") : editId ? t("save") : `＋ ${t("add")}`}
+                {#if !editId}<UiIcon name="add" size={13} /> {/if}{memberSaving ? t("ledger.saving") : editId ? t("save") : t("add")}
             </button>
         </div>
     </div>

@@ -4,6 +4,7 @@
  */
 
 import { confirm } from "@/libs/dialog";
+import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
 
 export function settingHintText(t: (k: string) => string, zh: string, en: string): string {
@@ -85,7 +86,7 @@ export async function openDiagnosticsPreviewDialog(
             </div>
         </div>
         <div class="b3-dialog__action">
-            <button class="b3-button b3-button--cancel" id="lv-diag-copy-summary">📋 复制脱敏摘要</button>
+            <button class="b3-button b3-button--cancel" id="lv-diag-copy-summary">${uiIcon("copy", "", 13)} 复制脱敏摘要</button>
             <span class="fn__flex-1"></span>
             <button class="b3-button b3-button--cancel" id="lv-diag-close">${t("close")}</button>
         </div>`,

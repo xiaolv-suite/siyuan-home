@@ -58,6 +58,9 @@ export const UI_ICON_PATHS = {
     layout: "M4 4h16v16H4z M15 4v16",
     chevronDown: "m6 9 6 6 6-6",
     chevronUp: "m18 15-6-6-6 6",
+    moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
+    copy: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2 M4 16V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2",
+    link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
 } as const;
 
 export type UiIconName = keyof typeof UI_ICON_PATHS;
@@ -77,8 +80,8 @@ export function moduleUiIcon(id: string): UiIconName {
 }
 
 /** String renderer for the small imperative dialogs in the ledger screen. */
-export function uiIcon(name: UiIconName, className = ""): string {
+export function uiIcon(name: UiIconName, className = "", size = 16): string {
     const path = UI_ICON_PATHS[name] ?? UI_ICON_PATHS.folder;
-    return `<svg class="lv-ui-icon ${className}" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block;flex:none;width:22px!important;height:22px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}" style="fill:none!important;stroke:currentColor!important"></path></svg>`;
+    return `<svg class="lv-ui-icon ${className}" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:middle;flex:none;width:${size}px!important;height:${size}px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}" style="fill:none!important;stroke:currentColor!important"></path></svg>`;
 }
 

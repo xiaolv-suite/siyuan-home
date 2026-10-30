@@ -6,6 +6,7 @@ import { sql } from "./siyuan";
 import { bindExistingDoc } from "./provisioner";
 import { saveSettings } from "./settings";
 import type { ModuleSchema } from "./schema";
+import { uiIcon } from "@/ui/icons";
 
 export interface BindExistingDocDialogOptions {
     active: string;
@@ -62,12 +63,12 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
                 `SELECT id, hpath FROM blocks WHERE type='d' AND (hpath LIKE '%${escActive}%' OR hpath LIKE '%${escModName}%') ORDER BY updated DESC LIMIT 5`
             );
             if (rows.length === 0 || !dlg.element.isConnected) return;
-            listEl.innerHTML = `<span class="lv-caption" style="color:var(--lv-tx-3);margin-top:4px">💡 推荐候选文档（点击直接填入）：</span>`;
+            listEl.innerHTML = `<span class="lv-caption" style="color:var(--lv-tx-3);margin-top:4px;display:flex;align-items:center;gap:4px">${uiIcon("sparkle", "", 13)} 推荐候选文档（点击直接填入）：</span>`;
             for (const r of rows) {
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = "b3-button b3-button--outline lv-bind-candidate-btn";
-                btn.textContent = `📄 ${r.hpath}`;
+                btn.innerHTML = `${uiIcon("note", "", 13)} <span>${r.hpath}</span>`;
                 btn.onclick = () => {
                     const inp = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;
                     if (inp) {

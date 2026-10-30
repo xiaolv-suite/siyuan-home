@@ -15,7 +15,18 @@
     import ReminderBatchBar from "@/panels/screens/reminder-batch-bar.svelte";
     import ReminderHandledList from "@/panels/screens/reminder-handled-list.svelte";
     import ReminderControlsBar from "@/panels/screens/reminder-controls-bar.svelte";
-    import { openReminderDigestDialog, exportReminderIcs } from "@/core/reminder-dialogs";
+    import ReminderPermissionBanner from "@/panels/screens/reminder-permission-banner.svelte";
+    import {
+        openReminderDigestDialog,
+        exportReminderIcs,
+        openReminderPlanDialog,
+        openNamedViewSaveDialog,
+        openNamedViewDeleteConfirm,
+        openReminderRenewDialog,
+        openSnoozeMenu,
+        openMemoEditDialog,
+        openTriageToLedgerDialog,
+    } from "@/core/reminder-dialogs";
     import {
         filterReminders,
         filterHandledEntries,
@@ -26,7 +37,6 @@
         copyReminderAsTaskBlock,
         toggleReminderQuickPlanToday,
     } from "@/core/reminders-view-model";
-    import UiIcon from "@/ui/icon.svelte";
     import type { Reminder } from "@/types";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
@@ -69,17 +79,8 @@
     const planStatusOf = (r: Reminder): ReminderPlanStatus =>
         getReminderPlanStatus(localDateKey(new Date()), r.dueDate, planDates[r.id]);
 
-    function schedulePlanDialog(r: Reminder) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openReminderPlanDialog({
-                r,
-                plugin,
-                DialogCls: Dialog,
-                t,
-                showMessageFn: showMessage,
-            });
-        });
-    }
+    const schedulePlanDialog = (r: Reminder) =>
+        openReminderPlanDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
 
     const copyAsTaskBlock = (r: Reminder) => copyReminderAsTaskBlock(r, t, showMessage);
     const quickPlanToday = (r: Reminder) => toggleReminderQuickPlanToday(r, plugin, t, showMessage);
@@ -103,33 +104,27 @@
         void persistFilter();
     }
 
-    function promptSaveNamedView() {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openNamedViewSaveDialog({
-                plugin,
-                currentFilter: { filter, filterMember, filterModule, dueWithin },
-                DialogCls: Dialog,
-                t,
-                showMessageFn: showMessage,
-                onViewSaved: async (viewId) => { activeNamedViewId = viewId; },
-            });
+    const promptSaveNamedView = () =>
+        openNamedViewSaveDialog({
+            plugin,
+            currentFilter: { filter, filterMember, filterModule, dueWithin },
+            DialogCls: Dialog,
+            t,
+            showMessageFn: showMessage,
+            onViewSaved: async (viewId) => { activeNamedViewId = viewId; },
         });
-    }
 
-    function confirmDeleteNamedView(v: ReminderNamedView) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openNamedViewDeleteConfirm({
-                v,
-                plugin,
-                activeNamedViewId,
-                t,
-                showMessageFn: showMessage,
-                onViewDeleted: async (id) => {
-                    if (activeNamedViewId === id) activeNamedViewId = undefined;
-                },
-            });
+    const confirmDeleteNamedView = (v: ReminderNamedView) =>
+        openNamedViewDeleteConfirm({
+            v,
+            plugin,
+            activeNamedViewId,
+            t,
+            showMessageFn: showMessage,
+            onViewDeleted: async (id) => {
+                if (activeNamedViewId === id) activeNamedViewId = undefined;
+            },
         });
-    }
     const memberOptions = $derived.by(() => {
         void version;
         return plugin.settings.members ?? [];
@@ -262,42 +257,22 @@
     }
 
     // B4b 续期：思源 Dialog 小窗（H10：失败保留 Dialog 与输入、错误就地显示，不提前销毁）
-    function renewDialog(r: Reminder) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openReminderRenewDialog({
-                r,
-                plugin,
-                DialogCls: Dialog,
-                t,
-            });
-        });
-    }
+    const renewDialog = (r: Reminder) =>
+        openReminderRenewDialog({ r, plugin, DialogCls: Dialog, t });
 
     // C3c 延后天数菜单（1/3/7/30）
-    function snoozeMenu(r: Reminder, ev: MouseEvent) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openSnoozeMenu({
-                r,
-                ev,
-                MenuCls: Menu,
-                t,
-                onSnooze: (days) => runReminderAction(() => plugin.snooze(r.id, days), r.id),
-            });
+    const snoozeMenu = (r: Reminder, ev: MouseEvent) =>
+        openSnoozeMenu({
+            r,
+            ev,
+            MenuCls: Menu,
+            t,
+            onSnooze: (days) => runReminderAction(() => plugin.snooze(r.id, days), r.id),
         });
-    }
 
     // 246 波（收件箱深化）：备忘编辑对话框（标题/到期日修正 → updateMemo 落盘）
-    function editMemoDialog(r: Reminder) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openMemoEditDialog({
-                r,
-                plugin,
-                DialogCls: Dialog,
-                t,
-                showMessageFn: showMessage,
-            });
-        });
-    }
+    const editMemoDialog = (r: Reminder) =>
+        openMemoEditDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
 
     // 311 波（G2）：多段提醒割点——从 schema 规则查得 leadStages 后算出当前段位
     const schemaRuleCache = new Map<string, { leadStages?: number[]; leadDays: number }>();
@@ -312,17 +287,8 @@
     });
 
     // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
-    function toLedgerDialog(r: Reminder) {
-        import("@/core/reminder-dialogs").then((m) => {
-            m.openTriageToLedgerDialog({
-                r,
-                plugin,
-                DialogCls: Dialog,
-                t,
-                showMessageFn: showMessage,
-            });
-        });
-    }
+    const toLedgerDialog = (r: Reminder) =>
+        openTriageToLedgerDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
 
     // 261 波：重扫 busy 态——31 模块串行扫描可达秒级，此前可连点堆积多次全量扫描
     let rescanning = $state(false);
@@ -407,13 +373,7 @@
 />
 
 {#if permissionDenied}
-    <div class="lv-card lv-alert-banner" role="alert">
-        <UiIcon name="alert" size={18} />
-        <span class="lv-alert-text">{t("permission.body")}</span>
-        <button class="b3-button b3-button--outline" disabled={rescanning} aria-busy={rescanning} onclick={rescan}>
-            {rescanning ? t("diag.rebuilding") : t("hub.rescan")}
-        </button>
-    </div>
+    <ReminderPermissionBanner {t} {rescanning} onRescan={rescan} />
 {/if}
 
 {#if batchMode && filter !== "handled" && viewMode === "list"}

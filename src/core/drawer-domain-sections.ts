@@ -9,20 +9,6 @@
  * 6. 家庭成员社保退休测算（Social Member Retirement Milestone）
  */
 
-export const sectionBorderCss = "margin-top:14px;padding-top:10px;border-top:1px solid var(--lv-line)";
-export const flexBetweenCenterGap8Css = "display:flex;align-items:center;justify-content:space-between;gap:8px";
-export const sectionHeaderCss = `${flexBetweenCenterGap8Css};margin-bottom:8px`;
-export const sectionTitleCss = "font-weight:600;font-size:12px";
-export const lineBadgeCss = "display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
-export const linkBtnCss = "font-size:11.5px;padding:0 4px;color:var(--lv-accent)";
-export const boxContentCss = "padding:10px 12px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:6px;font-size:12px";
-export const actionRowEndCss = "display:flex;align-items:center;justify-content:flex-end;margin-top:2px";
-export const flexColGap6Css = "display:flex;flex-direction:column;gap:6px";
-export const dangerAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px";
-export const warnAlertCss = "display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);color:var(--lv-warn);font-size:12px";
-export const pad6BorderSurfaceCss = "padding:6px 8px;background:var(--lv-surface);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:3px";
-export const fs12Pad38Css = "font-size:12px;padding:3px 8px";
-
 export interface RenderHouseWarrantySectionOptions {
     body: HTMLElement;
     row: any;

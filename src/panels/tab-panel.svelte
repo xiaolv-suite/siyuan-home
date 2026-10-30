@@ -4,6 +4,8 @@
     import { showMessage, Dialog } from "siyuan";
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
+    import TabKpiBar from "./tab-kpi-bar.svelte";
+    import TabContextDock from "./tab-context-dock.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
     import type { HomePluginLike } from "@/types/plugin";
@@ -569,36 +571,13 @@
             {/if}
 
             <!-- 统计优先：关键指标行（KPI Strip） -->
-            <div class="lv-kpi-row" role="region" aria-label="核心生活指标">
-                <div class="lv-kpi-row__item">
-                    <span class="lv-kpi-row__label">⏱️ {t("dash.bentoUrgentTitle") || "临期关注"}</span>
-                    <div class="lv-kpi-row__num-wrap">
-                        <b class="lv-kpi-row__num">{kpiUrgentCount}</b>
-                        <span class="lv-kpi-row__badge {kpiUrgentCount > 0 ? 'warn' : 'accent'}">{kpiUrgentCount > 0 ? '需留意' : '已就绪'}</span>
-                    </div>
-                </div>
-                <div class="lv-kpi-row__item">
-                    <span class="lv-kpi-row__label">✓ {t("dash.monthlyDoneTitle") || "本月进度"}</span>
-                    <div class="lv-kpi-row__num-wrap">
-                        <b class="lv-kpi-row__num">{kpiMonthlyRatio}</b>
-                        <span class="lv-kpi-row__badge accent">按期办</span>
-                    </div>
-                </div>
-                <div class="lv-kpi-row__item">
-                    <span class="lv-kpi-row__label">🗂️ {t("tab.ledger") || "台账事实"}</span>
-                    <div class="lv-kpi-row__num-wrap">
-                        <b class="lv-kpi-row__num">{kpiRecordsTotal}</b>
-                        <span class="lv-kpi-row__badge neutral">条记录</span>
-                    </div>
-                </div>
-                <div class="lv-kpi-row__item">
-                    <span class="lv-kpi-row__label">👥 {t("tabMembers") || "家庭成员"}</span>
-                    <div class="lv-kpi-row__num-wrap">
-                        <b class="lv-kpi-row__num">{kpiMemberCount}</b>
-                        <span class="lv-kpi-row__badge accent">位档案</span>
-                    </div>
-                </div>
-            </div>
+            <TabKpiBar
+                {t}
+                {kpiUrgentCount}
+                {kpiMonthlyRatio}
+                {kpiRecordsTotal}
+                {kpiMemberCount}
+            />
 
             {#key screen}
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
@@ -621,59 +600,19 @@
 
         <!-- 3. 右侧可收起上下文侧板 -->
         {#if dockOpen}
-            <aside class="lv-context-dock" aria-label="上下文面板">
-                <div class="lv-context-dock__head">
-                    <span>
-                        {#if screen === "overview"}
-                            📊 {t("dash.title") || "总览上下文"}
-                        {:else if screen === "reminders"}
-                            ⏰ {t("tab.reminders")}
-                        {:else if screen === "ledger"}
-                            🗂️ {t("tab.ledger")}
-                        {:else}
-                            👥 {t("tab.members")}
-                        {/if}
-                    </span>
-                    <button type="button" class="b3-button b3-button--text lv-caption" aria-label={t("close")} onclick={toggleDock}>✕</button>
-                </div>
-                <div class="lv-context-dock__body">
-                    {#if screen === "overview"}
-                        <div class="lv-context-card">
-                            <b>⚡ 快捷指令</b>
-                            <p class="lv-caption">按 N 快速记录 · Ctrl+K 聚焦检索</p>
-                            <div class="lv-context-actions">
-                                <button class="lv-btn ghost sm" onclick={() => openCapture()}><UiIcon name="add" size={13} /> {t("dash.quickRecord")}</button>
-                                <button class="lv-btn ghost sm" onclick={() => void openSpotlight()}><UiIcon name="search" size={13} /> {t("spotlight.title")}</button>
-                            </div>
-                        </div>
-                        <div class="lv-context-card">
-                            <b>🛡️ 家庭保障速览</b>
-                            <p class="lv-caption">已收录家庭档案 {kpiMemberCount} 位，核心台账事实 {kpiRecordsTotal} 条。</p>
-                        </div>
-                    {:else if screen === "reminders"}
-                        <div class="lv-context-card">
-                            <b>📌 待办聚焦</b>
-                            <p class="lv-caption">当前急迫待办 {kpiUrgentCount} 项，当月已办进度 {kpiMonthlyRatio}。</p>
-                            <div class="lv-context-actions">
-                                <button class="lv-btn ghost sm" onclick={() => refreshInitialScan(true)}><UiIcon name="repeat" size={13} /> {t("hub.rescan")}</button>
-                            </div>
-                        </div>
-                    {:else if screen === "ledger"}
-                        <div class="lv-context-card">
-                            <b>🗂️ 台账事实库</b>
-                            <p class="lv-caption">已归集 31 大类生活结构化数据，共 {kpiRecordsTotal} 条记录沉淀。</p>
-                            <div class="lv-context-actions">
-                                <button class="lv-btn ghost sm" onclick={() => openCapture(plugin.activeLedger)}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
-                            </div>
-                        </div>
-                    {:else}
-                        <div class="lv-context-card">
-                            <b>👥 成员中心</b>
-                            <p class="lv-caption">当前已登记 {kpiMemberCount} 位家庭成员与宠物档案，支持公农双历生日推演。</p>
-                        </div>
-                    {/if}
-                </div>
-            </aside>
+            <TabContextDock
+                {screen}
+                {t}
+                {plugin}
+                {kpiUrgentCount}
+                {kpiMonthlyRatio}
+                {kpiRecordsTotal}
+                {kpiMemberCount}
+                onToggleDock={toggleDock}
+                onOpenCapture={(mid) => openCapture(mid)}
+                onOpenSpotlight={() => void openSpotlight()}
+                onRefreshScan={() => void refreshInitialScan(true)}
+            />
         {/if}
     </div>
 

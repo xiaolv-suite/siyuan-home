@@ -58,7 +58,7 @@
     <h2 class="lv-title-sec">{t("dash.upcoming")}</h2>
     <span class="lv-sub">{t("dash.upcomingSub")}</span>
     {#if pulseDateFilter}
-        <button type="button" class="lv-badge blue" style="cursor:pointer;border:none;margin-left:8px" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
+        <button type="button" class="lv-badge blue lv-filter-clear-badge" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
             🗓️ {pulseDateFilter} ✕
         </button>
     {/if}
@@ -83,15 +83,15 @@
         <div class="lv-card lv-rems" aria-busy="true" role="status">
             {#each [0, 1, 2] as i (i)}
                 <div class="lv-rem">
-                    <div class="lv-skel" style="width:38px;height:38px;border-radius:11px;flex:none"></div>
-                    <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
-                        <div class="lv-skel" style="height:13px;width:42%"></div>
-                        <div class="lv-skel" style="height:11px;width:26%"></div>
+                    <div class="lv-skel lv-skel--icon"></div>
+                    <div class="lv-skel-col">
+                        <div class="lv-skel lv-skel--w42"></div>
+                        <div class="lv-skel lv-skel--w26"></div>
                     </div>
                 </div>
             {/each}
         </div>
-        <p class="lv-caption" style="margin:8px 2px">{t("hub.firstScan")}</p>
+        <p class="lv-caption lv-scan-hint">{t("hub.firstScan")}</p>
     {:else}
         <div class="lv-card lv-empty-compact" role="status">
             <div class="eic-sm"><UiIcon name="check" size={18} /></div>
@@ -129,3 +129,35 @@
         {/each}
     </div>
 {/if}
+
+<style>
+    .lv-filter-clear-badge {
+        cursor: pointer;
+        border: none;
+        margin-left: 8px;
+    }
+    .lv-skel--icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        flex: none;
+    }
+    .lv-skel-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+    }
+    .lv-skel--w42 {
+        height: 13px;
+        width: 42%;
+    }
+    .lv-skel--w26 {
+        height: 11px;
+        width: 26%;
+    }
+    .lv-scan-hint {
+        margin: 8px 2px;
+    }
+</style>

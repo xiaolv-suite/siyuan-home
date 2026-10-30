@@ -35,50 +35,44 @@ export function beginInlineEdit(options: InlineEditOptions): void {
 
     const editor = document.createElement("div");
     editor.className = "lv-inline-editor";
-    editor.style.cssText = "display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap";
 
     let control: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     const longText = col.type === "text" && /(^|_)(note|memo|description|remark|address)($|_)/i.test(String(col.key));
 
     if (col.type === "select") {
         const select = document.createElement("select");
-        select.className = "b3-select";
-        select.style.cssText = "flex:1;min-width:140px";
+        select.className = "b3-select lv-inline-input";
         select.add(new Option("", ""));
         for (const opt of col.options ?? []) select.add(new Option(optLabel(t, col.key, opt), String(opt)));
         select.value = String(current ?? "");
         control = select;
     } else if (longText) {
         const area = document.createElement("textarea");
-        area.className = "b3-text-field";
+        area.className = "b3-text-field lv-inline-textarea";
         area.rows = 2;
-        area.style.cssText = "flex:1;min-width:160px;resize:vertical";
         area.value = String(current ?? "");
         control = area;
     } else {
         const input = document.createElement("input");
-        input.className = col.type === "checkbox" ? "b3-switch" : "b3-text-field";
+        input.className = col.type === "checkbox" ? "b3-switch" : "b3-text-field lv-inline-input";
         input.type = col.type === "checkbox" ? "checkbox" : col.type === "number" ? "number" : col.type === "date" ? "date" : col.type === "url" ? "url" : "text";
         if (col.type === "checkbox") input.checked = !!current;
         else input.value = String(current ?? "");
         if (col.type === "number") input.step = "any";
-        input.style.cssText = col.type === "checkbox" ? "flex:0 0 auto" : "flex:1;min-width:140px";
         control = input;
     }
 
     const actions = document.createElement("span");
-    actions.style.cssText = "display:inline-flex;gap:3px;flex:0 0 auto";
+    actions.className = "lv-inline-actions";
 
     const save = document.createElement("button");
     save.type = "button";
-    save.className = "b3-button b3-button--text";
-    save.style.cssText = "padding:2px 6px;font-size:12px;color:var(--lv-accent)";
+    save.className = "b3-button b3-button--text lv-btn-text-sm lv-tx-accent";
     save.textContent = t("save");
 
     const cancel = document.createElement("button");
     cancel.type = "button";
-    cancel.className = "b3-button b3-button--text";
-    cancel.style.cssText = "padding:3px 6px;font-size:12px";
+    cancel.className = "b3-button b3-button--text lv-btn-text-sm";
     cancel.textContent = t("cancel");
     actions.append(save, cancel);
     editor.append(control);
@@ -86,8 +80,7 @@ export function beginInlineEdit(options: InlineEditOptions): void {
     if (col.key === "contact" && control instanceof HTMLInputElement && hasContactsBridge && onPickContact) {
         const pick = document.createElement("button");
         pick.type = "button";
-        pick.className = "b3-button b3-button--outline";
-        pick.style.cssText = "padding:3px 6px;font-size:12px";
+        pick.className = "b3-button b3-button--outline lv-btn-text-sm";
         pick.textContent = t("ledger.pickContact");
         pick.onclick = () => onPickContact((picked) => { control.value = picked; });
         editor.append(pick);

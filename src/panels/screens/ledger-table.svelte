@@ -128,17 +128,17 @@
     });
 </script>
 
-<div class="lv-card lv-table-wrap lv-table" class:lv-table--compact={tableDensity === "compact"} style="margin-top:12px">
+<div class="lv-card lv-table-wrap lv-table lv-table-margin-top" class:lv-table--compact={tableDensity === "compact"}>
     <table bind:this={ledgerTableEl}>
         <thead><tr>
             <th class="lv-check-col">
-                <input type="checkbox" class="b3-checkbox" style="cursor:pointer;margin:0" checked={allSelected} onclick={toggleSelectAll} title={t("hub.selectAll")} aria-label={t("hub.selectAll")} />
+                <input type="checkbox" class="b3-checkbox lv-checkbox-clean" checked={allSelected} onclick={toggleSelectAll} title={t("hub.selectAll")} aria-label={t("hub.selectAll")} />
             </th>
             <!-- Severity indicator column. -->
             <th class="lv-sev-col"></th>
             {#each tableKeys as k (k)}
                 <th>
-                    <button class="b3-button b3-button--text" style="padding:0 2px;font-weight:600" title={t("ledger.sortTip")}
+                    <button class="b3-button b3-button--text lv-th-sort-btn" title={t("ledger.sortTip")}
                         onclick={() => onToggleSort(k)}>
                         {resolveFieldLabel(k)}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
                     </button>
@@ -154,7 +154,7 @@
                 {@const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail")}
                 <tr class="lv-row-link" onclick={() => onOpenDetail(r)} title={t("ledger.detail")}>
                     <td class="lv-check-cell" onclick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" class="b3-checkbox" style="cursor:pointer;margin:0" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} aria-label={`${t("hub.select")} ${rowName}`} />
+                        <input type="checkbox" class="b3-checkbox lv-checkbox-clean" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} aria-label={`${t("hub.select")} ${rowName}`} />
                     </td>
                     <td class="lv-sev-cell">
                         <button type="button" class="lv-table-open" aria-label={`${t("ledger.detail")}：${rowName}`} title={t("ledger.detail")}
@@ -169,7 +169,7 @@
                                 <div class="lv-qty-stepper">
                                     <button type="button" class="lv-qty-btn"
                                         title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}>−</button>
-                                    <span style="min-width:18px;text-align:center">{cellText(v, k)}</span>
+                                    <span class="lv-cell-center-min">{cellText(v, k)}</span>
                                     <button type="button" class="lv-qty-btn"
                                         title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}>+</button>
                                 </div>
@@ -187,7 +187,7 @@
                 <!-- Progressive rendering load-more row. -->
                 <tr class="lv-more">
                     <td colspan={tableKeys.length + 2}>
-                        <button class="b3-button b3-button--outline" style="margin:0 auto;display:block"
+                        <button class="b3-button b3-button--outline lv-btn-center-block"
                             onclick={() => onLoadMore?.()}>
                             {t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}
                         </button>
@@ -197,3 +197,25 @@
         </tbody>
     </table>
 </div>
+
+<style>
+    .lv-table-margin-top {
+        margin-top: 12px;
+    }
+    .lv-checkbox-clean {
+        cursor: pointer;
+        margin: 0;
+    }
+    .lv-th-sort-btn {
+        padding: 0 2px;
+        font-weight: 600;
+    }
+    .lv-cell-center-min {
+        min-width: 18px;
+        text-align: center;
+    }
+    .lv-btn-center-block {
+        margin: 0 auto;
+        display: block;
+    }
+</style>

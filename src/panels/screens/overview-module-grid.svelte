@@ -116,9 +116,9 @@
     <div class="lv-mods" aria-hidden="true">
         {#each [0, 1, 2, 3] as i (i)}
             <div class="lv-card lv-mod">
-                <div class="lv-skel" style="width:38px;height:38px;border-radius:11px"></div>
-                <div class="lv-skel" style="height:13px;width:56%"></div>
-                <div class="lv-skel" style="height:11px;width:38%"></div>
+                <div class="lv-skel lv-skel--icon"></div>
+                <div class="lv-skel lv-skel--w56"></div>
+                <div class="lv-skel lv-skel--w38"></div>
             </div>
         {/each}
     </div>
@@ -223,3 +223,19 @@
     {/each}
     {/if}
 {/if}
+
+<style>
+    .lv-skel--icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+    }
+    .lv-skel--w56 {
+        height: 13px;
+        width: 56%;
+    }
+    .lv-skel--w38 {
+        height: 11px;
+        width: 38%;
+    }
+</style>

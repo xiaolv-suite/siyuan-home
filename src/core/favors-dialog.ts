@@ -48,11 +48,10 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
         const report = buildFavorsReport(all.rows, ref.columns!, selectedYear);
 
         const toolbar = document.createElement("div");
-        toolbar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+        toolbar.className = "lv-dialog-topbar";
 
         const yearSelect = document.createElement("select");
-        yearSelect.className = "b3-select";
-        yearSelect.style.cssText = "font-size:12px;padding:4px 8px";
+        yearSelect.className = "b3-select lv-select-sm";
         const optAll = document.createElement("option");
         optAll.value = "all";
         optAll.textContent = t("ledger.favorsYearAll");

@@ -31,8 +31,7 @@ export function renderEditableFormFields(options: RenderEditableFormFieldsOption
 
     const labelSpan = (col: any) => {
         const s = document.createElement("span");
-        s.className = "ft__on-surface";
-        s.style.cssText = "width:110px;flex-shrink:0;font-size:12px;color:var(--lv-tx-2)";
+        s.className = "ft__on-surface lv-label-key";
         s.textContent = t(`field.${col.key}`) !== `field.${col.key}` ? t(`field.${col.key}`) : col.name || col.key;
         return s;
     };
@@ -44,8 +43,8 @@ export function renderEditableFormFields(options: RenderEditableFormFieldsOption
         if (!keyID || !EDITABLE.has(col.type)) continue;
 
         const wrap = document.createElement("div");
-        wrap.className = "fn__flex";
-        wrap.style.cssText = "gap:10px;padding:4px 0;font-size:13px;align-items:center";
+        wrap.className = "fn__flex lv-detail-kv-line";
+        wrap.style.alignItems = "center";
         wrap.append(labelSpan(col));
 
         const cur = rawFromValueFn(col.type, rowCells[keyID]);
@@ -78,8 +77,7 @@ export function renderEditableFormFields(options: RenderEditableFormFieldsOption
 
         if (col.key === "contact" && control instanceof HTMLInputElement && hasContactsBridge && onPickContact) {
             const pick = document.createElement("button");
-            pick.className = "b3-button b3-button--outline";
-            pick.style.cssText = "flex-shrink:0;font-size:12px";
+            pick.className = "b3-button b3-button--outline lv-btn-text-sm";
             pick.textContent = t("ledger.pickContact");
             pick.onclick = () => onPickContact((picked) => { control.value = picked; });
             wrap.append(pick);

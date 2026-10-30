@@ -200,7 +200,6 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
 
         const uploadBtn = document.createElement("button");
         uploadBtn.className = `b3-button b3-button--outline lv-att-upload-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
-        uploadBtn.style.cssText = "margin-top:8px;font-size:12px";
         uploadBtn.textContent = t("ledger.upload");
 
         const fileInput = document.createElement("input");

@@ -363,7 +363,6 @@ export function markActivityLine(line: HTMLElement, targetActivityId?: string): 
     line.classList.add("lv-activity-target");
     line.setAttribute("aria-current", "location");
     line.tabIndex = -1;
-    line.style.cssText += ";border-radius:6px;background:var(--lv-accent-soft);outline:2px solid var(--lv-accent);outline-offset:2px;padding:7px";
     if (typeof requestAnimationFrame !== "undefined") {
         requestAnimationFrame(() => {
             if (!line.isConnected) return;

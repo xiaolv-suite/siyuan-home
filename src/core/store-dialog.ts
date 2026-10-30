@@ -68,13 +68,13 @@ export async function openStoreModeDialog(opts: StoreModeDialogOptions): Promise
         for (const g of groups) {
             const gp = p.byGroup.find((x) => x.category === g.category);
             const head = document.createElement("div");
-            head.className = "ft__on-surface";
-            head.style.cssText = "margin:8px 0 4px;font-size:12px;font-weight:600";
+            head.className = "ft__on-surface lv-domain-title lv-mt-8";
             head.textContent = `${catLabel(g.category)} (${gp?.checked ?? 0}/${gp?.total ?? 0})`;
             body.appendChild(head);
             for (const it of g.items) {
                 const label = document.createElement("label");
-                label.style.cssText = "display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:13px;cursor:pointer";
+                label.className = "lv-dialog-row";
+                label.style.cursor = "pointer";
                 const box = document.createElement("input");
                 box.type = "checkbox";
                 box.className = "b3-checkbox";

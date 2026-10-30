@@ -139,8 +139,8 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
             left.append(title, sub);
 
             const right = document.createElement("div");
-            right.style.cssText = "text-align:right;flex-shrink:0";
-            right.innerHTML = `<b class="lv-num" style="font-size:16px;color:var(--lv-data-accent)">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div>`;
+            right.className = "lv-dialog-row__right";
+            right.innerHTML = `<b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:16px">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div>`;
 
             row.append(left, right);
             listEl.appendChild(row);

@@ -228,8 +228,7 @@ export function openSubscriptionStatsDialog(options: SubscriptionStatsDialogOpti
 
     if (stats.activeCount === 0) {
         const empty = document.createElement("div");
-        empty.className = "lv-caption";
-        empty.style.cssText = "text-align:center;padding:24px 0";
+        empty.className = "lv-caption lv-dialog-empty";
         empty.textContent = t("ledger.subscriptionEmpty");
         body.appendChild(empty);
         copyBtn.disabled = true;

@@ -180,18 +180,18 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
     const qtyInputs: HTMLInputElement[] = [];
     for (const it of items) {
         const line = document.createElement("div");
-        line.style.cssText = "display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid var(--lv-line)";
+        line.className = "lv-dialog-row";
+        line.style.borderBottom = "1px solid var(--lv-line)";
         const label = document.createElement("span");
-        label.style.cssText = "flex:1;word-break:break-all;color:var(--lv-tx)";
+        label.className = "lv-word-break lv-dialog-name";
         label.textContent = it.name;
         const meta = document.createElement("span");
         meta.className = "lv-caption";
-        meta.style.cssText = "flex-shrink:0";
+        meta.style.flexShrink = "0";
         meta.textContent = t("ledger.shopExisting").replace("${q}", String(it.qty)).replace("${t2}", String(it.threshold));
         const input = document.createElement("input");
         input.type = "number";
-        input.className = "b3-text-field";
-        input.style.cssText = "width:74px;flex-shrink:0";
+        input.className = "b3-text-field lv-input-time-sm";
         input.min = "1";
         input.value = String(it.suggest);
         input.title = t("ledger.shopBuy");

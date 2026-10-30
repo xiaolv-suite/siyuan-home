@@ -71,7 +71,7 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
         }
 
         const dateSpan = document.createElement("b");
-        dateSpan.style.cssText = "color:var(--lv-tx)";
+        dateSpan.className = "lv-dialog-name";
         dateSpan.textContent = date;
 
         const typesSpan = document.createElement("span");

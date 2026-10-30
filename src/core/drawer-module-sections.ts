@@ -129,16 +129,17 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
             const saved = entries.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
             if (target !== undefined || entries.length > 0) {
                 const head = document.createElement("div");
-                head.style.cssText = "margin-top:10px;font-size:12px";
+                head.className = "ft__on-surface lv-dialog-sec-head";
                 const line = document.createElement("div");
                 line.className = "lv-caption";
                 line.textContent = `${t("ledger.savedOf").replace("${s}", formatAmount(saved)).replace("${t2}", target !== undefined ? formatAmount(target) : "—")}${target !== undefined && target > 0 ? ` (${Math.min(999, Math.round((saved / target) * 100))}%)` : ""}`;
                 head.appendChild(line);
                 if (target !== undefined && target > 0) {
                     const bar = document.createElement("div");
-                    bar.style.cssText = "height:6px;border-radius:3px;background:var(--lv-surface-2);overflow:hidden;margin-top:4px";
+                    bar.className = "lv-member-retire-bar lv-mt-4";
                     const fill = document.createElement("div");
-                    fill.style.cssText = `height:100%;width:${Math.min(100, Math.round((saved / target) * 100))}%;background:var(--lv-accent)`;
+                    fill.className = "lv-member-retire-progress";
+                    fill.style.width = `${Math.min(100, Math.round((saved / target) * 100))}%`;
                     bar.appendChild(fill);
                     head.appendChild(bar);
                 }

@@ -177,19 +177,14 @@ export function renderFavorsSyncSection(options: FavorsSyncSectionOptions): void
 
     if (synced) {
         const tag = document.createElement("span");
-        tag.className = "lv-caption";
-        tag.style.cssText = "margin-left:8px;color:var(--lv-accent);font-weight:normal";
+        tag.className = "lv-caption lv-tx-accent lv-ml-8";
+        tag.style.fontWeight = "normal";
         tag.textContent = t("ec15.synced");
         head.appendChild(tag);
     }
 
     body.appendChild(btn);
 }
-
-const substRowCss = "padding:2px 0;font-size:12.5px";
-const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
-const flexCenterGap6Css = "display:flex;align-items:center;gap:6px";
-const fs125Css = "font-size:12.5px";
 
 export interface RenderRowLogSectionOptions {
     body: HTMLElement;
@@ -221,7 +216,8 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         section.replaceChildren();
         for (const e of loaded) {
             const line = document.createElement("div");
-            line.style.cssText = `${substRowCss};display:flex;gap:6px;align-items:center`;
+            line.className = "lv-dialog-row lv-dialog-row-text";
+            line.style.gap = "6px";
             if (kind) {
                 line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, kind, e);
                 if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
@@ -229,8 +225,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
             const text = document.createElement("span");
             text.textContent = format(e);
             const del = document.createElement("button");
-            del.className = "b3-button b3-button--text";
-            del.style.cssText = "padding:0 4px;font-size:12px";
+            del.className = "b3-button b3-button--text lv-btn-text-sm";
             del.textContent = t("delete");
             del.onclick = async () => {
                 del.disabled = true;
@@ -258,35 +253,32 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         }
         if (loadFailed) {
             const error = document.createElement("div");
-            error.className = "ft__on-surface";
-            error.style.cssText = "font-size:12.5px;color:var(--lv-danger)";
+            error.className = "ft__on-surface lv-tx-danger";
             error.textContent = t("ledger.logReadFailed");
             section.appendChild(error);
         } else if (loaded.length === 0) {
             const none = document.createElement("div");
-            none.className = "ft__on-surface";
-            none.style.cssText = fs125Css;
+            none.className = "ft__on-surface lv-caption";
             none.textContent = emptyText;
             section.appendChild(none);
         }
     };
 
     const head = document.createElement("div");
-    head.className = "ft__on-surface";
-    head.style.cssText = sectionHeadBorderCss;
+    head.className = "ft__on-surface lv-dialog-sec-head";
     head.textContent = title;
     body.appendChild(head);
     body.appendChild(section);
 
     const form = document.createElement("div");
-    form.style.cssText = `${flexCenterGap6Css};margin-top:6px;flex-wrap:wrap`;
+    form.className = "lv-dialog-form-row";
     const inputs: Record<string, HTMLInputElement> = {};
     for (const f of fields) {
         const inp = document.createElement("input");
         inp.type = f.type;
-        inp.className = "b3-text-field";
+        inp.className = "b3-text-field lv-select-sm";
         inp.placeholder = f.placeholder;
-        inp.style.cssText = `width:${f.width}px;font-size:12px`;
+        inp.style.width = `${f.width}px`;
         if (f.type === "date") inp.value = localDateKey(new Date());
         inp.onkeydown = (e: KeyboardEvent) => {
             if (e.key === "Enter" && !e.isComposing) {
@@ -298,8 +290,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         form.appendChild(inp);
     }
     const addBtn = document.createElement("button");
-    addBtn.className = "b3-button b3-button--outline";
-    addBtn.style.cssText = "font-size:12px";
+    addBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
     addBtn.textContent = addLabel;
     addBtn.onclick = async () => {
         if (addBtn.disabled) return;

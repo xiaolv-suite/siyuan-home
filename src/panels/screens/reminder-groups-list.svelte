@@ -173,22 +173,22 @@
         <div class="lv-card lv-rems" aria-busy="true" role="status">
             {#each [0, 1, 2] as i (i)}
                 <div class="lv-rem">
-                    <div class="lv-skel" style="width:38px;height:38px;border-radius:11px;flex:none"></div>
-                    <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
-                        <div class="lv-skel" style="height:13px;width:42%"></div>
-                        <div class="lv-skel" style="height:11px;width:26%"></div>
+                    <div class="lv-skel lv-skel--icon"></div>
+                    <div class="lv-skel-col">
+                        <div class="lv-skel lv-skel--w42"></div>
+                        <div class="lv-skel lv-skel--w26"></div>
                     </div>
                 </div>
             {/each}
         </div>
-        <p class="lv-caption" style="margin:8px 2px">{t("hub.firstScan")}</p>
+        <p class="lv-caption lv-scan-hint">{t("hub.firstScan")}</p>
     {:else if plugin.scan?.errors?.length}
         <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("hub.partialScanTitle")}</b><span>{t("hub.partialScanBody").replace("${n}", String(plugin.scan.errors.length))}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" disabled={rescanning} onclick={onRescan}>{rescanning ? t("diag.rebuilding") : t("hub.rescan")}</button>
+            <button class="b3-button b3-button--outline lv-mt-8" disabled={rescanning} onclick={onRescan}>{rescanning ? t("diag.rebuilding") : t("hub.rescan")}</button>
         </div></div>
     {:else if filter !== "all" || filterMember || filterModule || dueWithin !== "all"}
         <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("hub.filteredEmpty")}</b><span>{t("hub.filteredEmptyHint")}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={onClearFilters}>{t("hub.clearFilters")}</button>
+            <button class="b3-button b3-button--outline lv-mt-8" onclick={onClearFilters}>{t("hub.clearFilters")}</button>
         </div></div>
     {:else}
         <div class="lv-card"><div class="lv-empty"><div class="eic"><UiIcon name="checkCircle" size={22} /></div><b>{t("dash.allClear")}</b><span>{t("hub.emptyHint")}</span></div></div>
@@ -220,10 +220,42 @@
         </div>
     {/each}
     {#if filtered.length > renderLimit}
-        <div class="lv-card" style="display:flex;justify-content:center;padding:12px">
+        <div class="lv-card lv-card-center-pad">
             <button class="b3-button b3-button--outline" onclick={() => (renderLimit += REMINDER_PAGE_SIZE)}>
                 {t("ledger.loadMore").replace("${n}", String(filtered.length - renderLimit))}
             </button>
         </div>
     {/if}
 {/if}
+
+<style>
+    .lv-skel--icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        flex: none;
+    }
+    .lv-skel-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+    }
+    .lv-skel--w42 {
+        height: 13px;
+        width: 42%;
+    }
+    .lv-skel--w26 {
+        height: 11px;
+        width: 26%;
+    }
+    .lv-scan-hint {
+        margin: 8px 2px;
+    }
+    .lv-card-center-pad {
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+    }
+</style>

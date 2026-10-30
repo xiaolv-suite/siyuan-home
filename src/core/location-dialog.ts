@@ -99,8 +99,8 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
         resultsEl.replaceChildren();
         if (entries.length === 0) {
             const none = document.createElement("div");
-            none.className = "ft__on-surface";
-            none.style.cssText = "font-size:12.5px;padding:12px 0;text-align:center";
+            none.className = "ft__on-surface lv-dialog-empty";
+            none.style.padding = "12px 0";
             none.textContent = t("activity.noMatch");
             resultsEl.appendChild(none);
             return;
@@ -113,22 +113,24 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
         }
         for (const [loc, list] of byLoc) {
             const grp = document.createElement("div");
-            grp.style.cssText = "border-radius:6px;background:var(--b3-theme-background-light);padding:8px 10px";
+            grp.className = "lv-dialog-summary-card";
+            grp.style.display = "block";
             const head = document.createElement("div");
-            head.style.cssText = "font-weight:600;font-size:13px;margin-bottom:6px;color:var(--lv-accent);display:flex;justify-content:space-between";
+            head.className = "lv-dialog-row lv-domain-title lv-tx-accent";
+            head.style.marginBottom = "6px";
             head.innerHTML = `<span>📍 ${loc}</span><span class="lv-caption">${list.length} 件</span>`;
             grp.appendChild(head);
             for (const it of list) {
                 const line = document.createElement("div");
-                line.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12.5px";
+                line.className = "lv-dialog-row";
+                line.style.padding = "3px 0";
                 const left = document.createElement("span");
                 const copyTag = it.source === "copy_location" ? ` <span class="lv-badge gray">${t("ledger.locCopyTag")}</span>` : "";
                 const safeName = String(it.name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 const safeOwner = it.memberName ? ` · ${String(it.memberName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}` : "";
                 left.innerHTML = `<b>${safeName}</b>${copyTag}<span class="lv-caption" style="margin-left:6px">${modLabel(it.moduleId)}${safeOwner}</span>`;
                 const gotoBtn = document.createElement("button");
-                gotoBtn.className = "b3-button b3-button--text";
-                gotoBtn.style.cssText = "font-size:11.5px;padding:0 4px";
+                gotoBtn.className = "b3-button b3-button--text lv-btn-text-sm";
                 gotoBtn.textContent = `${t("ledger.openDoc")} →`;
                 gotoBtn.onclick = () => {
                     const docId = plugin.settings.dbRefs[it.moduleId]?.docId;

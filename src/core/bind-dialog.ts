@@ -66,8 +66,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
             for (const r of rows) {
                 const btn = document.createElement("button");
                 btn.type = "button";
-                btn.className = "b3-button b3-button--outline";
-                btn.style.cssText = "font-size:12px;padding:4px 8px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%";
+                btn.className = "b3-button b3-button--outline lv-bind-candidate-btn";
                 btn.textContent = `📄 ${r.hpath}`;
                 btn.onclick = () => {
                     const inp = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;

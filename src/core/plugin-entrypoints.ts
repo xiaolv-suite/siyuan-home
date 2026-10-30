@@ -307,7 +307,6 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
     // 28 组：状态栏「今日到期 N」角标（点击打开管家并预选提醒页）
     const statusEl = document.createElement("div");
     statusEl.className = "lv-statusbar";
-    statusEl.style.cssText = "cursor:pointer;padding:0 6px;font-size:12px;display:none";
     statusEl.onclick = () => openRemindersScreen();
     plugin.addStatusBar({ element: statusEl });
 

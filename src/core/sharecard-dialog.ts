@@ -151,7 +151,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
         pngBlob = await renderYearlyReportCardPng(cardData);
         const img = document.createElement("img");
         img.src = URL.createObjectURL(pngBlob);
-        img.style.cssText = "max-width:100%;height:auto;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);border:1px solid var(--lv-line)";
+        img.className = "lv-sharecard-img";
         img.alt = t("overview.shareCardTitle");
         previewEl.replaceChildren(img);
         copyImgBtn.disabled = false;

@@ -164,8 +164,16 @@
     }
     function moveDayFocus(event: KeyboardEvent, index: number) {
         const key = event.key;
-        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(key)) return;
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(key)) return;
         event.preventDefault();
+        if (key === "PageUp") {
+            nav(-1);
+            return;
+        }
+        if (key === "PageDown") {
+            nav(1);
+            return;
+        }
         const cols = 7;
         const rowStart = Math.floor(index / cols) * cols;
         const next = key === "Home" ? rowStart : key === "End" ? Math.min(cells.length - 1, rowStart + cols - 1)
@@ -181,14 +189,14 @@
         <b>{headLabel}</b>
         <span class="fn__flex-1"></span>
         <span class="lv-tabs" role="group" aria-label={t("cal.title")}>
-            <button class="lv-tabs__item" class:on={mode === "month"}
+            <button type="button" class="lv-tabs__item" class:on={mode === "month"}
                 aria-pressed={mode === "month"} onclick={() => setMode("month")}>{t("view.month")}</button>
-            <button class="lv-tabs__item" class:on={mode === "week"}
+            <button type="button" class="lv-tabs__item" class:on={mode === "week"}
                 aria-pressed={mode === "week"} onclick={() => setMode("week")}>{t("view.week")}</button>
         </span>
-        <button class="lv-iconbtn" aria-label={t("cal.prev")} title={t("cal.prev")} onclick={() => nav(-1)}><UiIcon name="back" size={16} /></button>
-        <button class="b3-button b3-button--outline" onclick={goToday}>{t("cal.today")}</button>
-        <button class="lv-iconbtn" aria-label={t("cal.next")} title={t("cal.next")} onclick={() => nav(1)}><UiIcon name="forward" size={16} /></button>
+        <button type="button" class="lv-iconbtn" aria-label={t("cal.prev")} title={t("cal.prev")} onclick={() => nav(-1)}><UiIcon name="back" size={16} /></button>
+        <button type="button" class="b3-button b3-button--outline" onclick={goToday}>{t("cal.today")}</button>
+        <button type="button" class="lv-iconbtn" aria-label={t("cal.next")} title={t("cal.next")} onclick={() => nav(1)}><UiIcon name="forward" size={16} /></button>
     </div>
     <div class="lv-cal-grid" class:wk={mode === "week"} role="grid" aria-label={t("cal.title")}>
         <div class="lv-cal-row" role="row">
@@ -201,7 +209,7 @@
                 {#each week as c, dayIndex (c.key)}
                     {@const dayReminders = byDate.get(c.key) ?? []}
                     {@const hasOverdue = dayReminders.some((r) => r.level === "overdue")}
-                    <button class="lv-cal-cell" class:out={mode === "month" && !c.inMonth} class:sel={c.key === selected}
+                    <button type="button" class="lv-cal-cell" class:out={mode === "month" && !c.inMonth} class:sel={c.key === selected}
                         data-cal-day={c.key} role="gridcell" aria-selected={c.key === selected}
                         aria-label={`${c.key}, ${dayReminders.length} ${t("cal.itemsUnit")}${c.key === todayKey ? `, ${t("cal.today")}` : ""}${mode === "month" && !c.inMonth ? `, ${t("cal.otherMonth")}` : ""}`}
                         tabindex={c.key === selected ? 0 : -1} onkeydown={(e) => moveDayFocus(e, weekIndex * 7 + dayIndex)}
@@ -211,7 +219,7 @@
                             {#each dayReminders.slice(0, 5) as r (r.id)}
                                 <i class={dotCls(r)} title={r.title}></i>
                             {/each}
-                            {#if dayReminders.length > 5}<i class="more" title={`${dayReminders.length - 5} more`}>+</i>{/if}
+                            {#if dayReminders.length > 5}<i class="more" title={`${dayReminders.length - 5} more`}><UiIcon name="add" size={9} /></i>{/if}
                         </span>
                         {#if mode === "week"}
                             <span class="tt">
@@ -232,7 +240,7 @@
         <div class="lv-cal-day-head">
             <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
             {#if dayItems.length > 0}
-                <button class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={copyDayTasks}>
+                <button type="button" class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={copyDayTasks}>
                     <UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}
                 </button>
             {/if}
@@ -282,10 +290,10 @@
         {/if}
         <!-- 233 波：当日快捷新增备忘（日期预设为选中日） -->
         <div class="lv-cal-memo-bar">
-            <input bind:this={memoInput} class="b3-text-field fn__flex-1" placeholder={t("cal.memoPlaceholder")} aria-label={t("cal.memoPlaceholder")} disabled={savingMemo}
+            <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1" placeholder={t("cal.memoPlaceholder")} aria-label={t("cal.memoPlaceholder")} disabled={savingMemo}
                 bind:value={memoTitle}
                 onkeydown={(e: KeyboardEvent) => e.key === "Enter" && !e.isComposing && void addMemoForDay()} />
-            <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>
+            <button type="button" class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>
                 {#if !savingMemo}<UiIcon name="add" size={12} /> {/if}{savingMemo ? t("ledger.saving") : t("memo.add")}
             </button>
         </div>

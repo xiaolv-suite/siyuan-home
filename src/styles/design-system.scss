@@ -2555,6 +2555,7 @@
         gap: 4px; padding: 6px 8px; cursor: pointer; font: inherit; color: var(--lv-tx-2); text-align: left;
         transition: all var(--lv-t-fast) var(--lv-ease);
         &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); }
+        &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 1px; }
         // 233 波：跨月真实日期（相邻月弱化显示但仍可点选看提醒）
         &.out { opacity: .4; }
         &.sel { border-color: var(--lv-accent); background: var(--lv-accent-soft); box-shadow: 0 0 0 1px var(--lv-accent-line); }

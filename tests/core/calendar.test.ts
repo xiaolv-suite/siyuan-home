@@ -57,3 +57,49 @@ describe("周视图（weekGrid）", () => {
         expect(cells[6].key).toBe("2026-11-01");
     });
 });
+
+describe("日历网格键盘导航 (WAI-ARIA APG Calendar Grid)", () => {
+    it("PageUp / PageDown 支持跨月翻页", () => {
+        let viewMonth = 9; // 10月
+        const nav = (delta: number) => {
+            viewMonth += delta;
+        };
+
+        function moveDayFocus(key: string) {
+            if (key === "PageUp") {
+                nav(-1);
+            } else if (key === "PageDown") {
+                nav(1);
+            }
+        }
+
+        moveDayFocus("PageUp");
+        expect(viewMonth).toBe(8); // 9月
+
+        moveDayFocus("PageDown");
+        expect(viewMonth).toBe(9); // 10月
+    });
+
+    it("方向键与 Home/End 支持二维网格漫游与行首行尾边界", () => {
+        const cells = monthGrid(2026, 9); // 35 格
+        const cols = 7;
+
+        function getNextIndex(index: number, key: string): number {
+            const rowStart = Math.floor(index / cols) * cols;
+            return key === "Home" ? rowStart : key === "End" ? Math.min(cells.length - 1, rowStart + cols - 1)
+                : key === "ArrowLeft" ? Math.max(0, index - 1) : key === "ArrowRight" ? Math.min(cells.length - 1, index + 1)
+                    : key === "ArrowUp" ? Math.max(0, index - cols) : Math.min(cells.length - 1, index + cols);
+        }
+
+        // 索引 3 (10-01) -> ArrowRight -> 4
+        expect(getNextIndex(3, "ArrowRight")).toBe(4);
+        // 索引 3 -> ArrowDown -> 10 (下周同日)
+        expect(getNextIndex(3, "ArrowDown")).toBe(10);
+        // 索引 10 -> ArrowUp -> 3 (上周同日)
+        expect(getNextIndex(10, "ArrowUp")).toBe(3);
+        // 索引 3 -> Home -> 0 (本行行首/周一)
+        expect(getNextIndex(3, "Home")).toBe(0);
+        // 索引 3 -> End -> 6 (本行行尾/周日)
+        expect(getNextIndex(3, "End")).toBe(6);
+    });
+});

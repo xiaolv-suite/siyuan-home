@@ -34,14 +34,14 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
 
     const dlg = new DialogCls({
         title: t("members.reassignTitle"),
-        content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-            <p class="lv-caption" style="margin:0">${t("members.reassignIntro")}</p>
-            <label style="display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:12px;color:var(--lv-tx-2)">${t("members.reassignFrom")}</span>
+        content: `<div class="b3-dialog__content lv-dialog-col">
+            <p class="lv-caption">${t("members.reassignIntro")}</p>
+            <label class="lv-form-group">
+                <span class="lv-caption ft__on-surface">${t("members.reassignFrom")}</span>
                 <select class="b3-select" id="lv-reassign-from">${fromOptions}</select>
             </label>
-            <label style="display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:12px;color:var(--lv-tx-2)">${t("members.reassignTo")}</span>
+            <label class="lv-form-group">
+                <span class="lv-caption ft__on-surface">${t("members.reassignTo")}</span>
                 <select class="b3-select" id="lv-reassign-to">${toOptions}</select>
             </label>
         </div>

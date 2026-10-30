@@ -53,32 +53,32 @@ export async function openDiagnosticsPreviewDialog(
 
     const dlg = new DialogCls({
         title: "🔍 " + (t("settings.diagPreviewTitle") !== "settings.diagPreviewTitle" ? t("settings.diagPreviewTitle") : "管家健康诊断预览"),
-        content: `<div class="b3-dialog__content" style="padding:16px;max-height:65vh;overflow:auto;display:flex;flex-direction:column;gap:12px">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">
-                <div style="padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)">
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body">
+            <div class="lv-diag-grid">
+                <div class="lv-diag-stat-card">
                     <span class="lv-caption">插件版本</span>
-                    <b style="display:block;font-size:14px;color:var(--lv-tx);margin-top:2px">v${payload.plugin || "0.5.x"}</b>
+                    <b style="color:var(--lv-tx)">v${payload.plugin || "0.5.x"}</b>
                 </div>
-                <div style="padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)">
+                <div class="lv-diag-stat-card">
                     <span class="lv-caption">已启用模块</span>
-                    <b style="display:block;font-size:14px;color:var(--lv-accent);margin-top:2px">${payload.enabledModules?.length ?? 0} 个</b>
+                    <b style="color:var(--lv-accent)">${payload.enabledModules?.length ?? 0} 个</b>
                 </div>
-                <div style="padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)">
+                <div class="lv-diag-stat-card">
                     <span class="lv-caption">台账库就绪</span>
-                    <b style="display:block;font-size:14px;color:${provisionedCount === totalCount ? "var(--lv-accent)" : "var(--lv-warn)"};margin-top:2px">${provisionedCount} / ${totalCount}</b>
+                    <b style="color:${provisionedCount === totalCount ? "var(--lv-accent)" : "var(--lv-warn)"}">${provisionedCount} / ${totalCount}</b>
                 </div>
-                <div style="padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)">
+                <div class="lv-diag-stat-card">
                     <span class="lv-caption">扫描异常数</span>
-                    <b style="display:block;font-size:14px;color:${errorCount > 0 ? "var(--lv-danger)" : "var(--lv-tx)"};margin-top:2px">${errorCount} 项</b>
+                    <b style="color:${errorCount > 0 ? "var(--lv-danger)" : "var(--lv-tx)"}">${errorCount} 项</b>
                 </div>
             </div>
             ${errorCount > 0 ? `
-                <div style="padding:8px 12px;background:var(--lv-danger-soft);border-radius:6px;border:1px solid var(--lv-danger);color:var(--lv-danger);font-size:12px">
+                <div class="lv-diag-error-card">
                     <b>异常摘要：</b>
                     ${payload.scanErrors.map((e: any) => `<div>· ${e.moduleId}: ${e.message}</div>`).join("")}
                 </div>
             ` : ""}
-            <div style="font-size:12px;color:var(--lv-tx-2);line-height:1.5">
+            <div class="lv-caption ft__on-surface">
                 <div>· 运行平台：${payload.platform}</div>
                 <div>· 最近扫描：${payload.scannedAt ? new Date(payload.scannedAt).toLocaleString() : "尚未完成扫描"}</div>
                 <div>· 诊断生成时间：${payload.generatedAt}</div>

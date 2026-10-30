@@ -42,23 +42,23 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
 
     const dlg = new DialogCls({
         title: t("hub.planScheduleTitle"),
-        content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-            <p class="lv-caption" style="margin:0">${t("hub.planScheduleIntro")}</p>
-            <div style="font-size:12px;color:var(--lv-tx-2)">
+        content: `<div class="b3-dialog__content lv-dialog-col">
+            <p class="lv-caption">${t("hub.planScheduleIntro")}</p>
+            <div class="lv-caption ft__on-surface">
                 <b>${r.title}</b> · ${t("hub.summaryDue")}: ${r.dueDate}
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px">
-                <button class="b3-button b3-button--outline" id="lv-plan-preset-today" style="font-size:12px;padding:3px 8px">${t("hub.planPresetToday")}</button>
-                <button class="b3-button b3-button--outline" id="lv-plan-preset-tomorrow" style="font-size:12px;padding:3px 8px">${t("hub.planPresetTomorrow")}</button>
-                <button class="b3-button b3-button--outline" id="lv-plan-preset-nextmon" style="font-size:12px;padding:3px 8px">${t("hub.planPresetNextWeek")}</button>
+            <div class="lv-chips-wrap">
+                <button class="b3-button b3-button--outline lv-preset-tag" id="lv-plan-preset-today">${t("hub.planPresetToday")}</button>
+                <button class="b3-button b3-button--outline lv-preset-tag" id="lv-plan-preset-tomorrow">${t("hub.planPresetTomorrow")}</button>
+                <button class="b3-button b3-button--outline lv-preset-tag" id="lv-plan-preset-nextmon">${t("hub.planPresetNextWeek")}</button>
             </div>
-            <label style="display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:12px;color:var(--lv-tx-2)">${t("hub.planDateLabel")}</span>
-                <input class="b3-text-field" id="lv-plan-date-input" type="date" value="${currentPlan || todayKey}" style="width:100%" />
+            <label class="lv-form-group">
+                <span class="lv-caption ft__on-surface">${t("hub.planDateLabel")}</span>
+                <input class="b3-text-field" id="lv-plan-date-input" type="date" value="${currentPlan || todayKey}" />
             </label>
         </div>
         <div class="b3-dialog__action">
-            ${currentPlan ? `<button class="b3-button b3-button--text ft__error" id="lv-plan-clear" style="color:var(--lv-danger)">${t("hub.clearPlanDate")}</button>` : ""}
+            ${currentPlan ? `<button class="b3-button b3-button--text ft__error lv-tx-danger" id="lv-plan-clear">${t("hub.clearPlanDate")}</button>` : ""}
             <span class="fn__flex-1"></span>
             <button class="b3-button b3-button--cancel" id="lv-plan-cancel">${t("cancel")}</button>
             <button class="b3-button" id="lv-plan-save">${t("save")}</button>
@@ -134,9 +134,9 @@ export function openNamedViewSaveDialog(options: OpenNamedViewSaveDialogOptions)
     const { plugin, currentFilter, DialogCls, t, showMessageFn, onViewSaved } = options;
     const dlg = new DialogCls({
         title: t("hub.saveViewTitle"),
-        content: `<div class="b3-dialog__content" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-            <p class="lv-caption" style="margin:0">${t("hub.saveViewIntro")}</p>
-            <input class="b3-text-field" id="lv-named-view-input" placeholder="${t("hub.saveViewPlaceholder")}" style="width:100%" />
+        content: `<div class="b3-dialog__content lv-dialog-col">
+            <p class="lv-caption">${t("hub.saveViewIntro")}</p>
+            <input class="b3-text-field fn__block" id="lv-named-view-input" placeholder="${t("hub.saveViewPlaceholder")}" />
         </div>
         <div class="b3-dialog__action">
             <button class="b3-button b3-button--cancel" id="lv-named-view-cancel">${t("cancel")}</button>
@@ -258,23 +258,22 @@ export interface OpenMemoEditDialogOptions {
 export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, onMemoUpdated } = options;
-    const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
+    const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" class="lv-dialog-col"></div>`, width: "460px" });
     const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
-    const rowFlexCenterCss = "display:flex;align-items:center;gap:8px";
     const row1 = document.createElement("div");
-    row1.style.cssText = rowFlexCenterCss;
-    const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.name");
-    const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.style.flex = "1"; titleInput.value = r.title;
+    row1.className = "lv-row-field";
+    const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.textContent = t("triage.name");
+    const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.value = r.title;
     titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
     row1.append(l1, titleInput);
     const row2 = document.createElement("div");
-    row2.style.cssText = rowFlexCenterCss;
-    const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.due");
+    row2.className = "lv-row-field";
+    const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.textContent = t("triage.due");
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
     dateInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
     row2.append(l2, dateInput);
     const save = document.createElement("button"); save.className = "b3-button"; save.textContent = t("save");
-    const err = document.createElement("span"); err.className = "lv-caption"; err.setAttribute("role", "alert"); err.style.color = "var(--lv-danger)";
+    const err = document.createElement("span"); err.className = "lv-caption lv-tx-danger"; err.setAttribute("role", "alert");
     let saving = false;
     save.addEventListener("click", async () => {
         if (saving) return;

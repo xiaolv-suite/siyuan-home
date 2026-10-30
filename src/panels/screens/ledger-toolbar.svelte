@@ -96,7 +96,7 @@
     }
 </script>
 
-<div class="lv-toolbar lv-ledger-toolbar" style="margin:0 0 14px">
+<div class="lv-toolbar lv-ledger-toolbar">
     {#if ledgers.length > 0}
         <select class="b3-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger") || "切换台账"}>
             {#each groupedLedgers as g (g.groupId)}
@@ -185,8 +185,8 @@
 </div>
 
 {#if pinnedLedgers.length > 1}
-    <div class="lv-ledger-pinned-bar" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:-6px 0 10px">
-        <span class="lv-caption" style="font-size:11px;color:var(--lv-tx-3);margin-right:2px">📌</span>
+    <div class="lv-ledger-pinned-bar">
+        <span class="lv-caption lv-pinned-icon">📌</span>
         {#each pinnedLedgers as pid (pid)}
             <button type="button" class="lv-preset-tag" class:active={active === pid}
                 aria-pressed={active === pid}
@@ -198,10 +198,10 @@
 {/if}
 
 {#if (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
-    <div class="lv-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:12px">
+    <div class="lv-filter-bar">
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-            <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
-                <span class="lv-caption" style="font-size:11px;margin-right:2px">👤</span>
+            <div class="lv-filter-pill-group">
+                <span class="lv-caption lv-filter-pill-icon">👤</span>
                 <button type="button" class="lv-preset-tag" class:active={!filterMemberId} aria-pressed={!filterMemberId} onclick={() => { filterMemberId = ""; }}>{t("ledger.allMembers")}</button>
                 {#each plugin.settings.members ?? [] as m (m.id)}
                     {#if m.avItemId}
@@ -213,8 +213,8 @@
             </div>
         {/if}
         {#if categoryCol && availableCategories.length > 0}
-            <div style="display:inline-flex;gap:3px;align-items:center;padding:2px 6px;background:var(--lv-surface-2);border-radius:12px;border:1px solid var(--lv-line)">
-                <span class="lv-caption" style="font-size:11px;margin-right:2px">🏷️</span>
+            <div class="lv-filter-pill-group">
+                <span class="lv-caption lv-filter-pill-icon">🏷️</span>
                 <button type="button" class="lv-preset-tag" class:active={!filterCategory} aria-pressed={!filterCategory} onclick={() => { filterCategory = ""; }}>{t("ledger.allCategories")}</button>
                 {#each availableCategories as catVal (catVal)}
                     <button type="button" class="lv-preset-tag" class:active={filterCategory === catVal} aria-pressed={filterCategory === catVal} onclick={() => { filterCategory = filterCategory === catVal ? "" : catVal; }}>
@@ -227,6 +227,42 @@
 {/if}
 
 <style>
+    .lv-ledger-toolbar {
+        margin: 0 0 14px;
+    }
+    .lv-ledger-pinned-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin: -6px 0 10px;
+    }
+    .lv-pinned-icon {
+        font-size: 11px;
+        color: var(--lv-tx-3);
+        margin-right: 2px;
+    }
+    .lv-filter-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 0 0 10px;
+        font-size: 12px;
+    }
+    .lv-filter-pill-group {
+        display: inline-flex;
+        gap: 3px;
+        align-items: center;
+        padding: 2px 6px;
+        background: var(--lv-surface-2);
+        border-radius: var(--lv-r-full, 12px);
+        border: 1px solid var(--lv-line);
+    }
+    .lv-filter-pill-icon {
+        font-size: 11px;
+        margin-right: 2px;
+    }
     .lv-search-box {
         position: relative;
         display: inline-flex;

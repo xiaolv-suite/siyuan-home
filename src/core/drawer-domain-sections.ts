@@ -43,20 +43,17 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
     if (!contractsRef?.avId || !contractsRef?.columns) return;
 
     const houseWarrantySection = document.createElement("div");
-    houseWarrantySection.className = "lv-detail-section";
-    houseWarrantySection.style.cssText = sectionBorderCss;
+    houseWarrantySection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = t("ledger.houseContractsTitle");
     head.append(title);
     if (contractsRef.docId) {
         const openAll = document.createElement("button");
-        openAll.className = "b3-button b3-button--text";
-        openAll.style.cssText = linkBtnCss;
+        openAll.className = "b3-button b3-button--text lv-domain-link";
         openAll.textContent = t("ledger.houseContractsOpenAll");
         openAll.onclick = () => plugin.showTabDocs?.(contractsRef.docId);
         head.append(openAll);
@@ -64,7 +61,7 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
     houseWarrantySection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = `${flexColGap6Css};font-size:12.5px`;
+    contentWrap.className = "lv-dialog-sec";
     contentWrap.innerHTML = `<span class="lv-caption">${t("ledger.loading")}</span>`;
     houseWarrantySection.append(contentWrap);
     body.appendChild(houseWarrantySection);
@@ -83,9 +80,9 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
         }
         for (const m of matched) {
             const line = document.createElement("div");
-            line.style.cssText = lineBadgeCss;
+            line.className = "lv-domain-item";
             const nameSpan = document.createElement("b");
-            nameSpan.style.cssText = "font-size:12.5px;color:var(--lv-tx)";
+            nameSpan.className = "lv-dialog-name";
             nameSpan.textContent = m.title;
 
             const badge = document.createElement("span");
@@ -104,8 +101,7 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
             }
 
             const metaSpan = document.createElement("span");
-            metaSpan.className = "lv-caption";
-            metaSpan.style.cssText = "margin-left:auto;font-size:11.5px";
+            metaSpan.className = "lv-caption lv-ml-auto";
             const parts: string[] = [];
             if (m.party || m.contact) parts.push(m.party || m.contact);
             if (m.expiry) parts.push(m.daysLeft !== undefined && m.daysLeft >= 0 ? `${m.expiry} (${m.daysLeft}d)` : m.expiry);
@@ -115,7 +111,7 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
             contentWrap.append(line);
         }
     } catch {
-        contentWrap.innerHTML = `<span class="lv-caption" style="color:var(--lv-danger)">${t("ledger.houseContractsFailed")}</span>`;
+        contentWrap.innerHTML = `<span class="lv-caption lv-tx-danger">${t("ledger.houseContractsFailed")}</span>`;
     }
 }
 
@@ -142,20 +138,18 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
     if (!foodName && (!ingredientsRaw || ingredientsRaw === "—")) return;
 
     const foodDietarySection = document.createElement("div");
-    foodDietarySection.className = "lv-detail-section";
-    foodDietarySection.style.cssText = sectionBorderCss;
+    foodDietarySection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = t("ledger.foodDietaryTitle");
     head.append(title);
     foodDietarySection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = `${flexColGap6Css};font-size:12.5px`;
+    contentWrap.className = "lv-dialog-sec";
     foodDietarySection.append(contentWrap);
     body.appendChild(foodDietarySection);
 
@@ -181,17 +175,17 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
 
         if (check.isSafe) {
             const safeBadge = document.createElement("div");
-            safeBadge.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-accent);color:var(--lv-accent);font-size:12px";
+            safeBadge.className = "lv-domain-safe-badge";
             safeBadge.textContent = `✓ ${t("ledger.foodDietarySafe")}`;
             contentWrap.append(safeBadge);
         } else {
             for (const c of check.conflicts) {
                 const alertEl = document.createElement("div");
                 if (c.type === "allergy") {
-                    alertEl.style.cssText = dangerAlertCss;
+                    alertEl.className = "lv-domain-danger";
                     alertEl.innerHTML = `<span>🚨 <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
                 } else {
-                    alertEl.style.cssText = warnAlertCss;
+                    alertEl.className = "lv-domain-warn";
                     alertEl.innerHTML = `<span>⚠️ <b>${c.memberName}</b>：${t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}</span>`;
                 }
                 contentWrap.append(alertEl);
@@ -200,10 +194,9 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
 
         if (check.parsedIngredients.length > 0) {
             const actionRow = document.createElement("div");
-            actionRow.style.cssText = actionRowEndCss;
+            actionRow.className = "lv-domain-action-row";
             const copyIngBtn = document.createElement("button");
-            copyIngBtn.className = "b3-button b3-button--outline";
-            copyIngBtn.style.cssText = fs12Pad38Css;
+            copyIngBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
             copyIngBtn.textContent = `＋ ${t("ledger.foodCopyIngredients")}`;
             copyIngBtn.onclick = async () => {
                 const text = formatShoppingIngredientsText(foodName, check.parsedIngredients);
@@ -245,20 +238,18 @@ export async function renderSchoolingStageSection(options: RenderSchoolingStageS
     if (!catVal || !Number.isFinite(enrollYear) || enrollYear < 1980) return;
 
     const schoolStageSection = document.createElement("div");
-    schoolStageSection.className = "lv-detail-section";
-    schoolStageSection.style.cssText = sectionBorderCss;
+    schoolStageSection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = t("ledger.schoolingStageTitle");
     head.append(title);
     schoolStageSection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = boxContentCss;
+    contentWrap.className = "lv-domain-box";
     schoolStageSection.append(contentWrap);
     body.appendChild(schoolStageSection);
 
@@ -317,20 +308,18 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
     const birthMatch = noteVal.match(/\b(20\d{2}-\d{2}-\d{2})\b/)?.[1];
 
     const petCareSection = document.createElement("div");
-    petCareSection.className = "lv-detail-section";
-    petCareSection.style.cssText = sectionBorderCss;
+    petCareSection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = t("ledger.petCareTitle");
     head.append(title);
     petCareSection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = boxContentCss;
+    contentWrap.className = "lv-domain-box";
     petCareSection.append(contentWrap);
     body.appendChild(petCareSection);
 
@@ -347,25 +336,26 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
 
         if (summary.ageInfo) {
             const ageLine = document.createElement("div");
-            ageLine.style.cssText = flexBetweenCenterGap8Css;
+            ageLine.className = "lv-dialog-row";
             ageLine.innerHTML = `
                 <span>${t("ledger.petAgeEquivalent")}: <b>${summary.ageInfo.humanEquivalentAge} 岁</b> (${summary.ageInfo.chronologicalYears} 岁 ${summary.ageInfo.chronologicalMonths} 个月)</span>
                 <span class="lv-badge purple">${summary.ageInfo.lifeStageLabel}</span>
             `;
             const desc = document.createElement("div");
             desc.className = "lv-caption";
-            desc.style.cssText = "font-size:11px;line-height:1.4";
+            desc.style.fontSize = "11px";
+            desc.style.lineHeight = "1.4";
             desc.textContent = summary.ageInfo.description;
             contentWrap.append(ageLine, desc);
         }
 
         const careGrid = document.createElement("div");
-        careGrid.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px";
+        careGrid.className = "lv-grid-2 lv-mt-2";
 
         const badgeCls = (u: string) => u === "overdue" ? "danger" : u === "soon" ? "orange" : u === "ok" ? "green" : "gray";
 
         const vBox = document.createElement("div");
-        vBox.style.cssText = pad6BorderSurfaceCss;
+        vBox.className = "lv-domain-subbox";
         vBox.innerHTML = `
             <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.vaccine_due")}</span>
@@ -375,7 +365,7 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
         `;
 
         const dBox = document.createElement("div");
-        dBox.style.cssText = pad6BorderSurfaceCss;
+        dBox.className = "lv-domain-subbox";
         dBox.innerHTML = `
             <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.deworm_due")}</span>
@@ -418,20 +408,19 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
     const memberBlockId = ref.columns?.member ? row.cells?.[ref.columns.member]?.relation?.blockIDs?.[0] : undefined;
 
     const feedingSection = document.createElement("div");
-    feedingSection.className = "lv-detail-section";
-    feedingSection.style.cssText = sectionBorderCss;
+    feedingSection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = t("ledger.feedingObserveTitle");
     head.append(title);
     feedingSection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = "font-size:12.5px;display:flex;flex-direction:column;gap:8px";
+    contentWrap.className = "lv-dialog-sec";
+    contentWrap.style.fontSize = "12.5px";
     feedingSection.append(contentWrap);
     body.appendChild(feedingSection);
 
@@ -441,7 +430,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
 
         if (obs) {
             const statusLine = document.createElement("div");
-            statusLine.style.cssText = lineBadgeCss;
+            statusLine.className = "lv-domain-item";
             const badge = document.createElement("span");
             if (obs.status === "observing") {
                 badge.className = "lv-badge orange";
@@ -454,8 +443,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                 badge.textContent = obs.dayProgressText;
             }
             const timeText = document.createElement("span");
-            timeText.className = "lv-caption";
-            timeText.style.cssText = "margin-left:auto;font-size:11.5px";
+            timeText.className = "lv-caption lv-ml-auto";
             timeText.textContent = `${t("ledger.feedingObserveUntil")}: ${obs.observeUntil}`;
             statusLine.append(badge, timeText);
             contentWrap.append(statusLine);
@@ -470,7 +458,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
 
                 if (conflict) {
                     const alertLine = document.createElement("div");
-                    alertLine.style.cssText = dangerAlertCss;
+                    alertLine.className = "lv-domain-danger";
                     alertLine.innerHTML = `<span>⚠️ ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
                     contentWrap.append(alertLine);
                 }
@@ -479,10 +467,9 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
 
         if (healthRef?.avId && healthRef?.columns) {
             const actionRow = document.createElement("div");
-            actionRow.style.cssText = actionRowEndCss;
+            actionRow.className = "lv-domain-action-row";
             const addAllergyBtn = document.createElement("button");
-            addAllergyBtn.className = "b3-button b3-button--outline";
-            addAllergyBtn.style.cssText = fs12Pad38Css;
+            addAllergyBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
             addAllergyBtn.textContent = `＋ ${t("ledger.recordAllergyToHealth")}`;
             addAllergyBtn.onclick = () => {
                 const adlg = new DialogCls({
@@ -556,20 +543,18 @@ export async function renderSocialRetirementSection(options: RenderSocialRetirem
     if (!member?.birthday) return;
 
     const socialRetireSection = document.createElement("div");
-    socialRetireSection.className = "lv-detail-section";
-    socialRetireSection.style.cssText = sectionBorderCss;
+    socialRetireSection.className = "lv-detail-section lv-domain-sec";
 
     const head = document.createElement("div");
-    head.style.cssText = sectionHeaderCss;
+    head.className = "lv-domain-head";
     const title = document.createElement("span");
-    title.className = "ft__on-surface";
-    title.style.cssText = sectionTitleCss;
+    title.className = "ft__on-surface lv-domain-title";
     title.textContent = `${t("members.retirementTitle")} · ${member.name}`;
     head.append(title);
     socialRetireSection.append(head);
 
     const contentWrap = document.createElement("div");
-    contentWrap.style.cssText = boxContentCss;
+    contentWrap.className = "lv-domain-box";
     socialRetireSection.append(contentWrap);
     body.appendChild(socialRetireSection);
 

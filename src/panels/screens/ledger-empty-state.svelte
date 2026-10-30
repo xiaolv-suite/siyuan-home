@@ -42,18 +42,18 @@
     <div class="lv-card lv-table-loading-card" aria-busy="true" role="status">
         <div class="lv-table-loading-head">
             <div class="lv-skel lv-skel--idx"></div>
-            <div class="lv-skel" style="width:25%"></div>
-            <div class="lv-skel" style="width:20%"></div>
-            <div class="lv-skel" style="width:15%"></div>
-            <div class="lv-skel" style="width:20%"></div>
+            <div class="lv-skel lv-skel--w25"></div>
+            <div class="lv-skel lv-skel--w20"></div>
+            <div class="lv-skel lv-skel--w15"></div>
+            <div class="lv-skel lv-skel--w20"></div>
         </div>
         {#each [0, 1, 2, 3] as i (i)}
             <div class="lv-table-loading-row">
                 <div class="lv-skel lv-skel--idx"></div>
-                <div class="lv-skel" style="width:{35 + (i * 7) % 25}%"></div>
-                <div class="lv-skel" style="width:18%"></div>
-                <div class="lv-skel" style="width:15%"></div>
-                <div class="lv-skel" style="width:18%"></div>
+                <div class="lv-skel lv-skel--vary-{i}"></div>
+                <div class="lv-skel lv-skel--w18"></div>
+                <div class="lv-skel lv-skel--w15"></div>
+                <div class="lv-skel lv-skel--w18"></div>
             </div>
         {/each}
     </div>
@@ -63,7 +63,7 @@
     </div></div>
 {:else if ledgers.length === 0}
     <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="settings" size={22} /></div><b>{t("ledger.noEnabledModules")}</b><span>{t("ledger.noEnabledModulesHint")}</span>
-        <button class="lv-btn primary" style="margin-top:4px" onclick={onOpenSettings}>{t("startGuide.openSettings")}</button>
+        <button class="lv-btn primary lv-mt-4" onclick={onOpenSettings}>{t("startGuide.openSettings")}</button>
     </div></div>
 {:else if !ref?.avId}
     <div class="lv-card">
@@ -96,7 +96,7 @@
             <div class="eic"><UiIcon name="search" size={22} /></div>
             <b>{t("ledger.searchEmpty")}</b>
             <span>{searchText.trim() ? t("ledger.searchEmptyHint").replace("${q}", searchText.trim()) : (t("ledger.filterEmpty") || "当前筛选条件下暂无匹配记录")}</span>
-            <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={onClearSearch}>
+            <button class="b3-button b3-button--outline lv-mt-8" onclick={onClearSearch}>
                 {t("clear")}
             </button>
         </div>
@@ -143,6 +143,16 @@
         height: 12px;
         flex: none;
     }
+    .lv-skel--w25 { width: 25%; }
+    .lv-skel--w20 { width: 20%; }
+    .lv-skel--w18 { width: 18%; }
+    .lv-skel--w15 { width: 15%; }
+    .lv-skel--vary-0 { width: 35%; }
+    .lv-skel--vary-1 { width: 42%; }
+    .lv-skel--vary-2 { width: 49%; }
+    .lv-skel--vary-3 { width: 38%; }
+    .lv-mt-4 { margin-top: 4px; }
+    .lv-mt-8 { margin-top: 8px; }
     .lv-blank-desc {
         max-width: 480px;
         line-height: 1.6;

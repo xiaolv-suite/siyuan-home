@@ -45,7 +45,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
     let bandMode: "auto" | "male" | "female" | "off" = "auto";
     const sexById = new Map(members.map((m) => [m.id, m.sex as "male" | "female" | undefined]));
     const controls = document.createElement("div");
-    controls.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:8px";
+    controls.className = "lv-dialog-row__left lv-mb-10";
     const ctlLabel = document.createElement("span");
     ctlLabel.className = "ft__on-surface";
     ctlLabel.textContent = t("ledger.growthWhoSex");
@@ -69,7 +69,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
             const panel = document.createElement("div");
             panel.className = "lv-growth-panel";
             const head = document.createElement("div");
-            head.style.cssText = "font-weight:600;font-size:13px;margin:10px 0 4px";
+            head.className = "lv-domain-title lv-mt-10";
             head.textContent = t(metric === "height" ? "ledger.growthHeight" : "ledger.growthWeight");
             panel.appendChild(head);
             const W = 500, H = 170, PAD = 40;
@@ -148,8 +148,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
             body.appendChild(panel);
         }
         const note = document.createElement("div");
-        note.className = "lv-growth-note ft__on-surface";
-        note.style.cssText = "font-size:11.5px;margin-top:6px";
+        note.className = "lv-growth-note ft__on-surface lv-caption lv-mt-6";
         note.textContent = t("ledger.growthWhoNote");
         body.appendChild(note);
     }
@@ -230,7 +229,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             if (!report) return;
 
             const topBar = document.createElement("div");
-            topBar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px";
+            topBar.className = "lv-domain-head";
             if (candidate.length > 1) {
                 const sel = document.createElement("select");
                 sel.className = "b3-select";
@@ -245,50 +244,49 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                 topBar.appendChild(sel);
             } else {
                 const nameSpan = document.createElement("b");
-                nameSpan.style.cssText = "font-size:13px;color:var(--lv-tx)";
+                nameSpan.className = "lv-dialog-name";
                 nameSpan.textContent = `${child.name} · ${child.birthday}`;
                 topBar.appendChild(nameSpan);
             }
             const rateSpan = document.createElement("span");
             rateSpan.className = "lv-caption";
-            rateSpan.innerHTML = `${t("ledger.vaccineCompletionRate")}: <b class="lv-num" style="color:var(--lv-data-accent);font-size:14px">${report.completionRate}%</b>`;
+            rateSpan.innerHTML = `${t("ledger.vaccineCompletionRate")}: <b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:14px">${report.completionRate}%</b>`;
             topBar.appendChild(rateSpan);
             body.appendChild(topBar);
 
             const progressTrack = document.createElement("div");
-            progressTrack.style.cssText = "height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%;margin-bottom:8px";
+            progressTrack.className = "lv-member-retire-bar lv-mb-10";
             progressTrack.innerHTML = `<div style="height:100%;background:var(--lv-data-accent);width:${report.completionRate}%;border-radius:3px"></div>`;
             body.appendChild(progressTrack);
 
             const metrics = document.createElement("div");
-            metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;margin-bottom:8px";
+            metrics.className = "lv-metric-grid-4 lv-mb-10";
             const metricBox = (label: string, count: number, color?: string) => {
                 const d = document.createElement("div");
-                d.className = "lv-metric-item";
-                d.style.cssText = "padding:8px;border-radius:6px;background:var(--lv-surface-2);border:1px solid var(--lv-line);text-align:center";
-                d.innerHTML = `<span class="lv-caption">${label}</span><b class="lv-num" style="font-size:16px;${color ? `color:${color}` : ""}">${count}</b>`;
+                d.className = "lv-metric-item lv-diag-stat-card fn__text-center";
+                d.innerHTML = `<span class="lv-caption">${label}</span><b class="lv-num lv-metric-val${color ? ` ${color}` : ""}">${count}</b>`;
                 return d;
             };
             metrics.append(
-                metricBox(t("ledger.vaccineGiven"), report.givenCount, "var(--lv-accent)"),
-                metricBox(t("ledger.vaccineOverdue"), report.overdueCount, "var(--lv-danger)"),
-                metricBox(t("ledger.vaccineDueSoon"), report.dueSoonCount, "var(--lv-warn)"),
+                metricBox(t("ledger.vaccineGiven"), report.givenCount, "lv-tx-accent"),
+                metricBox(t("ledger.vaccineOverdue"), report.overdueCount, "lv-tx-danger"),
+                metricBox(t("ledger.vaccineDueSoon"), report.dueSoonCount, "lv-tx-warn"),
                 metricBox(t("ledger.vaccineUpcoming"), report.upcomingCount)
             );
             body.appendChild(metrics);
 
             const list = document.createElement("div");
-            list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+            list.className = "lv-dialog-sec";
             for (const it of report.items) {
                 const itemEl = document.createElement("div");
-                itemEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+                itemEl.className = "lv-domain-item lv-dialog-row";
 
                 const left = document.createElement("div");
-                left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0";
+                left.className = "lv-dialog-col";
                 const titleLine = document.createElement("div");
-                titleLine.style.cssText = "display:flex;align-items:center;gap:6px";
+                titleLine.className = "lv-dialog-row__left";
                 const nameSpan = document.createElement("b");
-                nameSpan.style.cssText = "color:var(--lv-tx)";
+                nameSpan.className = "lv-dialog-name";
                 nameSpan.textContent = `${it.vaccine}（第 ${it.dose} 剂）`;
                 const monthBadge = document.createElement("span");
                 monthBadge.className = "lv-caption";
@@ -305,7 +303,10 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                 left.append(titleLine, metaSpan);
 
                 const right = document.createElement("div");
-                right.style.cssText = "display:flex;align-items:center;gap:6px";
+                right.className = "lv-dialog-row__right";
+                right.style.display = "flex";
+                right.style.alignItems = "center";
+                right.style.gap = "6px";
                 const statusBadge = document.createElement("span");
                 statusBadge.className = `lv-badge ${it.status === "given" ? "green" : it.status === "overdue" ? "red" : it.status === "due_soon" ? "orange" : "gray"}`;
                 statusBadge.textContent = t(it.status === "given" ? "ledger.vaccineGiven" : it.status === "overdue" ? "ledger.vaccineOverdue" : it.status === "due_soon" ? "ledger.vaccineDueSoon" : "ledger.vaccineUpcoming");
@@ -313,8 +314,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
 
                 if (it.status !== "given") {
                     const recordBtn = document.createElement("button");
-                    recordBtn.className = "b3-button b3-button--text";
-                    recordBtn.style.cssText = "font-size:12px;padding:2px 6px";
+                    recordBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
                     recordBtn.textContent = `＋ ${t("ledger.recordVaccineDose")}`;
                     recordBtn.onclick = () => {
                         const rdlg = new DialogCls({

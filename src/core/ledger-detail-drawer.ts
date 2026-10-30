@@ -32,12 +32,6 @@ export interface OpenLedgerDetailDrawerOptions {
     onReload: () => Promise<void>;
 }
 
-const substRowCss = "padding:2px 0;font-size:12.5px";
-const sectionHeadBorderCss = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px";
-const pad06Fs12Css = "padding:0 6px;font-size:12px";
-const minW96Shrink0Css = "min-width:96px;flex-shrink:0";
-const wordBreakAllCss = "word-break:break-all";
-
 export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOptions): Promise<void> {
     if (typeof document === "undefined") return;
     const {
@@ -87,8 +81,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
 
     function labelSpan(col: any) {
         const k = document.createElement("span");
-        k.className = "ft__on-surface";
-        k.style.cssText = minW96Shrink0Css;
+        k.className = "ft__on-surface lv-label-key";
         k.textContent = colLabel(col);
         return k;
     }
@@ -150,14 +143,12 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         const history = (plugin.runtime?.renewHistory?.[row.itemID] ?? []) as { from: string; to: string; at: string }[];
         if (history.length === 0) return;
         const head = document.createElement("div");
-        head.className = "ft__on-surface";
-        head.style.cssText = sectionHeadBorderCss;
+        head.className = "ft__on-surface lv-dialog-sec-head";
         head.textContent = t("ledger.renewHistory");
         body.appendChild(head);
         for (const h of history) {
             const line = document.createElement("div");
-            if (active === "vehicles") line.className = "lv-detail-wide";
-            line.style.cssText = substRowCss;
+            line.className = active === "vehicles" ? "lv-dialog-row-text lv-detail-wide" : "lv-dialog-row-text";
             line.textContent = `${h.from} → ${h.to} · ${h.at.slice(0, 10)}`;
             body.appendChild(line);
         }
@@ -203,11 +194,10 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             const keyID = ref.columns?.[col.key];
             if (!keyID) continue;
             const line = document.createElement("div");
-            line.className = active === "vehicles" ? "fn__flex lv-detail-kv" : "fn__flex";
-            line.style.cssText = "gap:10px;padding:7px 0;font-size:13px;min-width:0";
+            line.className = active === "vehicles" ? "fn__flex lv-detail-kv lv-detail-kv-line" : "fn__flex lv-detail-kv-line";
             line.append(labelSpan(col));
             const v = document.createElement("span");
-            v.style.cssText = wordBreakAllCss;
+            v.className = "lv-word-break";
             const cell = row.cells[keyID];
             if (AMOUNT_KEYS.has(col.key) && cell?.type === "number" && cell?.number?.isNotEmpty && typeof cell.number.content === "number") {
                 v.textContent = formatAmount(cell.number.content);
@@ -220,8 +210,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     const mask = col.key === "x_cert_id_number" ? maskIdNumber(full) : maskCredentialNumber(full);
                     v.textContent = mask;
                     const reveal = document.createElement("button");
-                    reveal.className = "b3-button b3-button--text";
-                    reveal.style.cssText = pad06Fs12Css;
+                    reveal.className = "b3-button b3-button--text lv-btn-text-sm";
                     reveal.textContent = t("ledger.idNumberShow");
                     let shown = false;
                     reveal.onclick = () => {
@@ -230,8 +219,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                         reveal.textContent = shown ? t("ledger.idNumberHide") : t("ledger.idNumberShow");
                     };
                     const copy = document.createElement("button");
-                    copy.className = "b3-button b3-button--text";
-                    copy.style.cssText = pad06Fs12Css;
+                    copy.className = "b3-button b3-button--text lv-btn-text-sm";
                     copy.textContent = t("ledger.idNumberCopy");
                     copy.onclick = async () => {
                         try {
@@ -247,8 +235,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     const member = memberBid ? (plugin.settings.members ?? []).find((m: any) => m.avItemId === memberBid) : undefined;
                     if (parsedId?.ok && parsedId.birth && member && !member.birthday && !member.lunarBirthday) {
                         const birthFill = document.createElement("button");
-                        birthFill.className = "b3-button b3-button--text";
-                        birthFill.style.cssText = pad06Fs12Css;
+                        birthFill.className = "b3-button b3-button--text lv-btn-text-sm";
                         birthFill.textContent = t("ledger.idBirthFill").replace("${birth}", parsedId.birth);
                         birthFill.onclick = async () => {
                             const target = (plugin.settings.members ?? []).find((m: any) => m.id === member.id);
@@ -285,9 +272,8 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 v.tabIndex = 0;
                 v.role = "button";
                 v.title = inlineEditHint();
-                v.classList.add("lv-detail-value");
+                v.classList.add("lv-detail-value", "lv-editable-cell");
                 v.setAttribute("aria-label", `${colLabel(col)}：${v.textContent}`);
-                v.style.cssText += ";cursor:text;min-height:22px;display:inline-flex;align-items:center;flex:1;min-width:0;border-radius:4px;padding:1px 4px;margin:-1px -4px;transition:background .15s ease";
                 v.dataset.lvEditable = "true";
             }
             line.append(v);
@@ -298,21 +284,18 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         const customCols = avCols.filter((c: any) => c?.id && !schemaKeyIDs.has(c.id) && String(c.name ?? "").trim() !== "");
         if (customCols.length > 0) {
             const head = document.createElement("div");
-            head.className = "ft__on-surface";
-            head.style.cssText = sectionHeadBorderCss;
+            head.className = "ft__on-surface lv-dialog-sec-head";
             head.textContent = t("ledger.customCols");
             body.appendChild(head);
             for (const c of customCols) {
                 const line = document.createElement("div");
-                line.className = active === "vehicles" ? "fn__flex lv-detail-wide" : "fn__flex";
-                line.style.cssText = "gap:10px;padding:4px 0;font-size:13px";
+                line.className = active === "vehicles" ? "fn__flex lv-detail-wide lv-detail-kv-line" : "fn__flex lv-detail-kv-line";
                 const k = document.createElement("span");
-                k.className = "ft__on-surface";
-                k.style.cssText = minW96Shrink0Css;
+                k.className = "ft__on-surface lv-label-key";
                 k.textContent = String(c.name);
                 line.append(k);
                 const v = document.createElement("span");
-                v.style.cssText = wordBreakAllCss;
+                v.className = "lv-word-break";
                 v.textContent = cellTextFn(row.cells[c.id]);
                 if (EDITABLE.has(c.type)) {
                     if (!v.textContent?.trim() || v.textContent === "—") { v.textContent = t("ledger.detailEmpty"); v.classList.add("is-empty"); }
@@ -326,9 +309,8 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     v.tabIndex = 0;
                     v.role = "button";
                     v.title = inlineEditHint();
-                    v.classList.add("lv-detail-value");
+                    v.classList.add("lv-detail-value", "lv-editable-cell");
                     v.setAttribute("aria-label", `${c.name}：${v.textContent}`);
-                    v.style.cssText += ";cursor:text;min-height:22px;display:inline-flex;align-items:center;flex:1;min-width:0;border-radius:4px;padding:1px 4px;margin:-1px -4px;transition:background .15s ease";
                 }
                 line.append(v);
                 body.appendChild(line);
@@ -473,9 +455,8 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
 
     if (active === "vehicles") {
         const quick = document.createElement("section");
-        quick.className = "lv-vehicle-quick-actions";
-        quick.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border:1px solid var(--lv-line);border-radius:8px;background:var(--lv-surface-2)";
-        const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.style.cssText = "font-size:12px;margin-right:2px";
+        quick.className = "lv-vehicle-quick-actions lv-quick-bar";
+        const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.className = "lv-domain-title";
         quick.appendChild(label);
         for (const action of ["fuel", "charging", "maintenance"] as const) {
             const button = document.createElement("button");

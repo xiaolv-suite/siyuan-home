@@ -277,16 +277,16 @@ export async function renderSchoolingStageSection(options: RenderSchoolingStageS
                 : t("ledger.schoolingDaysUntil").replace("${n}", String(stage.daysUntilGraduation));
 
             contentWrap.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="lv-row-split">
                   <span><b>${stage.currentGradeLabel}</b> · ${stage.transitionEventLabel}</span>
                   <span class="lv-badge ${badgeCls}">${badgeText}</span>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;color:var(--lv-tx-2);font-size:11.5px">
+                <div class="lv-row-split lv-caption">
                   <span>${t("ledger.schoolingGraduationDate")}: ${stage.graduationDate} (${stage.stageTotalYears} 年制)</span>
                   <span>${t("ledger.schoolingProgress")}: ${stage.stageProgressPercent}%</span>
                 </div>
-                <div style="height:4px;border-radius:2px;background:var(--lv-line);overflow:hidden;width:100%">
-                  <div style="height:100%;background:var(--lv-data-accent);width:${stage.stageProgressPercent}%;border-radius:2px"></div>
+                <div class="lv-meter">
+                  <div style="height:100%;background:var(--lv-data-accent);width:${stage.stageProgressPercent}%;border-radius:999px"></div>
                 </div>`;
         }
     } catch {
@@ -367,7 +367,7 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
         const vBox = document.createElement("div");
         vBox.style.cssText = pad6BorderSurfaceCss;
         vBox.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.vaccine_due")}</span>
                 <span class="lv-badge ${badgeCls(summary.vaccine.urgency)}">${summary.vaccine.label}</span>
             </div>
@@ -377,7 +377,7 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
         const dBox = document.createElement("div");
         dBox.style.cssText = pad6BorderSurfaceCss;
         dBox.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.deworm_due")}</span>
                 <span class="lv-badge ${badgeCls(summary.deworm.urgency)}">${summary.deworm.label}</span>
             </div>
@@ -583,16 +583,16 @@ export async function renderSocialRetirementSection(options: RenderSocialRetirem
                 : `<span class="lv-badge orange">${t("members.retirementDaysLeft").replace("${n}", String(ret.daysLeft))}</span>`;
 
             contentWrap.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="lv-row-split">
                     <span>${t("members.retirementTarget")}: <b>${ret.targetRetireDate}</b> (${t("members.retirementAge").replace("${age}", String(ret.targetRetireAge))}${delayText})</span>
                     ${daysBadge}
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;color:var(--lv-tx-2);font-size:11.5px">
+                <div class="lv-row-split lv-caption">
                     <span>${t("members.retirementCareerProgress")}</span>
                     <span>${ret.careerProgressPercent}%</span>
                 </div>
-                <div style="height:4px;border-radius:2px;background:var(--lv-line);overflow:hidden;width:100%">
-                    <div style="height:100%;background:var(--lv-accent);width:${ret.careerProgressPercent}%;border-radius:2px"></div>
+                <div class="lv-meter">
+                    <div style="height:100%;background:var(--lv-accent);width:${ret.careerProgressPercent}%;border-radius:999px"></div>
                 </div>`;
         }
     } catch {

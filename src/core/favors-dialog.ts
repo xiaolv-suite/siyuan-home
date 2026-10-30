@@ -79,47 +79,43 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
 
         if (report.countIn === 0 && report.countOut === 0) {
             const empty = document.createElement("div");
-            empty.className = "lv-caption";
-            empty.style.cssText = "text-align:center;padding:24px 0";
+            empty.className = "lv-caption fn__text-center";
             empty.textContent = t("ledger.favorsEmpty");
             body.appendChild(empty);
             return;
         }
 
         const metrics = document.createElement("div");
-        metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px";
+        metrics.className = "lv-metric-grid-3";
 
         const inCard = document.createElement("div");
         inCard.className = "lv-metric-lg";
-        inCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsInTotal")}</span><b class="lv-num" style="color:var(--lv-data-accent);font-size:22px">¥${formatAmount(report.totalIn)}</b><span class="lv-caption">${report.countIn} 笔</span>`;
+        inCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsInTotal")}</span><b class="lv-num lv-metric-val lv-tx-data-accent">¥${formatAmount(report.totalIn)}</b><span class="lv-caption">${report.countIn} 笔</span>`;
 
         const outCard = document.createElement("div");
         outCard.className = "lv-metric-lg";
-        outCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsOutTotal")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:22px">¥${formatAmount(report.totalOut)}</b><span class="lv-caption">${report.countOut} 笔</span>`;
+        outCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsOutTotal")}</span><b class="lv-num lv-metric-val lv-tx-warn">¥${formatAmount(report.totalOut)}</b><span class="lv-caption">${report.countOut} 笔</span>`;
 
         const netCard = document.createElement("div");
-        const netColor = report.netAmount >= 0 ? "var(--lv-data-accent)" : "var(--lv-danger)";
+        const netColorClass = report.netAmount >= 0 ? "lv-tx-data-accent" : "lv-tx-danger";
         const netLabel = report.netAmount >= 0 ? t("ledger.favorsNetSurplus") : t("ledger.favorsNetDeficit");
         netCard.className = "lv-metric-lg";
-        netCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsNetAmount")}</span><b class="lv-num" style="color:${netColor};font-size:22px">${report.netAmount >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netAmount))}</b><span class="lv-caption">${netLabel}</span>`;
+        netCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsNetAmount")}</span><b class="lv-num lv-metric-val ${netColorClass}">${report.netAmount >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netAmount))}</b><span class="lv-caption">${netLabel}</span>`;
 
         metrics.append(inCard, outCard, netCard);
         body.appendChild(metrics);
 
         if (report.topPersons.length > 0) {
             const sec = document.createElement("div");
-            sec.style.cssText = "margin-top:4px";
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.favorsTopPersons")}</div>`;
             const list = document.createElement("div");
-            list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+            list.className = "fn__flex-column";
             for (const p of report.topPersons) {
                 const item = document.createElement("div");
-                item.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12.5px";
+                item.className = "lv-favor-person-row";
                 const left = document.createElement("span");
-                left.style.cssText = "font-weight:500;color:var(--lv-tx)";
                 left.textContent = p.person;
                 const right = document.createElement("span");
-                right.style.cssText = "font-size:12px";
                 const pNetColor = p.net >= 0 ? "var(--lv-data-accent)" : "var(--lv-danger)";
                 right.innerHTML = `收 ¥${formatAmount(p.inAmount)} · 送 ¥${formatAmount(p.outAmount)} · <b style="color:${pNetColor}">${p.net >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(p.net))}</b>`;
                 item.append(left, right);
@@ -131,13 +127,12 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
 
         if (report.categoryBreakdown.length > 0) {
             const sec = document.createElement("div");
-            sec.style.cssText = "margin-top:4px";
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.favorsCategory")}</div>`;
             const list = document.createElement("div");
-            list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+            list.className = "fn__flex-column";
             for (const c of report.categoryBreakdown) {
                 const item = document.createElement("div");
-                item.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12px";
+                item.className = "lv-favor-person-row";
                 const left = document.createElement("span");
                 left.textContent = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
                 const right = document.createElement("span");

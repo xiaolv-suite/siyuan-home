@@ -47,10 +47,10 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
 
         const dlg = new DialogCls({
             title: t("ledger.importCsv"),
-            content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-csvimp-body" style="max-height:60vh;overflow:auto">
+            content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-csvimp-body">
 <p class="lv-caption ft__on-surface">${t("ledger.importMapHint").replace("${file}", file.name).replace("${n}", String(table.length - 1))}</p>
 <div id="lv-csvimp-map"></div></div>
-<div class="b3-dialog__action"><span class="lv-caption" style="flex:1" id="lv-csvimp-stat"></span><button class="b3-button b3-button--cancel" id="lv-csvimp-close">${t("cancel")}</button><button class="b3-button" id="lv-csvimp-start">${t("ledger.importStart")}</button></div>`,
+<div class="b3-dialog__action"><span class="lv-caption fn__flex-1" id="lv-csvimp-stat"></span><button class="b3-button b3-button--cancel" id="lv-csvimp-close">${t("cancel")}</button><button class="b3-button" id="lv-csvimp-start">${t("ledger.importStart")}</button></div>`,
             width: "560px",
         });
 
@@ -58,13 +58,11 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
         const selects: HTMLSelectElement[] = [];
         headers.forEach((h, i) => {
             const line = document.createElement("div");
-            line.style.cssText = "display:flex;gap:8px;align-items:center;padding:4px 0;font-size:13px";
+            line.className = "lv-csv-map-line";
             const label = document.createElement("span");
-            label.style.cssText = "flex:1;word-break:break-all";
             label.textContent = h || `#${i + 1}`;
             const sel = document.createElement("select");
             sel.className = "b3-select";
-            sel.style.cssText = "width:200px;flex-shrink:0";
             sel.add(new Option(t("ledger.importSkip"), ""));
             for (const c of schemaCols) sel.add(new Option(labelOf(c.key), c.key));
             sel.value = mapping[i] ?? "";

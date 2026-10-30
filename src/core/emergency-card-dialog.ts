@@ -100,8 +100,8 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     const dlg = new DialogCls({
         title: t("overview.emergencyCardTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ecard-body">
-  ${card.emergencyKitLocation ? `<div class="lv-card" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--lv-surface-2);margin-bottom:8px"><span>📦 ${t("overview.emergencyKitLocation")}: <b>${card.emergencyKitLocation}</b></span></div>` : ""}
-  <div id="lv-ecard-members" style="display:flex;flex-direction:column;gap:8px"></div>
+  ${card.emergencyKitLocation ? `<div class="lv-ecard-location"><span>📦 ${t("overview.emergencyKitLocation")}: <b>${card.emergencyKitLocation}</b></span></div>` : ""}
+  <div id="lv-ecard-members" class="lv-ecard-list"></div>
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
@@ -116,18 +116,17 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 
     for (const m of card.members) {
         const item = document.createElement("div");
-        item.className = "lv-metric-item";
-        item.style.cssText = "flex-direction:column;align-items:stretch;padding:10px 14px;gap:6px";
+        item.className = "lv-ecard-member-card";
 
         const head = document.createElement("div");
-        head.style.cssText = "display:flex;justify-content:space-between;align-items:center";
+        head.className = "lv-ecard-member-head";
 
         const nameLine = document.createElement("div");
-        nameLine.style.cssText = "display:flex;align-items:center;gap:6px";
+        nameLine.className = "lv-ecard-nameline";
         const roleLabel = t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role;
-        nameLine.innerHTML = `<b style="font-size:14px">${m.name}</b><span class="lv-badge gray">${roleLabel}</span>`;
+        nameLine.innerHTML = `<b>${m.name}</b><span class="lv-badge gray">${roleLabel}</span>`;
         if (m.bloodType) {
-            nameLine.innerHTML += `<span class="lv-badge orange" style="font-weight:600">🩸 ${m.bloodType}</span>`;
+            nameLine.innerHTML += `<span class="lv-badge orange">🩸 ${m.bloodType}</span>`;
         }
 
         const contact = document.createElement("span");
@@ -140,8 +139,8 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 
         if (m.allergies.length > 0) {
             const allSec = document.createElement("div");
-            allSec.style.cssText = "display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12px";
-            allSec.innerHTML = `<span class="lv-badge red" style="font-weight:600">⚠️ ${t("overview.emergencyAllergies")}</span>`;
+            allSec.className = "lv-ecard-allergies";
+            allSec.innerHTML = `<span class="lv-badge red">⚠️ ${t("overview.emergencyAllergies")}</span>`;
             for (const a of m.allergies) {
                 const b = document.createElement("span");
                 b.className = "lv-badge red";

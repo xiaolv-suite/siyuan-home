@@ -367,16 +367,16 @@
     onOpenLedger={openLedgerFor}
 />
 
-<OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter />
+<OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter {t} />
 
-<div class="lv-members">
-    <button class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>
+<div class="lv-members" role="group" aria-label={t("tabMembers")}>
+    <button type="button" class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>
     {#each members as m (m.id)}
-        <button class="lv-chip {memberFilter === m.id ? 'on' : ''}" aria-pressed={memberFilter === m.id} onclick={() => setMemberFilter(m.id)}>
+        <button type="button" class="lv-chip {memberFilter === m.id ? 'on' : ''}" aria-pressed={memberFilter === m.id} onclick={() => setMemberFilter(m.id)}>
             <span class="lv-avatar" aria-hidden="true" style="background:linear-gradient(135deg, hsl({memberHue(m.id)} 62% 52%), hsl({(memberHue(m.id) + 42) % 360} 62% 40%))">{m.name.slice(0, 1)}</span>{m.name}
         </button>
     {/each}
-    <button class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>
+    <button type="button" class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>
 </div>
 
 <OverviewUpcomingList

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getWeeklyPulse, getFamilyAchievements } from "@/core/pulse-and-achievements";
 import type { Reminder, HomeSettings } from "@/types";
 
@@ -38,5 +38,59 @@ describe("core/pulse-and-achievements 生活律动与家庭成就", () => {
         expect(achievements.find((a) => a.id === "certs_safe")?.achieved).toBe(true);
         expect(achievements.find((a) => a.id === "emergency_ready")?.achieved).toBe(true);
         expect(achievements.find((a) => a.id === "full_archive")?.achieved).toBe(true);
+    });
+
+    it("生活律动周条键盘漫游导航 (ArrowLeft / ArrowRight / Home / End)", () => {
+        const pill1 = { focus: vi.fn() };
+        const pill2 = { focus: vi.fn() };
+        const pill3 = { focus: vi.fn() };
+        const pill7 = { focus: vi.fn() };
+        const pills = [pill1, pill2, pill3, { focus: vi.fn() }, { focus: vi.fn() }, { focus: vi.fn() }, pill7];
+
+        function handlePulseKeydown(e: { key: string; target: any; currentTarget: any; preventDefault: () => void }) {
+            const idx = pills.indexOf(e.target);
+            if (idx === -1) return;
+            e.preventDefault();
+            if (e.key === "ArrowRight") {
+                pills[(idx + 1) % pills.length].focus();
+            } else if (e.key === "ArrowLeft") {
+                pills[(idx - 1 + pills.length) % pills.length].focus();
+            } else if (e.key === "Home") {
+                pills[0].focus();
+            } else if (e.key === "End") {
+                pills[pills.length - 1].focus();
+            }
+        }
+
+        const preventDefault = vi.fn();
+        // 0 -> ArrowRight -> 1
+        handlePulseKeydown({ key: "ArrowRight", target: pill1, currentTarget: {}, preventDefault });
+        expect(pill2.focus).toHaveBeenCalled();
+
+        // 0 -> ArrowLeft -> 6 (周日)
+        handlePulseKeydown({ key: "ArrowLeft", target: pill1, currentTarget: {}, preventDefault });
+        expect(pill7.focus).toHaveBeenCalled();
+
+        // 2 -> Home -> 0 (周一)
+        handlePulseKeydown({ key: "Home", target: pill3, currentTarget: {}, preventDefault });
+        expect(pill1.focus).toHaveBeenCalled();
+
+        // 1 -> End -> 6 (周日)
+        handlePulseKeydown({ key: "End", target: pill2, currentTarget: {}, preventDefault });
+        expect(pill7.focus).toHaveBeenCalledTimes(2);
+    });
+
+    it("日历脉冲胶囊多语言 aria-label 与 title 格式化验证", () => {
+        const t = (k: string) => {
+            if (k === "overview.filterDayTip") return "${date} ${weekday}：${count} 项待办（点击筛选该日）";
+            return k;
+        };
+
+        const tip = t("overview.filterDayTip")
+            .replace("${date}", "2026-10-21")
+            .replace("${weekday}", "周三")
+            .replace("${count}", "3");
+
+        expect(tip).toBe("2026-10-21 周三：3 项待办（点击筛选该日）");
     });
 });

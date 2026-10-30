@@ -53,6 +53,11 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(scssContent).toMatch(/thead th[\s\S]*?\.b3-button[\s\S]*?&:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+var\(--lv-accent\);/);
   });
 
+  it('declares bento hero card and pulse pill focus-visible rings for keyboard roaming', () => {
+    expect(scssContent).toMatch(/\.lv-bento-card--hero\s*\{[\s\S]*?&:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+var\(--lv-data-accent,\s*#2dd4bf\);/);
+    expect(scssContent).toMatch(/\.lv-pulse-pill\s*\{[\s\S]*?&:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+var\(--lv-data-accent\);/);
+  });
+
   it('preserves visual indicators and state affordances with forced-color-adjust: none', () => {
     expect(scssContent).toMatch(/\.lv-avatar,\s*\.lv-miniava,\s*\.lv-mi,\s*\.lv-focus-icon/);
     expect(scssContent).toMatch(/input\[type="checkbox"\]\.b3-switch/);

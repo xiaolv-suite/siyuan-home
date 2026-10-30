@@ -35,7 +35,7 @@
     }
 </script>
 
-<div class="lv-focus lv-bento-grid" aria-label={t("dash.focusLabel")}>
+<div class="lv-focus lv-bento-grid" role="region" aria-label={t("dash.focusLabel")}>
     <!-- 324波：中枢规范大方块 Bento 特征卡（最近到期与倒计时核心看板） -->
     <button type="button" class="lv-bento-card lv-bento-card--hero" onclick={handleHeroClick}
         aria-label={urgentDueReminder ? `${urgentDueReminder.title}：${urgentDueReminder.daysLeft}天` : t("dash.bentoAllGood")}>

@@ -18,10 +18,10 @@
         <span class="lv-caption">{t("guest.bannerDesc")}</span>
     </div>
     <div class="lv-guest-banner__right">
-        <button class="b3-button b3-button--text" onclick={onOpenEmergencyCard}>
+        <button type="button" class="b3-button b3-button--text" onclick={onOpenEmergencyCard}>
             <UiIcon name="alert" size={14} /> {t("overview.emergencyCard")}
         </button>
-        <button class="b3-button b3-button--text" onclick={onToggleGuestMode}>
+        <button type="button" class="b3-button b3-button--text" onclick={onToggleGuestMode}>
             {t("guest.exitMode")}
         </button>
     </div>

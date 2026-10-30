@@ -75,13 +75,13 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
     const dlg = new DialogCls({
         title: t("ledger.locTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-loc-body">
-  <div style="display:flex;gap:6px;margin-bottom:8px">
-    <input class="b3-text-field" id="lv-loc-search" placeholder="${t("ledger.locSearchPlaceholder")}" style="flex:1;font-size:12.5px" />
+  <div>
+    <input class="b3-text-field fn__block" id="lv-loc-search" placeholder="${t("ledger.locSearchPlaceholder")}" />
   </div>
-  <div id="lv-loc-results" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div id="lv-loc-results" class="lv-ecard-list"></div>
 </div>
 <div class="b3-dialog__action">
-  <span class="lv-caption" id="lv-loc-total" style="flex:1"></span>
+  <span class="lv-caption fn__flex-1" id="lv-loc-total"></span>
   <button class="b3-button b3-button--cancel" id="lv-loc-close">${t("close")}</button>
   <button class="b3-button" id="lv-loc-copy">${t("ledger.locCopy")}</button>
 </div>`,

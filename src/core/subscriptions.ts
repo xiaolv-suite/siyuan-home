@@ -237,35 +237,33 @@ export function openSubscriptionStatsDialog(options: SubscriptionStatsDialogOpti
     }
 
     const metrics = document.createElement("div");
-    metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px";
+    metrics.className = "lv-metric-grid-3";
 
     const mCard = document.createElement("div");
     mCard.className = "lv-metric-item";
-    mCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionMonthly")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:22px">¥${formatAmount(stats.totalMonthlyCost)}</b><span class="lv-caption">${stats.activeCount} 项在保/在用</span>`;
+    mCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionMonthly")}</span><b class="lv-num lv-metric-val lv-tx-accent">¥${formatAmount(stats.totalMonthlyCost)}</b><span class="lv-caption">${stats.activeCount} 项在保/在用</span>`;
 
     const aCard = document.createElement("div");
     aCard.className = "lv-metric-item";
-    aCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAnnual")}</span><b class="lv-num" style="color:var(--lv-warn);font-size:22px">¥${formatAmount(stats.totalAnnualCost)}</b><span class="lv-caption">年化折算</span>`;
+    aCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAnnual")}</span><b class="lv-num lv-metric-val lv-tx-warn">¥${formatAmount(stats.totalAnnualCost)}</b><span class="lv-caption">年化折算</span>`;
 
     const rCard = document.createElement("div");
     rCard.className = "lv-metric-item";
-    rCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAutoRenew")}</span><b class="lv-num" style="font-size:22px">${stats.autoRenewRate}%</b><span class="lv-caption">${stats.autoRenewCount} 项自动续费</span>`;
+    rCard.innerHTML = `<span class="lv-caption">${t("ledger.subscriptionAutoRenew")}</span><b class="lv-num lv-metric-val">${stats.autoRenewRate}%</b><span class="lv-caption">${stats.autoRenewCount} 项自动续费</span>`;
 
     metrics.append(mCard, aCard, rCard);
     body.appendChild(metrics);
 
     if (stats.categoryBreakdown.length > 0) {
         const sec = document.createElement("div");
-        sec.style.cssText = "margin-top:6px";
         sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.subscriptionCount").replace("${n}", String(stats.activeCount))}</div>`;
 
         const list = document.createElement("div");
-        list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+        list.className = "fn__flex-column";
 
         for (const c of stats.categoryBreakdown) {
             const item = document.createElement("div");
-            item.className = "lv-metric-item";
-            item.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:7px 12px;font-size:12px";
+            item.className = "lv-favor-person-row";
             const catLabel = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
             item.innerHTML = `<span style="font-weight:500">${catLabel} <span class="lv-caption">(${c.count}项)</span></span><span><b class="lv-num">¥${formatAmount(c.monthlyCost)}</b><span class="lv-caption">/月 (年¥${formatAmount(c.annualCost)})</span></span>`;
             list.appendChild(item);

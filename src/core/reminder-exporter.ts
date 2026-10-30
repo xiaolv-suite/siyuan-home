@@ -37,7 +37,7 @@ export async function openReminderDigestDialog(options: OpenReminderDigestDialog
 
         const dlg = new DialogCls({
             title: t("hub.digestTitle"),
-            content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption" style="white-space:pre-wrap;line-height:1.7;margin:0"></pre></div>
+            content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-report-pre"></pre></div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
   <button class="b3-button" id="lv-digest-copy">${t("hub.digestCopy")}</button>

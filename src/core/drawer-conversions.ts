@@ -126,7 +126,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
             const matches = res.rows.filter((r) => String(cellTextFn(r.cells?.[nameKey])).trim() === name);
             const dialog = new DialogCls({
                 title: t("ledger.stockIn"),
-                content: `<div class="b3-dialog__content"><p class="ft__on-surface" id="lv-stockin-body" style="font-size:13px;line-height:1.6"></p></div>
+                content: `<div class="b3-dialog__content lv-dialog-col"><p class="ft__on-surface" id="lv-stockin-body"></p></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-stockin-cancel">${t("cancel")}</button><button class="b3-button" id="lv-stockin-ok">${t("save")}</button></div>`,
                 width: "420px",
                 destroyCallback: () => {
@@ -253,19 +253,19 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
 
             const dlg = new DialogCls({
                 title: t("ledger.shoppingToAssetTitle"),
-                content: `<div class="b3-dialog__content lv-dialog-col" style="display:flex;flex-direction:column;gap:10px;padding:12px">
-                    <p class="lv-caption" style="margin:0">${t("ledger.shoppingToAssetIntro")}</p>
-                    <label style="display:flex;flex-direction:column;gap:4px">
+                content: `<div class="b3-dialog__content lv-dialog-col">
+                    <p class="lv-caption">${t("ledger.shoppingToAssetIntro")}</p>
+                    <label class="lv-form-group">
                         <span class="lv-caption">${t("field.name")}</span>
-                        <input class="b3-text-field" id="lv-s2a-name" value="${draft.name}" style="width:100%" />
+                        <input class="b3-text-field" id="lv-s2a-name" value="${draft.name}" />
                     </label>
-                    <label style="display:flex;flex-direction:column;gap:4px">
+                    <label class="lv-form-group">
                         <span class="lv-caption">${t("field.category")}</span>
-                        <select class="b3-select" id="lv-s2a-cat" style="width:100%">${catOptions}</select>
+                        <select class="b3-select" id="lv-s2a-cat">${catOptions}</select>
                     </label>
-                    <label style="display:flex;flex-direction:column;gap:4px">
+                    <label class="lv-form-group">
                         <span class="lv-caption">${t("field.amount")}</span>
-                        <input class="b3-text-field" id="lv-s2a-amount" type="number" value="${draft.amount ?? ""}" style="width:100%" />
+                        <input class="b3-text-field" id="lv-s2a-amount" type="number" value="${draft.amount ?? ""}" />
                     </label>
                 </div>
                 <div class="b3-dialog__action">

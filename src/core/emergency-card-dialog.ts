@@ -9,6 +9,7 @@ import { buildFamilyEmergencyCard, formatEmergencyCardText, generateEmergencyCar
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface EmergencyCardDialogOptions {
     t: (k: string) => string;
@@ -114,6 +115,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
 
     const membersEl = dlg.element.querySelector("#lv-ecard-members") as HTMLElement;
     (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     for (const m of card.members) {
         const item = document.createElement("div");

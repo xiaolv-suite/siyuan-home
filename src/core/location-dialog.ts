@@ -8,6 +8,7 @@ import { buildLocationIndex, searchLocations, formatLocationIndexText, type Loca
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface LocationDialogOptions {
     t: (k: string) => string;
@@ -92,7 +93,13 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
     const resultsEl = dlg.element.querySelector("#lv-loc-results") as HTMLElement;
     const totalEl = dlg.element.querySelector("#lv-loc-total") as HTMLElement;
     const searchInp = dlg.element.querySelector("#lv-loc-search") as HTMLInputElement;
-    (dlg.element.querySelector("#lv-loc-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    const closeBtn = dlg.element.querySelector("#lv-loc-close") as HTMLButtonElement;
+    closeBtn.onclick = () => dlg.destroy();
+
+    bindDialogA11y({
+        dlg,
+        defaultFocus: searchInp,
+    });
 
     totalEl.textContent = t("ledger.locCount").replace("${n}", String(index.total)).replace("${groups}", String(index.groups.length));
 

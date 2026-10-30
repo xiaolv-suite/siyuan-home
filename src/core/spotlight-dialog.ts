@@ -7,6 +7,7 @@ import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./
 import { showMessage } from "siyuan";
 import { ensurePinyin } from "./pinyin";
 import { uiIcon, moduleUiIcon, type UiIconName } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 const CMD_ICONS: Record<string, UiIconName> = {
     "open-capture": "bolt",
@@ -81,7 +82,13 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     const statusEl = dlg.element.querySelector("#lv-spotlight-status") as HTMLElement;
     const listEl = dlg.element.querySelector("#lv-spotlight-list") as HTMLElement;
 
-    inp.focus();
+    bindDialogA11y({
+        dlg,
+        defaultFocus: inp,
+        onClose: () => {
+            if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
+        },
+    });
 
     // 1. 并发拉取全部模块数据
     const allItems: SpotlightItem[] = [];

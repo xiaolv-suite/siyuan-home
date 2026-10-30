@@ -5,6 +5,7 @@
 import { buildFavorsReport, formatFavorsReportText } from "./favors";
 import { formatAmount } from "./format";
 import type { AvRow } from "./siyuan";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface FavorsDialogOptions {
     ref: { avId?: string; columns?: Record<string, string> };
@@ -42,6 +43,8 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
     });
     const body = dlg.element.querySelector("#lv-favors-body") as HTMLElement;
     if (!body) return;
+
+    bindDialogA11y({ dlg });
 
     const render = () => {
         body.replaceChildren();

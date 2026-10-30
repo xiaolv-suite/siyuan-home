@@ -9,6 +9,7 @@ import type { Reminder, DbRef } from "@/types";
 import { selectCellContent } from "./avcell";
 import { localDateKey } from "./hub/rule";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type LifeDimension = "health_safety" | "finance_contracts" | "daily_efficiency" | "culture_growth";
 export type LifeScoreLevel = "excellent" | "good" | "fair" | "needs_attention";
@@ -355,6 +356,7 @@ export function openLifeIndexDialog(
     const body = dlg.element.querySelector("#lv-life-index-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-life-index-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-life-index-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     // 1. 顶部总评卡片
     const heroCard = document.createElement("div");

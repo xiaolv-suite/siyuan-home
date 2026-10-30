@@ -27,6 +27,8 @@ export const confirm = (
                 const top = dialogs[dialogs.length - 1];
                 top.classList.add("lv-top-confirm");
                 top.style.setProperty("z-index", "2000", "important");
+                const cancelBtn = top.querySelector<HTMLButtonElement>(".b3-button--cancel");
+                cancelBtn?.focus();
             }
         });
     }

@@ -5,6 +5,7 @@
  */
 import type { AvRow } from "@/core/siyuan";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type MediaCategory = "movie" | "tv" | "variety" | "book" | "comic" | "novel";
 export type MediaStatus = "wishlist" | "consuming" | "done" | "dropped";
@@ -256,6 +257,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
     const body = dlg.element.querySelector("#lv-media-report-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-media-report-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-media-report-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const render = () => {
         body.replaceChildren();

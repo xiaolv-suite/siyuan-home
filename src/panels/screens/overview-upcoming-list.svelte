@@ -62,7 +62,7 @@
             <UiIcon name="calendar" size={12} /> {pulseDateFilter} <UiIcon name="close" size={10} />
         </button>
     {/if}
-    <button class="b3-button b3-button--text" onclick={onViewAll}>{t("dash.viewAll")} →</button>
+    <button class="b3-button b3-button--text" onclick={onViewAll}><span>{t("dash.viewAll")}</span> <UiIcon name="forward" size={12} /></button>
 </div>
 {#if reminders.length === 0 && (initialScanError || scanErrors.length > 0)}
     <div class="lv-card"><div class="lv-empty" role="alert">

@@ -109,7 +109,7 @@
 </script>
 
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>
-    <button class="b3-button b3-button--text" onclick={onOpenSetting}>{t("dash.enableMore")} →</button>
+    <button class="b3-button b3-button--text" onclick={onOpenSetting}><span>{t("dash.enableMore")}</span> <UiIcon name="forward" size={12} /></button>
 </div>
 {#if firstScanPending}
     <!-- 262 波：首扫骨架补全模块网格（与提醒骨架同一 loading 故事） -->
@@ -192,7 +192,7 @@
             {:else if plugin.settings.dbRefs?.[mid]?.provisional}
                     <span>{t("diag.provisional")}</span>
             {:else}
-                    <span class="lv-go">{t("mod.inLedger")}<i aria-hidden="true">&nbsp;→</i></span>
+                    <span class="lv-go"><span>{t("mod.inLedger")}</span> <UiIcon name="forward" size={11} /></span>
             {/if}
             {#if sparkOf(mid)}
                 <span class="lv-spark" aria-hidden="true" title={t("dash.sparkTip")}>
@@ -211,7 +211,7 @@
             {#if mid === "health" && healthBound.length > 0}
                 <!-- EC09（D20）：打卡绑定摘要（只读；只统计有强度数据的绑定项） -->
                 <div class="lv-caption" title={healthBound.map((b) => `${b.label} · ${b.score}`).join("\n")}>
-                    ⏱ {t("mod.checkinBound").replace("${n}", String(healthBound.length))}
+                    <UiIcon name="clock" size={12} /> {t("mod.checkinBound").replace("${n}", String(healthBound.length))}
                 </div>
             {/if}
         </div>

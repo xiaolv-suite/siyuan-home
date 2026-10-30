@@ -179,7 +179,7 @@
                 {#if active === "chores"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("rewards-settle")}>{t("ledger.rewardsSettle")}</button>{/if}
                 {#if active !== "members" && active !== "adhoc"}<button class="b3-button b3-button--outline" disabled={printing || exporting} onclick={() => onOpenModal?.("csv-import")}>{t("ledger.importCsv")}</button>{/if}
                 <button class="b3-button b3-button--outline" disabled={!ref?.docId}
-                    onclick={() => plugin.showTabDocs(ref?.docId)}>{t("ledger.openDoc")} →</button>
+                    onclick={() => plugin.showTabDocs(ref?.docId)}><span>{t("ledger.openDoc")}</span> <UiIcon name="forward" size={12} /></button>
             </div>
         </details>
     {/if}

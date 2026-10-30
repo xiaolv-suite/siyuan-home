@@ -9,6 +9,7 @@ import { blockDeepLink, generateQRDataUrl } from "./qr";
 import { localDateKey } from "./hub/rule";
 import type { LogKind } from "./rowlog";
 import { markActivityLine, rowLogActivityId, type ActivityTarget } from "./activity";
+import { uiIcon } from "@/ui/icons";
 
 export * from "./drawer-conversions";
 
@@ -92,13 +93,13 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
     for (const id of forward) {
         const line = document.createElement("div");
         line.className = "lv-dialog-row-text";
-        line.textContent = `→ ${nameOf(id)} (${t("ledger.newCert")})`;
+        line.innerHTML = `${uiIcon("forward", "", 12)} <span>${nameOf(id)} (${t("ledger.newCert")})</span>`;
         body.appendChild(line);
     }
     for (const r of backward) {
         const line = document.createElement("div");
         line.className = "lv-dialog-row-text";
-        line.textContent = `← ${String(cellTextFn(r.cells[ref.columns!.name]))} (${t("ledger.oldCert")})`;
+        line.innerHTML = `${uiIcon("back", "", 12)} <span>${String(cellTextFn(r.cells[ref.columns!.name]))} (${t("ledger.oldCert")})</span>`;
         body.appendChild(line);
     }
     body.appendChild(linkBtn());

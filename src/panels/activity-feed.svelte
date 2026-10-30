@@ -327,11 +327,11 @@
                 <div class="lv-activity-footer">
                     <span role="status" aria-live="polite" aria-atomic="true">{t("activity.count").replace("${start}", String((page - 1) * pageSize + 1)).replace("${end}", String(Math.min(page * pageSize, records.length))).replace("${total}", String(records.length))}</span>
                     <div>
-                        <button type="button" class="lv-iconbtn" aria-label={t("activity.previous")} disabled={page <= 1} onclick={() => page = Math.max(1, page - 1)}>←</button>
+                        <button type="button" class="lv-iconbtn" aria-label={t("activity.previous")} disabled={page <= 1} onclick={() => page = Math.max(1, page - 1)}><UiIcon name="back" size={14} /></button>
                         <span class="lv-num">{page} / {pageCount}</span>
-                        <button type="button" class="lv-iconbtn" aria-label={t("activity.next")} disabled={page >= pageCount} onclick={() => page = Math.min(pageCount, page + 1)}>→</button>
+                        <button type="button" class="lv-iconbtn" aria-label={t("activity.next")} disabled={page >= pageCount} onclick={() => page = Math.min(pageCount, page + 1)}><UiIcon name="forward" size={14} /></button>
                     </div>
-                    <button type="button" class="b3-button b3-button--text" onclick={goToLedger}>{t("activity.goToLedger")} →</button>
+                    <button type="button" class="b3-button b3-button--text" onclick={goToLedger}><span>{t("activity.goToLedger")}</span> <UiIcon name="forward" size={12} /></button>
                 </div>
             {/if}
         </div>

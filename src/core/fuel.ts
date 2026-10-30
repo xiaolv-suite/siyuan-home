@@ -7,6 +7,8 @@
  * 本文件不依赖思源 API，便于页面、导入和单测共用。
  */
 
+import { uiIcon } from "@/ui/icons";
+
 export type EnergyKind = "fuel" | "charging";
 
 /** 油品枚举保持开放字符串，避免不同国家/车型新增油品时需要迁移数据库。 */
@@ -295,7 +297,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
             empty.className = "lv-empty lv-dialog-empty";
             const title = document.createElement("b"); title.textContent = t("fuel.noVehicles");
             const hint = document.createElement("span"); hint.className = "lv-caption"; hint.style.display = "block"; hint.textContent = t("fuel.noVehiclesHint");
-            const add = document.createElement("button"); add.className = "b3-button"; add.style.marginTop = "8px"; add.textContent = `+ ${t("fuel.addVehicle")}`;
+            const add = document.createElement("button"); add.className = "b3-button"; add.style.marginTop = "8px"; add.innerHTML = `${uiIcon("add", "", 12)} <span>${t("fuel.addVehicle")}</span>`;
             add.onclick = () => { dlg.destroy(); onOpenNewRecord?.(); };
             empty.append(title, hint, add);
             body.appendChild(empty);
@@ -356,7 +358,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
 
             const action = document.createElement("button");
             action.className = "b3-button b3-button--text lv-dialog-link";
-            action.textContent = `${t("fuel.openVehicle")} →`;
+            action.innerHTML = `<span>${t("fuel.openVehicle")}</span> ${uiIcon("forward", "", 12)}`;
             action.onclick = () => { dlg.destroy(); onOpenVehicleDetail?.(vehicle); };
             card.append(head, grid, action);
             body.appendChild(card);

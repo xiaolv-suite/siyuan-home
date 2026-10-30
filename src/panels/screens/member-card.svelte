@@ -161,7 +161,7 @@
             title="点击展开该成员详情与到期提醒"
             onclick={() => { if (!expanded) onToggleExpand(); }}>
             <span><UiIcon name="alert" size={13} /> 需关注 · <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
-            <span class="lv-caption lv-person-alert-arrow">→</span>
+            <span class="lv-caption lv-person-alert-arrow" aria-hidden="true"><UiIcon name="forward" size={12} /></span>
         </button>
     {/if}
     {#if expanded}
@@ -231,7 +231,7 @@
                     </span>
                     <span class="lv-caption lv-member-timeline-meta">
                         <span>{t("members.timelineCertsCount")} / {t("members.timelineContractsCount")}</span>
-                        <span>→</span>
+                        <span aria-hidden="true"><UiIcon name="forward" size={12} /></span>
                     </span>
                 </button>
             </div>

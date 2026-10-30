@@ -204,7 +204,7 @@
                 <div class="lv-rem-summary__item">
                     <button class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
                         onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
-                        {t("act.locate")} →
+                        <span>{t("act.locate")}</span> <UiIcon name="forward" size={11} />
                     </button>
                 </div>
             {/if}

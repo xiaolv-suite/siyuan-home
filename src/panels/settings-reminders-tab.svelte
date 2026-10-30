@@ -149,7 +149,7 @@
             <div class="fn__flex lv-settings__row">
                 <span class="lv-settings__label">{t("settings.silentHours")}</span>
                 <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
-                <span class="lv-caption lv-arrow-sep">→</span>
+                <span class="lv-caption lv-arrow-sep" aria-hidden="true"><UiIcon name="forward" size={11} /></span>
                 <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
                 <span class="lv-caption fn__flex-1">{t("settings.silentHoursHint")}</span>
             </div>
@@ -161,7 +161,7 @@
                         draftSilentTo = 8;
                         showMessage(t("settings.scheduleResetDone"), 2500, "info");
                     }}>
-                    ↺ {t("settings.resetDefault")}
+                    <UiIcon name="repeat" size={11} /> {t("settings.resetDefault")}
                 </button>
             </div>
         </div>

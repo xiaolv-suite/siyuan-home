@@ -126,12 +126,12 @@
                         <span class="lv-wiz-flow__num">1</span>
                         <div><b>{t("wiz.flowMembers")}</b><span>{t("wiz.flowMembersHint")}</span></div>
                     </div>
-                    <div class="lv-wiz-flow__arrow" aria-hidden="true">→</div>
+                    <div class="lv-wiz-flow__arrow" aria-hidden="true"><UiIcon name="forward" size={12} /></div>
                     <div class="lv-wiz-flow__item">
                         <span class="lv-wiz-flow__num">2</span>
                         <div><b>{t("wiz.flowLedger")}</b><span>{t("wiz.flowLedgerHint")}</span></div>
                     </div>
-                    <div class="lv-wiz-flow__arrow" aria-hidden="true">→</div>
+                    <div class="lv-wiz-flow__arrow" aria-hidden="true"><UiIcon name="forward" size={12} /></div>
                     <div class="lv-wiz-flow__item">
                         <span class="lv-wiz-flow__num">3</span>
                         <div><b>{t("wiz.flowReminders")}</b><span>{t("wiz.flowRemindersHint")}</span></div>
@@ -162,7 +162,7 @@
             {/if}
             <div class="lv-wiz__actions">
                 <button class="lv-btn ghost" disabled={provisioning} onclick={skip}>{provisioning ? t("wiz.provisioningShort") : t("wiz.skip")}</button>
-                <button class="lv-btn primary" disabled={provisioning} onclick={() => goToStep(2)}>{t("wiz.next")} →</button>
+                <button class="lv-btn primary" disabled={provisioning} onclick={() => goToStep(2)}><span>{t("wiz.next")}</span> <UiIcon name="forward" size={12} /></button>
             </div>
             {#if provisionError}<p class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</p>{/if}
         {:else}
@@ -182,7 +182,7 @@
                 <p class="lv-caption lv-wiz__note" role="note"><UiIcon name="info" size={13} /> {t("wiz.sexHint")}</p>
             {/if}
             <div class="lv-wiz__actions lv-wiz__actions--split">
-                <button class="lv-btn" disabled={provisioning} onclick={() => goToStep(1)}>← {t("wiz.back")}</button>
+                <button class="lv-btn" disabled={provisioning} onclick={() => goToStep(1)}><UiIcon name="back" size={12} /> <span>{t("wiz.back")}</span></button>
                 {#if provisionError}
                     <span class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</span>
                 {/if}

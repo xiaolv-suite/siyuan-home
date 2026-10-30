@@ -69,7 +69,7 @@
         </div>
         <div class="lv-bento-hero-footer">
             <span class="lv-link">
-                {t("dash.handleNow")} →
+                <span>{t("dash.handleNow")}</span> <UiIcon name="forward" size={12} />
             </span>
         </div>
     </button>

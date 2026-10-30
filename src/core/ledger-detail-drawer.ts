@@ -15,6 +15,7 @@ import { openContactPicker } from "@/libs/contact-picker";
 import { uiIcon } from "@/ui/icons";
 import { renderRowLogSection, renderDrawerQrSection } from "./drawer-sections";
 import { renderDrawerDocTemplates, bindDrawerRowOperations } from "./drawer-actions";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface OpenLedgerDetailDrawerOptions {
     row: any;
@@ -62,6 +63,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     });
 
     const body = dlg.element.querySelector("#lv-detail-body") as HTMLElement;
+    bindDialogA11y({ dlg, defaultFocus: "#lv-detail-close" });
     const vehicleActionQueue = createVehicleActionQueue();
     const showVehicleActionError = (error: string) =>
         showMessageFn(t("ledger.logReadFailed") + " (" + error + ")", 6000, "error");

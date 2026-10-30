@@ -156,6 +156,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       '../../src/core/member-timeline.ts',
       '../../src/core/rewards-dialog.ts',
       '../../src/core/sharecard-dialog.ts',
+      '../../src/core/ledger-detail-drawer.ts',
     ];
 
     for (const rel of dialogFiles) {

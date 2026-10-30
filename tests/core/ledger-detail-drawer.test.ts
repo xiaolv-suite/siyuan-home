@@ -39,6 +39,8 @@ describe("ledger-detail-drawer (台账行详情抽屉完整驱动引擎)", () =>
                 })),
                 querySelectorAll: vi.fn().mockReturnValue([]),
                 classList: { add: vi.fn(), toggle: vi.fn() },
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
             };
             destroy = vi.fn();
             constructor(options: { content: string }) {

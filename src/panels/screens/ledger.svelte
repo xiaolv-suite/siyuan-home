@@ -12,6 +12,8 @@
     import LedgerVehicleGrid from "./ledger-vehicle-grid.svelte";
     import LedgerTable from "./ledger-table.svelte";
     import LedgerEmptyState from "./ledger-empty-state.svelte";
+    import LedgerSaveStatus from "./ledger-save-status.svelte";
+    import LedgerMissingColsBanner from "./ledger-missing-cols-banner.svelte";
     import {
         formatLedgerCellText,
         calculateLedgerTone,
@@ -503,10 +505,13 @@
     onOpenModal={handleToolbarModal}
 />
 {#if savedModule}
-    <div class="lv-record-save-status" role="status">
-        {t("ledger.newRecordSaved").replace("${name}", savedRecordName)} · {t("ledger.savedTo").replace("${module}", t(`module.${savedModule}`) !== `module.${savedModule}` ? t(`module.${savedModule}`) : savedModule)}
-        <button class="b3-button b3-button--text" onclick={() => plugin.showTabDocs(savedDocId || undefined)}>{t("ledger.openDoc")} →</button>
-    </div>
+    <LedgerSaveStatus
+        {savedRecordName}
+        {savedModule}
+        {savedDocId}
+        {t}
+        onOpenDoc={(id) => plugin.showTabDocs(id)}
+    />
 {/if}
 
 <LedgerRecordModal
@@ -567,15 +572,13 @@
     />
 {:else}
     {#if missingSchemaCols.length > 0 && ref?.avId}
-        <div class="lv-card lv-notice-card">
-            <span class="lv-tx-warn">⚠️</span>
-            <span class="fn__flex-1 lv-tx-2">
-                {t("ledger.missingColumnsPrompt")} <b>{missingSchemaCols.map((c) => fieldLabel(c.key)).join("、")}</b>
-            </span>
-            <button class="b3-button b3-button--outline lv-btn-text-sm" disabled={rebuilding} onclick={rebuildLedger}>
-                {rebuilding ? t("diag.rebuilding") : t("ledger.autoFixColumns")}
-            </button>
-        </div>
+        <LedgerMissingColsBanner
+            {missingSchemaCols}
+            {rebuilding}
+            {t}
+            {fieldLabel}
+            onRebuild={rebuildLedger}
+        />
     {/if}
     <LedgerTable
         {tableDensity}

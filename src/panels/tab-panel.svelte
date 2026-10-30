@@ -6,6 +6,8 @@
     import ErrorBoundary from "./error-boundary.svelte";
     import TabKpiBar from "./tab-kpi-bar.svelte";
     import TabContextDock from "./tab-context-dock.svelte";
+    import TabRailNav from "./tab-rail-nav.svelte";
+    import TabGuestBanner from "./tab-guest-banner.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
     import type { HomePluginLike } from "@/types/plugin";
@@ -474,33 +476,16 @@
 <div class="lv-home lv-tab" bind:this={homeEl}>
     <div class="lv-shell-frame">
         <!-- 1. 左侧极窄导航栏（Rail Navigation） -->
-        <nav class="lv-rail-nav" aria-label={t("tab.title")}>
-            <button type="button" class="lv-rail-nav__brand" title={t("butler")} onclick={() => gotoScreen("overview")}>
-                <UiIcon name="home" size={20} />
-            </button>
-            <div class="lv-rail-nav__menu" role="tablist">
-                {#each screens as s (s.id)}
-                    <button type="button" class="lv-rail-nav__item" class:on={screen === s.id}
-                        role="tab" aria-selected={screen === s.id}
-                        title={t(s.key)} onclick={() => gotoScreen(s.id)}>
-                        <UiIcon name={s.icon} size={18} />
-                        <span>{t(s.key)}</span>
-                        {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
-                    </button>
-                {/each}
-            </div>
-            <div class="lv-rail-nav__foot">
-                <button type="button" class="lv-iconbtn is-primary" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(e) => openCapture(undefined, e)}>
-                    <UiIcon name="bolt" size={17} />
-                </button>
-                <button type="button" class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}>
-                    <UiIcon name="search" size={16} />
-                </button>
-                <button type="button" class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}>
-                    <UiIcon name="settings" size={16} />
-                </button>
-            </div>
-        </nav>
+        <TabRailNav
+            {screens}
+            {screen}
+            {pendingTotal}
+            {t}
+            onGotoScreen={gotoScreen}
+            onOpenCapture={(e) => openCapture(undefined, e)}
+            onOpenSpotlight={openSpotlight}
+            onOpenSetting={() => plugin.openSetting()}
+        />
 
         <!-- 2. 中间主工作台 -->
         <div class="lv-main-stage">
@@ -554,20 +539,11 @@
             </header>
 
             {#if isGuestMode}
-                <div class="lv-guest-banner" role="status">
-                    <div class="lv-guest-banner__left">
-                        <span class="lv-badge orange">{t("guest.bannerTitle")}</span>
-                        <span class="lv-caption">{t("guest.bannerDesc")}</span>
-                    </div>
-                    <div class="lv-guest-banner__right">
-                        <button class="b3-button b3-button--text" onclick={openEmergencyCardFromGuest}>
-                            🚨 {t("overview.emergencyCard")}
-                        </button>
-                        <button class="b3-button b3-button--text" onclick={toggleGuestMode}>
-                            {t("guest.exitMode")}
-                        </button>
-                    </div>
-                </div>
+                <TabGuestBanner
+                    {t}
+                    onOpenEmergencyCard={openEmergencyCardFromGuest}
+                    onToggleGuestMode={toggleGuestMode}
+                />
             {/if}
 
             <!-- 统计优先：关键指标行（KPI Strip） -->

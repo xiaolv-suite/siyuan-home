@@ -5,6 +5,7 @@
  */
 import type { AvRow } from "@/core/siyuan";
 import { formatAmount } from "./format";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type SubscriptionCycle = "day" | "week" | "month" | "quarter" | "half_year" | "year";
 
@@ -225,6 +226,7 @@ export function openSubscriptionStatsDialog(options: SubscriptionStatsDialogOpti
     const body = dlg.element.querySelector("#lv-sub-stats-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-sub-stats-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-sub-stats-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     if (stats.activeCount === 0) {
         const empty = document.createElement("div");

@@ -8,6 +8,7 @@ import type { MeterEntry, RowLogs } from "./rowlog";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { formatAmount } from "./format";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type UtilityType = "electricity" | "water" | "gas";
 
@@ -260,6 +261,7 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
     const body = dlg.element.querySelector("#lv-util-tiers-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-util-tiers-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-util-tiers-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const render = () => {
         body.replaceChildren();

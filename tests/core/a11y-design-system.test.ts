@@ -134,4 +134,34 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).not.toMatch(/innerHTML\s*=.*[★]/);
     }
   });
+
+  it('核心专业分析模态框接入 bindDialogA11y 实现焦点与 Escape 逃生路线闭环', () => {
+    const dialogFiles = [
+      '../../src/core/spotlight-dialog.ts',
+      '../../src/core/location-dialog.ts',
+      '../../src/core/favors-dialog.ts',
+      '../../src/core/emergency-card-dialog.ts',
+      '../../src/core/life-index.ts',
+      '../../src/core/media.ts',
+      '../../src/core/bind-dialog.ts',
+      '../../src/core/batch-dialog.ts',
+      '../../src/core/waste-dialog.ts',
+      '../../src/core/subscriptions.ts',
+      '../../src/core/utility-tiers.ts',
+      '../../src/core/valuation.ts',
+      '../../src/core/store-dialog.ts',
+      '../../src/core/meal-plan.ts',
+      '../../src/core/medicine-dosing.ts',
+      '../../src/core/emergency-kit.ts',
+      '../../src/core/member-timeline.ts',
+      '../../src/core/rewards-dialog.ts',
+      '../../src/core/sharecard-dialog.ts',
+    ];
+
+    for (const rel of dialogFiles) {
+      const fullPath = path.resolve(__dirname, rel);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      expect(content).toContain('bindDialogA11y');
+    }
+  });
 });

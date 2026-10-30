@@ -7,6 +7,7 @@
 
 import { nextWastePickups, formatWasteScheduleText, DEFAULT_WASTE_RULES, type WasteRule } from "./waste-schedule";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface WasteDialogOptions {
     t: (k: string) => string;
@@ -42,6 +43,7 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
 
     const listEl = dlg.element.querySelector("#lv-waste-list") as HTMLElement;
     (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     // 按日期聚类渲染条目
     const byDate = new Map<string, typeof pickups>();

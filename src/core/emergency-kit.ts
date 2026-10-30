@@ -7,6 +7,7 @@
  */
 
 import { getTemplate } from "./templates";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface EmergencyKitItem {
     name: string;
@@ -209,6 +210,7 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
     const copyBtn = dlg.element.querySelector("#lv-em-copy") as HTMLButtonElement;
     const importBtn = dlg.element.querySelector("#lv-em-import") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-em-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     // 1. 顶部统计
     const metrics = document.createElement("div");

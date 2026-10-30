@@ -5,6 +5,7 @@
  */
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -374,6 +375,7 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
     const copyBtn = dlg.element.querySelector("#lv-mealplan-copy") as HTMLButtonElement;
     const addBtn = dlg.element.querySelector("#lv-mealplan-add") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-mealplan-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const render = () => {
         body.replaceChildren();

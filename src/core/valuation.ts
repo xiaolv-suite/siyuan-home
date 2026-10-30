@@ -7,6 +7,7 @@ import type { AvRow } from "@/core/siyuan";
 import type { RowLogs, ValuationEntry } from "@/core/rowlog";
 import { getValuations } from "@/core/rowlog";
 import { calculateAssetDepreciation } from "./depreciation";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface AssetItemValuation {
     id: string;
@@ -294,6 +295,7 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
     const copyBtn = dlg.element.querySelector("#lv-asset-val-copy") as HTMLButtonElement;
 
     (dlg.element.querySelector("#lv-asset-val-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     if (report.activeItems === 0) {
         const empty = document.createElement("div");

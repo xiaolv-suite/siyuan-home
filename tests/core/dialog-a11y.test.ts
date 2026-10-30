@@ -156,4 +156,32 @@ describe("core/dialog-a11y 模态弹窗无障碍焦点与按键管理", () => {
         expect(lastBtn.focus).toHaveBeenCalled();
         expect(activeEl).toBe(lastBtn);
     });
+
+    it("支持通过字符串选择器或直接节点聚焦 defaultFocus，缺省自动落焦取消按钮", async () => {
+        const inputEl = { focus: vi.fn(), offsetWidth: 100, offsetHeight: 30 };
+        const cancelBtn = { focus: vi.fn(), offsetWidth: 80, offsetHeight: 30 };
+
+        const element = {
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            querySelector: vi.fn((sel: string) => {
+                if (sel === "#my-input") return inputEl;
+                if (sel.includes("b3-button--cancel")) return cancelBtn;
+                return null;
+            }),
+            querySelectorAll: vi.fn(() => [inputEl, cancelBtn]),
+        };
+
+        const dlg = { element: element as any, destroy: vi.fn() };
+        bindDialogA11y({ dlg, defaultFocus: "#my-input" });
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(inputEl.focus).toHaveBeenCalledTimes(1);
+
+        const dlg2 = { element: element as any, destroy: vi.fn() };
+        bindDialogA11y({ dlg: dlg2 });
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(cancelBtn.focus).toHaveBeenCalledTimes(1);
+    });
 });

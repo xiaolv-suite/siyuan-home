@@ -55,19 +55,21 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
 
     dlg.element.addEventListener("keydown", handleKeydown);
 
-    if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(() => {
-            if (defaultFocus) {
-                const target = typeof defaultFocus === "string"
-                    ? dlg.element.querySelector<HTMLElement>(defaultFocus)
-                    : defaultFocus;
-                target?.focus();
-            } else {
-                const cancelBtn = dlg.element.querySelector<HTMLElement>(".b3-button--cancel, #lv-detail-close, #lv-loc-close, #lv-favors-close, #lv-life-index-close");
-                cancelBtn?.focus();
-            }
-        });
-    }
+    const scheduleFocus = typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb: () => void) => setTimeout(cb, 0);
+
+    scheduleFocus(() => {
+        if (defaultFocus) {
+            const target = typeof defaultFocus === "string"
+                ? dlg.element.querySelector<HTMLElement>(defaultFocus)
+                : defaultFocus;
+            target?.focus();
+        } else {
+            const cancelBtn = dlg.element.querySelector<HTMLElement>(".b3-button--cancel, #lv-detail-close, #lv-loc-close, #lv-favors-close, #lv-life-index-close, #lv-sub-stats-close, #lv-util-tiers-close, #lv-asset-val-close, #lv-store-close, #lv-mealplan-close, #lv-med-supply-close, #lv-em-close, #lv-member-timeline-close, #lv-rewards-close, #lv-sc-close");
+            cancelBtn?.focus();
+        }
+    });
 
     const originalDestroy = dlg.destroy.bind(dlg);
     let destroyed = false;

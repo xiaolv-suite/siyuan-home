@@ -7,6 +7,7 @@ import { bindExistingDoc } from "./provisioner";
 import { saveSettings } from "./settings";
 import type { ModuleSchema } from "./schema";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface BindExistingDocDialogOptions {
     active: string;
@@ -46,6 +47,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
     if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
 
     const bindInput = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement | null;
+    bindDialogA11y({ dlg, defaultFocus: bindInput });
     if (bindInput) {
         bindInput.addEventListener("keydown", (e: KeyboardEvent) => {
             if (e.key === "Enter" && !e.isComposing) (dlg.element.querySelector("#lv-bind-doc-ok") as HTMLButtonElement)?.click();

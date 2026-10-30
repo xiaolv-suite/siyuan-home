@@ -13,6 +13,7 @@ import {
     type RewardRecordItem,
 } from "./rewards-ledger";
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface RewardsDialogOptions {
     t: (k: string) => string;
@@ -114,6 +115,7 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 
     const listEl = dlg.element.querySelector("#lv-rewards-list") as HTMLElement;
     (dlg.element.querySelector("#lv-rewards-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     if (report.members.length === 0 || report.totalPointsAll === 0) {
         const empty = document.createElement("div");

@@ -6,6 +6,7 @@
  */
 import { groupShoppingByCategory, storeModeProgress, toggleStoreItem, formatStoreModeText } from "./shopping";
 import type { AvCellLike } from "./avcell";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface StoreModeDialogOptions {
     t: (k: string) => string;
@@ -51,6 +52,7 @@ export async function openStoreModeDialog(opts: StoreModeDialogOptions): Promise
     const body = dlg.element.querySelector("#lv-store-body") as HTMLElement;
     const progressEl = dlg.element.querySelector("#lv-store-progress") as HTMLElement;
     (dlg.element.querySelector("#lv-store-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const catLabel = (c: string) => {
         const key = `field.category.opt.${c}`;

@@ -4,6 +4,7 @@
 
 import { setCell } from "./siyuan";
 import type { FamilyMember } from "@/types";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface BatchMemberDialogOptions {
     targetCol: string;
@@ -39,6 +40,7 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
 
     const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
     if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg, defaultFocus: cancelBtn });
 
     dlg.element.querySelectorAll(".lv-batch-mem-tag").forEach((btn: any) => {
         btn.onclick = async () => {
@@ -109,6 +111,7 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
 
     const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
     if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg, defaultFocus: inp });
 
     const okBtn = dlg.element.querySelector("#lv-batch-loc-ok") as HTMLButtonElement | null;
     if (okBtn) {

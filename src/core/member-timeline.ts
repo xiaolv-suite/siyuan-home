@@ -7,6 +7,7 @@
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { formatAmount } from "./format";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type AssetModuleType = "certs" | "contracts";
 export type AssetNodeStatus = "valid" | "expiring_soon" | "expired" | "terminated";
@@ -379,6 +380,7 @@ export async function openMemberTimelineFlow(
     const body = dlg.element.querySelector("#lv-member-timeline-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-member-timeline-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-member-timeline-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const metrics = document.createElement("div");
     metrics.className = "lv-metric-grid-3";

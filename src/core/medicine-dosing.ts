@@ -6,6 +6,7 @@
  */
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type SupplyStatus = "out_of_stock" | "critical" | "warning" | "sufficient" | "unknown";
 
@@ -360,6 +361,7 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
     const body = dlg.element.querySelector("#lv-med-supply-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-med-supply-copy") as HTMLButtonElement;
     (dlg.element.querySelector("#lv-med-supply-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const metrics = document.createElement("div");
     metrics.className = "lv-metric-grid-4";

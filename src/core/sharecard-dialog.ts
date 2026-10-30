@@ -13,6 +13,7 @@ import {
     downloadPng,
     type FamilyYearlyReportCardData,
 } from "./sharecard";
+import { bindDialogA11y } from "./dialog-a11y";
 import { aggregateFamilyMilestones, type MilestoneSourceRow } from "./milestones";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
@@ -136,6 +137,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
     const copyImgBtn = dlg.element.querySelector("#lv-sc-copy-img") as HTMLButtonElement;
     const downloadBtn = dlg.element.querySelector("#lv-sc-download") as HTMLButtonElement;
     (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     copyTextBtn.onclick = async () => {
         try {

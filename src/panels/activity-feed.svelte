@@ -233,7 +233,7 @@
             {/if}
             <button type="button" class="lv-iconbtn" aria-expanded={!collapsed} aria-controls={memberId ? `lv-activity-body-${memberId}` : "lv-activity-body"}
                 aria-label={collapsed ? t("activity.expand") : t("activity.collapse")} onclick={(event) => { collapsed = !collapsed; if (collapsed && event.currentTarget instanceof HTMLElement) event.currentTarget.focus(); }}>
-                {collapsed ? "⌄" : "⌃"}
+                <UiIcon name={collapsed ? "chevronDown" : "chevronUp"} size={14} />
             </button>
         </div>
     </div>

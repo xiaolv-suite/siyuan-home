@@ -15,4 +15,12 @@ describe("modules.moduleIcon", () => {
     it("未知 id 回退 🗂", () => {
         expect(moduleIcon("ghost-module")).toBe("🗂");
     });
+
+    it("UI_ICON_PATHS 包含折叠/展开与导轨基础图标定义", async () => {
+        const { UI_ICON_PATHS } = await import("@/ui/icons");
+        expect(UI_ICON_PATHS.chevronDown).toBeDefined();
+        expect(UI_ICON_PATHS.chevronUp).toBeDefined();
+        expect(UI_ICON_PATHS.home).toBeDefined();
+        expect(UI_ICON_PATHS.settings).toBeDefined();
+    });
 });

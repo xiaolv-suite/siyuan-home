@@ -133,7 +133,7 @@
                 aria-label={isExpanded ? t("hub.collapseSummary") : t("hub.expandSummary")}
                 title={isExpanded ? t("hub.collapseSummary") : t("hub.expandSummary")}
                 onclick={() => onToggleExpand?.(r.id)}>
-                <span aria-hidden="true">{isExpanded ? "▴" : "▾"}</span>
+                <UiIcon name={isExpanded ? "chevronUp" : "chevronDown"} size={12} />
             </button>
         </b>
         <span class="lv-num">

@@ -56,6 +56,8 @@ export const UI_ICON_PATHS = {
     archive: "M4 7h16v13H4z M3 4h18v3H3z M9 11h6",
     menu: "M4 6h16M4 12h16M4 18h16",
     layout: "M4 4h16v16H4z M15 4v16",
+    chevronDown: "m6 9 6 6 6-6",
+    chevronUp: "m18 15-6-6-6 6",
 } as const;
 
 export type UiIconName = keyof typeof UI_ICON_PATHS;

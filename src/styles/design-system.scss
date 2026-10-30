@@ -2206,6 +2206,7 @@
     .lv-empty, .lv-empty-compact, .lv-file, .lv-module-section__head, .lv-table tr.lv-row-link,
     .lv-record-section, .lv-record-more, .lv-capture-context, .lv-vehicle-card,
     .lv-settings, .lv-setcard, .lv-settings__row, .lv-settings__footer,
+    .lv-event-card, .lv-event-subbtn, .lv-capture-mode-btn, .lv-batch-bar,
     .b3-button, .b3-select, .b3-text-field { border: 1px solid CanvasText; }
     .lv-modal .lv-sheet, .lv-drawer { border: 2px solid CanvasText; background: Canvas; }
     .lv-ledger-more__menu, .lv-rem .lv-rem-more-menu[data-open="true"] { border: 2px solid CanvasText; background: Canvas; }
@@ -2213,7 +2214,8 @@
     .lv-cal-cell.sel { outline: 2px solid Highlight; }
     .lv-cal-cell .d.today { outline: 2px solid CanvasText; background: Highlight; color: HighlightText; }
     .lv-tabs__item.is-active, .lv-tabs__item[aria-selected="true"], .lv-tabs__item.on,
-    .lv-setnav__item.on, .lv-chip.on, .lv-rolechip.on, .lv-module-filter.on, [aria-selected="true"] {
+    .lv-setnav__item.on, .lv-chip.on, .lv-rolechip.on, .lv-module-filter.on, [aria-selected="true"],
+    .lv-event-subbtn.active, .lv-capture-mode-btn.active {
       outline: 2px solid Highlight !important; outline-offset: 1px; color: HighlightText !important; background: Highlight !important;
     }
     .lv-btn.primary, .b3-button--primary, .lv-hero-open {
@@ -2240,6 +2242,7 @@
     .lv-card, .lv-mod, .lv-chip, .lv-badge, .lv-qbtn, .lv-focus-card, .lv-strip, .lv-rem,
     .lv-sheet, .lv-drawer, .lv-ledger-more__menu, .lv-table tr.lv-row-link, .lv-cal-cell,
     .lv-tabbar, .lv-hero, .lv-memo, .lv-person, .lv-settings, .lv-setcard, .lv-settings__row,
+    .lv-event-card, .lv-event-subbtn, .lv-capture-mode-btn, .lv-batch-bar,
     .b3-button, .b3-select, .b3-text-field, .lv-start-guide, .lv-wiz__feature {
       border: 1px solid var(--lv-tx);
     }

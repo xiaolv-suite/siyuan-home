@@ -8,6 +8,7 @@ import { formatAmount } from "./format";
 import type { Reminder, DbRef } from "@/types";
 import { selectCellContent } from "./avcell";
 import { localDateKey } from "./hub/rule";
+import { uiIcon } from "@/ui/icons";
 
 export type LifeDimension = "health_safety" | "finance_contracts" | "daily_efficiency" | "culture_growth";
 export type LifeScoreLevel = "excellent" | "good" | "fair" | "needs_attention";
@@ -366,16 +367,16 @@ export function openLifeIndexDialog(
     dimSec.className = "lv-life-dim-grid";
 
     const dims = [
-        { icon: "🛡️", d: report.dimensions.health_safety },
-        { icon: "📜", d: report.dimensions.finance_contracts },
-        { icon: "⏰", d: report.dimensions.daily_efficiency },
-        { icon: "📚", d: report.dimensions.culture_growth },
+        { icon: uiIcon("shield", "", 15), d: report.dimensions.health_safety },
+        { icon: uiIcon("bank", "", 15), d: report.dimensions.finance_contracts },
+        { icon: uiIcon("clock", "", 15), d: report.dimensions.daily_efficiency },
+        { icon: uiIcon("backpack", "", 15), d: report.dimensions.culture_growth },
     ];
 
     for (const item of dims) {
         const card = document.createElement("div");
         card.className = "lv-metric-item";
-        card.innerHTML = `<div class="lv-row-split"><span class="lv-life-dim-title">${item.icon} ${item.d.title}</span><b class="lv-num lv-life-dim-score">${item.d.score}分</b></div><div class="lv-meter"><div style="height:100%;width:${item.d.score}%;background:var(--lv-data-accent);border-radius:999px"></div></div><span class="lv-caption lv-tx-2">${item.d.highlights[0] || item.d.suggestions[0] || "平稳运行中"}</span>`;
+        card.innerHTML = `<div class="lv-row-split"><span class="lv-life-dim-title" style="display:inline-flex;align-items:center;gap:6px">${item.icon} ${item.d.title}</span><b class="lv-num lv-life-dim-score">${item.d.score}分</b></div><div class="lv-meter"><div style="height:100%;width:${item.d.score}%;background:var(--lv-data-accent);border-radius:999px"></div></div><span class="lv-caption lv-tx-2">${item.d.highlights[0] || item.d.suggestions[0] || "平稳运行中"}</span>`;
         dimSec.appendChild(card);
     }
     body.appendChild(dimSec);
@@ -384,7 +385,7 @@ export function openLifeIndexDialog(
     if (report.topHighlights.length > 0) {
         const hlSec = document.createElement("div");
         hlSec.className = "lv-life-hl-box";
-        hlSec.innerHTML = `<b style="margin-bottom:2px">${t("overview.lifeIndexHighlights")}</b>` + report.topHighlights.map((h) => `<span class="lv-caption" style="color:var(--lv-tx)">✔ ${h}</span>`).join("");
+        hlSec.innerHTML = `<b style="margin-bottom:2px">${t("overview.lifeIndexHighlights")}</b>` + report.topHighlights.map((h) => `<span class="lv-caption" style="color:var(--lv-tx);display:inline-flex;align-items:center;gap:5px">${uiIcon("check", "", 12)} ${h}</span>`).join("");
         body.appendChild(hlSec);
     }
 

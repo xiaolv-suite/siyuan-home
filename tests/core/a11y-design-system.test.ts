@@ -115,6 +115,8 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       '../../src/core/emergency-card-dialog.ts',
       '../../src/core/ledger-detail-drawer.ts',
       '../../src/core/location-dialog.ts',
+      '../../src/core/life-index.ts',
+      '../../src/core/media.ts',
     ];
 
     for (const rel of filesToCheck) {
@@ -128,6 +130,8 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).not.toMatch(/>\s*[＋+]\s*\{t\(/);
       expect(content).not.toMatch(/textContent\s*=\s*`[＋+]/);
       expect(content).not.toMatch(/textContent\s*=\s*`\${t\("ledger\.openDoc"\)}\s*→`/);
+      expect(content).not.toMatch(/innerHTML\s*=\s*`<span[^>]*>[✔] /);
+      expect(content).not.toMatch(/innerHTML\s*=.*[★]/);
     }
   });
 });

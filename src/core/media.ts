@@ -4,6 +4,7 @@
  * 六大分类分布（电影/剧集/综艺/书籍/动漫/小说）与高分代表作榜单。
  */
 import type { AvRow } from "@/core/siyuan";
+import { uiIcon } from "@/ui/icons";
 
 export type MediaCategory = "movie" | "tv" | "variety" | "book" | "comic" | "novel";
 export type MediaStatus = "wishlist" | "consuming" | "done" | "dropped";
@@ -318,7 +319,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
             makeBox(t("ledger.mediaDone"), report.doneCount, `${t("ledger.mediaCompletionRate")} ${report.completionRate}%`),
             makeBox(t("ledger.mediaConsuming"), report.consumingCount, "进行中"),
             makeBox(t("ledger.mediaWishlist"), report.wishlistCount, "待看待读"),
-            makeBox(t("ledger.mediaRatingAvg"), report.averageRating !== undefined ? `${report.averageRating}★` : "—", `${report.ratedCount} 部有评分`),
+            makeBox(t("ledger.mediaRatingAvg"), report.averageRating !== undefined ? `${report.averageRating}` : "—", `${report.ratedCount} 部有评分`),
         );
         body.appendChild(metrics);
 
@@ -335,7 +336,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
                 const item = document.createElement("div");
                 item.className = "lv-metric-item lv-dialog-card-item";
                 const catLabel = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
-                const rText = c.averageRating !== undefined ? ` · 均分 ${c.averageRating}★` : "";
+                const rText = c.averageRating !== undefined ? ` · 均分 ${c.averageRating}` : "";
                 item.innerHTML = `<span style="font-weight:600">${catLabel}</span><span class="lv-caption">已完结 ${c.done} / 总计 ${c.total}${rText}</span>`;
                 list.appendChild(item);
             }
@@ -354,7 +355,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
                 item.className = "lv-metric-item lv-dialog-row";
                 const catLabel = t(`field.category.opt.${it.category}`) !== `field.category.opt.${it.category}` ? t(`field.category.opt.${it.category}`) : it.category;
                 const dateStr = it.date ? ` · ${it.date}` : "";
-                item.innerHTML = `<span style="font-weight:500">${it.name} <span class="lv-caption">(${catLabel}${dateStr})</span></span><b class="lv-num" style="color:var(--lv-warn)">${it.rating}★</b>`;
+                item.innerHTML = `<span style="font-weight:500">${it.name} <span class="lv-caption">(${catLabel}${dateStr})</span></span><b class="lv-num" style="color:var(--lv-warn);display:inline-flex;align-items:center;gap:3px">${it.rating} ${uiIcon("star", "", 12)}</b>`;
                 sec.appendChild(item);
             }
             body.appendChild(sec);

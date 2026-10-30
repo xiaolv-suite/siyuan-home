@@ -316,7 +316,7 @@
                 <button class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
             </div>
         </div>
-        {#if monthlyDone > 0}<p><span class="lv-badge green">✓ {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span></p>{/if}
+        {#if monthlyDone > 0}<p><span class="lv-badge green"><UiIcon name="check" size={12} /> {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span></p>{/if}
     </div>
     <div class="lv-hero-tools">
         <div class="lv-hero-stat-card" title={t("dash.statScope").replace("${t}", snapshotLabel)}>

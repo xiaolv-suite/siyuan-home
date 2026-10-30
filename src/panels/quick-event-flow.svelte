@@ -5,6 +5,7 @@
     import { addDetachedRow, setCell, renderLedgerAll } from "@/core/siyuan";
     import { buildFuelingLog, buildVitalLog } from "@/core/quick-actions";
     import { appendEntry, updateRowLogs } from "@/core/rowlog";
+    import UiIcon from "@/ui/icon.svelte";
 
     let {
         plugin,
@@ -339,7 +340,7 @@
     {/if}
     {#if saveError}
         <div class="lv-caption lv-event-flow-error">
-            <span aria-hidden="true">⚠️</span>
+            <span aria-hidden="true"><UiIcon name="alert" size={13} /></span>
             <span>{saveError}</span>
         </div>
     {/if}

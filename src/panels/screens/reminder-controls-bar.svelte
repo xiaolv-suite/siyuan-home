@@ -1,4 +1,5 @@
 <script lang="ts">
+    import UiIcon from "@/ui/icon.svelte";
     import type { ReminderNamedView } from "@/core/hub/runtime";
 
     let {
@@ -120,7 +121,9 @@
                     aria-busy={digestBusy} onclick={onOpenDigest}>{digestBusy ? t("ledger.saving") : t("hub.digest")}</button>
                 <button class="b3-button b3-button--outline" class:is-active={todaySilentOn}
                     aria-pressed={todaySilentOn} title={t("hub.todaySilentTip")}
-                    disabled={batchBusy} onclick={onToggleTodaySilent}>{todaySilentOn ? "🔕 " : ""}{t("hub.todaySilent")}{todaySilentOn ? " ✓" : ""}</button>
+                    disabled={batchBusy} onclick={onToggleTodaySilent}>
+                    {#if todaySilentOn}<UiIcon name="mute" size={13} /> {/if}{t("hub.todaySilent")}{#if todaySilentOn} <UiIcon name="check" size={12} />{/if}
+                </button>
                 <button class="b3-button b3-button--outline" class:is-active={batchMode} aria-pressed={batchMode} disabled={batchBusy} onclick={toggleBatchMode}>{t("hub.batch")}</button>
                 <button class="b3-button b3-button--outline" disabled={batchBusy || rescanning} aria-busy={rescanning} onclick={onRescan}>{t("hub.rescan")}</button>
                 <button class="b3-button b3-button--outline" disabled={batchBusy || exportingIcs} aria-busy={exportingIcs} onclick={onExportIcs}>{exportingIcs ? t("ledger.saving") : t("hub.icsExport")}</button>

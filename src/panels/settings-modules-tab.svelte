@@ -2,6 +2,7 @@
     import { showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
     import { MODULE_GROUPS, modulesByGroup, BUILT_IN_MODULES } from "@/core/modules";
+    import UiIcon from "@/ui/icon.svelte";
     import type { FamilyMember, ModuleGroupId } from "@/types";
 
     let {
@@ -55,7 +56,7 @@
                 class="b3-button b3-button--text lv-set-search-clear"
                 aria-label={t("clear")}
                 onclick={() => { moduleSearch = ""; }}
-            >✕</button>
+            ><UiIcon name="close" size={12} /></button>
         {/if}
     </div>
 </div>

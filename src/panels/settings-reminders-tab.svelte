@@ -1,6 +1,7 @@
 <script lang="ts">
     import { showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
+    import UiIcon from "@/ui/icon.svelte";
     import type { HomeSettings, FamilyMember, CheckinBinding } from "@/types";
 
     let {
@@ -246,7 +247,7 @@
                         <select class="b3-select" bind:value={b.metric} aria-label={t("settings.metricKind")}>
                             {#each METRICS as mt (mt)}<option value={mt}>{t(`settings.metric.${mt}`)}</option>{/each}
                         </select>
-                        <button type="button" class="b3-button b3-button--text" title={t("delete")} aria-label={`${t("delete")} · ${b.itemName}`} onclick={() => removeBinding(i)}>✕</button>
+                        <button type="button" class="b3-button b3-button--text" title={t("delete")} aria-label={`${t("delete")} · ${b.itemName}`} onclick={() => removeBinding(i)}><UiIcon name="close" size={12} /></button>
                     </div>
                 {/each}
                 {#if draftBindings.length === 0}

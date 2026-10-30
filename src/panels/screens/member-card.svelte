@@ -6,6 +6,7 @@
     import { calculateRetirement } from "@/core/retirement";
     import { getContactsBridge } from "@/libs/contact-picker";
     import ActivityFeed from "../activity-feed.svelte";
+    import UiIcon from "@/ui/icon.svelte";
 
     export interface MemberStat {
         chips: { label: string; n: number }[];
@@ -159,7 +160,7 @@
         <button type="button" class="lv-person-alert"
             title="点击展开该成员详情与到期提醒"
             onclick={() => { if (!expanded) onToggleExpand(); }}>
-            <span>⚠️ 需关注 · <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
+            <span><UiIcon name="alert" size={13} /> 需关注 · <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
             <span class="lv-caption lv-person-alert-arrow">→</span>
         </button>
     {/if}
@@ -225,7 +226,7 @@
                 <button class="b3-button b3-button--outline lv-member-timeline-btn"
                     onclick={() => onOpenAssetTimeline()}>
                     <span class="lv-member-timeline-label">
-                        <span class="lv-timeline-icon">📑</span>
+                        <span class="lv-timeline-icon"><UiIcon name="archive" size={14} /></span>
                         <b class="lv-tx-strong">{t("members.assetTimeline")}</b>
                     </span>
                     <span class="lv-caption lv-member-timeline-meta">

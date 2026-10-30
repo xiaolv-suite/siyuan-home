@@ -25,7 +25,7 @@
                 {#if p.isToday}
                     ●
                 {:else if p.isPast && p.dueCount === 0}
-                    ✓
+                    <UiIcon name="check" size={10} />
                 {:else if p.dueCount > 0}
                     {p.dueCount}
                 {:else}

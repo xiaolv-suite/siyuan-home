@@ -156,7 +156,7 @@
                 <button class="lv-btn ghost" disabled={provisioning} onclick={skip}>{provisioning ? t("wiz.provisioningShort") : t("wiz.skip")}</button>
                 <button class="lv-btn primary" disabled={provisioning} onclick={() => goToStep(2)}>{t("wiz.next")} →</button>
             </div>
-            {#if provisionError}<p class="lv-caption lv-wiz__error" role="alert">⚠ {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</p>{/if}
+            {#if provisionError}<p class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</p>{/if}
         {:else}
             <div class="lv-wiz__current">
                 <h3 id="lv-wiz-title" class="lv-wiz__title" tabindex="-1">{t("wiz.s2Title")}</h3>
@@ -171,16 +171,16 @@
             </div>
             {#if picked.includes("child") && children > 0}
                 <!-- N3（重估后方案 A）：向导不建成员实体，性别只读不写不问——完成页引导去成员页补（D23 生长带依赖） -->
-                <p class="lv-caption lv-wiz__note" role="note">ⓘ {t("wiz.sexHint")}</p>
+                <p class="lv-caption lv-wiz__note" role="note"><UiIcon name="info" size={13} /> {t("wiz.sexHint")}</p>
             {/if}
             <div class="lv-wiz__actions lv-wiz__actions--split">
                 <button class="lv-btn" disabled={provisioning} onclick={() => goToStep(1)}>← {t("wiz.back")}</button>
                 {#if provisionError}
-                    <span class="lv-caption lv-wiz__error" role="alert">⚠ {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</span>
+                    <span class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</span>
                 {/if}
                 <button class="lv-btn primary" disabled={provisioning}
                     title={t("wiz.finishCta")} onclick={finishAndCapture}>
-                    {provisioning ? t("wiz.provisioningShort") : `✓ ${t("wiz.finishAndCapture")}`}
+                    {provisioning ? t("wiz.provisioningShort") : t("wiz.finishAndCapture")}
                 </button>
             </div>
         {/if}

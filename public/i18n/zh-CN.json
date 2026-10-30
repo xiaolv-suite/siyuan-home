@@ -1866,6 +1866,7 @@
     "overview.weeklyPulse": "本周日程节奏",
     "overview.achievements": "家庭生活就绪勋章",
     "overview.filterDayTip": "${date} ${weekday}：${count} 项待办（点击筛选该日）",
+    "overview.clearDateFilter": "清除日期聚焦",
     "overview.lifeIndexScore": "综合生活指数",
     "overview.lifeIndexDimensions": "四大维度盘点",
     "overview.lifeIndexHighlights": "家庭高光成就",

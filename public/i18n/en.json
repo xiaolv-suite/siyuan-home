@@ -1866,6 +1866,7 @@
     "overview.weeklyPulse": "Weekly Schedule Pulse",
     "overview.achievements": "Family Readiness Badges",
     "overview.filterDayTip": "${date} ${weekday}: ${count} pending item(s) (click to filter)",
+    "overview.clearDateFilter": "Clear date filter",
     "overview.lifeIndexScore": "Overall Life Index",
     "overview.lifeIndexDimensions": "Four Life Dimensions",
     "overview.lifeIndexHighlights": "Highlights & Achievements",

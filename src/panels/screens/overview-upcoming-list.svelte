@@ -58,24 +58,24 @@
     <h2 class="lv-title-sec">{t("dash.upcoming")}</h2>
     <span class="lv-sub">{t("dash.upcomingSub")}</span>
     {#if pulseDateFilter}
-        <button type="button" class="lv-badge blue lv-filter-clear-badge" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
+        <button type="button" class="lv-badge blue lv-filter-clear-badge" onclick={() => { pulseDateFilter = undefined; }} title={t("overview.clearDateFilter")} aria-label={t("overview.clearDateFilter")}>
             <UiIcon name="calendar" size={12} /> {pulseDateFilter} <UiIcon name="close" size={10} />
         </button>
     {/if}
-    <button class="b3-button b3-button--text" onclick={onViewAll}><span>{t("dash.viewAll")}</span> <UiIcon name="forward" size={12} /></button>
+    <button type="button" class="b3-button b3-button--text" onclick={onViewAll}><span>{t("dash.viewAll")}</span> <UiIcon name="forward" size={12} /></button>
 </div>
 {#if reminders.length === 0 && (initialScanError || scanErrors.length > 0)}
     <div class="lv-card"><div class="lv-empty" role="alert">
         <div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("dash.scanUnavailable")}</b>
         <span>{initialScanError || t("dash.focusDataErr").replace("${t}", snapshotLabel).replace("${n}", String(scanErrors.length))}</span>
-        <button class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={onRetryScan}>
+        <button type="button" class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={onRetryScan}>
             {retryingScan ? t("ledger.saving") : t("hub.rescan")}
         </button>
     </div></div>
 {:else if reminders.length === 0 && memberFilter}
     <!-- 174 波（对齐原型空态解释）：筛选导致的空 ≠ 无资料，说明并给清除出口 -->
     <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("dash.filteredEmpty")}</b><span>{t("dash.filteredEmptyHint")}</span>
-        <button class="b3-button b3-button--outline" onclick={onClearMemberFilter}>{t("dash.clearFilter")}</button>
+        <button type="button" class="b3-button b3-button--outline" onclick={onClearMemberFilter}>{t("dash.clearFilter")}</button>
     </div></div>
 {:else if reminders.length === 0}
     {#if firstScanPending}
@@ -100,7 +100,7 @@
                 <span>{t("hub.emptyHint")}</span>
             </div>
             {#if starterModule}
-                <button class="b3-button b3-button--outline" onclick={onOpenStarterRecord}>
+                <button type="button" class="b3-button b3-button--outline" onclick={onOpenStarterRecord}>
                     <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
                 </button>
             {/if}
@@ -121,9 +121,9 @@
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
                 </b><span class="lv-num">{r.dueDate}</span></div>
                 <div class="lv-rem-ops">
-                    <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => onCopyTaskBlock(r)}><UiIcon name="note" size={13} /></button>
-                    <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onCompleteReminder(r)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
-                    <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onSnoozeReminder(r, 7)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>
+                    <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => onCopyTaskBlock(r)}><UiIcon name="note" size={13} /></button>
+                    <button type="button" class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onCompleteReminder(r)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
+                    <button type="button" class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onSnoozeReminder(r, 7)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>
                 </div>
             </div>
         {/each}

@@ -71,6 +71,8 @@
     } = $props();
 
     let moreOpen = $state(false);
+    let moreToggleBtn = $state<HTMLButtonElement | undefined>(undefined);
+    let moreMenuEl = $state<HTMLElement | undefined>(undefined);
 
     const plan = $derived(planStatusOf(r));
     const member = $derived(memberOf(r.memberId));
@@ -85,6 +87,46 @@
         moreOpen = false;
         action();
     }
+
+    function handleToggleKeydown(e: KeyboardEvent) {
+        if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+            if (!moreOpen && e.key === "ArrowDown") {
+                e.preventDefault();
+                moreOpen = true;
+                setTimeout(() => {
+                    const firstBtn = moreMenuEl?.querySelector<HTMLButtonElement>("button:not([disabled])");
+                    firstBtn?.focus();
+                }, 0);
+            }
+        }
+    }
+
+    function handleMenuKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            moreOpen = false;
+            moreToggleBtn?.focus();
+            return;
+        }
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+        const target = e.target as HTMLElement;
+        if (!moreMenuEl) return;
+        const buttons = Array.from(moreMenuEl.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
+        const idx = buttons.indexOf(target as HTMLButtonElement);
+        if (idx === -1) return;
+
+        e.preventDefault();
+        if (e.key === "ArrowDown") {
+            buttons[(idx + 1) % buttons.length]?.focus();
+        } else if (e.key === "ArrowUp") {
+            buttons[(idx - 1 + buttons.length) % buttons.length]?.focus();
+        } else if (e.key === "Home") {
+            buttons[0]?.focus();
+        } else if (e.key === "End") {
+            buttons[buttons.length - 1]?.focus();
+        }
+    }
 </script>
 
 <svelte:window onclick={() => { if (moreOpen) moreOpen = false; }} />
@@ -96,7 +138,7 @@
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="lv-rem-ic" aria-hidden="true"
-        title={t("hub.dblClickPlanToday") !== "hub.dblClickPlanToday" ? t("hub.dblClickPlanToday") : "双击快速标记/取消今日待办，右键切换置顶"}
+        title={t("hub.dblClickPlanToday")}
         ondblclick={(e) => { e.stopPropagation(); onQuickPlanToday?.(r); }}
         oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); onTogglePin?.(r); }}
     ><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></div>
@@ -147,7 +189,7 @@
         <b class="lv-num">{relDue(r.daysLeft, r.dueDate)}</b>
     </div>
     <div class="lv-rem-ops">
-        <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
+        <button type="button" class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
             onRunAction?.(async () => {
                 await plugin.complete(r);
                 showMessage(t("hub.batchDone").replace("${n}", "1"), 2500, "info");
@@ -156,26 +198,27 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="lv-rem-more" onclick={(e) => e.stopPropagation()}>
-            <button class="b3-button b3-button--text lv-rem-more-toggle" type="button" aria-expanded={moreOpen} aria-haspopup="true" aria-controls={`lv-rem-more-${r.id}`}
+            <button bind:this={moreToggleBtn} class="b3-button b3-button--text lv-rem-more-toggle" type="button" aria-expanded={moreOpen} aria-haspopup="true" aria-controls={`lv-rem-more-${r.id}`}
+                onkeydown={handleToggleKeydown}
                 onclick={() => { moreOpen = !moreOpen; }}>{t("ledger.detailMore")} <UiIcon name={moreOpen ? "chevronUp" : "chevronDown"} size={11} /></button>
-            <div id={`lv-rem-more-${r.id}`} class="lv-rem-more-menu" role="group" aria-label={t("ledger.detailMore")} data-open={moreOpen ? "true" : "false"}>
+            <div bind:this={moreMenuEl} id={`lv-rem-more-${r.id}`} class="lv-rem-more-menu" role="menu" tabindex="-1" aria-label={t("ledger.detailMore")} data-open={moreOpen ? "true" : "false"} onkeydown={handleMenuKeydown}>
                 {#if ["certs", "insurance", "contracts"].includes(r.moduleId)}
-                    <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
                 {/if}
                 {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
-                    <button class="b3-button b3-button--text" disabled={batchBusy} title={t("act.locate")} onclick={() => handleMoreAction(() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId))}>{t("act.locate")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={t("act.locate")} onclick={() => handleMoreAction(() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId))}>{t("act.locate")}</button>
                 {/if}
-                <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
-                <button class="b3-button b3-button--text" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
-                <button class="b3-button b3-button--text" title={isItemPinned ? t("act.unpin") : t("act.pin")}
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" title={isItemPinned ? t("act.unpin") : t("act.pin")}
                     disabled={batchBusy || isBusy} aria-busy={isBusy}
                     onclick={() => handleMoreAction(() => onTogglePin?.(r))}>{isBusy ? t("ledger.saving") : (isItemPinned ? t("act.unpin") : t("act.pin"))}</button>
-                <button class="b3-button b3-button--text" aria-haspopup="menu" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : t("act.snooze")} <UiIcon name="chevronDown" size={11} /></button>
-                <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" aria-haspopup="menu" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : t("act.snooze")} <UiIcon name="chevronDown" size={11} /></button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
                 {#if r.moduleId === "adhoc"}
-                    <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
-                    <button class="b3-button b3-button--text ft__error lv-tx-danger" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
-                    <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onTriage?.(r))}>{t("triage.title")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onTriage?.(r))}>{t("triage.title")}</button>
                 {/if}
             </div>
         </div>
@@ -202,7 +245,7 @@
             {/if}
             {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
                 <div class="lv-rem-summary__item">
-                    <button class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
+                    <button type="button" class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
                         onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
                         <span>{t("act.locate")}</span> <UiIcon name="forward" size={11} />
                     </button>

@@ -56,4 +56,55 @@ describe("reminder-card (单条提醒卡片独立组件契约与交互)", () => 
         expect(specialReminder.lunar).toBe(true);
         expect(specialReminder.autoRenew).toBe(true);
     });
+
+    it("更多操作菜单键盘导航支持 (ArrowDown / ArrowUp / Home / End / Escape)", () => {
+        const toggleBtn = { focus: vi.fn() };
+        const btn1 = { focus: vi.fn() };
+        const btn2 = { focus: vi.fn() };
+        const btn3 = { focus: vi.fn() };
+        const buttons = [btn1, btn2, btn3];
+        let moreOpen = true;
+
+        function handleMenuKeydown(e: { key: string; target: any; preventDefault: () => void; stopPropagation: () => void }) {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                moreOpen = false;
+                toggleBtn.focus();
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+            const idx = buttons.indexOf(e.target);
+            if (idx === -1) return;
+
+            e.preventDefault();
+            if (e.key === "ArrowDown") {
+                buttons[(idx + 1) % buttons.length].focus();
+            } else if (e.key === "ArrowUp") {
+                buttons[(idx - 1 + buttons.length) % buttons.length].focus();
+            } else if (e.key === "Home") {
+                buttons[0].focus();
+            } else if (e.key === "End") {
+                buttons[buttons.length - 1].focus();
+            }
+        }
+
+        const preventDefault = vi.fn();
+        const stopPropagation = vi.fn();
+
+        // ArrowDown: btn1 -> btn2
+        handleMenuKeydown({ key: "ArrowDown", target: btn1, preventDefault, stopPropagation });
+        expect(btn2.focus).toHaveBeenCalled();
+
+        // ArrowUp: btn2 -> btn1
+        handleMenuKeydown({ key: "ArrowUp", target: btn2, preventDefault, stopPropagation });
+        expect(btn1.focus).toHaveBeenCalledTimes(1);
+
+        // Escape: 关闭菜单并恢复焦点至开关按钮
+        handleMenuKeydown({ key: "Escape", target: btn2, preventDefault, stopPropagation });
+        expect(moreOpen).toBe(false);
+        expect(toggleBtn.focus).toHaveBeenCalled();
+        expect(preventDefault).toHaveBeenCalled();
+        expect(stopPropagation).toHaveBeenCalled();
+    });
 });

@@ -2338,6 +2338,8 @@
     .lv-capture-mode-btn { min-height: 44px; padding-inline: 14px; }
     .lv-settings__footer :is(.b3-button, .lv-btn) { min-height: 44px; }
     .lv-batch-bar .b3-button { min-height: 44px; }
+    .lv-activity-footer .lv-iconbtn,
+    .lv-tabbar-actions .lv-iconbtn { width: 44px; height: 44px; }
   }
 
   @container lv-home (max-width: 900px) {

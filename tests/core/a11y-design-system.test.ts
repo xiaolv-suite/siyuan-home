@@ -93,6 +93,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(scssContent).toMatch(/\.lv-event-subbtn,\s*\.lv-capture-mode-btn\s*\{[^}]*min-height:\s*44px;/);
     expect(scssContent).toMatch(/\.lv-settings__footer\s*:is\(\.b3-button,\s*\.lv-btn\)\s*\{[^}]*min-height:\s*44px;/);
     expect(scssContent).toMatch(/\.lv-batch-bar\s*\.b3-button\s*\{[^}]*min-height:\s*44px;/);
+    expect(scssContent).toMatch(/\.lv-activity-footer\s*\.lv-iconbtn,\s*\.lv-tabbar-actions\s*\.lv-iconbtn\s*\{[^}]*width:\s*44px;\s*height:\s*44px;/);
   });
 
   it('index.scss 声明设置页与容器 640px / 400px 响应式断点', () => {

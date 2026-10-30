@@ -78,4 +78,12 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
   it('交互控件声明 touch-action: manipulation 消除触控设备 300ms 点击延迟', () => {
     expect(scssContent).toMatch(/touch-action:\s*manipulation;/);
   });
+
+  it('UI_ICON_PATHS 全部矢量图标均声明有效非空路径', async () => {
+    const { UI_ICON_PATHS } = await import('@/ui/icons');
+    for (const [name, pathStr] of Object.entries(UI_ICON_PATHS)) {
+      expect(typeof pathStr, `icon ${name} 路径须为 string`).toBe('string');
+      expect(pathStr.length, `icon ${name} 路径非空`).toBeGreaterThan(5);
+    }
+  });
 });

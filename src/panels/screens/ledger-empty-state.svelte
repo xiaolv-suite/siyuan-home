@@ -81,10 +81,10 @@
                     <UiIcon name="bolt" size={13} /> {rebuilding ? t("diag.rebuilding") : t("ledger.buildNow")}
                 </button>
                 <button class="b3-button b3-button--outline" onclick={onOpenBindDoc} disabled={rebuilding}>
-                    {t("ledger.bindDoc")}
+                    <UiIcon name="link" size={13} /> {t("ledger.bindDoc")}
                 </button>
                 <button class="b3-button b3-button--outline" onclick={onOpenNewRecord} disabled={rebuilding}>
-                    + {t("ledger.newRecord")}
+                    <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
                 </button>
             </div>
         </div>
@@ -109,7 +109,7 @@
             <b>{t("ledger.empty")}</b>
             <span>{t("ledger.emptyHint")}</span>
             <div class="lv-blank-actions">
-                <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
+                <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
                 {#if active !== "members" && active !== "adhoc"}
                     <button class="b3-button b3-button--outline" onclick={onImportCsv} disabled={rebuilding}><UiIcon name="archive" size={13} /> {t("ledger.importCsv")}</button>
                 {/if}

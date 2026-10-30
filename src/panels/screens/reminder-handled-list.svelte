@@ -45,7 +45,7 @@
     </div>
 {:else if handledFiltered.length === 0}
     <div class="lv-card">
-        <div class="lv-empty">
+        <div class="lv-empty" role="status">
             <div class="eic"><UiIcon name="check" size={22} /></div>
             <b>{t("hub.handledTitle")}</b>
             <span>{t("hub.handledHint")}</span>
@@ -66,11 +66,11 @@
                 </div>
                 <div class="lv-rem-ops">
                     <button type="button" class="b3-button b3-button--text" disabled={reminderBusy.has(h.id)} aria-busy={reminderBusy.has(h.id)} onclick={() => onRestore?.(h.id)}>
-                        {reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}
+                        <UiIcon name="repeat" size={12} /> {reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}
                     </button>
                     {#if h.kind === "memo"}
                         <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={reminderBusy.has(h.id)} onclick={() => onDeleteMemo?.(h.id, h.title || t("hub.handledUnknown"))}>
-                            {t("delete")}
+                            <UiIcon name="close" size={12} /> {t("delete")}
                         </button>
                     {/if}
                 </div>

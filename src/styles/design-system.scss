@@ -1361,6 +1361,24 @@
     &:hover { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); }
     &.active { background: var(--lv-accent); color: #fff; border-color: var(--lv-accent); font-weight: 500; }
   }
+  .lv-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    box-sizing: border-box;
+    .b3-text-field, .b3-select { width: 100%; box-sizing: border-box; }
+    textarea.b3-text-field { min-height: 90px; resize: vertical; }
+  }
+  .lv-chips-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+  .lv-candidates-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+  .lv-dialog-col {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    textarea.b3-text-field { min-height: 180px; resize: vertical; }
+  }
   .lv-preset-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .lv-preset-tag {
     font-size: 11.5px; padding: 2px 8px; border-radius: var(--lv-r-1, 6px);

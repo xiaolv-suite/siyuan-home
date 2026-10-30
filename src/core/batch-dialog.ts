@@ -24,9 +24,9 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
     const dlg = new DialogCls({
         title: t("ledger.batchMemberTitle"),
         content: `
-            <div class="b3-dialog__content" id="lv-batch-member-dialog" style="display:flex;flex-direction:column;gap:10px;padding:12px">
+            <div class="b3-dialog__content lv-dialog-col" id="lv-batch-member-dialog">
                 <label class="lv-caption">${t("ledger.batchMemberTitle")}：</label>
-                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <div class="lv-chips-wrap">
                     ${membersList.map((m) => `<button type="button" class="lv-preset-tag lv-batch-mem-tag" data-id="${m.avItemId}">${m.name}</button>`).join("")}
                 </div>
             </div>
@@ -79,10 +79,10 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
     const dlg = new DialogCls({
         title: t("ledger.batchLocationTitle"),
         content: `
-            <div class="b3-dialog__content" id="lv-batch-loc-dialog" style="display:flex;flex-direction:column;gap:10px;padding:12px">
+            <div class="b3-dialog__content lv-dialog-col" id="lv-batch-loc-dialog">
                 <label class="lv-caption">${t("ledger.batchLocationTitle")}：</label>
-                <input class="b3-text-field" id="lv-batch-loc-input" style="width:100%" placeholder="${t("capture.presetLocations")}" />
-                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <input class="b3-text-field fn__block" id="lv-batch-loc-input" placeholder="${t("capture.presetLocations")}" />
+                <div class="lv-chips-wrap">
                     ${locOptions.map((loc) => `<button type="button" class="lv-preset-tag lv-batch-loc-tag" data-loc="${loc}">${loc}</button>`).join("")}
                 </div>
             </div>

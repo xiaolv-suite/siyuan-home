@@ -49,21 +49,21 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
 
     const dlg = new DialogCls({
         title: t("capture.ingestTitle"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ingest-body" style="display:flex;flex-direction:column;gap:10px">
-  <div class="lv-caption" style="line-height:1.6">${t("capture.ingestHint")}</div>
-  <label style="display:flex;flex-direction:column;gap:4px">
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ingest-body">
+  <div class="lv-caption">${t("capture.ingestHint")}</div>
+  <label class="lv-form-group">
     <span class="lv-caption">${t("capture.ingestBlockLink")}</span>
-    <input class="b3-text-field" id="lv-ingest-link" placeholder="siyuan://blocks/20261020... 或 ((20261020...))" style="width:100%" />
+    <input class="b3-text-field" id="lv-ingest-link" placeholder="siyuan://blocks/20261020... 或 ((20261020...))" />
   </label>
-  <label style="display:flex;flex-direction:column;gap:4px">
+  <label class="lv-form-group">
     <span class="lv-caption">${t("capture.ingestModule")}</span>
-    <select class="b3-select" id="lv-ingest-mod" style="width:100%">${moduleOptionsHtml}</select>
+    <select class="b3-select" id="lv-ingest-mod">${moduleOptionsHtml}</select>
   </label>
-  <label style="display:flex;flex-direction:column;gap:4px">
+  <label class="lv-form-group">
     <span class="lv-caption">${t("capture.ingestContent")}</span>
-    <textarea class="b3-text-field" id="lv-ingest-content" placeholder="${t("capture.ingestContentPlaceholder")}" style="width:100%;min-height:90px;resize:vertical"></textarea>
+    <textarea class="b3-text-field" id="lv-ingest-content" placeholder="${t("capture.ingestContentPlaceholder")}"></textarea>
   </label>
-  <div id="lv-ingest-preview" class="lv-metric-item" style="display:none;flex-direction:column;gap:4px;padding:8px 12px;font-size:12px"></div>
+  <div id="lv-ingest-preview" class="lv-metric-item" style="display:none"></div>
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>

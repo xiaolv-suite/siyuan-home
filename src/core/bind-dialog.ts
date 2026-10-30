@@ -25,13 +25,13 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
     const dlg = new DialogCls({
         title: t("ledger.bindDocTitle"),
         content: `
-            <div class="b3-dialog__content lv-dialog-scroll-body" style="display:flex;flex-direction:column;gap:10px;padding:12px;max-height:65vh;overflow:auto">
-                <span class="lv-caption" style="line-height:1.6">${t("ledger.bindDocHint")}</span>
-                <label style="display:flex;flex-direction:column;gap:4px">
+            <div class="b3-dialog__content lv-dialog-scroll-body">
+                <span class="lv-caption">${t("ledger.bindDocHint")}</span>
+                <label class="lv-form-group">
                     <span class="lv-caption">${t("ledger.bindDocTitle")}：</span>
-                    <input class="b3-text-field" id="lv-bind-doc-input" placeholder="siyuan://blocks/20261021... 或 ((20261021...))" style="width:100%" />
+                    <input class="b3-text-field" id="lv-bind-doc-input" placeholder="siyuan://blocks/20261021... 或 ((20261021...))" />
                 </label>
-                <div id="lv-bind-candidates" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
+                <div id="lv-bind-candidates" class="lv-candidates-list"></div>
             </div>
             <div class="b3-dialog__action">
                 <button class="b3-button b3-button--cancel">${t("cancel")}</button>

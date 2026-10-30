@@ -1522,6 +1522,57 @@
     padding-top: 4px;
     border-top: 1px dashed var(--lv-line);
   }
+  .lv-life-hero-card, .lv-rewards-hero-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: var(--lv-surface-2);
+    border-radius: var(--lv-r-card);
+    border: 1px solid var(--lv-line);
+    display: flex;
+    margin-bottom: 12px;
+  }
+  .lv-life-hero-left, .lv-rewards-hero-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .lv-life-score-wrap, .lv-rewards-score-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .lv-life-score, .lv-rewards-score {
+    font-size: 34px;
+    line-height: 1;
+    color: var(--lv-data-accent);
+  }
+  .lv-life-dim-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .lv-life-dim-title {
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--lv-tx);
+  }
+  .lv-life-dim-score {
+    font-size: 15px;
+    color: var(--lv-tx);
+  }
+  .lv-life-hl-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--lv-surface-2);
+    border-radius: var(--lv-r-control);
+    border: 1px solid var(--lv-line);
+    font-size: 12px;
+  }
   .lv-row-field {
     display: flex;
     align-items: center;

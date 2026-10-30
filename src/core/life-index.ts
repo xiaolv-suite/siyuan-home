@@ -357,14 +357,13 @@ export function openLifeIndexDialog(
 
     // 1. 顶部总评卡片
     const heroCard = document.createElement("div");
-    heroCard.className = "lv-metric-item";
-    heroCard.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--lv-surface-2);border-radius:var(--lv-r-card)";
-    heroCard.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px"><span class="lv-caption">${t("overview.lifeIndexScore")}</span><div style="display:flex;align-items:baseline;gap:8px"><b class="lv-num" style="font-size:36px;line-height:1;color:var(--lv-data-accent)">${report.overallScore}</b><span class="lv-badge green" style="font-size:12px;padding:2px 8px">${report.levelLabel}</span></div></div><div class="lv-caption" style="text-align:right">健康安全 · 资产履约<br/>秩序日程 · 文化滋养</div>`;
+    heroCard.className = "lv-metric-item lv-life-hero-card";
+    heroCard.innerHTML = `<div class="lv-life-hero-left"><span class="lv-caption">${t("overview.lifeIndexScore")}</span><div class="lv-life-score-wrap"><b class="lv-num lv-life-score">${report.overallScore}</b><span class="lv-badge green">${report.levelLabel}</span></div></div><div class="lv-caption fn__text-right">健康安全 · 资产履约<br/>秩序日程 · 文化滋养</div>`;
     body.appendChild(heroCard);
 
     // 2. 四大维度网格
     const dimSec = document.createElement("div");
-    dimSec.style.cssText = "display:grid;grid-template-columns:repeat(2, 1fr);gap:10px";
+    dimSec.className = "lv-life-dim-grid";
 
     const dims = [
         { icon: "🛡️", d: report.dimensions.health_safety },
@@ -376,7 +375,7 @@ export function openLifeIndexDialog(
     for (const item of dims) {
         const card = document.createElement("div");
         card.className = "lv-metric-item";
-        card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:12.5px">${item.icon} ${item.d.title}</span><b class="lv-num" style="font-size:15px;color:var(--lv-tx)">${item.d.score}分</b></div><div style="height:4px;background:var(--lv-line);border-radius:2px;overflow:hidden"><div style="height:100%;width:${item.d.score}%;background:var(--lv-data-accent);border-radius:2px"></div></div><span class="lv-caption" style="font-size:11px;color:var(--lv-tx-2)">${item.d.highlights[0] || item.d.suggestions[0] || "平稳运行中"}</span>`;
+        card.innerHTML = `<div class="lv-row-split"><span class="lv-life-dim-title">${item.icon} ${item.d.title}</span><b class="lv-num lv-life-dim-score">${item.d.score}分</b></div><div class="lv-meter"><div style="height:100%;width:${item.d.score}%;background:var(--lv-data-accent);border-radius:999px"></div></div><span class="lv-caption lv-tx-2">${item.d.highlights[0] || item.d.suggestions[0] || "平稳运行中"}</span>`;
         dimSec.appendChild(card);
     }
     body.appendChild(dimSec);
@@ -384,7 +383,7 @@ export function openLifeIndexDialog(
     // 3. 高光成就与建议
     if (report.topHighlights.length > 0) {
         const hlSec = document.createElement("div");
-        hlSec.style.cssText = "display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12px";
+        hlSec.className = "lv-life-hl-box";
         hlSec.innerHTML = `<b style="margin-bottom:2px">${t("overview.lifeIndexHighlights")}</b>` + report.topHighlights.map((h) => `<span class="lv-caption" style="color:var(--lv-tx)">✔ ${h}</span>`).join("");
         body.appendChild(hlSec);
     }

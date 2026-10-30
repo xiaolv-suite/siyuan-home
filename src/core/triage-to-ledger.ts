@@ -22,14 +22,13 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     if (!targets.length) { showMessageFn(t("triage.noTarget"), 3500, "error"); return; }
     const modLabel = (id: string) => (t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id);
     const needProvision = (id: string) => !plugin.settings?.dbRefs?.[id]?.avId;
-    const dlg = new DialogCls({ title: t("triage.title"), content: `<div id="lv-triage" style="display:flex;flex-direction:column;gap:10px"></div>`, width: "460px" });
+    const dlg = new DialogCls({ title: t("triage.title"), content: `<div id="lv-triage" class="lv-dialog-col"></div>`, width: "460px" });
     const box = dlg.element.querySelector("#lv-triage") as HTMLElement;
-    const rowFlexCenterCss = "display:flex;gap:8px;align-items:center";
 
     const row1 = document.createElement("div");
-    row1.style.cssText = rowFlexCenterCss;
-    const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.style.minWidth = "72px"; l1.textContent = t("triage.module");
-    const sel = document.createElement("select"); sel.className = "b3-select"; sel.style.flex = "1";
+    row1.className = "lv-row-field";
+    const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.textContent = t("triage.module");
+    const sel = document.createElement("select"); sel.className = "b3-select";
     for (const x of targets) {
         const o = document.createElement("option"); o.value = x.id;
         o.textContent = modLabel(x.id) + (needProvision(x.id) ? t("triage.needProvision") : "");
@@ -38,9 +37,9 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     row1.append(l1, sel);
 
     const rowM = document.createElement("div");
-    rowM.style.cssText = rowFlexCenterCss;
-    const lM = document.createElement("span"); lM.className = "ft__on-surface"; lM.style.minWidth = "72px"; lM.textContent = t("field.member");
-    const memberSel = document.createElement("select"); memberSel.className = "b3-select"; memberSel.style.flex = "1";
+    rowM.className = "lv-row-field";
+    const lM = document.createElement("span"); lM.className = "ft__on-surface"; lM.textContent = t("field.member");
+    const memberSel = document.createElement("select"); memberSel.className = "b3-select";
     const none = document.createElement("option"); none.value = ""; none.textContent = t("members.unassigned");
     memberSel.append(none);
     for (const m of plugin.settings?.members ?? []) {
@@ -53,19 +52,19 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     rowM.append(lM, memberSel);
 
     const row2 = document.createElement("div");
-    row2.style.cssText = rowFlexCenterCss;
-    const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.style.minWidth = "72px"; l2.textContent = t("triage.name");
-    const nameInput = document.createElement("input"); nameInput.className = "b3-text-field"; nameInput.style.flex = "1"; nameInput.value = r.title;
+    row2.className = "lv-row-field";
+    const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.textContent = t("triage.name");
+    const nameInput = document.createElement("input"); nameInput.className = "b3-text-field"; nameInput.value = r.title;
     row2.append(l2, nameInput);
 
     const row3 = document.createElement("div");
-    row3.style.cssText = rowFlexCenterCss;
-    const l3 = document.createElement("span"); l3.className = "ft__on-surface"; l3.style.minWidth = "72px"; l3.textContent = t("triage.due");
+    row3.className = "lv-row-field";
+    const l3 = document.createElement("span"); l3.className = "ft__on-surface"; l3.textContent = t("triage.due");
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
     row3.append(l3, dateInput);
 
     const ok = document.createElement("button"); ok.className = "b3-button"; ok.textContent = t("triage.create");
-    const err = document.createElement("span"); err.className = "lv-caption"; err.setAttribute("role", "alert"); err.style.color = "var(--lv-danger)";
+    const err = document.createElement("span"); err.className = "lv-caption lv-tx-danger"; err.setAttribute("role", "alert");
 
     let operationKey = (() => {
         try { return `triage:${crypto.randomUUID()}`; }

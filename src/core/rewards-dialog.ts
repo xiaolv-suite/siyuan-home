@@ -88,26 +88,26 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
     const dlg = new DialogCls({
         title: t("ledger.rewardsTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-rewards-body">
-	  <div class="lv-card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--lv-surface-2);border-radius:var(--lv-r-inner);margin-bottom:12px">
-	    <div style="display:flex;flex-direction:column;gap:4px">
-	      <span class="lv-caption">${t("ledger.rewardsUnsettledAll")}</span>
-	      <div style="display:flex;align-items:baseline;gap:6px">
-	        <b class="lv-num" style="font-size:30px;line-height:1.1;color:var(--lv-data-accent)">${report.unsettledPointsAll}</b>
-	        <span class="lv-caption" style="font-size:12px">${t("ledger.rewardsPointsUnit")}（≈ ¥${report.settleableAmountAll}）</span>
-	      </div>
+		  <div class="lv-card lv-rewards-hero-card">
+		    <div class="lv-rewards-hero-left">
+		      <span class="lv-caption">${t("ledger.rewardsUnsettledAll")}</span>
+		      <div class="lv-rewards-score-wrap">
+		        <b class="lv-num lv-rewards-score">${report.unsettledPointsAll}</b>
+		        <span class="lv-caption">${t("ledger.rewardsPointsUnit")}（≈ ¥${report.settleableAmountAll}）</span>
+		      </div>
+		    </div>
+	    <div class="fn__text-right">
+	      <span class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${report.totalPointsAll}</span>
+	      <div class="lv-caption lv-tx-2">${report.pointsPerYuan} 积分 = 1 元</div>
 	    </div>
-    <div style="text-align:right">
-      <span class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${report.totalPointsAll}</span>
-      <div class="lv-caption" style="font-size:11.5px;color:var(--lv-tx-2)">${report.pointsPerYuan} 积分 = 1 元</div>
-    </div>
-  </div>
-  <div id="lv-rewards-list" style="display:flex;flex-direction:column;gap:8px"></div>
-</div>
-<div class="b3-dialog__action">
-  <button class="b3-button b3-button--cancel" id="lv-rewards-close">${t("close")}</button>
-  <button class="b3-button b3-button--outline" id="lv-rewards-copy">📋 ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
-  <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
-</div>`,
+	  </div>
+	  <div id="lv-rewards-list" class="lv-ecard-list"></div>
+	</div>
+	<div class="b3-dialog__action">
+	  <button class="b3-button b3-button--cancel" id="lv-rewards-close">${t("close")}</button>
+	  <button class="b3-button b3-button--outline" id="lv-rewards-copy">📋 ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
+	  <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
+	</div>`,
         width: "580px",
     });
 
@@ -116,18 +116,16 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 
     if (report.members.length === 0 || report.totalPointsAll === 0) {
         const empty = document.createElement("div");
-        empty.className = "ft__on-surface";
-        empty.style.cssText = "font-size:12.5px;padding:16px 0;text-align:center";
+        empty.className = "ft__on-surface fn__text-center";
         empty.textContent = t("ledger.rewardsEmpty");
         listEl.appendChild(empty);
     } else {
         for (const m of report.members) {
             const row = document.createElement("div");
-            row.className = "lv-metric-item";
-            row.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:10px 12px;font-size:12.5px";
+            row.className = "lv-metric-item lv-favor-person-row";
 
             const left = document.createElement("div");
-            left.style.cssText = "display:flex;flex-direction:column;gap:3px;min-width:0;flex:1";
+            left.className = "lv-broken-link-row__left";
 
             const title = document.createElement("b");
             title.textContent = memberNameOf(m.memberId);

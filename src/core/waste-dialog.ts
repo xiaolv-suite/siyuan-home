@@ -27,10 +27,10 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
     const dlg = new DialogCls({
         title: t("ledger.wasteTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-waste-body">
-  <div class="lv-card" style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--lv-surface-2);margin-bottom:10px">
-    <span class="lv-caption" style="font-weight:600">${t("ledger.wasteIntro")}</span>
+  <div class="lv-card lv-notice-card fn__text-left">
+    <span class="lv-caption font-weight-600">${t("ledger.wasteIntro")}</span>
   </div>
-  <div id="lv-waste-list" style="display:flex;flex-direction:column;gap:6px"></div>
+  <div id="lv-waste-list" class="lv-ecard-list"></div>
 </div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
@@ -52,11 +52,10 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
 
     for (const [date, items] of byDate) {
         const row = document.createElement("div");
-        row.className = "lv-metric-item";
-        row.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:8px 12px;font-size:12.5px";
+        row.className = "lv-metric-item lv-favor-person-row";
 
         const left = document.createElement("div");
-        left.style.cssText = "display:flex;align-items:center;gap:8px;min-width:0;flex:1";
+        left.className = "lv-broken-link-row__left";
 
         const first = items[0];
         const badge = document.createElement("span");

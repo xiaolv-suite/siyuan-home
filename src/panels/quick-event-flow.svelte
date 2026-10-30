@@ -291,9 +291,9 @@
         </div>
         <div class="lv-frow">
             <label for="lv-vital-type">指标类型</label>
-            <div style="display:flex;gap:8px">
-                <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} /> {t("capture.metricBp")}</label>
-                <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} /> {t("capture.metricGlucose")}</label>
+            <div class="lv-radio-group">
+                <label class="lv-radio-label"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} /> {t("capture.metricBp")}</label>
+                <label class="lv-radio-label"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} /> {t("capture.metricGlucose")}</label>
             </div>
         </div>
         {#if vitalMetricType === "bp"}
@@ -332,7 +332,7 @@
             <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder="数量，默认 1" bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
         </div>
     {:else if eventSub === "snippet"}
-        <div class="lv-frow" style="display:flex;flex-direction:column;align-items:stretch">
+        <div class="lv-frow lv-col-stretch">
             <label for="lv-snip-text">{t("capture.actSnippet")}</label>
             <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期 (Ctrl+Enter快速保存)..." bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
         </div>
@@ -346,6 +346,21 @@
 </div>
 
 <style>
+    .lv-radio-group {
+        display: flex;
+        gap: 8px;
+    }
+    .lv-radio-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+    }
+    .lv-col-stretch {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
     .lv-event-flow-error {
         margin-top: 8px;
         padding: 6px 12px;

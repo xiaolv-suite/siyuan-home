@@ -407,9 +407,9 @@
 />
 
 {#if permissionDenied}
-    <div class="lv-card" role="alert" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+    <div class="lv-card lv-alert-banner" role="alert">
         <UiIcon name="alert" size={18} />
-        <span style="flex:1;min-width:0;overflow-wrap:anywhere">{t("permission.body")}</span>
+        <span class="lv-alert-text">{t("permission.body")}</span>
         <button class="b3-button b3-button--outline" disabled={rescanning} aria-busy={rescanning} onclick={rescan}>
             {rescanning ? t("diag.rebuilding") : t("hub.rescan")}
         </button>

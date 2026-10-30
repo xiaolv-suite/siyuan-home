@@ -38,7 +38,7 @@
             <div class="eic"><UiIcon name="search" size={22} /></div>
             <b>{t("hub.filteredEmpty")}</b>
             <span>{t("hub.filteredEmptyHint")}</span>
-            <button type="button" class="b3-button b3-button--outline" style="margin-top:8px" onclick={onClearFilters}>
+            <button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={onClearFilters}>
                 {t("hub.clearFilters")}
             </button>
         </div>
@@ -69,7 +69,7 @@
                         {reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}
                     </button>
                     {#if h.kind === "memo"}
-                        <button type="button" class="b3-button b3-button--text ft__error" style="color:var(--lv-danger)" disabled={reminderBusy.has(h.id)} onclick={() => onDeleteMemo?.(h.id, h.title || t("hub.handledUnknown"))}>
+                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={reminderBusy.has(h.id)} onclick={() => onDeleteMemo?.(h.id, h.title || t("hub.handledUnknown"))}>
                             {t("delete")}
                         </button>
                     {/if}
@@ -77,7 +77,7 @@
             </div>
         {/each}
         {#if handledFiltered.length > handledVisible.length}
-            <div style="display:flex;justify-content:center;padding:12px">
+            <div class="lv-card-center-pad">
                 <button type="button" class="b3-button b3-button--outline" onclick={() => (renderLimit += PAGE_SIZE)}>
                     {t("ledger.loadMore").replace("${n}", String(handledFiltered.length - handledVisible.length))}
                 </button>
@@ -85,3 +85,14 @@
         {/if}
     </div>
 {/if}
+
+<style>
+    .lv-mt-8 {
+        margin-top: 8px;
+    }
+    .lv-card-center-pad {
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+    }
+</style>

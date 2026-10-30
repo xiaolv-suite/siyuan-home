@@ -567,12 +567,12 @@
     />
 {:else}
     {#if missingSchemaCols.length > 0 && ref?.avId}
-        <div class="lv-card" style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--lv-amber-soft);border:1px solid var(--lv-accent-line);border-radius:var(--lv-r-2);margin:8px 0;font-size:12px">
-            <span style="color:var(--lv-amber)">⚠️</span>
-            <span style="color:var(--lv-tx-2);flex:1">
+        <div class="lv-card lv-notice-card">
+            <span class="lv-tx-warn">⚠️</span>
+            <span class="fn__flex-1 lv-tx-2">
                 {t("ledger.missingColumnsPrompt")} <b>{missingSchemaCols.map((c) => fieldLabel(c.key)).join("、")}</b>
             </span>
-            <button class="b3-button b3-button--outline" style="font-size:11.5px;padding:2px 8px" disabled={rebuilding} onclick={rebuildLedger}>
+            <button class="b3-button b3-button--outline lv-btn-text-sm" disabled={rebuilding} onclick={rebuildLedger}>
                 {rebuilding ? t("diag.rebuilding") : t("ledger.autoFixColumns")}
             </button>
         </div>

@@ -433,10 +433,10 @@
             <section class="lv-record-section">
                 <h3>{t("ledger.newRecordBasic")}</h3>
                 {#if currentLedgerTemplates.length > 0}
-                    <div class="lv-template-bar" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--lv-surface-2);border-radius:6px;font-size:11.5px;margin-bottom:12px">
-                        <span class="lv-caption" style="color:var(--lv-tx-3);font-size:11px">✨ {t("capture.frequentTemplates")}:</span>
+                    <div class="lv-template-bar">
+                        <span class="lv-caption lv-tx-3">✨ {t("capture.frequentTemplates")}:</span>
                         {#each currentLedgerTemplates as tpl (tpl.id)}
-                            <button type="button" class="lv-preset-tag" onclick={() => applyLedgerTemplate(tpl)} disabled={saving} style="font-size:11.5px;padding:2px 8px">
+                            <button type="button" class="lv-preset-tag" onclick={() => applyLedgerTemplate(tpl)} disabled={saving}>
                                 {#if tpl.icon}<span>{tpl.icon}</span>{/if}
                                 <span>{tpl.label}</span>
                             </button>

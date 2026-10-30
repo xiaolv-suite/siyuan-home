@@ -128,7 +128,7 @@
         </div>
         {#if !batchMode}
             <div class="lv-named-views-bar" role="group" aria-label={t("hub.namedViews")}>
-                <span class="lv-caption" style="font-size:11.5px;color:var(--lv-tx-3)">{t("hub.namedViews")}:</span>
+                <span class="lv-caption lv-tx-3">{t("hub.namedViews")}:</span>
                 {#each namedViews as v (v.id)}
                     <span class="lv-named-view-chip" class:is-active={activeNamedViewId === v.id}>
                         <button type="button" class="lv-named-view-btn"

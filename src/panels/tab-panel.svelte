@@ -515,7 +515,7 @@
                     </div>
                 </div>
                 <span class="fn__flex-1" aria-hidden="true"></span>
-                <div class="lv-tabs" bind:this={navEl} style="position:relative" role="tablist" aria-label={t("tab.title")}>
+                <div class="lv-tabs" bind:this={navEl} role="tablist" aria-label={t("tab.title")}>
                     <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
                     <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>
                     {#each screens as s, i (s.id)}
@@ -607,9 +607,9 @@
                             <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
                         {:else if loadedScreen !== screen || !ScreenView}
                             <div class="lv-card lv-screen-loading" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
-                                <span class="lv-skel" aria-hidden="true" style="width:42%;height:16px"></span>
-                                <span class="lv-skel" aria-hidden="true" style="width:78%;height:12px"></span>
-                                <span class="lv-skel" aria-hidden="true" style="width:64%;height:12px"></span>
+                                <span class="lv-skel lv-skel--w42-h16" aria-hidden="true"></span>
+                                <span class="lv-skel lv-skel--w78-h12" aria-hidden="true"></span>
+                                <span class="lv-skel lv-skel--w64-h12" aria-hidden="true"></span>
                             </div>
                         {:else}
                             <ScreenView {plugin} {t} {version} {initialScanError} onRetryScan={() => refreshInitialScan(true)} onCapture={(moduleId?: string) => openCapture(moduleId)} onGoto={(s: ScreenId) => gotoScreen(s)} />

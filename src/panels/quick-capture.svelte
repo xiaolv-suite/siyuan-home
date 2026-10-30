@@ -403,7 +403,7 @@
                         <button type="button" class="b3-button b3-button--cancel" onclick={() => { showDiscardConfirm = false; }}>
                             {t("cancel")}
                         </button>
-                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" style="font-weight:600" onclick={confirmDiscardUncertain}>
+                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-tx-strong" onclick={confirmDiscardUncertain}>
                             {t("capture.discardUncertain")}
                         </button>
                     </div>

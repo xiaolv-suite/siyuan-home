@@ -80,7 +80,7 @@
         <div class="lv-setcard__actions">
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
-            <input type="file" accept="application/json,.json" style="display:none"
+            <input type="file" accept="application/json,.json" class="fn__none"
                 bind:this={importInput} onchange={(e) => onImportSettings(e)} />
             {#if preImportBackupExists}
                 <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
@@ -93,7 +93,7 @@
             <div class="lv-setcard__hint">{t("settings.trashHint") || "最近删除的 50 条台账记录快照（包含单条删除与批量删除）。"}</div>
             <div class="lv-mt-10 lv-dialog-list">
                 {#if trashItems.length === 0}
-                    <div class="lv-caption lv-tx-muted lv-dialog-empty" style="padding:16px 0">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
+                    <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
                 {:else}
                     {#each trashItems as item (item.id + item.deletedAt)}
                         <div class="lv-settings__row lv-trash-item">
@@ -119,7 +119,7 @@
                             </div>
                         </div>
                     {/each}
-                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" style="align-self:flex-start;margin-top:8px" onclick={async () => {
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-self-start lv-mt-8" onclick={async () => {
                         const { confirm } = await import("@/libs/dialog");
                         confirm(
                             t("settings.trashClear") || "清空回收站",

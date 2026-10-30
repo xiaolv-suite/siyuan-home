@@ -83,7 +83,7 @@
 
             const dlg = new Dialog({
                 title: t("activity.insightTitle"),
-                content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption" style="white-space:pre-wrap;line-height:1.7;margin:0"></pre></div>
+                content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption lv-report-pre"></pre></div>
 <div class="b3-dialog__action">
   <button class="b3-button b3-button--cancel">${t("close")}</button>
   <button class="b3-button" id="lv-insight-copy">${t("activity.insightCopy")}</button>
@@ -262,7 +262,7 @@
                 <div class="lv-card lv-empty" role="alert">
                     <div class="eic"><UiIcon name="alert" size={22} /></div>
                     <b>{t("activity.failed")}</b><span>{loadError}</span>
-                    <button class="b3-button b3-button--outline" style="margin-top:8px" disabled={loading} onclick={() => void refresh(true)}>{loading ? t("activity.loading") : t("activity.retry")}</button>
+                    <button class="b3-button b3-button--outline lv-mt-8" disabled={loading} onclick={() => void refresh(true)}>{loading ? t("activity.loading") : t("activity.retry")}</button>
                 </div>
             {:else if records.length === 0}
                 {#if snapshot?.errors.length}
@@ -284,8 +284,8 @@
                     {:else}
                         <b>{query || moduleFilter !== "all" ? t("activity.noMatch") : t("activity.empty")}</b>
                         <span>{snapshot?.errors.length ? t("activity.incompleteEmptyHint") : query || moduleFilter !== "all" ? t("activity.noMatchHint") : t("activity.emptyHint")}</span>
-                        {#if query || moduleFilter !== "all"}<button type="button" class="b3-button b3-button--outline" style="margin-top:8px" onclick={clearFilters}>{t("activity.clearFilters")}</button>{/if}
-                        {#if snapshot?.eligibleModules === 0}<button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => plugin.openSetting()}>{t("activity.configure")}</button>{/if}
+                        {#if query || moduleFilter !== "all"}<button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={clearFilters}>{t("activity.clearFilters")}</button>{/if}
+                        {#if snapshot?.eligibleModules === 0}<button class="b3-button b3-button--outline lv-mt-8" onclick={() => plugin.openSetting()}>{t("activity.configure")}</button>{/if}
                     {/if}
                 </div>
             {:else}

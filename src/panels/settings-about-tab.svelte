@@ -50,14 +50,14 @@
             <button class="b3-button b3-button--outline lv-setcard__action"
                 disabled={rerunBusy || saving || migrationBusy || demoBusy}
                 onclick={onRerunOnboarding}>{rerunBusy ? t("ledger.saving") : t("wiz.rerun")}</button>
-            <button class="b3-button b3-button--outline" style="margin-top:8px;margin-left:6px"
+            <button class="b3-button b3-button--outline lv-mt-8 lv-ml-6"
                 onclick={() => window.open("https://github.com/ai68298100/siyuan-home", "_blank")}>{t("about.repo")}</button>
         </div>
     </div>
     {#if diag}
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">{t("diag.title")} · v{diag.version}</div>
-            <p class="lv-caption" style="margin:2px 0 8px">{t("hub.scannedAt")} {formatLocalDateTime(diag.scannedAt) ?? "—"}</p>
+            <p class="lv-caption lv-caption-time">{t("hub.scannedAt")} {formatLocalDateTime(diag.scannedAt) ?? "—"}</p>
             {#each diag.ledgers as l (l.id)}
                 <p class="lv-caption">
                     {t(`module.${l.id}`)}：
@@ -78,7 +78,7 @@
                     <p class="lv-caption lv-tx-danger">{c}</p>
                 {/each}
             {/if}
-            <div class="lv-setcard__actions" style="margin-top:8px">
+            <div class="lv-setcard__actions lv-mt-8">
                 <button class="b3-button b3-button--outline" onclick={onPreviewDiagnostics}>🔍 {t("settings.diagPreview")}</button>
                 <button class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={onExportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
                 {#if (plugin.settings?.members ?? []).some((m: any) => !m.avItemId || m.syncError)}

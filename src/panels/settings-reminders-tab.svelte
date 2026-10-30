@@ -193,7 +193,7 @@
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">{t("settings.leadsTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.leadsHint")}</div>
-            <div class="lv-dialog-row__left" style="margin-bottom:8px">
+            <div class="lv-dialog-row__left lv-mb-8">
                 {#if enabledLeadRules.length < leadRules.length}
                     <button type="button" class="b3-button b3-button--text lv-setcard__action" onclick={() => (showAllLeads = !showAllLeads)}>
                         {showAllLeads ? t("settings.leadsEnabledOnly") : t("settings.leadsShowAll").replace("${n}", String(leadRules.length - enabledLeadRules.length))}

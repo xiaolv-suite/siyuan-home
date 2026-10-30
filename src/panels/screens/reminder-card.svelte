@@ -91,8 +91,8 @@
 
 <div class="lv-rem {r.level}" class:lv-rem--batch={batchMode && viewMode === "list" && filter !== "handled"} out:fade={{ duration: 150 }}>
     {#if batchMode && viewMode === "list" && filter !== "handled"}
-        <input type="checkbox" class="b3-checkbox" aria-label={`${t("hub.select")}: ${r.title}`}
-            checked={isSelected} disabled={batchBusy} onchange={() => onToggleSelect?.(r.id)} style="flex-shrink:0" />
+        <input type="checkbox" class="b3-checkbox lv-batch-chk" aria-label={`${t("hub.select")}: ${r.title}`}
+            checked={isSelected} disabled={batchBusy} onchange={() => onToggleSelect?.(r.id)} />
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="lv-rem-ic" aria-hidden="true"
@@ -202,7 +202,7 @@
             {/if}
             {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
                 <div class="lv-rem-summary__item">
-                    <button class="b3-button b3-button--text lv-tx-accent" style="padding:0 4px;font-size:12px"
+                    <button class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
                         onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
                         {t("act.locate")} →
                     </button>
@@ -211,3 +211,9 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .lv-batch-chk {
+        flex-shrink: 0;
+    }
+</style>

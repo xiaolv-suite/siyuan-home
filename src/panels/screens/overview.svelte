@@ -379,9 +379,9 @@
 </div>
 
 {#if permissionDenied}
-    <div class="lv-card" role="alert" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+    <div class="lv-card lv-alert-banner" role="alert">
         <UiIcon name="alert" size={18} />
-        <span style="flex:1;min-width:0;overflow-wrap:anywhere">{t("permission.body")}</span>
+        <span class="lv-alert-text">{t("permission.body")}</span>
         <button class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={retryScan}>
             {retryingScan ? t("ledger.saving") : t("hub.rescan")}
         </button>
@@ -487,7 +487,7 @@
     {#if quickModules.length > 6}
         <button class="lv-qbtn lv-qbtn--toggle" aria-expanded={quickExpanded}
             onclick={() => (quickExpanded = !quickExpanded)}>
-            <span class="qi" aria-hidden="true" style="font-size:15px;font-weight:600">{quickExpanded ? "⌃" : "⌄"}</span>
+            <span class="qi lv-quick-expand-icon" aria-hidden="true">{quickExpanded ? "⌃" : "⌄"}</span>
             <span class="ql">{quickExpanded ? t("dash.quickModulesLess") : t("dash.quickModulesMore").replace("${n}", String(quickModules.length - 6))}</span>
         </button>
     {/if}
@@ -495,7 +495,7 @@
 <div class="lv-sec"><h2 class="lv-title-sec">{t("memo.quick")}</h2><span class="lv-sub">{t("memo.quickSub")}</span></div>
 <div class="lv-card lv-memo">
     <!-- 261 波：回车提交（isComposing 守卫——中文输入法选词的 Enter 不算提交） -->
-    <input bind:this={memoInput} class="b3-text-field fn__flex-1" style="min-width:180px" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
+    <input bind:this={memoInput} class="b3-text-field fn__flex-1 lv-memo-input" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
         disabled={savingMemo} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
     <!-- 262 波（Todoist 式即时预览）：解析命中即亮 chip，提交前就知道日期去哪了 -->
     {#if memoParsed}
@@ -522,3 +522,24 @@
     onDrillReminders={drillReminders}
 />
 {/if}
+
+<style>
+    .lv-alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+    .lv-alert-text {
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .lv-quick-expand-icon {
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .lv-memo-input {
+        min-width: 180px;
+    }
+</style>

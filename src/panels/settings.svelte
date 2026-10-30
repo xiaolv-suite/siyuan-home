@@ -452,7 +452,7 @@
             <div class="lv-card lv-setcard">
                 <div class="lv-setcard__title">{moduleSearch.trim() ? `搜索结果 · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>
                 {#if currentModules.length === 0}
-                    <div class="lv-caption lv-tx-muted" style="padding:12px 0">{t("ledger.searchEmpty")}</div>
+                    <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("ledger.searchEmpty")}</div>
                 {:else}
                     {#each currentModules as mod (mod.id)}
                         <div class="fn__flex lv-settings__row">
@@ -557,7 +557,7 @@
              让"改了但还没保存"可见，不再靠猜 -->
         {#if dirty}
             <span class="lv-badge orange" role="status">● {t("settings.unsaved")}</span>
-            <button class="b3-button b3-button--text lv-tx-muted" style="font-size:12px" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
+            <button class="b3-button b3-button--text lv-tx-muted lv-btn-text-sm" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
         {/if}
         <!-- 256 波：保存是设置视图唯一核心动作，升为主按钮（对齐原型"主按钮每视图 ≤1 个"） -->
         <button class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>

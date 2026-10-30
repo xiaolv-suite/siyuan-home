@@ -41,9 +41,9 @@
     }
 </script>
 
-<div class="lv-smart-capture-bar" style="margin-bottom:8px">
-    <div style="display:flex;gap:6px;align-items:center">
-        <input class="b3-text-field" style="flex:1;font-size:12px;padding:4px 8px"
+<div class="lv-smart-capture-bar">
+    <div class="lv-smart-input-row">
+        <input class="b3-text-field lv-smart-input"
             placeholder={t("capture.smartHint")}
             aria-label={t("capture.smartHint")}
             bind:value={smartInputText}
@@ -51,7 +51,7 @@
             disabled={saving}
         />
         {#if smartParsed && smartParsed.title}
-            <button type="button" class="b3-button b3-button--outline" style="font-size:11.5px;padding:3px 8px;flex-shrink:0"
+            <button type="button" class="b3-button b3-button--outline lv-smart-detect-btn"
                 aria-label={t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
                 onclick={onApplySmartParse}>
                 {t("capture.smartDetected").replace("${module}", modLabel(smartParsed.suggestedModule || moduleId))}
@@ -61,7 +61,7 @@
 </div>
 
 {#if frequentModules.length > 0}
-    <div class="lv-quick-chips" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+    <div class="lv-quick-chips">
         {#each frequentModules as fId (fId)}
             <button type="button" class="lv-quick-chip" class:active={moduleId === fId}
                 aria-pressed={moduleId === fId}
@@ -88,6 +88,30 @@
 {/if}
 
 <style>
+    .lv-smart-capture-bar {
+        margin-bottom: 8px;
+    }
+    .lv-smart-input-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+    .lv-smart-input {
+        flex: 1;
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    .lv-smart-detect-btn {
+        font-size: 11.5px;
+        padding: 3px 8px;
+        flex-shrink: 0;
+    }
+    .lv-quick-chips {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
     .lv-template-bar {
         display: flex;
         gap: 6px;

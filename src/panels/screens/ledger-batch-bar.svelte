@@ -25,8 +25,6 @@
     } = $props();
 
     let batchBusy = $state(false);
-    const fs12Pad310Css = "font-size:12px;padding:3px 10px";
-    const pad36Fs12Css = "padding:3px 6px;font-size:12px";
 
     async function openBatchMemberModal() {
         if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
@@ -150,27 +148,42 @@
 
 {#if selectedItemIds.length > 0}
     <div class="lv-batch-bar" role="toolbar" aria-label="批量操作">
-        <span class="lv-caption" style="font-weight:600;color:var(--lv-tx)">
+        <span class="lv-caption lv-batch-selected-count">
             {t("ledger.batchSelected").replace("${n}", String(selectedItemIds.length))}
         </span>
         {#if ref?.columns?.location}
-            <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchLocationModal}>
+            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchLocationModal}>
                 📍 {t("ledger.batchLocation")}
             </button>
         {/if}
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-            <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={openBatchMemberModal}>
+            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchMemberModal}>
                 👤 {t("ledger.batchMember")}
             </button>
         {/if}
-        <button type="button" class="b3-button b3-button--outline" style={fs12Pad310Css} disabled={batchBusy} onclick={batchCopyRefs}>
+        <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchCopyRefs}>
             🔗 {t("ledger.copyBlockRef")}
         </button>
-        <button type="button" class="b3-button b3-button--text ft__error" style="{fs12Pad310Css};color:var(--lv-danger)" disabled={batchBusy} onclick={batchDelete}>
+        <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} onclick={batchDelete}>
             🗑️ {t("ledger.batchDelete")}
         </button>
-        <button type="button" class="b3-button b3-button--text" style={pad36Fs12Css} onclick={() => { selectedItemIds = []; }} title={t("close")} aria-label={t("close")}>
+        <button type="button" class="b3-button b3-button--text lv-batch-close" onclick={() => { selectedItemIds = []; }} title={t("close")} aria-label={t("close")}>
             ✕
         </button>
     </div>
 {/if}
+
+<style>
+    .lv-batch-selected-count {
+        font-weight: 600;
+        color: var(--lv-tx);
+    }
+    .lv-batch-btn {
+        font-size: 12px;
+        padding: 3px 10px;
+    }
+    .lv-batch-close {
+        padding: 3px 6px;
+        font-size: 12px;
+    }
+</style>

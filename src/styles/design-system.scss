@@ -545,7 +545,7 @@
     border: none; background: none; box-shadow: none; color: var(--lv-tx-2); font-size: 15px;
     transition: background var(--lv-t-med) var(--lv-ease), color var(--lv-t-med) var(--lv-ease);
     &:hover { background: var(--lv-surface-2); color: var(--lv-tx); } }
-  .lv-tabs { display: flex; align-items: center; gap: 2px; background: var(--lv-surface-2); border: 1px solid var(--lv-line);
+  .lv-tabs { position: relative; display: flex; align-items: center; gap: 2px; background: var(--lv-surface-2); border: 1px solid var(--lv-line);
     border-radius: 999px; padding: 2px; height: 34px; box-sizing: border-box; }
   .lv-nav-pill { position: absolute; top: 2px; bottom: 2px; left: 0; height: calc(100% - 4px); border-radius: 999px;
     background: var(--lv-surface); box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
@@ -2921,8 +2921,17 @@ body.theme--dark .lv-home {
   .lv-mt-8 {
     margin-top: 8px;
   }
+  .lv-self-start {
+    align-self: flex-start;
+  }
+  .lv-mb-8 {
+    margin-bottom: 8px;
+  }
   .lv-mb-10 {
     margin-bottom: 10px;
+  }
+  .lv-caption-time {
+    margin: 2px 0 8px;
   }
   .lv-sharecard-img {
     max-width: 100%;
@@ -2930,6 +2939,18 @@ body.theme--dark .lv-home {
     border-radius: var(--lv-r-card, 10px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     border: 1px solid var(--lv-line);
+  }
+  .lv-skel--w42-h16 {
+    width: 42%;
+    height: 16px;
+  }
+  .lv-skel--w78-h12 {
+    width: 78%;
+    height: 12px;
+  }
+  .lv-skel--w64-h12 {
+    width: 64%;
+    height: 12px;
   }
   .lv-bind-candidate-btn {
     font-size: 12px;
@@ -2952,6 +2973,29 @@ body.theme--dark .lv-home {
     padding: 0 6px;
     font-size: 12px;
     display: none;
+  }
+  .lv-alert-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .lv-alert-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .lv-template-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--lv-surface-2);
+    border: 1px solid var(--lv-line);
+    border-radius: var(--lv-r-control, 6px);
+    font-size: 11.5px;
+    margin-bottom: 8px;
   }
   .lv-inline-editor {
     display: flex;

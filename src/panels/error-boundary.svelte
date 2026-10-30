@@ -26,21 +26,38 @@
 <svelte:boundary>
     {@render children()}
     {#snippet failed(error, resetBoundary)}
-        <div class="lv-card" style="padding:24px;text-align:center" role="alert" aria-live="assertive">
-            <div style="font-size:1.5rem;margin-bottom:8px">⚠️</div>
+        <div class="lv-card lv-error-boundary-card" role="alert" aria-live="assertive">
+            <div class="lv-error-boundary-icon">⚠️</div>
             {#if errorKind(error) === "permission"}
                 <b>{t?.("permission.title") || "Access is not permitted"}</b>
-                <p class="lv-caption" style="margin:8px 0">{t?.("permission.body") || "The current account cannot access this data. Check permissions and retry."}</p>
+                <p class="lv-caption lv-error-boundary-msg">{t?.("permission.body") || "The current account cannot access this data. Check permissions and retry."}</p>
             {:else if errorKind(error) === "auth"}
                 <b>{t?.("auth.expired") || "Your session has expired"}</b>
-                <p class="lv-caption" style="margin:8px 0">{t?.("error.retryHint") || "请重新登录后再重试。"}</p>
+                <p class="lv-caption lv-error-boundary-msg">{t?.("error.retryHint") || "请重新登录后再重试。"}</p>
             {:else}
                 <b>{compactUserMessage(error instanceof Error ? error.message : error, t?.("error.unknown") || "An unexpected error occurred")}</b>
-                <p class="lv-caption" style="margin:8px 0">{t?.("error.retryHint") || "请重试；如果问题持续，请重新扫描或检查设置。"}</p>
+                <p class="lv-caption lv-error-boundary-msg">{t?.("error.retryHint") || "请重试；如果问题持续，请重新扫描或检查设置。"}</p>
             {/if}
-            <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={() => retry(resetBoundary)}>
+            <button class="b3-button b3-button--outline lv-mt-8" onclick={() => retry(resetBoundary)}>
                 {t?.("error.retry") || "Retry"}
             </button>
         </div>
     {/snippet}
 </svelte:boundary>
+
+<style>
+    .lv-error-boundary-card {
+        padding: 24px;
+        text-align: center;
+    }
+    .lv-error-boundary-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+    .lv-error-boundary-msg {
+        margin: 8px 0;
+    }
+    .lv-mt-8 {
+        margin-top: 8px;
+    }
+</style>

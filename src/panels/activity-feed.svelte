@@ -27,6 +27,41 @@
     let collapsed = $state(false);
     let loadedVersion = $state<number | undefined>();
     let activeController: AbortController | undefined;
+    let prevBtnEl = $state<HTMLButtonElement | undefined>(undefined);
+    let nextBtnEl = $state<HTMLButtonElement | undefined>(undefined);
+
+    function handlePrevPage() {
+        if (page <= 1) return;
+        const targetPage = page - 1;
+        page = targetPage;
+        if (targetPage <= 1) {
+            setTimeout(() => nextBtnEl?.focus(), 0);
+        }
+    }
+
+    function handleNextPage() {
+        if (page >= pageCount) return;
+        const targetPage = page + 1;
+        page = targetPage;
+        if (targetPage >= pageCount) {
+            setTimeout(() => prevBtnEl?.focus(), 0);
+        }
+    }
+
+    function handlePaginationKeydown(e: KeyboardEvent) {
+        if (e.key === "ArrowLeft") {
+            if (!prevBtnEl?.disabled) {
+                e.preventDefault();
+                prevBtnEl?.focus();
+            }
+        } else if (e.key === "ArrowRight") {
+            if (!nextBtnEl?.disabled) {
+                e.preventDefault();
+                nextBtnEl?.focus();
+            }
+        }
+    }
+
     onDestroy(() => {
         activeController?.abort();
         activeController = undefined;
@@ -326,11 +361,12 @@
                 </div>
                 <div class="lv-activity-footer">
                     <span role="status" aria-live="polite" aria-atomic="true">{t("activity.count").replace("${start}", String((page - 1) * pageSize + 1)).replace("${end}", String(Math.min(page * pageSize, records.length))).replace("${total}", String(records.length))}</span>
-                    <div>
-                        <button type="button" class="lv-iconbtn" aria-label={t("activity.previous")} disabled={page <= 1} onclick={() => page = Math.max(1, page - 1)}><UiIcon name="back" size={14} /></button>
-                        <span class="lv-num">{page} / {pageCount}</span>
-                        <button type="button" class="lv-iconbtn" aria-label={t("activity.next")} disabled={page >= pageCount} onclick={() => page = Math.min(pageCount, page + 1)}><UiIcon name="forward" size={14} /></button>
-                    </div>
+                    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                    <nav class="lv-activity-pagination" aria-label={t("activity.title")} onkeydown={handlePaginationKeydown}>
+                        <button bind:this={prevBtnEl} type="button" class="lv-iconbtn" aria-label={t("activity.previous")} disabled={page <= 1} onclick={handlePrevPage}><UiIcon name="back" size={14} /></button>
+                        <span class="lv-num" aria-current="page">{page} / {pageCount}</span>
+                        <button bind:this={nextBtnEl} type="button" class="lv-iconbtn" aria-label={t("activity.next")} disabled={page >= pageCount} onclick={handleNextPage}><UiIcon name="forward" size={14} /></button>
+                    </nav>
                     <button type="button" class="b3-button b3-button--text" onclick={goToLedger}><span>{t("activity.goToLedger")}</span> <UiIcon name="forward" size={12} /></button>
                 </div>
             {/if}
@@ -368,7 +404,7 @@
     .lv-activity-time b { color:var(--lv-tx-2); font-size:11px; font-weight:550; }
     .lv-activity-time span { color:var(--lv-tx-3); font-size:10px; }
     .lv-activity-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; color:var(--lv-tx-3); font-size:11px; }
-    .lv-activity-footer > div { display:flex; align-items:center; gap:7px; }
+    .lv-activity-footer :is(div, nav).lv-activity-pagination { display:flex; align-items:center; gap:7px; }
     .lv-activity-footer .lv-iconbtn { width:30px; height:30px; }
     .lv-activity-footer .lv-iconbtn:disabled { opacity:.42; cursor:not-allowed; }
     .lv-activity-state { display:flex; align-items:center; gap:8px; min-height:66px; padding:16px; color:var(--lv-tx-2); }

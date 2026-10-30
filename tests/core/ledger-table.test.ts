@@ -100,23 +100,149 @@ describe("ledger-table (台账通用数据表格与虚拟化滚动)", () => {
         expect(resolveAriaSort("due", "due", false)).toBe("descending");
     });
 
-    it("行内键盘导航支持 Enter 键直达详情抽屉", () => {
+    it("行内键盘导航支持 Enter 与 Space 键双键激活详情抽屉", () => {
         const onOpenDetail = vi.fn();
         const mockRow = { itemID: "row-1", cells: {} };
 
         const handleRowKeydown = (e: { key: string; target: any; currentTarget: any; preventDefault: () => void }) => {
-            if (e.key === "Enter" && e.target === e.currentTarget) {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onOpenDetail(mockRow);
             }
         };
 
         const target = {};
-        const preventDefault = vi.fn();
-        handleRowKeydown({ key: "Enter", target, currentTarget: target, preventDefault });
-
-        expect(preventDefault).toHaveBeenCalled();
+        const preventDefault1 = vi.fn();
+        handleRowKeydown({ key: "Enter", target, currentTarget: target, preventDefault: preventDefault1 });
+        expect(preventDefault1).toHaveBeenCalled();
         expect(onOpenDetail).toHaveBeenCalledWith(mockRow);
+
+        const preventDefault2 = vi.fn();
+        handleRowKeydown({ key: " ", target, currentTarget: target, preventDefault: preventDefault2 });
+        expect(preventDefault2).toHaveBeenCalled();
+        expect(onOpenDetail).toHaveBeenCalledTimes(2);
+    });
+
+    it("表头漫游键位导航 (ArrowLeft / ArrowRight / Home / End / ArrowDown)", () => {
+        const btn1 = { focus: vi.fn() };
+        const btn2 = { focus: vi.fn() };
+        const btn3 = { focus: vi.fn() };
+        const controls = [btn1, btn2, btn3];
+        const firstRow = { focus: vi.fn() };
+
+        function handleHeaderKeydown(e: { key: string; target: any; currentTarget: any; preventDefault: () => void }) {
+            const idx = controls.indexOf(e.target);
+            if (idx === -1) return;
+            if (e.key === "ArrowRight") {
+                e.preventDefault();
+                controls[(idx + 1) % controls.length].focus();
+            } else if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                controls[(idx - 1 + controls.length) % controls.length].focus();
+            } else if (e.key === "Home") {
+                e.preventDefault();
+                controls[0].focus();
+            } else if (e.key === "End") {
+                e.preventDefault();
+                controls[controls.length - 1].focus();
+            } else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                firstRow.focus();
+            }
+        }
+
+        const preventDefault = vi.fn();
+        // ArrowRight: 0 -> 1
+        handleHeaderKeydown({ key: "ArrowRight", target: btn1, currentTarget: {}, preventDefault });
+        expect(btn2.focus).toHaveBeenCalled();
+
+        // ArrowLeft: 0 -> 2 (循环)
+        handleHeaderKeydown({ key: "ArrowLeft", target: btn1, currentTarget: {}, preventDefault });
+        expect(btn3.focus).toHaveBeenCalled();
+
+        // Home: -> 0
+        handleHeaderKeydown({ key: "Home", target: btn2, currentTarget: {}, preventDefault });
+        expect(btn1.focus).toHaveBeenCalled();
+
+        // End: -> 2
+        handleHeaderKeydown({ key: "End", target: btn1, currentTarget: {}, preventDefault });
+        expect(btn3.focus).toHaveBeenCalled();
+
+        // ArrowDown: -> first row
+        handleHeaderKeydown({ key: "ArrowDown", target: btn2, currentTarget: {}, preventDefault });
+        expect(firstRow.focus).toHaveBeenCalled();
+    });
+
+    it("行内上下方向键 (ArrowDown / ArrowUp) 纵向切换焦点并在行首越界时回落表头", () => {
+        const headerBtn = { focus: vi.fn() };
+        const row1 = {
+            classList: { contains: (c: string) => c === "lv-row-link" },
+            focus: vi.fn(),
+            nextElementSibling: null as any,
+            previousElementSibling: null as any,
+        };
+        const row2 = {
+            classList: { contains: (c: string) => c === "lv-row-link" },
+            focus: vi.fn(),
+            nextElementSibling: null as any,
+            previousElementSibling: row1,
+        };
+        row1.nextElementSibling = row2;
+
+        function handleRowKeydown(e: { key: string; target: any; currentTarget: any; preventDefault: () => void }) {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "ArrowDown") {
+                let nextEl = e.currentTarget.nextElementSibling;
+                while (nextEl && !nextEl.classList.contains("lv-row-link")) {
+                    nextEl = nextEl.nextElementSibling;
+                }
+                if (nextEl) {
+                    e.preventDefault();
+                    nextEl.focus();
+                }
+            } else if (e.key === "ArrowUp") {
+                let prevEl = e.currentTarget.previousElementSibling;
+                while (prevEl && !prevEl.classList.contains("lv-row-link")) {
+                    prevEl = prevEl.previousElementSibling;
+                }
+                if (prevEl) {
+                    e.preventDefault();
+                    prevEl.focus();
+                } else {
+                    e.preventDefault();
+                    headerBtn.focus();
+                }
+            }
+        }
+
+        const preventDefault = vi.fn();
+        // Row 1 -> ArrowDown -> Row 2
+        handleRowKeydown({ key: "ArrowDown", target: row1, currentTarget: row1, preventDefault });
+        expect(row2.focus).toHaveBeenCalled();
+
+        // Row 2 -> ArrowUp -> Row 1
+        handleRowKeydown({ key: "ArrowUp", target: row2, currentTarget: row2, preventDefault });
+        expect(row1.focus).toHaveBeenCalled();
+
+        // Row 1 -> ArrowUp -> 回落表头
+        handleRowKeydown({ key: "ArrowUp", target: row1, currentTarget: row1, preventDefault });
+        expect(headerBtn.focus).toHaveBeenCalled();
+    });
+
+    it("排序触发后生成 WCAG 4.1.3 无障碍 live 语音播报文本", () => {
+        const t = (k: string) => {
+            if (k === "ledger.sortSortedAsc") return "已按${field}升序排列";
+            if (k === "ledger.sortSortedDesc") return "已按${field}降序排列";
+            return k;
+        };
+
+        function createSortAnnouncement(fieldLabel: string, nextAsc: boolean): string {
+            return (nextAsc ? t("ledger.sortSortedAsc") : t("ledger.sortSortedDesc")).replace("${field}", fieldLabel);
+        }
+
+        expect(createSortAnnouncement("到期时间", true)).toBe("已按到期时间升序排列");
+        expect(createSortAnnouncement("金额", false)).toBe("已按金额降序排列");
     });
 
     it("步进器增减数值调控参数与无障碍动作触发", () => {

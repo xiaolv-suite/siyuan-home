@@ -74,6 +74,73 @@
         }
     }
 
+    let sortAnnouncement = $state("");
+
+    function handleSortClick(k: string) {
+        const isCurrent = sortKey === k;
+        const nextAsc = isCurrent ? !sortAsc : true;
+        const label = resolveFieldLabel(k);
+        sortAnnouncement = (nextAsc ? t("ledger.sortSortedAsc") : t("ledger.sortSortedDesc")).replace("${field}", label);
+        onToggleSort(k);
+    }
+
+    function handleHeaderKeydown(e: KeyboardEvent) {
+        const target = e.target as HTMLElement;
+        if (!target) return;
+        const headerRow = e.currentTarget as HTMLElement;
+        const controls = Array.from(headerRow.querySelectorAll<HTMLElement>("input, .lv-th-sort-btn"));
+        const idx = controls.indexOf(target);
+        if (idx === -1) return;
+
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            controls[(idx + 1) % controls.length]?.focus();
+        } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            controls[(idx - 1 + controls.length) % controls.length]?.focus();
+        } else if (e.key === "Home") {
+            e.preventDefault();
+            controls[0]?.focus();
+        } else if (e.key === "End") {
+            e.preventDefault();
+            controls[controls.length - 1]?.focus();
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstRow = ledgerTableEl?.querySelector<HTMLElement>("tbody tr.lv-row-link");
+            firstRow?.focus();
+        }
+    }
+
+    function handleRowKeydown(e: KeyboardEvent, r: any) {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpenDetail(r);
+        } else if (e.key === "ArrowDown") {
+            let nextEl = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement | null;
+            while (nextEl && !nextEl.classList.contains("lv-row-link")) {
+                nextEl = nextEl.nextElementSibling as HTMLElement | null;
+            }
+            if (nextEl) {
+                e.preventDefault();
+                nextEl.focus();
+            }
+        } else if (e.key === "ArrowUp") {
+            let prevEl = (e.currentTarget as HTMLElement).previousElementSibling as HTMLElement | null;
+            while (prevEl && !prevEl.classList.contains("lv-row-link")) {
+                prevEl = prevEl.previousElementSibling as HTMLElement | null;
+            }
+            if (prevEl) {
+                e.preventDefault();
+                prevEl.focus();
+            } else {
+                e.preventDefault();
+                const firstHeader = ledgerTableEl?.querySelector<HTMLElement>("thead .lv-th-sort-btn, thead input");
+                firstHeader?.focus();
+            }
+        }
+    }
+
     let cachedTableTop = $state(0);
 
     const virtualRange = $derived.by(() => {
@@ -129,8 +196,11 @@
 </script>
 
 <div class="lv-card lv-table-wrap lv-table lv-table-margin-top" class:lv-table--compact={tableDensity === "compact"}>
+    <div class="lv-sr-only" aria-live="polite" aria-atomic="true">
+        {sortAnnouncement}
+    </div>
     <table bind:this={ledgerTableEl}>
-        <thead><tr>
+        <thead><tr onkeydown={handleHeaderKeydown}>
             <th class="lv-check-col">
                 <input type="checkbox" class="b3-checkbox lv-checkbox-clean" checked={allSelected} onclick={toggleSelectAll} title={t("hub.selectAll")} aria-label={t("hub.selectAll")} />
             </th>
@@ -138,9 +208,9 @@
             <th class="lv-sev-col"></th>
             {#each tableKeys as k (k)}
                 <th aria-sort={sortKey === k ? (sortAsc ? "ascending" : "descending") : "none"}>
-                    <button class="b3-button b3-button--text lv-th-sort-btn" title={t("ledger.sortTip")}
-                        aria-label={`${resolveFieldLabel(k)}${sortKey === k ? (sortAsc ? "，升序" : "，降序") : "，未排序"}`}
-                        onclick={() => onToggleSort(k)}>
+                    <button type="button" class="b3-button b3-button--text lv-th-sort-btn" title={t("ledger.sortTip")}
+                        aria-label={`${resolveFieldLabel(k)}${sortKey === k ? `，${sortAsc ? t("ledger.sortAsc") : t("ledger.sortDesc")}` : ""}`}
+                        onclick={() => handleSortClick(k)}>
                         {resolveFieldLabel(k)}{#if sortKey === k}<span class="lv-sort-arrow" aria-hidden="true"><UiIcon name={sortAsc ? "chevronUp" : "chevronDown"} size={11} /></span>{/if}
                     </button>
                 </th>
@@ -155,7 +225,7 @@
                 {@const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail")}
                 <tr class="lv-row-link" tabindex="0"
                     onclick={() => onOpenDetail(r)}
-                    onkeydown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) { e.preventDefault(); onOpenDetail(r); } }}
+                    onkeydown={(e) => handleRowKeydown(e, r)}
                     title={t("ledger.detail")}>
                     <td class="lv-check-cell" onclick={(e) => e.stopPropagation()}>
                         <input type="checkbox" class="b3-checkbox lv-checkbox-clean" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} aria-label={`${t("hub.select")} ${rowName}`} />
@@ -191,7 +261,7 @@
                 <!-- Progressive rendering load-more row. -->
                 <tr class="lv-more">
                     <td colspan={tableKeys.length + 2}>
-                        <button class="b3-button b3-button--outline lv-btn-center-block"
+                        <button type="button" class="b3-button b3-button--outline lv-btn-center-block"
                             onclick={() => onLoadMore?.()}>
                             {t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}
                         </button>

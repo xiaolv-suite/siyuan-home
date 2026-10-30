@@ -44,6 +44,15 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(scssContent).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+Highlight\s*!important;\s*outline-color:\s*Highlight\s*!important;\s*outline-offset:\s*2px;/);
   });
 
+  it('declares lv-sr-only utility for screen reader announcements without breaking layout', () => {
+    expect(scssContent).toMatch(/\.lv-sr-only\s*\{[^}]*position:\s*absolute;\s*width:\s*1px;\s*height:\s*1px;/);
+    expect(scssContent).toMatch(/clip:\s*rect\(0,\s*0,\s*0,\s*0\);/);
+  });
+
+  it('declares table header button focus-visible outline for keyboard roaming accessibility', () => {
+    expect(scssContent).toMatch(/thead th[\s\S]*?\.b3-button[\s\S]*?&:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+var\(--lv-accent\);/);
+  });
+
   it('preserves visual indicators and state affordances with forced-color-adjust: none', () => {
     expect(scssContent).toMatch(/\.lv-avatar,\s*\.lv-miniava,\s*\.lv-mi,\s*\.lv-focus-icon/);
     expect(scssContent).toMatch(/input\[type="checkbox"\]\.b3-switch/);

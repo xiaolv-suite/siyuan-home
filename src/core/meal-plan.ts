@@ -379,21 +379,19 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         body.replaceChildren();
 
         const topBar = document.createElement("div");
-        topBar.style.cssText = "display:flex;justify-content:space-between;align-items:center";
+        topBar.className = "lv-dialog-topbar";
         const hint = document.createElement("span");
         hint.className = "lv-caption";
         hint.textContent = t("ledger.mealPlanSelectHint");
 
         const btnGroup = document.createElement("div");
-        btnGroup.style.cssText = "display:flex;gap:6px";
+        btnGroup.className = "lv-dialog-row__left";
         const selectAllBtn = document.createElement("button");
-        selectAllBtn.className = "b3-button b3-button--text";
-        selectAllBtn.style.cssText = "font-size:11.5px;padding:2px 6px";
+        selectAllBtn.className = "b3-button b3-button--text lv-btn-text-sm";
         selectAllBtn.textContent = "全选";
         selectAllBtn.onclick = () => { for (const c of candidates) c.selected = true; render(); };
         const selectNoneBtn = document.createElement("button");
-        selectNoneBtn.className = "b3-button b3-button--text";
-        selectNoneBtn.style.cssText = "font-size:11.5px;padding:2px 6px";
+        selectNoneBtn.className = "b3-button b3-button--text lv-btn-text-sm";
         selectNoneBtn.textContent = "清空";
         selectNoneBtn.onclick = () => { for (const c of candidates) c.selected = false; render(); };
         btnGroup.append(selectAllBtn, selectNoneBtn);
@@ -401,29 +399,32 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         body.appendChild(topBar);
 
         const recipeBox = document.createElement("div");
-        recipeBox.style.cssText = "display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:8px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+        recipeBox.className = "lv-recipe-box";
 
         for (const c of candidates) {
             const rowEl = document.createElement("div");
-            rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px";
+            rowEl.className = "lv-dialog-row";
 
             const left = document.createElement("label");
-            left.style.cssText = "display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0";
+            left.className = "lv-dialog-row__left";
+            left.style.cursor = "pointer";
             const chk = document.createElement("input");
             chk.type = "checkbox";
             chk.checked = c.selected;
             chk.onchange = () => { c.selected = chk.checked; render(); };
             const nameSpan = document.createElement("span");
-            nameSpan.style.cssText = "font-weight:500;color:var(--lv-tx)";
+            nameSpan.className = "lv-dialog-name";
             nameSpan.textContent = c.name;
             const ingSpan = document.createElement("span");
-            ingSpan.className = "lv-caption";
-            ingSpan.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px";
+            ingSpan.className = "lv-caption lv-dialog-ellipsis-sm";
             ingSpan.textContent = c.ingredientsRaw || "（未录食材）";
             left.append(chk, nameSpan, ingSpan);
 
             const right = document.createElement("div");
-            right.style.cssText = "display:flex;align-items:center;gap:4px;flex-shrink:0";
+            right.className = "lv-dialog-row__right";
+            right.style.display = "flex";
+            right.style.alignItems = "center";
+            right.style.gap = "4px";
             const servLabel = document.createElement("span");
             servLabel.className = "lv-caption";
             servLabel.textContent = "份数:";
@@ -432,8 +433,7 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
             servInput.min = "1";
             servInput.max = "10";
             servInput.value = String(c.servings);
-            servInput.className = "b3-text-field";
-            servInput.style.cssText = "width:44px;padding:2px 4px;font-size:11px;text-align:center";
+            servInput.className = "b3-text-field lv-servings-input";
             servInput.onchange = () => {
                 c.servings = Math.max(1, parseInt(servInput.value, 10) || 1);
                 render();
@@ -447,8 +447,8 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         const selectedList = candidates.filter((c) => c.selected);
         if (selectedList.length === 0) {
             const emptyHint = document.createElement("div");
-            emptyHint.className = "lv-caption";
-            emptyHint.style.cssText = "text-align:center;padding:16px 0";
+            emptyHint.className = "lv-caption lv-dialog-empty";
+            emptyHint.style.padding = "16px 0";
             emptyHint.textContent = t("ledger.mealPlanNoSelected");
             body.appendChild(emptyHint);
             copyBtn.disabled = true;
@@ -469,51 +469,50 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         const result = calculateMealPlanDeficits(dayItems, stockItems);
 
         const metrics = document.createElement("div");
-        metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px";
-        const makeBox = (cap: string, v: string | number, sub?: string, color?: string) => {
+        metrics.className = "lv-metric-grid-4";
+        const makeBox = (cap: string, v: string | number, sub?: string, colorClass?: string) => {
             const d = document.createElement("div");
             d.className = "lv-metric-item";
-            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num" style="font-size:16px;${color ? `color:${color}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
+            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
             return d;
         };
 
         metrics.append(
             makeBox(t("ledger.mealPlanTotalRecipes"), result.totalRecipesCount),
             makeBox(t("ledger.mealPlanTotalIngredients"), result.totalIngredientsCount),
-            makeBox(t("ledger.mealPlanDeficitItems"), result.deficitsOnly.length, undefined, "var(--lv-warn)"),
-            makeBox(t("ledger.mealPlanSufficientItems"), result.sufficientCount, undefined, "var(--lv-accent)"),
+            makeBox(t("ledger.mealPlanDeficitItems"), result.deficitsOnly.length, undefined, "lv-tx-warn"),
+            makeBox(t("ledger.mealPlanSufficientItems"), result.sufficientCount, undefined, "lv-tx-accent"),
         );
         body.appendChild(metrics);
 
         const listSec = document.createElement("div");
-        listSec.style.cssText = "display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto";
+        listSec.className = "lv-dialog-list";
+        listSec.style.maxHeight = "220px";
 
         for (const item of result.items) {
             const row = document.createElement("div");
-            row.className = "lv-metric-item";
-            row.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px";
+            row.className = "lv-metric-item lv-dialog-row";
 
             const left = document.createElement("div");
-            left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0;flex:1";
+            left.className = "lv-dialog-row__left";
 
             const badge = document.createElement("span");
             badge.className = item.status === "missing" ? "lv-badge red" : item.status === "deficit" ? "lv-badge yellow" : "lv-badge green";
             badge.textContent = item.status === "missing" ? t("ledger.mealPlanStatusMissing") : item.status === "deficit" ? t("ledger.mealPlanStatusDeficit") : t("ledger.mealPlanStatusSufficient");
 
             const nameSpan = document.createElement("b");
-            nameSpan.style.cssText = "color:var(--lv-tx)";
+            nameSpan.className = "lv-dialog-name";
             nameSpan.textContent = item.name;
 
             const recipeSpan = document.createElement("span");
-            recipeSpan.className = "lv-caption";
-            recipeSpan.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px";
+            recipeSpan.className = "lv-caption lv-dialog-ellipsis-sm";
             recipeSpan.textContent = t("ledger.mealPlanFromRecipes").replace("${recipes}", item.recipes.join("、"));
 
             left.append(badge, nameSpan, recipeSpan);
 
             const right = document.createElement("div");
-            right.style.cssText = "text-align:right;flex-shrink:0";
-            const deficitInfo = item.deficitQty > 0 ? `<b style="color:var(--lv-warn)">缺 ${item.deficitQty}${item.unit}</b> · ` : "";
+            right.className = "lv-dialog-row__right";
+            const deficitInfo = item.deficitQty > 0 ? `<b class="lv-tx-warn">缺 ${item.deficitQty}${item.unit}</b> · ` : "";
             right.innerHTML = `<span class="lv-caption">${deficitInfo}需 ${item.requiredQty}${item.unit} / 存 ${item.stockQty}${item.unit}</span>`;
 
             row.append(left, right);

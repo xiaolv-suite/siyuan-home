@@ -42,8 +42,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
 
     const linkBtn = () => {
         const btn = document.createElement("button");
-        btn.className = "b3-button b3-button--outline";
-        btn.style.cssText = "margin-top:8px;font-size:12px";
+        btn.className = "b3-button b3-button--outline lv-att-upload-btn";
         btn.textContent = t("ledger.linkNew");
         btn.onclick = () => {
             const picker = new DialogCls({
@@ -86,20 +85,19 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
     }
 
     const head = document.createElement("div");
-    head.className = "ft__on-surface";
-    head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px;font-weight:600";
+    head.className = "ft__on-surface lv-dialog-sec-head";
     head.textContent = t("ledger.renewChain");
     body.appendChild(head);
 
     for (const id of forward) {
         const line = document.createElement("div");
-        line.style.cssText = "padding:2px 0;font-size:12.5px;color:var(--lv-tx-2)";
+        line.className = "lv-dialog-row-text";
         line.textContent = `→ ${nameOf(id)} (${t("ledger.newCert")})`;
         body.appendChild(line);
     }
     for (const r of backward) {
         const line = document.createElement("div");
-        line.style.cssText = "padding:2px 0;font-size:12.5px;color:var(--lv-tx-2)";
+        line.className = "lv-dialog-row-text";
         line.textContent = `← ${String(cellTextFn(r.cells[ref.columns!.name]))} (${t("ledger.oldCert")})`;
         body.appendChild(line);
     }
@@ -127,14 +125,12 @@ export function renderFavorsSyncSection(options: FavorsSyncSectionOptions): void
 
     const synced = plugin.runtime?.favorSyncs?.[row.itemID];
     const head = document.createElement("div");
-    head.className = "ft__on-surface";
-    head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px;font-weight:600";
+    head.className = "ft__on-surface lv-dialog-sec-head";
     head.textContent = t("ec15.title");
     body.appendChild(head);
 
     const btn = document.createElement("button");
-    btn.className = "b3-button b3-button--outline";
-    btn.style.cssText = "margin-top:8px;font-size:12px";
+    btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = synced ? t("ec15.again") : t("ec15.record");
 
     btn.onclick = async () => {
@@ -358,18 +354,18 @@ export function renderDrawerQrSection(options: RenderDrawerQrSectionOptions): vo
     const blockId = nameVal?.type === "block" ? nameVal.block?.id : undefined;
     const link = blockDeepLink(blockId || ref.docId || "");
     const wrap = document.createElement("div");
-    if (active === "vehicles") wrap.className = "lv-detail-wide";
-    wrap.style.cssText = "margin-top:12px;padding-top:10px;border-top:1px solid var(--lv-line)";
+    wrap.className = active === "vehicles" ? "lv-qr-wrap lv-detail-wide" : "lv-qr-wrap";
     const head = document.createElement("p");
-    head.style.cssText = "font-size:12px;margin:0 0 6px;color:var(--lv-tx-2)";
+    head.className = "ft__on-surface lv-caption";
+    head.style.margin = "0 0 6px";
     head.textContent = t("ledger.qrTitle");
     const rowEl = document.createElement("div");
-    rowEl.style.cssText = "display:flex;align-items:center;gap:10px";
+    rowEl.className = "lv-dialog-row__left";
     const img = document.createElement("img");
     img.alt = "QR";
-    img.style.cssText = "width:96px;height:96px;border:1px solid var(--lv-line);border-radius:8px;padding:4px;background:#fff;flex-shrink:0";
+    img.className = "lv-qr-img";
     const hint = document.createElement("span");
-    hint.style.cssText = "font-size:12px;color:var(--lv-tx-2);flex:1";
+    hint.className = "lv-caption fn__flex-1";
     hint.textContent = t("ledger.qrHint");
     rowEl.append(img, hint);
     wrap.append(head, rowEl);

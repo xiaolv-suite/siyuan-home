@@ -54,14 +54,14 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         content: `
             <div class="b3-dialog__content lv-spotlight-dialog-body">
                 <div class="lv-spotlight-input-wrap">
-                    <span style="position:absolute;left:12px;font-size:16px;color:var(--lv-tx-3);pointer-events:none">🔍</span>
+                    <span class="lv-spotlight-icon">🔍</span>
                     <input class="b3-text-field lv-spotlight-input" id="lv-spotlight-input"
                         placeholder="${t("spotlight.placeholder") || "输入生活记录、物品、证件、存放位置或备注..."}" />
                 </div>
-                <div id="lv-spotlight-status" class="lv-caption lv-tx-muted" style="display:flex;justify-content:space-between;align-items:center">
+                <div id="lv-spotlight-status" class="lv-caption lv-tx-muted lv-dialog-topbar">
                     <span>${t("spotlight.loading") || "正在索引家庭数据..."}</span>
                 </div>
-                <div id="lv-spotlight-list" class="lv-dialog-scroll-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:48vh;min-height:120px"></div>
+                <div id="lv-spotlight-list" class="lv-dialog-scroll-body lv-spotlight-list"></div>
             </div>
         `,
         width: "600px",
@@ -128,7 +128,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         if (matched.length === 0 && matchedCmds.length === 0) {
             const safeQ = escapeHtml(query);
             listEl.innerHTML = `
-                <div style="text-align:center;padding:32px 0;color:var(--lv-tx-3);font-size:13px">
+                <div class="lv-spotlight-empty">
                     ${t("spotlight.empty").replace("${q}", safeQ)}
                 </div>
             `;
@@ -141,11 +141,11 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             card.className = "lv-card lv-spotlight-cmd";
             card.tabIndex = 0;
             card.innerHTML = `
-                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-                    <b style="font-size:13.5px;color:var(--lv-tx)">${escapeHtml(cmd.title)}</b>
+                <div class="lv-spotlight-item-head">
+                    <b>${escapeHtml(cmd.title)}</b>
                     <span class="lv-caption lv-tx-muted">${escapeHtml(cmd.sub)}</span>
                 </div>
-                <span class="lv-badge" style="background:var(--lv-accent-soft);color:var(--lv-accent);font-weight:600;font-size:11px">指令</span>
+                <span class="lv-badge lv-badge--accent lv-badge--sm">指令</span>
             `;
             const runCmd = () => {
                 dlg.destroy();
@@ -181,22 +181,21 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             card.tabIndex = 0;
 
             const top = document.createElement("div");
-            top.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+            top.className = "lv-spotlight-item__top";
 
             const left = document.createElement("div");
-            left.style.cssText = "display:inline-flex;align-items:center;gap:6px;min-width:0";
+            left.className = "lv-spotlight-item-head";
             const safeTitle = escapeHtml(item.title);
             left.innerHTML = `
-                <span style="font-size:15px">${moduleIcon(item.moduleId)}</span>
-                <b style="font-size:13.5px;color:var(--lv-tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeTitle}</b>
+                <span class="lv-spotlight-icon-item">${moduleIcon(item.moduleId)}</span>
+                <b>${safeTitle}</b>
             `;
 
             const rightOps = document.createElement("div");
-            rightOps.style.cssText = "display:inline-flex;align-items:center;gap:6px;flex-shrink:0";
+            rightOps.className = "lv-spotlight-item__ops";
 
             const copyRef = document.createElement("button");
-            copyRef.className = "b3-button b3-button--text";
-            copyRef.style.cssText = "font-size:11px;padding:1px 6px;line-height:1;color:var(--lv-tx-3)";
+            copyRef.className = "b3-button b3-button--text lv-badge--sm lv-tx-muted";
             copyRef.title = `${t("ledger.copyBlockRef")} ((id "title")) (Alt+C)`;
             copyRef.textContent = t("spotlight.copyRef");
             copyRef.onclick = async (e) => {
@@ -211,16 +210,14 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             };
 
             const badge = document.createElement("span");
-            badge.className = "lv-badge";
-            badge.style.cssText = "font-size:11px;padding:1px 6px;flex-shrink:0";
+            badge.className = "lv-badge lv-badge--sm";
             badge.textContent = modLabel(item.moduleId);
 
             rightOps.append(copyRef, badge);
             top.append(left, rightOps);
 
             const meta = document.createElement("div");
-            meta.className = "lv-caption";
-            meta.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--lv-tx-3)";
+            meta.className = "lv-spotlight-item__meta";
 
             const metaParts: string[] = [];
             if (item.memberName) metaParts.push(`👤 ${item.memberName}`);
@@ -231,11 +228,6 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             meta.innerHTML = metaParts.map((p) => `<span>${p}</span>`).join("");
 
             card.append(top, meta);
-
-            card.onmouseenter = () => { card.style.borderColor = "var(--lv-accent)"; card.style.background = "var(--lv-surface-2)"; };
-            card.onmouseleave = () => { card.style.borderColor = "var(--lv-line)"; card.style.background = "var(--lv-surface)"; };
-            card.onfocus = () => { card.style.borderColor = "var(--lv-accent)"; card.style.background = "var(--lv-surface-2)"; card.style.outline = "2px solid var(--lv-accent)"; };
-            card.onblur = () => { card.style.borderColor = "var(--lv-line)"; card.style.background = "var(--lv-surface)"; card.style.outline = "none"; };
             card.onkeydown = (e) => {
                 if (e.key === "Enter") {
                     dlg.destroy();

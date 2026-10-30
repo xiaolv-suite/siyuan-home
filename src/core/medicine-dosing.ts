@@ -362,32 +362,31 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
     (dlg.element.querySelector("#lv-med-supply-close") as HTMLButtonElement).onclick = () => dlg.destroy();
 
     const metrics = document.createElement("div");
-    metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px";
-    const makeBox = (cap: string, v: string | number, sub?: string, color?: string) => {
+    metrics.className = "lv-metric-grid-4";
+    const makeBox = (cap: string, v: string | number, sub?: string, colorClass?: string) => {
         const d = document.createElement("div");
         d.className = "lv-metric-item";
-        d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num" style="font-size:16px;${color ? `color:${color}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
+        d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
         return d;
     };
 
     metrics.append(
         makeBox(t("ledger.medicineSupplyTotal"), report.totalActiveCount),
-        makeBox(t("ledger.medicineSupplyCritical"), report.outOfStockCount + report.criticalCount, `缺 ${report.outOfStockCount} · ≤7天 ${report.criticalCount}`, "var(--lv-warn)"),
-        makeBox(t("ledger.medicineSupplyWarning"), report.warningCount, "≤30天用量", "var(--lv-amber, #e67e22)"),
+        makeBox(t("ledger.medicineSupplyCritical"), report.outOfStockCount + report.criticalCount, `缺 ${report.outOfStockCount} · ≤7天 ${report.criticalCount}`, "lv-tx-warn"),
+        makeBox(t("ledger.medicineSupplyWarning"), report.warningCount, "≤30天用量", "lv-tx-warn"),
         makeBox(t("ledger.medicineSupplyInverted"), report.expiringBeforeRunoutCount, t("ledger.medicineSupplyInvertBadge")),
     );
     body.appendChild(metrics);
 
     const listSec = document.createElement("div");
-    listSec.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-top:4px";
+    listSec.className = "lv-dialog-list";
 
     for (const item of report.items) {
         const rowEl = document.createElement("div");
-        rowEl.className = "lv-metric-item";
-        rowEl.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:8px 12px;font-size:12px";
+        rowEl.className = "lv-metric-item lv-dialog-row";
 
         const left = document.createElement("div");
-        left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0;flex:1";
+        left.className = "lv-dialog-row__left";
 
         let badgeClass = "green";
         let badgeText = "充足";
@@ -410,12 +409,11 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
         badge.textContent = badgeText;
 
         const nameSpan = document.createElement("b");
-        nameSpan.style.cssText = "color:var(--lv-tx)";
+        nameSpan.className = "lv-dialog-name";
         nameSpan.textContent = item.name;
 
         const doseSpan = document.createElement("span");
-        doseSpan.className = "lv-caption";
-        doseSpan.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px";
+        doseSpan.className = "lv-caption lv-dialog-ellipsis-sm";
         doseSpan.textContent = item.dosing ? t("ledger.medicineDailyDose").replace("${dose}", `${item.dosing.dailyConsumption}${item.dosing.unit}`) : "（未录医嘱）";
 
         left.append(badge, nameSpan, doseSpan);
@@ -428,7 +426,7 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
         }
 
         const right = document.createElement("div");
-        right.style.cssText = "text-align:right;flex-shrink:0";
+        right.className = "lv-dialog-row__right";
         const daysDesc = item.daysRemaining !== undefined
             ? t("ledger.medicineDaysSupply").replace("${n}", String(item.daysRemaining))
             : `库存 ${item.currentStock}`;
@@ -436,7 +434,8 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
             ? t("ledger.medicineRunoutDate").replace("${date}", item.estimatedRunoutDate)
             : (item.expiryDate ? `效期: ${item.expiryDate}` : "");
 
-        right.innerHTML = `<div><b class="lv-num" style="color:${item.status === 'out_of_stock' || item.status === 'critical' ? 'var(--lv-warn)' : 'var(--lv-tx)'}">${daysDesc}</b></div><span class="lv-caption">${runoutDesc}</span>`;
+        const isAlert = item.status === "out_of_stock" || item.status === "critical";
+        right.innerHTML = `<div><b class="lv-num${isAlert ? " lv-tx-warn" : ""}">${daysDesc}</b></div><span class="lv-caption">${runoutDesc}</span>`;
 
         rowEl.append(left, right);
         listSec.appendChild(rowEl);

@@ -157,34 +157,33 @@
     {/if}
     {#if alerts.length > 0}
         <button type="button" class="lv-person-alert"
-            style="background:none;border:none;padding:0;cursor:pointer;font:inherit;text-align:left;display:inline-flex;align-items:center;gap:6px"
             title="点击展开该成员详情与到期提醒"
             onclick={() => { if (!expanded) onToggleExpand(); }}>
             <span>⚠️ 需关注 · <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
-            <span class="lv-caption" style="color:var(--lv-warn);font-size:11px">→</span>
+            <span class="lv-caption lv-person-alert-arrow">→</span>
         </button>
     {/if}
     {#if expanded}
-        <div id={`member-details-${m.id}`} class="lv-person-expanded" style="border-top:1px solid var(--lv-line);padding-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div id={`member-details-${m.id}`} class="lv-person-expanded">
             {#if m.notes}<p class="lv-member-notes">{m.notes}</p>{/if}
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <div class="lv-person-actions-row">
                 <button class="b3-button b3-button--text" disabled={reorderBusy || isFirst} aria-busy={reorderBusy} onclick={() => onMove(-1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
                 <button class="b3-button b3-button--text" disabled={reorderBusy || isLast} aria-busy={reorderBusy} onclick={() => onMove(1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
                 {#if plugin.settings?.dbRefs?.members?.docId}
                     <button class="b3-button b3-button--text" onclick={() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
                 {/if}
-                <button class="b3-button b3-button--text ft__error" style="color:var(--lv-danger)" onclick={() => onDelete()}>{t("delete")}</button>
+                <button class="b3-button b3-button--text ft__error lv-tx-danger" onclick={() => onDelete()}>{t("delete")}</button>
             </div>
             {#if contact}
-                <div style="display:flex;gap:8px;align-items:center">
+                <div class="lv-person-row-between">
                     <span class="lv-caption lv-member-contact" title={contact ?? ""}>{t("field.contact")}: {contact.split(" [")[0]}</span>
-                    <span style="flex:1"></span>
+                    <span class="lv-flex-spacer"></span>
                     <button class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onUnlinkContact()}>{t("members.contactUnlink")}</button>
                 </div>
             {:else if getContactsBridge()}
-                <div style="display:flex;gap:8px;align-items:center">
+                <div class="lv-person-row-between">
                     <span class="lv-caption">{t("members.contactLink")}</span>
-                    <span style="flex:1"></span>
+                    <span class="lv-flex-spacer"></span>
                     <button class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onLinkContact()}>{t("members.contactLink")}</button>
                 </div>
             {/if}
@@ -192,10 +191,10 @@
                 <span class="lv-caption">{t("dash.allClear")}</span>
             {:else}
                 {#each alerts as r (r.id)}
-                    <div style="display:flex;gap:8px;align-items:center;font-size:12.5px">
+                    <div class="lv-person-row-between">
                         <span class="lv-badge {r.level === 'overdue' ? 'red' : r.level === 'soon' ? 'orange' : 'yellow'}">{r.dueDate}</span>
                         <span>{r.title}</span>
-                        <span style="flex:1"></span>
+                        <span class="lv-flex-spacer"></span>
                         <button class="b3-button b3-button--text" disabled={actionBusy} aria-busy={actionBusy} onclick={() => onCompleteAlert(r)}>{actionBusy ? t("ledger.saving") : t("act.done")}</button>
                     </div>
                 {/each}
@@ -203,33 +202,33 @@
             {#if m.birthday}
                 {@const ret = calculateRetirement({ birthday: m.birthday, sex: m.sex })}
                 {#if ret}
-                    <div class="lv-member-retire-card" style="padding:10px 14px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:7px;font-size:12px;margin:6px 0">
-                        <div style="display:flex;align-items:center;justify-content:space-between">
-                            <span style="font-weight:600;color:var(--lv-tx)">{t("members.retirementTitle")}</span>
+                    <div class="lv-member-retire-card">
+                        <div class="lv-member-retire-head">
+                            <span class="lv-member-retire-title">{t("members.retirementTitle")}</span>
                             {#if ret.isRetired}
                                 <span class="lv-badge green">{t("members.retirementRetired")}</span>
                             {:else}
                                 <span class="lv-badge orange">{t("members.retirementDaysLeft").replace("${n}", String(ret.daysLeft))}</span>
                             {/if}
                         </div>
-                        <div style="display:flex;align-items:center;justify-content:space-between;color:var(--lv-tx-2);font-size:11.5px">
+                        <div class="lv-member-retire-sub">
                             <span>{t("members.retirementTarget")}: <b>{ret.targetRetireDate}</b> ({t("members.retirementAge").replace("${age}", String(ret.targetRetireAge))}{ret.delayedMonths > 0 ? ` · ${t("members.retirementDelay").replace("${n}", String(ret.delayedMonths))}` : ""})</span>
                             <span>{t("members.retirementCareerProgress")}: {ret.careerProgressPercent}%</span>
                         </div>
-                        <div style="height:6px;border-radius:3px;background:var(--lv-line);overflow:hidden;width:100%">
-                            <div style="height:100%;background:var(--lv-accent);width:{ret.careerProgressPercent}%;border-radius:3px;transition:width .3s ease"></div>
+                        <div class="lv-member-retire-bar">
+                            <div class="lv-member-retire-progress" style="width:{ret.careerProgressPercent}%"></div>
                         </div>
                     </div>
                 {/if}
             {/if}
-            <div class="lv-member-timeline-card" style="margin:4px 0">
-                <button class="b3-button b3-button--outline" style="width:100%;font-size:12px;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;border-radius:6px"
+            <div class="lv-member-timeline-card">
+                <button class="b3-button b3-button--outline lv-member-timeline-btn"
                     onclick={() => onOpenAssetTimeline()}>
-                    <span style="display:flex;align-items:center;gap:6px">
-                        <span style="font-size:13px">📑</span>
-                        <b style="color:var(--lv-tx)">{t("members.assetTimeline")}</b>
+                    <span class="lv-member-timeline-label">
+                        <span class="lv-timeline-icon">📑</span>
+                        <b class="lv-tx-strong">{t("members.assetTimeline")}</b>
                     </span>
-                    <span class="lv-caption" style="display:flex;align-items:center;gap:4px">
+                    <span class="lv-caption lv-member-timeline-meta">
                         <span>{t("members.timelineCertsCount")} / {t("members.timelineContractsCount")}</span>
                         <span>→</span>
                     </span>
@@ -260,6 +259,23 @@
     .lv-member-sync-error { color: var(--lv-danger); }
     .lv-member-birthday { color: var(--lv-accent); background: var(--lv-accent-soft); }
     .lv-drag-over { outline: 2px dashed var(--lv-accent); outline-offset: -2px; }
+    .lv-person-alert { background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-align: left; display: inline-flex; align-items: center; gap: 6px; }
+    .lv-person-alert-arrow { color: var(--lv-warn); font-size: 11px; }
+    .lv-person-expanded { border-top: 1px solid var(--lv-line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .lv-person-actions-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .lv-person-row-between { display: flex; gap: 8px; align-items: center; font-size: 12.5px; }
+    .lv-flex-spacer { flex: 1; }
+    .lv-member-retire-card { padding: 10px 14px; background: var(--lv-surface-2); border-radius: var(--lv-r-card, 8px); border: 1px solid var(--lv-line); display: flex; flex-direction: column; gap: 7px; font-size: 12px; margin: 6px 0; }
+    .lv-member-retire-head { display: flex; align-items: center; justify-content: space-between; }
+    .lv-member-retire-title { font-weight: 600; color: var(--lv-tx); }
+    .lv-member-retire-sub { display: flex; align-items: center; justify-content: space-between; color: var(--lv-tx-2); font-size: 11.5px; }
+    .lv-member-retire-bar { height: 6px; border-radius: 3px; background: var(--lv-line); overflow: hidden; width: 100%; }
+    .lv-member-retire-progress { height: 100%; background: var(--lv-accent); border-radius: 3px; transition: width .3s ease; }
+    .lv-member-timeline-card { margin: 4px 0; }
+    .lv-member-timeline-btn { width: 100%; font-size: 12px; padding: 6px 12px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--lv-r-control, 6px); }
+    .lv-member-timeline-label { display: flex; align-items: center; gap: 6px; }
+    .lv-timeline-icon { font-size: 13px; }
+    .lv-member-timeline-meta { display: flex; align-items: center; gap: 4px; }
 
     @container lv-home (max-width: 420px) {
         .lv-person-head { align-items: flex-start; flex-wrap: wrap; }

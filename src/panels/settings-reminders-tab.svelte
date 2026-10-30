@@ -141,19 +141,19 @@
             <div class="lv-setcard__title">{t("tabReminders")}</div>
             <div class="lv-setcard__hint">{t("settings.remindersHint")}</div>
             <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.notifyHour")}</span>
-                <input class="b3-text-field" style="width:90px" type="number" min="0" max="23" aria-label={t("settings.notifyHour")} bind:value={draftNotifyHour} />
+                <span class="lv-settings__label">{t("settings.notifyHour")}</span>
+                <input class="b3-text-field lv-input-hour" type="number" min="0" max="23" aria-label={t("settings.notifyHour")} bind:value={draftNotifyHour} />
                 <span class="lv-caption fn__flex-1">{t("settings.notifyHourHint")}</span>
             </div>
             <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.silentHours")}</span>
-                <input class="b3-text-field" style="width:70px" type="number" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
-                <span class="lv-caption" style="margin:0 6px">→</span>
-                <input class="b3-text-field" style="width:70px" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
+                <span class="lv-settings__label">{t("settings.silentHours")}</span>
+                <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
+                <span class="lv-caption lv-arrow-sep">→</span>
+                <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
                 <span class="lv-caption fn__flex-1">{t("settings.silentHoursHint")}</span>
             </div>
-            <div style="margin-top:10px">
-                <button type="button" class="b3-button b3-button--text lv-tx-muted" style="font-size:12px;padding:2px 6px"
+            <div class="lv-mt-10">
+                <button type="button" class="b3-button b3-button--text lv-tx-muted lv-btn-text-sm"
                     onclick={() => {
                         draftNotifyHour = 8;
                         draftSilentFrom = 22;
@@ -169,12 +169,12 @@
             <div class="lv-setcard__title">{t("settings.webhookTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.webhookHint")}</div>
             <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookEnable")}</span>
+                <span class="lv-settings__label">{t("settings.webhookEnable")}</span>
                 <input type="checkbox" class="b3-switch" aria-label={t("settings.webhookEnable")} bind:checked={draftWebhookEnabled} />
                 <span class="lv-caption fn__flex-1"></span>
             </div>
             <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookMode")}</span>
+                <span class="lv-settings__label">{t("settings.webhookMode")}</span>
                 <select class="b3-select" aria-label={t("settings.webhookMode")} bind:value={draftWebhookMode}>
                     <option value="bark">Bark</option>
                     <option value="ntfy">ntfy</option>
@@ -182,8 +182,8 @@
                 <span class="lv-caption fn__flex-1"></span>
             </div>
             <div class="fn__flex lv-settings__row">
-                <span style="min-width:180px">{t("settings.webhookUrl")}</span>
-                <input class="b3-text-field fn__flex-1" style="min-width:0" aria-label={t("settings.webhookUrl")} bind:value={draftWebhookUrl}
+                <span class="lv-settings__label">{t("settings.webhookUrl")}</span>
+                <input class="b3-text-field fn__flex-1" aria-label={t("settings.webhookUrl")} bind:value={draftWebhookUrl}
                     placeholder="https://api.day.app/yourkey" />
             </div>
             <button type="button" class="b3-button b3-button--outline lv-setcard__action" disabled={testingWebhook || !draftWebhookUrl.trim()}
@@ -193,7 +193,7 @@
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">{t("settings.leadsTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.leadsHint")}</div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="lv-dialog-row__left" style="margin-bottom:8px">
                 {#if enabledLeadRules.length < leadRules.length}
                     <button type="button" class="b3-button b3-button--text lv-setcard__action" onclick={() => (showAllLeads = !showAllLeads)}>
                         {showAllLeads ? t("settings.leadsEnabledOnly") : t("settings.leadsShowAll").replace("${n}", String(leadRules.length - enabledLeadRules.length))}
@@ -210,8 +210,8 @@
             </div>
             {#each visibleLeadRules as lr (lr.key)}
                 <div class="fn__flex lv-settings__row" style={enabledIds.has(lr.moduleId) ? "" : "opacity:.55"}>
-                    <span style="min-width:220px">{t(`module.${lr.moduleId}`)} · {t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}</span>
-                    <input class="b3-text-field" style="width:90px" type="number" min="0" max="3650"
+                    <span class="lv-settings__label-wide">{t(`module.${lr.moduleId}`)} · {t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}</span>
+                    <input class="b3-text-field lv-input-hour" type="number" min="0" max="3650"
                         aria-label={`${t(`module.${lr.moduleId}`)} · ${t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}`}
                         placeholder={String(lr.def)}
                         bind:value={draftLeads[lr.key]} />
@@ -235,15 +235,15 @@
                     <button type="button" class="b3-button b3-button--outline lv-setcard__action" onclick={() => onSwitchArea?.("members")}>{t("tabMembers")}</button>
                 {/if}
                 {#each draftBindings as b, i}
-                    <div class="fn__flex lv-settings__row" style="gap:6px">
-                        <select class="b3-select" style="width:auto" bind:value={b.memberId} aria-label={t("settings.metricMember")}>
+                    <div class="fn__flex lv-settings__row lv-gap-6">
+                        <select class="b3-select" bind:value={b.memberId} aria-label={t("settings.metricMember")}>
                             {#each draftMembers as m (m.id)}<option value={m.id}>{m.name}</option>{/each}
                         </select>
                         <span class="lv-caption">·</span>
-                        <select class="b3-select" style="width:auto" bind:value={b.itemId} onchange={() => syncBindingItem(b)} aria-label={t("settings.metricItem")}>
+                        <select class="b3-select" bind:value={b.itemId} onchange={() => syncBindingItem(b)} aria-label={t("settings.metricItem")}>
                             {#each checkinItems as it (it.id)}<option value={it.id}>{it.name}</option>{/each}
                         </select>
-                        <select class="b3-select" style="width:auto" bind:value={b.metric} aria-label={t("settings.metricKind")}>
+                        <select class="b3-select" bind:value={b.metric} aria-label={t("settings.metricKind")}>
                             {#each METRICS as mt (mt)}<option value={mt}>{t(`settings.metric.${mt}`)}</option>{/each}
                         </select>
                         <button type="button" class="b3-button b3-button--text" title={t("delete")} aria-label={`${t("delete")} · ${b.itemName}`} onclick={() => removeBinding(i)}>✕</button>

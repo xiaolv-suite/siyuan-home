@@ -262,8 +262,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
         const initialReport = calculateMediaReport(rows, columns, "all");
         if (initialReport.availableYears.length === 0 && rows.length === 0) {
             const empty = document.createElement("div");
-            empty.className = "lv-caption";
-            empty.style.cssText = "text-align:center;padding:24px 0";
+            empty.className = "lv-caption lv-dialog-empty";
             empty.textContent = t("ledger.mediaEmpty");
             body.appendChild(empty);
             copyBtn.disabled = true;
@@ -271,15 +270,14 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
         }
 
         const toolbar = document.createElement("div");
-        toolbar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+        toolbar.className = "lv-dialog-topbar";
 
         const label = document.createElement("span");
         label.className = "lv-caption";
         label.textContent = t("ledger.mediaYearAll");
 
         const sel = document.createElement("select");
-        sel.className = "b3-select";
-        sel.style.cssText = "width:200px;flex-shrink:0";
+        sel.className = "b3-select lv-select-md";
 
         const optAll = document.createElement("option");
         optAll.value = "all";
@@ -307,12 +305,12 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
 
         // 指标卡
         const metrics = document.createElement("div");
-        metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px";
+        metrics.className = "lv-metric-grid-4";
 
         const makeBox = (cap: string, v: string | number, sub?: string) => {
             const d = document.createElement("div");
             d.className = "lv-metric-item";
-            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num" style="font-size:16px">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
+            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
             return d;
         };
 
@@ -327,16 +325,15 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
         // 分类明细
         if (report.categoryBreakdown.length > 0) {
             const sec = document.createElement("div");
-            sec.style.cssText = "display:flex;flex-direction:column;gap:6px";
+            sec.className = "lv-dialog-sec";
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.mediaCategories")}</div>`;
 
             const list = document.createElement("div");
-            list.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px";
+            list.className = "lv-dialog-grid-cards";
 
             for (const c of report.categoryBreakdown) {
                 const item = document.createElement("div");
-                item.className = "lv-metric-item";
-                item.style.cssText = "padding:6px 10px;font-size:12px";
+                item.className = "lv-metric-item lv-dialog-card-item";
                 const catLabel = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
                 const rText = c.averageRating !== undefined ? ` · 均分 ${c.averageRating}★` : "";
                 item.innerHTML = `<span style="font-weight:600">${catLabel}</span><span class="lv-caption">已完结 ${c.done} / 总计 ${c.total}${rText}</span>`;
@@ -349,13 +346,12 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
         // 高分作品 TOP
         if (report.topRatedItems.length > 0) {
             const sec = document.createElement("div");
-            sec.style.cssText = "display:flex;flex-direction:column;gap:6px";
+            sec.className = "lv-dialog-sec";
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.mediaTopRated")}</div>`;
 
             for (const it of report.topRatedItems) {
                 const item = document.createElement("div");
-                item.className = "lv-metric-item";
-                item.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px";
+                item.className = "lv-metric-item lv-dialog-row";
                 const catLabel = t(`field.category.opt.${it.category}`) !== `field.category.opt.${it.category}` ? t(`field.category.opt.${it.category}`) : it.category;
                 const dateStr = it.date ? ` · ${it.date}` : "";
                 item.innerHTML = `<span style="font-weight:500">${it.name} <span class="lv-caption">(${catLabel}${dateStr})</span></span><b class="lv-num" style="color:var(--lv-warn)">${it.rating}★</b>`;

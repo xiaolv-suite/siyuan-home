@@ -286,15 +286,13 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
         body.replaceChildren();
 
         const intro = document.createElement("p");
-        intro.className = "ft__on-surface";
-        intro.style.cssText = "font-size:12px;line-height:1.65;margin:0 0 10px";
+        intro.className = "ft__on-surface lv-dialog-intro";
         intro.textContent = t("fuel.dashboardHint");
         body.appendChild(intro);
 
         if (vehicles.length === 0) {
             const empty = document.createElement("div");
-            empty.className = "lv-empty";
-            empty.style.cssText = "text-align:center;padding:24px 0";
+            empty.className = "lv-empty lv-dialog-empty";
             const title = document.createElement("b"); title.textContent = t("fuel.noVehicles");
             const hint = document.createElement("span"); hint.className = "lv-caption"; hint.style.display = "block"; hint.textContent = t("fuel.noVehiclesHint");
             const add = document.createElement("button"); add.className = "b3-button"; add.style.marginTop = "8px"; add.textContent = `+ ${t("fuel.addVehicle")}`;
@@ -311,20 +309,20 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
 
         const miniStat = (label: string, value: string) => {
             const item = document.createElement("div");
-            item.className = "lv-metric-item";
-            item.style.cssText = "padding:8px 10px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);display:flex;flex-direction:column;gap:2px";
-            const name = document.createElement("span"); name.className = "ft__on-surface"; name.style.fontSize = "11px"; name.textContent = label;
-            const val = document.createElement("b"); val.style.cssText = "font-size:14px;overflow-wrap:anywhere"; val.textContent = value;
+            item.className = "lv-metric-item lv-diag-stat-card";
+            const name = document.createElement("span"); name.className = "ft__on-surface lv-caption"; name.textContent = label;
+            const val = document.createElement("b"); val.style.overflowWrap = "anywhere"; val.textContent = value;
             item.append(name, val);
             return item;
         };
 
         for (const vehicle of vehicles) {
             const card = document.createElement("section");
-            card.className = "lv-card";
-            card.style.cssText = "padding:12px;margin-bottom:10px";
+            card.className = "lv-card lv-dialog-card";
             const head = document.createElement("div");
-            head.style.cssText = "display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px";
+            head.className = "lv-dialog-topbar";
+            head.style.marginBottom = "10px";
+            head.style.flexWrap = "wrap";
             const title = document.createElement("b");
             title.style.fontSize = "14px";
             title.textContent = cellTextFn(vehicle.cells?.[cols.name ?? ""], "name") || t("ledger.unnamed");
@@ -341,7 +339,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
             const hybrid = vehicleType(vehicle) === "hybrid";
 
             const grid = document.createElement("div");
-            grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:6px";
+            grid.className = "lv-diag-grid";
             const consumption = (stats: ReturnType<typeof calculateEnergyStats>, suffix: string) =>
                 stats.consumptionPer100Km !== undefined ? `${stats.consumptionPer100Km.toFixed(2)} ${suffix}/100km${stats.method === "estimated" ? ` · ${t("fuel.estimated")}` : ""}` : "—";
             const cost = (stats: ReturnType<typeof calculateEnergyStats>) => stats.costPer100Km !== undefined
@@ -357,8 +355,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
             );
 
             const action = document.createElement("button");
-            action.className = "b3-button b3-button--text";
-            action.style.cssText = "margin-top:6px;padding:4px 0";
+            action.className = "b3-button b3-button--text lv-dialog-link";
             action.textContent = `${t("fuel.openVehicle")} →`;
             action.onclick = () => { dlg.destroy(); onOpenVehicleDetail?.(vehicle); };
             card.append(head, grid, action);

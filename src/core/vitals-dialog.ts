@@ -19,45 +19,44 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
     const { t, plugin, avId, rowId, body, showMessageFn } = opts;
 
     const head = document.createElement("div");
-    head.className = "ft__on-surface";
-    head.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--b3-border-color);font-size:12px";
+    head.className = "ft__on-surface lv-dialog-sec-head";
     head.textContent = t("ledger.vitalsTitle");
     body.appendChild(head);
 
     const summary = document.createElement("div");
-    summary.style.cssText = "padding:8px 10px;border-radius:8px;background:var(--b3-theme-background-light);margin-top:6px;font-size:12.5px";
+    summary.className = "lv-dialog-summary-card";
     body.appendChild(summary);
 
     const form = document.createElement("div");
-    form.style.cssText = "display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap";
+    form.className = "lv-dialog-form-row";
     const typeSel = document.createElement("select");
-    typeSel.className = "b3-select";
-    typeSel.style.cssText = "font-size:12px;width:95px";
+    typeSel.className = "b3-select lv-select-sm";
+    typeSel.style.width = "95px";
     typeSel.innerHTML = `<option value="bp">${t("ledger.vitalBp")}</option><option value="bg">${t("ledger.vitalBg")}</option><option value="hr">${t("ledger.vitalHr")}</option>`;
     const dateInp = document.createElement("input");
     dateInp.type = "date";
-    dateInp.className = "b3-text-field";
-    dateInp.style.cssText = "font-size:12px;width:125px";
+    dateInp.className = "b3-text-field lv-select-sm";
+    dateInp.style.width = "125px";
     dateInp.value = new Date().toISOString().slice(0, 10);
     const val1Inp = document.createElement("input");
     val1Inp.type = "number";
-    val1Inp.className = "b3-text-field";
+    val1Inp.className = "b3-text-field lv-select-sm";
     val1Inp.placeholder = t("ledger.vitalVal1");
-    val1Inp.style.cssText = "font-size:12px;width:80px";
+    val1Inp.style.width = "80px";
     const val2Inp = document.createElement("input");
     val2Inp.type = "number";
-    val2Inp.className = "b3-text-field";
+    val2Inp.className = "b3-text-field lv-select-sm";
     val2Inp.placeholder = t("ledger.vitalVal2");
-    val2Inp.style.cssText = "font-size:12px;width:80px";
+    val2Inp.style.width = "80px";
     const addBtn = document.createElement("button");
-    addBtn.className = "b3-button b3-button--outline";
-    addBtn.style.cssText = "font-size:12px";
+    addBtn.className = "b3-button b3-button--outline lv-select-sm";
     addBtn.textContent = t("ledger.valAdd");
     form.append(typeSel, dateInp, val1Inp, val2Inp, addBtn);
     body.appendChild(form);
 
     const list = document.createElement("div");
-    list.style.cssText = "display:flex;flex-direction:column;gap:4px;margin-top:6px;max-height:160px;overflow-y:auto";
+    list.className = "lv-dialog-list";
+    list.style.maxHeight = "160px";
     body.appendChild(list);
 
     let logs: rl.RowLogs = {};
@@ -74,7 +73,8 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
 
         summary.replaceChildren();
         const title = document.createElement("b");
-        title.style.cssText = "font-size:13px;color:var(--lv-accent)";
+        title.className = "lv-tx-accent";
+        title.style.fontSize = "13px";
         title.textContent = report.total > 0
             ? `${t("ledger.vitalLatest")}: ${report.latest ? `${report.latest.val1}${report.latest.val2 !== undefined ? `/${report.latest.val2}` : ""}` : "—"} (${report.latestAssessment?.label ?? "—"})`
             : t("ledger.vitalNoReadings");
@@ -87,21 +87,20 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
         list.replaceChildren();
         if (currentTypeReadings.length === 0) {
             const none = document.createElement("div");
-            none.className = "ft__on-surface";
-            none.style.cssText = "font-size:12px";
+            none.className = "ft__on-surface lv-caption";
             none.textContent = t("ledger.vitalEmpty");
             list.appendChild(none);
             return;
         }
         for (const r of currentTypeReadings.slice().reverse()) {
             const line = document.createElement("div");
-            line.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-size:12.5px";
+            line.className = "lv-dialog-row";
+            line.style.padding = "2px 0";
             const valStr = r.val2 !== undefined ? `${r.val1}/${r.val2}` : String(r.val1);
             const left = document.createElement("span");
             left.textContent = `${r.date} · ${valStr}`;
             const del = document.createElement("button");
-            del.className = "b3-button b3-button--text";
-            del.style.cssText = "font-size:11.5px;padding:0 4px";
+            del.className = "b3-button b3-button--text lv-btn-text-sm";
             del.textContent = t("delete");
             del.onclick = async () => {
                 del.disabled = true;

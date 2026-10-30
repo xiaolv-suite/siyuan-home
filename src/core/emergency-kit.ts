@@ -212,32 +212,33 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
 
     // 1. 顶部统计
     const metrics = document.createElement("div");
-    metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:12px";
+    metrics.className = "lv-metric-grid-3";
+    metrics.style.marginBottom = "12px";
 
-    const makeBox = (label: string, val: number, color?: string) => {
+    const makeBox = (label: string, val: number, colorClass?: string) => {
         const b = document.createElement("div");
         b.className = "lv-metric-item";
-        b.innerHTML = `<span class="lv-caption">${label}</span><b class="lv-num" style="font-size:18px;${color ? `color:${color}` : ""}">${val}</b>`;
+        b.innerHTML = `<span class="lv-caption">${label}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${val}</b>`;
         return b;
     };
     metrics.append(
         makeBox(t("ledger.emergencyKitTotal"), items.length),
-        makeBox(t("ledger.emergencyKitReady"), items.length - newRows.length, "var(--lv-accent)"),
-        makeBox(t("ledger.emergencyKitDeficit"), newRows.length, newRows.length > 0 ? "var(--lv-warn)" : undefined),
+        makeBox(t("ledger.emergencyKitReady"), items.length - newRows.length, "lv-tx-accent"),
+        makeBox(t("ledger.emergencyKitDeficit"), newRows.length, newRows.length > 0 ? "lv-tx-warn" : undefined),
     );
     body.appendChild(metrics);
 
     // 2. 清单列表
     const listSec = document.createElement("div");
-    listSec.style.cssText = "display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto";
+    listSec.className = "lv-dialog-list";
+    listSec.style.maxHeight = "280px";
 
     for (const item of items) {
         const row = document.createElement("div");
-        row.className = "lv-metric-item";
-        row.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px";
+        row.className = "lv-metric-item lv-dialog-row";
 
         const left = document.createElement("div");
-        left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0;flex:1";
+        left.className = "lv-dialog-row__left";
 
         const isReady = existingSet.has(item.name.trim().toLowerCase());
         const badge = document.createElement("span");
@@ -245,7 +246,7 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
         badge.textContent = isReady ? t("ledger.emergencyKitInStock") : t("ledger.emergencyKitMissing");
 
         const nameSpan = document.createElement("b");
-        nameSpan.style.cssText = "color:var(--lv-tx)";
+        nameSpan.className = "lv-dialog-name";
         nameSpan.textContent = item.name;
 
         const secSpan = document.createElement("span");

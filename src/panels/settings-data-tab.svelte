@@ -57,8 +57,8 @@
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.targetNotebook")}</div>
         <div class="lv-setcard__hint">{t("settings.targetNotebookHint")}</div>
-        <div style="margin-top:8px">
-            <select class="b3-select" style="max-width:360px;width:100%"
+        <div class="lv-mt-10">
+            <select class="b3-select lv-select-wide"
                 value={plugin.settings?.targetNotebookId ?? ""}
                 onchange={async (e) => {
                     const val = (e.currentTarget as HTMLSelectElement).value;
@@ -91,19 +91,19 @@
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">🗑️ {t("settings.trashTitle") || "台账安全回收站"}</div>
             <div class="lv-setcard__hint">{t("settings.trashHint") || "最近删除的 50 条台账记录快照（包含单条删除与批量删除）。"}</div>
-            <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+            <div class="lv-mt-10 lv-dialog-list">
                 {#if trashItems.length === 0}
-                    <div class="lv-caption lv-tx-muted" style="padding:16px 0;text-align:center">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
+                    <div class="lv-caption lv-tx-muted lv-dialog-empty" style="padding:16px 0">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
                 {:else}
                     {#each trashItems as item (item.id + item.deletedAt)}
-                        <div class="lv-settings__row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;background:var(--lv-surface-2);border-radius:6px">
-                            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-                                <b style="font-size:12px">{item.title}</b>
-                                <span class="lv-caption lv-tx-muted" style="font-size:11px">{item.moduleId} · {item.deletedAt.slice(0, 16).replace("T", " ")}</span>
+                        <div class="lv-settings__row lv-trash-item">
+                            <div class="lv-trash-info">
+                                <b>{item.title}</b>
+                                <span class="lv-caption lv-tx-muted">{item.moduleId} · {item.deletedAt.slice(0, 16).replace("T", " ")}</span>
                             </div>
-                            <div style="display:inline-flex;align-items:center;gap:6px">
-                                <span class="lv-badge gray" style="font-size:10px">已存快照</span>
-                                <button type="button" class="b3-button b3-button--outline" style="padding:2px 8px;font-size:11px" onclick={async () => {
+                            <div class="lv-trash-ops">
+                                <span class="lv-badge gray lv-badge--xs">已存快照</span>
+                                <button type="button" class="b3-button b3-button--outline lv-btn-xs" onclick={async () => {
                                     const { restoreTrashItem } = await import("@/core/trash");
                                     const res = await restoreTrashItem(plugin, item.id);
                                     if (res.success) {
@@ -119,7 +119,7 @@
                             </div>
                         </div>
                     {/each}
-                    <button type="button" class="b3-button b3-button--text ft__error" style="align-self:flex-start;margin-top:8px" onclick={async () => {
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" style="align-self:flex-start;margin-top:8px" onclick={async () => {
                         const { confirm } = await import("@/libs/dialog");
                         confirm(
                             t("settings.trashClear") || "清空回收站",
@@ -165,8 +165,8 @@
 {:else}
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">⌨ {t("faq.shortcuts")}</div>
-        <p class="lv-caption" style="margin:2px 0">· {t("openButler")}：{t("faq.topbarOrCommand")}</p>
-        <p class="lv-caption" style="margin:2px 0">· {t("faq.quickCapture")}：{t("faq.topbarBolt")}</p>
+        <p class="lv-caption lv-p-tight">· {t("openButler")}：{t("faq.topbarOrCommand")}</p>
+        <p class="lv-caption lv-p-tight">· {t("faq.quickCapture")}：{t("faq.topbarBolt")}</p>
     </div>
 {/if}
 </div>

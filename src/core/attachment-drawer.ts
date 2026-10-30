@@ -120,27 +120,24 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         if (!attKeyID) continue;
 
         const attHead = document.createElement("div");
-        attHead.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-        attHead.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid var(--lv-line);font-size:12px;font-weight:600";
+        attHead.className = active === "vehicles" ? "ft__on-surface lv-dialog-sec-head lv-detail-wide" : "ft__on-surface lv-dialog-sec-head";
         attHead.textContent = colLabel(attCol);
         body.appendChild(attHead);
 
         const existing = (row.cells[attKeyID]?.mAsset ?? []) as { name?: string; content?: string }[];
         for (const f of existing) {
             const line = document.createElement("div");
-            line.className = active === "vehicles" ? "lv-detail-wide" : "";
-            line.style.cssText = "padding:4px 0;font-size:12.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap";
+            line.className = active === "vehicles" ? "lv-att-row lv-detail-wide" : "lv-att-row";
 
             const name = document.createElement("span");
-            name.style.cssText = "word-break:break-all;flex:1;min-width:120px;color:var(--lv-tx)";
+            name.className = "lv-att-name";
             name.textContent = `📎 ${f.name ?? f.content ?? "?"}`;
             line.appendChild(name);
 
             if (f.content) {
                 try {
                     const preview = document.createElement("a");
-                    preview.className = "b3-button b3-button--text";
-                    preview.style.cssText = "padding:2px 4px;font-size:12px";
+                    preview.className = "b3-button b3-button--text lv-att-btn";
                     preview.textContent = t("ledger.previewAttachment");
                     preview.href = assetHref(f.content);
                     preview.target = "_blank";
@@ -151,8 +148,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 }
 
                 const download = document.createElement("button");
-                download.className = "b3-button b3-button--text";
-                download.style.cssText = "padding:2px 4px;font-size:12px";
+                download.className = "b3-button b3-button--text lv-att-btn";
                 download.textContent = t("ledger.downloadAttachment");
                 download.onclick = async () => {
                     download.disabled = true;
@@ -169,14 +165,12 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 const w = typeof window !== "undefined" ? (window as any) : {};
                 if (isImageAsset(f.content) && isEncryptedNotebookAsset(f.content, w.siyuan?.notebooks ?? [])) {
                     const encryptedHint = document.createElement("span");
-                    encryptedHint.className = "ft__on-surface";
-                    encryptedHint.style.cssText = "padding:2px 4px;font-size:12px";
+                    encryptedHint.className = "ft__on-surface lv-att-btn";
                     encryptedHint.textContent = t("ledger.ocrEncrypted");
                     line.appendChild(encryptedHint);
                 } else if (isImageAsset(f.content)) {
                     const ocr = document.createElement("button");
-                    ocr.className = "b3-button b3-button--text";
-                    ocr.style.cssText = "padding:2px 4px;font-size:12px";
+                    ocr.className = "b3-button b3-button--text lv-att-btn";
                     ocr.textContent = t("ledger.ocrOpen");
                     ocr.onclick = async () => {
                         ocr.disabled = true;
@@ -199,14 +193,13 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
 
         if (existing.length === 0) {
             const none = document.createElement("div");
-            none.className = active === "vehicles" ? "ft__on-surface lv-detail-wide" : "ft__on-surface";
-            none.style.cssText = "font-size:12.5px;color:var(--lv-tx-3);padding:2px 0";
+            none.className = active === "vehicles" ? "ft__on-surface lv-att-none lv-detail-wide" : "ft__on-surface lv-att-none";
             none.textContent = t("ledger.noAttachments");
             body.appendChild(none);
         }
 
         const uploadBtn = document.createElement("button");
-        uploadBtn.className = `b3-button b3-button--outline${active === "vehicles" ? " lv-detail-wide" : ""}`;
+        uploadBtn.className = `b3-button b3-button--outline lv-att-upload-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
         uploadBtn.style.cssText = "margin-top:8px;font-size:12px";
         uploadBtn.textContent = t("ledger.upload");
 

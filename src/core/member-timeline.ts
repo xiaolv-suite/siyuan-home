@@ -381,39 +381,37 @@ export async function openMemberTimelineFlow(
     (dlg.element.querySelector("#lv-member-timeline-close") as HTMLButtonElement).onclick = () => dlg.destroy();
 
     const metrics = document.createElement("div");
-    metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px";
+    metrics.className = "lv-metric-grid-3";
 
-    const makeBox = (cap: string, numVal: string | number, sub: string, color?: string) => {
+    const makeBox = (cap: string, numVal: string | number, sub: string, colorClass?: string) => {
         const d = document.createElement("div");
         d.className = "lv-metric-item";
-        d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num" style="font-size:18px;${color ? `color:${color}` : ""}">${numVal}</b><span class="lv-caption">${sub}</span>`;
+        d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${numVal}</b><span class="lv-caption">${sub}</span>`;
         return d;
     };
 
     metrics.append(
-        makeBox(t("members.timelineCertsCount"), report.totalCertsCount, `${report.validCertsCount} 有效 · ${report.expiringCertsCount} 临期`, "var(--lv-accent)"),
-        makeBox(t("members.timelineContractsCount"), report.totalContractsCount, `${report.activeContractsCount} 份履约中`, "var(--lv-warn)"),
+        makeBox(t("members.timelineCertsCount"), report.totalCertsCount, `${report.validCertsCount} 有效 · ${report.expiringCertsCount} 临期`, "lv-tx-accent"),
+        makeBox(t("members.timelineContractsCount"), report.totalContractsCount, `${report.activeContractsCount} 份履约中`, "lv-tx-warn"),
         makeBox(t("members.timelineDeposits"), `¥${formatAmount(report.totalDepositAmount)}`, "累计押金"),
     );
     body.appendChild(metrics);
 
     const timelineSec = document.createElement("div");
-    timelineSec.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:4px";
+    timelineSec.className = "lv-dialog-list";
 
     if (report.timeline.length === 0) {
         const empty = document.createElement("div");
-        empty.className = "lv-caption";
-        empty.style.cssText = "text-align:center;padding:24px 0";
+        empty.className = "lv-caption lv-dialog-empty";
         empty.textContent = t("members.timelineEmpty");
         timelineSec.appendChild(empty);
     } else {
         for (const node of report.timeline) {
             const rowEl = document.createElement("div");
-            rowEl.className = "lv-metric-item";
-            rowEl.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:8px 12px;font-size:12px";
+            rowEl.className = "lv-metric-item lv-dialog-row";
 
             const left = document.createElement("div");
-            left.style.cssText = "display:flex;align-items:center;gap:8px;min-width:0;flex:1";
+            left.className = "lv-dialog-row__left";
 
             const badge = document.createElement("span");
             const badgeClass = node.status === "expired" ? "red" : node.status === "expiring_soon" ? "orange" : "green";
@@ -425,7 +423,7 @@ export async function openMemberTimelineFlow(
             typeTag.textContent = node.module === "certs" ? "证件" : "合同";
 
             const nameSpan = document.createElement("b");
-            nameSpan.style.cssText = "color:var(--lv-tx)";
+            nameSpan.className = "lv-dialog-name";
             nameSpan.textContent = node.title;
 
             const extraInfo: string[] = [];
@@ -435,18 +433,17 @@ export async function openMemberTimelineFlow(
             if (node.extra?.autoRenew) extraInfo.push("自动续约");
 
             const infoSpan = document.createElement("span");
-            infoSpan.className = "lv-caption";
-            infoSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px";
+            infoSpan.className = "lv-caption lv-dialog-ellipsis-sm";
             infoSpan.textContent = extraInfo.join(" · ");
 
             left.append(badge, typeTag, nameSpan, infoSpan);
 
             const right = document.createElement("div");
-            right.style.cssText = "text-align:right;flex-shrink:0";
+            right.className = "lv-dialog-row__right";
             const daysDesc = node.daysRemaining < 0
-                ? `<b style="color:var(--lv-warn)">${t("members.timelineDaysOverdue").replace("${n}", String(Math.abs(node.daysRemaining)))}</b>`
+                ? `<b class="lv-tx-warn">${t("members.timelineDaysOverdue").replace("${n}", String(Math.abs(node.daysRemaining)))}</b>`
                 : node.daysRemaining <= 90
-                    ? `<b style="color:var(--lv-amber, #e67e22)">${t("members.timelineDaysLeft").replace("${n}", String(node.daysRemaining))}</b>`
+                    ? `<b class="lv-tx-warn">${t("members.timelineDaysLeft").replace("${n}", String(node.daysRemaining))}</b>`
                     : `<span class="lv-caption">${t("members.timelineDaysLeft").replace("${n}", String(node.daysRemaining))}</span>`;
 
             right.innerHTML = `<div>${daysDesc}</div><span class="lv-caption">${node.date}</span>`;

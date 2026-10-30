@@ -265,14 +265,14 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
         body.replaceChildren();
 
         const topBar = document.createElement("div");
-        topBar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+        topBar.className = "lv-dialog-topbar";
 
         const leftSelects = document.createElement("div");
-        leftSelects.style.cssText = "display:flex;align-items:center;gap:8px;flex:1";
+        leftSelects.className = "lv-dialog-row__left";
 
         const houseSelect = document.createElement("select");
-        houseSelect.className = "b3-select";
-        houseSelect.style.cssText = "font-size:12px;padding:3px 8px;max-width:180px";
+        houseSelect.className = "b3-select lv-select-sm";
+        houseSelect.style.maxWidth = "180px";
         for (const hr of allHouseRows) {
             const opt = document.createElement("option");
             opt.value = hr.itemID;
@@ -283,8 +283,7 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
         houseSelect.onchange = () => { selectedRowId = houseSelect.value; render(); };
 
         const typeSelect = document.createElement("select");
-        typeSelect.className = "b3-select";
-        typeSelect.style.cssText = "font-size:12px;padding:3px 8px";
+        typeSelect.className = "b3-select lv-select-sm";
         const typeOptions: { key: UtilityType; label: string }[] = [
             { key: "electricity", label: t("ledger.utilityTypeElectricity") },
             { key: "water", label: t("ledger.utilityTypeWater") },
@@ -307,8 +306,7 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
 
         if (readings.length === 0) {
             const empty = document.createElement("div");
-            empty.className = "lv-caption";
-            empty.style.cssText = "text-align:center;padding:24px 0";
+            empty.className = "lv-caption lv-dialog-empty";
             empty.textContent = t("ledger.utilityEmptyReadings");
             body.appendChild(empty);
             copyBtn.disabled = true;
@@ -319,43 +317,43 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
         const report = analyzeMeterReadingsUtility(readings, selectedType);
 
         const metrics = document.createElement("div");
-        metrics.style.cssText = "display:grid;grid-template-columns:repeat(4, 1fr);gap:8px";
-        const makeBox = (cap: string, v: string | number, sub?: string, color?: string) => {
+        metrics.className = "lv-metric-grid-4";
+        const makeBox = (cap: string, v: string | number, sub?: string, colorClass?: string) => {
             const d = document.createElement("div");
             d.className = "lv-metric-item";
-            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num" style="font-size:16px;${color ? `color:${color}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
+            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
             return d;
         };
 
         metrics.append(
             makeBox(t("ledger.utilityTotalReadings"), report.totalRecordedReadings, "次抄表"),
             makeBox(t("ledger.utilityAccumulatedUsage"), report.totalUsageSum, report.unitName),
-            makeBox(t("ledger.utilityLatestUsage"), report.latestPeriodUsage, report.unitName, "var(--lv-accent)"),
-            makeBox(t("ledger.utilityEstimatedBill"), `¥${formatAmount(report.latestCalculation.totalCost)}`, `第 ${report.latestCalculation.currentTier} 阶梯`, "var(--lv-warn)"),
+            makeBox(t("ledger.utilityLatestUsage"), report.latestPeriodUsage, report.unitName, "lv-tx-accent"),
+            makeBox(t("ledger.utilityEstimatedBill"), `¥${formatAmount(report.latestCalculation.totalCost)}`, `第 ${report.latestCalculation.currentTier} 阶梯`, "lv-tx-warn"),
         );
         body.appendChild(metrics);
 
         if (report.latestCalculation.isHighTier) {
             const warnBox = document.createElement("div");
-            warnBox.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-warn);font-size:12px;color:var(--lv-warn)";
+            warnBox.className = "lv-dialog-warn-box";
             warnBox.textContent = t("ledger.utilityTierWarning").replace("${tier}", String(report.latestCalculation.currentTier));
             body.appendChild(warnBox);
         } else if (report.latestCalculation.nextTierRemaining > 0) {
             const safeBox = document.createElement("div");
-            safeBox.style.cssText = "padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line);font-size:12px;color:var(--lv-tx-2)";
+            safeBox.className = "lv-dialog-safe-box";
             safeBox.textContent = t("ledger.utilityTierSafe").replace("${n}", String(report.latestCalculation.nextTierRemaining)).replace("${unit}", report.unitName);
             body.appendChild(safeBox);
         }
 
         const breakdownSec = document.createElement("div");
-        breakdownSec.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-top:2px";
-        breakdownSec.innerHTML = `<span class="ft__on-surface" style="font-weight:600;font-size:12px">${t("ledger.utilityBreakdowns")}</span>`;
+        breakdownSec.className = "lv-dialog-list";
+        breakdownSec.style.marginTop = "2px";
+        breakdownSec.innerHTML = `<span class="ft__on-surface lv-dialog-sec-head">${t("ledger.utilityBreakdowns")}</span>`;
 
         for (const b of report.latestCalculation.breakdowns) {
             const item = document.createElement("div");
-            item.className = "lv-metric-item";
-            item.style.cssText = "flex-direction:row;align-items:center;justify-content:space-between;padding:6px 12px;font-size:12px";
-            item.innerHTML = `<span style="font-weight:500">第${b.tier}阶梯（${b.label}）: ${b.usageInTier} ${report.unitName} × ¥${b.unitPrice}</span><b class="lv-num" style="color:var(--lv-tx)">¥${formatAmount(b.costInTier)}</b>`;
+            item.className = "lv-metric-item lv-dialog-row";
+            item.innerHTML = `<span style="font-weight:500">第${b.tier}阶梯（${b.label}）: ${b.usageInTier} ${report.unitName} × ¥${b.unitPrice}</span><b class="lv-num lv-metric-val">¥${formatAmount(b.costInTier)}</b>`;
             breakdownSec.appendChild(item);
         }
         body.appendChild(breakdownSec);

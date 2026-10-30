@@ -81,6 +81,7 @@
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
             <input type="file" accept="application/json,.json" class="fn__none"
+                aria-label={t("settings.import")}
                 bind:this={importInput} onchange={(e) => onImportSettings(e)} />
             {#if preImportBackupExists}
                 <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>

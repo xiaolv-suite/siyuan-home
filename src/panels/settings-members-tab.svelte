@@ -39,11 +39,11 @@
             <div class="lv-settings-member__fields">
                 <label class="lv-settings-member__field">
                     <span>{t("members.name")}</span>
-                    <input class="b3-text-field" placeholder={t("members.name")} bind:value={draftMembers[i].name} />
+                    <input class="b3-text-field" placeholder={t("members.name")} aria-label={t("members.name")} bind:value={draftMembers[i].name} />
                 </label>
                 <label class="lv-settings-member__field">
                     <span>{t("members.role")}</span>
-                    <select class="b3-select" bind:value={draftMembers[i].role}>
+                    <select class="b3-select" aria-label={t("members.role")} bind:value={draftMembers[i].role}>
                         {#each ROLES as r (r)}
                             <option value={r}>{t(`role.${r}`)}</option>
                         {/each}
@@ -51,7 +51,7 @@
                 </label>
                 <label class="lv-settings-member__field">
                     <span>{t("members.sex")}</span>
-                    <select class="b3-select" bind:value={draftMembers[i].sex}>
+                    <select class="b3-select" aria-label={t("members.sex")} bind:value={draftMembers[i].sex}>
                         <option value="">{t("members.sex.unknown")}</option>
                         <option value="male">{t("members.sex.male")}</option>
                         <option value="female">{t("members.sex.female")}</option>
@@ -59,11 +59,11 @@
                 </label>
                 <label class="lv-settings-member__field">
                     <span>{t("members.birthday")}</span>
-                    <input class="b3-text-field" type="date" bind:value={draftMembers[i].birthday} />
+                    <input class="b3-text-field" type="date" aria-label={t("members.birthday")} bind:value={draftMembers[i].birthday} />
                 </label>
                 <label class="lv-settings-member__calendar">
                     <span>{t("members.lunar")}</span>
-                    <input type="checkbox" class="b3-switch" bind:checked={draftMembers[i].lunarBirthday} />
+                    <input type="checkbox" class="b3-switch" aria-label={t("members.lunar")} bind:checked={draftMembers[i].lunarBirthday} />
                 </label>
             </div>
         </section>

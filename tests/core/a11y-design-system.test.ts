@@ -179,4 +179,57 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).toContain('bindDialogA11y');
     }
   });
+
+  it('所有 Svelte 视图表单输入控件 (input) 均具备无障碍命名 (aria-label/title/id)', () => {
+    function walkDir(dir: string, fileList: string[] = []): string[] {
+      const entries = fs.readdirSync(dir);
+      for (const entry of entries) {
+        const full = path.join(dir, entry);
+        if (fs.statSync(full).isDirectory()) {
+          if (entry !== 'node_modules' && entry !== 'dist' && entry !== '.git') {
+            walkDir(full, fileList);
+          }
+        } else if (entry.endsWith('.svelte')) {
+          fileList.push(full);
+        }
+      }
+      return fileList;
+    }
+
+    const svelteFiles = walkDir(path.resolve(__dirname, '../../src'));
+    const missing: { file: string; tag: string }[] = [];
+
+    for (const file of svelteFiles) {
+      const content = fs.readFileSync(file, 'utf8');
+      let i = 0;
+      while ((i = content.indexOf('<input', i)) !== -1) {
+        let j = i + 6;
+        let inBraces = 0;
+        let inQuotes: string | null = null;
+        while (j < content.length) {
+          const c = content[j];
+          if (inQuotes) {
+            if (c === inQuotes) inQuotes = null;
+          } else if (inBraces > 0) {
+            if (c === '{') inBraces++;
+            else if (c === '}') inBraces--;
+          } else {
+            if (c === '"' || c === "'" || c === '`') inQuotes = c;
+            else if (c === '{') inBraces++;
+            else if (c === '>') break;
+          }
+          j++;
+        }
+        const tag = content.slice(i, j + 1);
+        i = j + 1;
+        if (/type\s*=\s*["']hidden["']/.test(tag)) continue;
+        const hasLabel = /aria-label\s*=|aria-labelledby\s*=|id\s*=|title\s*=/i.test(tag);
+        if (!hasLabel) {
+          missing.push({ file: path.relative(__dirname, file), tag });
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
 });

@@ -316,8 +316,8 @@
         <div class="lv-frow">
             <label for="lv-vital-type">指标类型</label>
             <div class="lv-radio-group">
-                <label class="lv-radio-label"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} /> {t("capture.metricBp")}</label>
-                <label class="lv-radio-label"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} /> {t("capture.metricGlucose")}</label>
+                <label class="lv-radio-label"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} aria-label={t("capture.metricBp")} /> {t("capture.metricBp")}</label>
+                <label class="lv-radio-label"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} aria-label={t("capture.metricGlucose")} /> {t("capture.metricGlucose")}</label>
             </div>
         </div>
         {#if vitalMetricType === "bp"}

@@ -47,7 +47,9 @@
     <div class="lv-set-search-wrap">
         <input
             class="b3-text-field lv-set-search-input"
+            type="search"
             placeholder={t("dash.moduleSearch") || "搜索模块..."}
+            aria-label={t("dash.moduleSearch") || "搜索模块..."}
             bind:value={moduleSearch}
         />
         {#if moduleSearch}

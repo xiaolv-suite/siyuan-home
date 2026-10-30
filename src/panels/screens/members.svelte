@@ -453,7 +453,7 @@
         {/each}
     </div>
 {/if}
-<input type="file" accept="image/*" class="fn__none" bind:this={avatarInput} onchange={(e) => void onAvatarPicked(e)} />
+<input type="file" accept="image/*" class="fn__none" aria-label={t("avatar.photo")} bind:this={avatarInput} onchange={(e) => void onAvatarPicked(e)} />
 </div>
 
 <style>

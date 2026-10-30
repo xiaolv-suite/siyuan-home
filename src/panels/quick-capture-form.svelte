@@ -181,7 +181,7 @@
 {/if}
 <div class="lv-keep-context-wrap">
     <label class="lv-keep-context-label" title={`${t("capture.keepContext")} (Alt+K)`}>
-        <input type="checkbox" class="b3-switch lv-keep-context-switch" bind:checked={keepContext} />
+        <input type="checkbox" class="b3-switch lv-keep-context-switch" bind:checked={keepContext} aria-label={`${t("capture.keepContext")} (Alt+K)`} />
         <span class="lv-caption lv-keep-context-text">{t("capture.keepContext")} <span class="lv-keep-context-sub">(Alt+K)</span></span>
     </label>
     {#if identityPending}

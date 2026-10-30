@@ -321,11 +321,11 @@
         </div>
         <div class="lv-avatar-custom">
             <label for="lv-avatar-text">{t("avatar.custom")}</label>
-            <div><input id="lv-avatar-text" data-avatar-text class="b3-text-field" maxlength="4" bind:value={customText} placeholder={t("avatar.customPlaceholder")} disabled={saving} />
+            <div><input id="lv-avatar-text" data-avatar-text class="b3-text-field" maxlength="4" bind:value={customText} placeholder={t("avatar.customPlaceholder")} aria-label={t("avatar.customPlaceholder")} disabled={saving} />
                 <button class="b3-button b3-button--outline" type="button" disabled={saving} onclick={applyText}>{t("avatar.apply")}</button></div>
             <small>{t("avatar.customHint")}</small>
         </div>
-        <input bind:this={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange={choosePhoto} />
+        <input bind:this={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden aria-label={t("avatar.photo")} onchange={choosePhoto} />
         <div class="lv-avatar-actions">
             <button class="lv-btn primary" type="button" data-avatar-photo disabled={saving} onclick={() => fileInput.click()}>{avatarImage ? t("avatar.editPhoto") : t("avatar.photo")}</button>
             {#if avatarImage}<button class="b3-button b3-button--outline" type="button" disabled={saving} onclick={clearPhoto}>{t("avatar.clearPhoto")}</button>{/if}

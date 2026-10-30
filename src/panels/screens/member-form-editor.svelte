@@ -171,7 +171,7 @@
             <input class="b3-text-field" type="date" title={t("members.birthday")} aria-label={t("members.birthday")} bind:value={birthday} disabled={memberSaving} />
         </label>
         <label class="lv-member-check">
-            <input type="checkbox" bind:checked={lunar} disabled={memberSaving} />{t("members.lunar")}
+            <input type="checkbox" bind:checked={lunar} aria-label={t("members.lunar")} disabled={memberSaving} />{t("members.lunar")}
         </label>
         <label class="lv-member-field lv-member-field-wide">
             <span>{t("members.notes")}</span>

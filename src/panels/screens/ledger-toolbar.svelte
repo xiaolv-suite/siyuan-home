@@ -124,6 +124,7 @@
     {:else}
         <div class="lv-search-box">
             <input bind:this={searchInputEl} class="b3-text-field lv-search-input" type="search" placeholder={t("ledger.search")}
+                aria-label={t("ledger.search")}
                 value={searchText}
                 oninput={handleSearchInput}
                 onkeydown={(event) => { if (event.key === "Escape") handleSearchClear(); }}

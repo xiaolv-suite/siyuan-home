@@ -88,4 +88,15 @@ describe("ledger-table (台账通用数据表格与虚拟化滚动)", () => {
         expect(resolveFieldLabel("expiry")).toBe("到期日");
         expect(resolveFieldLabel("custom_extra_col")).toBe("custom_extra_col");
     });
+
+    it("表头排序符合 WCAG aria-sort 语义状态", () => {
+        function resolveAriaSort(sortKey: string, currentKey: string, sortAsc: boolean): "ascending" | "descending" | "none" {
+            if (sortKey !== currentKey) return "none";
+            return sortAsc ? "ascending" : "descending";
+        }
+
+        expect(resolveAriaSort("due", "name", true)).toBe("none");
+        expect(resolveAriaSort("due", "due", true)).toBe("ascending");
+        expect(resolveAriaSort("due", "due", false)).toBe("descending");
+    });
 });

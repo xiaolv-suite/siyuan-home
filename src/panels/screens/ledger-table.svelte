@@ -137,10 +137,11 @@
             <!-- Severity indicator column. -->
             <th class="lv-sev-col"></th>
             {#each tableKeys as k (k)}
-                <th>
+                <th aria-sort={sortKey === k ? (sortAsc ? "ascending" : "descending") : "none"}>
                     <button class="b3-button b3-button--text lv-th-sort-btn" title={t("ledger.sortTip")}
+                        aria-label={`${resolveFieldLabel(k)}${sortKey === k ? (sortAsc ? "，升序" : "，降序") : "，未排序"}`}
                         onclick={() => onToggleSort(k)}>
-                        {resolveFieldLabel(k)}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
+                        {resolveFieldLabel(k)}{#if sortKey === k}<span class="lv-sort-arrow" aria-hidden="true">{sortAsc ? " ↑" : " ↓"}</span>{/if}
                     </button>
                 </th>
             {/each}

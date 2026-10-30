@@ -177,7 +177,10 @@
 
   ::selection { background: var(--lv-accent-soft); }
   :focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; border-radius: 6px; }
-  // 触屏命中区下限（26.7/227 波移动走查回归项）：面板内全部文本按钮 ≥32px
+  // 触屏命中区下限与触摸延迟消除（ui-ux-pro-max: tap-delay）
+  :is(button, .lv-btn, .lv-iconbtn, .lv-preset-tag, .lv-tabs__item, .lv-rail-nav__item, .b3-button) {
+    touch-action: manipulation;
+  }
   .b3-button--text { min-height: var(--lv-control-sm); }
 
   // 滚动容器细节（对齐原型 .drawer-body 滚动条语言）：细滚动条 + 半透明滑块，

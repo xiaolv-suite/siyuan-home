@@ -74,4 +74,8 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(tabPanelContent).toMatch(/<\/div>\s*<span class="fn__flex-1"[^>]*><\/span>\s*<div class="lv-tabs"/);
     expect(tabPanelContent).toMatch(/<\/div>\s*<span class="fn__flex-1"><\/span>\s*<!--/);
   });
+
+  it('交互控件声明 touch-action: manipulation 消除触控设备 300ms 点击延迟', () => {
+    expect(scssContent).toMatch(/touch-action:\s*manipulation;/);
+  });
 });

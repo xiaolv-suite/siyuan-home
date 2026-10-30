@@ -111,13 +111,13 @@
         {#each top as r (r.id)}
             <div class="lv-rem {r.level}" out:fade={{ duration: 150 }}>
                 <div class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></div>
-                <div class="lv-rem-t" role="button" tabindex="0" style="cursor:pointer"
+                <div class="lv-rem-t" role="button" tabindex="0"
                     onclick={() => { if (r.moduleId !== 'adhoc') onOpenLedger(r.moduleId); else onGoto('reminders'); }}
                     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (r.moduleId !== 'adhoc') onOpenLedger(r.moduleId); else onGoto('reminders'); } }}
                     title={t("dash.heroOpen")}>
                     <b>{r.title}</b><span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : t("adhoc.name")}{#if !r.memberId} · {t("members.unassigned")}{/if}{r.lunar ? " 🌙" : ""}{r.autoRenew ? " 🔄" : ""}</span>
                 </div>
-                <div class="lv-rem-when"><b class="lv-num" style="color:var(--lv-{r.level === 'overdue' ? 'danger' : r.level === 'soon' ? 'warn' : 'amber'})">
+                <div class="lv-rem-when"><b class="lv-num">
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
                 </b><span class="lv-num">{r.dueDate}</span></div>
                 <div class="lv-rem-ops">

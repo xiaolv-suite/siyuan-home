@@ -186,9 +186,9 @@
                 <button type="button" class="lv-num lv-module-pending"
                     title={t("mod.pendingDrill")}
                     onclick={(e: MouseEvent) => { e.stopPropagation(); onDrillReminders(mid); }}
-                ><b>{pending}</b><span style="color:var(--lv-warn)">{t("mod.pending")}</span></button>
+                ><b>{pending}</b><span class="lv-tx-warn">{t("mod.pending")}</span></button>
             {:else if plugin.settings.dbRefs?.[mid] && !plugin.settings.dbRefs[mid].docId}
-                    <span style="color:var(--lv-warn)">{t("diag.missing")}</span>
+                    <span class="lv-tx-warn">{t("diag.missing")}</span>
             {:else if plugin.settings.dbRefs?.[mid]?.provisional}
                     <span>{t("diag.provisional")}</span>
             {:else}

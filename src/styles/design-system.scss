@@ -986,7 +986,7 @@
       flex: none; font-size: 16px; background: var(--tile-bg, var(--lv-surface-2));
       border: 1px solid var(--tile-border, var(--lv-line));
       box-shadow: inset 0 1px 0 var(--lv-inset); }
-    .lv-rem-t { min-width: 0; b { font-weight: 500; font-size: 14px; display: block;
+    .lv-rem-t { min-width: 0; cursor: pointer; b { font-weight: 500; font-size: 14px; display: block;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       span { font-size: 12.5px; color: var(--lv-tx-3); } }
     .lv-rem-expand-btn {
@@ -1046,10 +1046,17 @@
       // 保持底色通透中性，仅融入 5% 警示色调，杜绝整行高饱和深红导致的视觉疲劳
       background: color-mix(in srgb, var(--lv-danger) 5%, var(--lv-surface));
       &::before { background: var(--lv-danger); }
+      .lv-rem-when b { color: var(--lv-danger); }
       &:hover { background: color-mix(in srgb, var(--lv-danger) 8%, var(--lv-surface-2)); }
       &:hover::before { box-shadow: 0 0 8px 1px var(--lv-danger); } }
-    &.soon::before { background: var(--lv-warn); } &.soon:hover::before { box-shadow: 0 0 8px 1px var(--lv-warn); }
-    &.lead::before { background: var(--lv-amber); } &.lead:hover::before { box-shadow: 0 0 8px 1px var(--lv-amber); } }
+    &.soon {
+      &::before { background: var(--lv-warn); }
+      .lv-rem-when b { color: var(--lv-warn); }
+      &:hover::before { box-shadow: 0 0 8px 1px var(--lv-warn); } }
+    &.lead {
+      &::before { background: var(--lv-amber); }
+      .lv-rem-when b { color: var(--lv-amber); }
+      &:hover::before { box-shadow: 0 0 8px 1px var(--lv-amber); } } }
   // R54：完成是提醒行唯一的即时动作，其余动作通过更多菜单渐进披露。
   // 桌面端保留原有的行内密度，触屏端避免续期/定位/延后/删除同时铺开。
   .lv-rem-more { position: relative; flex: none; }

@@ -5,6 +5,7 @@
 import { collectGrowthSeries, whoBand, whoPercentile } from "./growth";
 import { calculateVaccineSchedule, type GivenDoseRecord } from "./immunization";
 import { addDetachedRow, setCell, renderLedgerAll, type AvRow } from "./siyuan";
+import { pointsToSmoothBezierPath } from "./chart";
 import type { FamilyMember } from "@/types";
 
 export interface GrowthChartDialogOptions {
@@ -95,12 +96,12 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
             const fx = (x: number) => (Number.isInteger(x) ? String(x) : (Math.round(x * 10) / 10).toFixed(1));
             const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
 
-            svg.appendChild(el("line", { x1: PAD, y1: H - PAD, x2: W - PAD / 2, y2: H - PAD, stroke: "var(--b3-border-color)" }));
-            svg.appendChild(el("line", { x1: PAD, y1: PAD / 2, x2: PAD, y2: H - PAD, stroke: "var(--b3-border-color)" }));
-            svg.appendChild(el("text", { x: PAD - 6, y: PAD / 2 + 4, "text-anchor": "end", "font-size": 10 }, String(Math.round(yMax * 10) / 10)));
-            svg.appendChild(el("text", { x: PAD - 6, y: H - PAD + 4, "text-anchor": "end", "font-size": 10 }, String(Math.round(yMin * 10) / 10)));
-            svg.appendChild(el("text", { x: PAD, y: H - PAD + 14, "font-size": 10 }, fx(xMin)));
-            svg.appendChild(el("text", { x: W - PAD / 2, y: H - PAD + 14, "text-anchor": "end", "font-size": 10 }, `${fx(xMax)}${xs.some((x) => x > 0) ? "月龄" : ""}`));
+            svg.appendChild(el("line", { x1: PAD, y1: H - PAD, x2: W - PAD / 2, y2: H - PAD, stroke: "var(--lv-line)", "stroke-opacity": "0.5" }));
+            svg.appendChild(el("line", { x1: PAD, y1: PAD / 2, x2: PAD, y2: H - PAD, stroke: "var(--lv-line)", "stroke-opacity": "0.5" }));
+            svg.appendChild(el("text", { x: PAD - 6, y: PAD / 2 + 4, "text-anchor": "end", "font-size": 10, fill: "var(--lv-tx-3)" }, String(Math.round(yMax * 10) / 10)));
+            svg.appendChild(el("text", { x: PAD - 6, y: H - PAD + 4, "text-anchor": "end", "font-size": 10, fill: "var(--lv-tx-3)" }, String(Math.round(yMin * 10) / 10)));
+            svg.appendChild(el("text", { x: PAD, y: H - PAD + 14, "font-size": 10, fill: "var(--lv-tx-3)" }, fx(xMin)));
+            svg.appendChild(el("text", { x: W - PAD / 2, y: H - PAD + 14, "text-anchor": "end", "font-size": 10, fill: "var(--lv-tx-3)" }, `${fx(xMax)}${xs.some((x) => x > 0) ? "月龄" : ""}`));
 
             if (bandPts.length >= 2) {
                 const top = bandPts.map((b) => `${sx(b.x)},${sy(b.p97)}`).join(" ");
@@ -116,7 +117,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
                 const pts = s.points;
                 const memberSex = sexById.get(s.memberId);
                 const pointEl = (x: number, y: number, p: { date: string; value: number; ageMonths: number | null }) => {
-                    const dot = el("circle", { cx: sx(x), cy: sy(y), r: pts.length === 1 ? 3 : 2.5, fill: color });
+                    const dot = el("circle", { cx: sx(x), cy: sy(y), r: pts.length === 1 ? 3.5 : 3, fill: color, stroke: "var(--lv-surface)", "stroke-width": 1.5 });
                     const pct = memberSex && p.ageMonths !== null ? whoPercentile(memberSex, metric, p.ageMonths, p.value) : null;
                     const label = document.createElementNS(NS, "title");
                     label.textContent = pct !== null ? `P${Math.round(pct)} · ${p.date} ${p.value}` : `${p.date} ${p.value}`;
@@ -126,10 +127,17 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
                 if (pts.length === 1) {
                     svg.appendChild(pointEl(sx(pts[0].ageMonths ?? 0), sy(pts[0].value), pts[0]));
                 } else {
-                    svg.appendChild(el("polyline", {
-                        points: pts.map((p) => `${sx(p.ageMonths ?? 0)},${sy(p.value)}`).join(" "),
-                        fill: "none", stroke: color, "stroke-width": 2,
-                    }));
+                    const chartPts = pts.map((p) => ({ x: sx(p.ageMonths ?? 0), y: sy(p.value) }));
+                    const smoothPath = pointsToSmoothBezierPath(chartPts, 0.2);
+                    const pathEl = el("path", {
+                        d: smoothPath,
+                        fill: "none",
+                        stroke: color,
+                        "stroke-width": 2.5,
+                        "stroke-linecap": "round",
+                        "stroke-linejoin": "round",
+                    });
+                    svg.appendChild(pathEl);
                     for (const p of pts) svg.appendChild(pointEl(p.ageMonths ?? 0, p.value, p));
                 }
                 const legend = el("text", { x: PAD + 4, y: PAD / 2 + 16 + i * 14, "font-size": 11, fill: color });

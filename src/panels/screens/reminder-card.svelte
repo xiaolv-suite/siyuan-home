@@ -144,7 +144,7 @@
         </span>
     </div>
     <div class="lv-rem-when">
-        <b class="lv-num" style="color:var(--lv-{r.level === 'overdue' ? 'danger' : r.level === 'soon' ? 'warn' : 'amber'})">{relDue(r.daysLeft, r.dueDate)}</b>
+        <b class="lv-num">{relDue(r.daysLeft, r.dueDate)}</b>
     </div>
     <div class="lv-rem-ops">
         <button class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {

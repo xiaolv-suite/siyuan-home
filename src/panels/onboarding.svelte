@@ -155,7 +155,7 @@
             {#if picked.includes("child")}
                 <div class="lv-wiz__children">
                     <span class="lv-sub">{t("wiz.children")}</span>
-                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenDecrease")} disabled={provisioning || children <= 0} onclick={() => (children = Math.max(0, children - 1))}>−</button>
+                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenDecrease")} disabled={provisioning || children <= 0} onclick={() => (children = Math.max(0, children - 1))}><UiIcon name="minus" size={12} /></button>
                     <b class="lv-num" aria-live="polite">{children}</b>
                     <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenIncrease")} disabled={provisioning} onclick={() => (children += 1)}><UiIcon name="add" size={12} /></button>
                 </div>

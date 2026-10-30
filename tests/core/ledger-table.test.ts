@@ -118,4 +118,19 @@ describe("ledger-table (台账通用数据表格与虚拟化滚动)", () => {
         expect(preventDefault).toHaveBeenCalled();
         expect(onOpenDetail).toHaveBeenCalledWith(mockRow);
     });
+
+    it("步进器增减数值调控参数与无障碍动作触发", () => {
+        const onAdjustQty = vi.fn();
+        const mockRow = { itemID: "row-stock-1", cells: {} };
+
+        function handleQtyChange(delta: number) {
+            onAdjustQty(mockRow, "stock_qty", delta);
+        }
+
+        handleQtyChange(-1);
+        expect(onAdjustQty).toHaveBeenCalledWith(mockRow, "stock_qty", -1);
+
+        handleQtyChange(1);
+        expect(onAdjustQty).toHaveBeenCalledWith(mockRow, "stock_qty", 1);
+    });
 });

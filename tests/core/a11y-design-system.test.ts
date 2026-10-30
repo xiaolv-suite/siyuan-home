@@ -118,6 +118,8 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       '../../src/core/location-dialog.ts',
       '../../src/core/life-index.ts',
       '../../src/core/media.ts',
+      '../../src/panels/onboarding.svelte',
+      '../../src/panels/screens/ledger-table.svelte',
     ];
 
     for (const rel of filesToCheck) {
@@ -128,6 +130,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).not.toMatch(/>\s*＋\s*\{/);
       expect(content).not.toMatch(/>\s*✕\s*</);
       expect(content).not.toMatch(/>\s*×\s*</);
+      expect(content).not.toMatch(/>\s*−\s*</);
       expect(content).not.toMatch(/>\s*[＋+]\s*\{t\(/);
       expect(content).not.toMatch(/textContent\s*=\s*`[＋+]/);
       expect(content).not.toMatch(/textContent\s*=\s*`\${t\("ledger\.openDoc"\)}\s*→`/);

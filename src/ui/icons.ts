@@ -8,6 +8,7 @@ export const UI_ICON_PATHS = {
     bolt: "m13 2-9 11h7l-1 9 9-12h-7z",
     close: "M6 6l12 12M18 6 6 18",
     add: "M12 5v14M5 12h14",
+    minus: "M5 12h14",
     back: "m15 5-7 7 7 7",
     forward: "m9 5 7 7-7 7",
     search: "M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z M15 15l6 6",

@@ -172,7 +172,7 @@
                             {#if k === "qty" || k === "stock_qty"}
                                 <div class="lv-qty-stepper">
                                     <button type="button" class="lv-qty-btn"
-                                        title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}>−</button>
+                                        title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}><UiIcon name="minus" size={10} /></button>
                                     <span class="lv-cell-center-min">{cellText(v, k)}</span>
                                     <button type="button" class="lv-qty-btn"
                                         title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}><UiIcon name="add" size={10} /></button>

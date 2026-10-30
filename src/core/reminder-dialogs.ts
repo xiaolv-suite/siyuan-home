@@ -307,6 +307,8 @@ export interface OpenSnoozeMenuOptions {
     onSnooze: (days: number) => Promise<void>;
 }
 
+import { getSnoozePresets } from "./snooze-presets";
+
 export function openSnoozeMenu(options: OpenSnoozeMenuOptions): void {
     if (typeof window === "undefined") return;
     const { ev, MenuCls, t, onSnooze } = options;
@@ -318,7 +320,16 @@ export function openSnoozeMenu(options: OpenSnoozeMenuOptions): void {
     const y = Math.max(8, Math.min(rawY, window.innerHeight - 8));
     setTimeout(() => {
         const menu = new MenuCls("lv-snooze");
-        for (const d of [1, 3, 7, 30]) {
+        // 1. 一键梯度推迟预设（Tasks.org 标杆规格：推迟1天、推迟至周末、推迟至下周一）
+        const presets = getSnoozePresets(new Date());
+        for (const p of presets) {
+            menu.addItem({
+                label: t(p.labelKey),
+                click: () => { void onSnooze(p.days); },
+            });
+        }
+        // 2. 传统通用时间窗（7天、30天）
+        for (const d of [7, 30]) {
             menu.addItem({
                 label: t("act.snoozeN").replace("${n}", String(d)),
                 click: () => { void onSnooze(d); },

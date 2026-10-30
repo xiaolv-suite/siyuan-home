@@ -550,6 +550,22 @@ export default class LvHomePlugin extends Plugin {
         await this.notifyHubChanged();
     }
     async snooze(id: string, days: number) { await snooze(this, id, days); await this.notifyHubChanged(); }
+    async snoozeToDate(id: string, targetDate: string) {
+        const { snoozeToDate } = await import("@/core/hub/actions");
+        await snoozeToDate(this, id, targetDate);
+        await this.notifyHubChanged();
+    }
+    async batchSnooze(ids: string[], targetDate: string): Promise<Record<string, string | undefined>> {
+        const { batchSnooze } = await import("@/core/hub/actions");
+        const prev = await batchSnooze(this, ids, targetDate);
+        await this.notifyHubChanged();
+        return prev;
+    }
+    async undoBatchSnooze(previousMap: Record<string, string | undefined>): Promise<void> {
+        const { undoBatchSnooze } = await import("@/core/hub/actions");
+        await undoBatchSnooze(this, previousMap);
+        await this.notifyHubChanged();
+    }
     async mute(id: string) { await mute(this, id); await this.notifyHubChanged(); }
     async unmute(id: string) { await unmute(this, id); await this.notifyHubChanged(); }
     /** 恢复已处理/忽略项（H07） */
@@ -560,7 +576,7 @@ export default class LvHomePlugin extends Plugin {
         return renew(this, r, iso, this.settings.dbRefs[r.moduleId] ?? {}, rule?.field ?? "expiry")
             .then(() => this.refreshHub(r.moduleId));
     }
-    async addMemo(title: string, due: string) { await addMemo(this, title, due); await this.notifyHubChanged(); }
+    async addMemo(title: string, due: string, options?: any) { await addMemo(this, title, due, options); await this.notifyHubChanged(); }
     async updateMemo(id: string, patch: { title?: string; dueDate?: string }) { await updateMemo(this, id, patch); await this.notifyHubChanged(); }
     /** 删除备忘（显式动作，H03：未处理备忘只经此删除） */
     async removeMemo(id: string) { await removeMemo(this, id); await this.notifyHubChanged(); }

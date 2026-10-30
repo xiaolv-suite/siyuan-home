@@ -21,6 +21,16 @@ export interface AdhocMemo {
     createdAt: string;
     /** 完成时间（ISO）：有值则不进活跃列表，可在"已处理"恢复（H03/H07） */
     doneAt?: string;
+    /** 优先级 */
+    priority?: "high" | "medium" | "low";
+    /** 分类标签（如家庭、工作） */
+    category?: string;
+    /** 周期循环基准：due=计划日；completion=完成日 */
+    recurrenceAnchor?: "due" | "completion";
+    /** 周期（如 day/week/month 等） */
+    cycle?: string;
+    /** 累计推迟次数 */
+    snoozeCount?: number;
 }
 
 /** 命名视图配置（§17：筛选组合一键切换与跨会话持久化） */
@@ -84,6 +94,8 @@ export interface HubRuntime {
     };
     /** 延后：提醒 id → 新到期日 */
     snoozed: Record<string, string>;
+    /** 累计推迟次数：提醒 id → 次数（>=3 次触发微步骤拆解提示） */
+    snoozeCounts?: Record<string, number>;
     /** 计划处理日（§17/284波 双日期）：提醒 id → 计划处理日 (yyyy-MM-dd)；与客观 deadline 分离 */
     planDates: Record<string, string>;
     /** 忽略：提醒 id → true（可在提醒页恢复） */
@@ -250,23 +262,26 @@ export function applyRuntime(
     const todayZero = parseLocal(todayKey);
     for (const r of derived) {
         if (isHiddenByHandled(rt, r, today)) continue;
+        const count = rt.snoozeCounts?.[r.id] ?? r.snoozeCount;
         const snoozeDate = rt.snoozed[r.id];
         if (snoozeDate) {
             // snooze 未到 → 隐藏；已到 → 显示为"延后日"事项，按延后日距今分级（H06）
             if (todayKey < snoozeDate) continue;
             const daysLeft = Math.round((parseLocal(snoozeDate) - todayZero) / 86400000);
             const level: ReminderLevel = daysLeft < 0 ? "overdue" : "soon";
-            out.push({ ...r, dueDate: snoozeDate, daysLeft, level });
+            out.push({ ...r, dueDate: snoozeDate, daysLeft, level, ...(count !== undefined ? { snoozeCount: count } : {}) });
             continue;
         }
-        out.push(r);
+        out.push(count !== undefined ? { ...r, snoozeCount: count } : r);
     }
     for (const m of rt.memos ?? []) {
         if (m.doneAt) continue; // 已办备忘不进活跃列表（已处理视图可见可恢复）
         const daysLeft = Math.round((parseLocal(m.dueDate) - todayZero) / 86400000);
         const level: ReminderLevel = daysLeft < 0 ? "overdue" : daysLeft <= 7 ? "soon" : "lead";
+        const memoReminderId = `adhoc::${m.id}`;
+        const memoSnoozeCount = rt.snoozeCounts?.[memoReminderId] ?? m.snoozeCount;
         out.push({
-            id: `adhoc::${m.id}`,
+            id: memoReminderId,
             moduleId: "adhoc",
             ruleKey: "memo",
             rowId: m.id,
@@ -274,7 +289,11 @@ export function applyRuntime(
             dueDate: m.dueDate,
             daysLeft,
             level,
-            kind: "oneoff",
+            kind: m.cycle ? "recurring" : "oneoff",
+            ...(m.priority ? { priority: m.priority } : {}),
+            ...(m.category ? { tag: m.category } : {}),
+            ...(m.recurrenceAnchor ? { recurrenceAnchor: m.recurrenceAnchor } : {}),
+            ...(memoSnoozeCount !== undefined ? { snoozeCount: memoSnoozeCount } : {}),
         });
     }
     return out.sort((a, b) => a.daysLeft - b.daysLeft || a.dueDate.localeCompare(b.dueDate));

@@ -154,6 +154,16 @@
                     <UiIcon name="clock" size={11} /> {stageLabel}
                 </span>
             {/if}
+            {#if (r.snoozeCount ?? 0) >= 3}
+                <span class="lv-plan-badge is-snooze-heavy" title={t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}>
+                    <UiIcon name="alert" size={11} /> {t("hub.snoozeHeavyBadge")}
+                </span>
+            {/if}
+            {#if r.recurrenceAnchor}
+                <span class="lv-plan-badge lv-recurrence-badge" title={r.recurrenceAnchor === "completion" ? t("hub.recurrenceAnchorCompletion") : t("hub.recurrenceAnchorDue")}>
+                    <UiIcon name="repeat" size={11} /> {r.recurrenceAnchor === "completion" ? t("hub.recurrenceAnchorCompletion") : t("hub.recurrenceAnchorDue")}
+                </span>
+            {/if}
             {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
             {#if plan.hasPlan}
                 <button type="button" class="lv-plan-badge lv-plan-badge-btn" class:is-planned-now={plan.isPlannedNow}
@@ -243,6 +253,18 @@
                     <span>{plan.planDate}{#if plan.isPlannedNow}（<UiIcon name="check" size={11} /> {t("hub.planActive")}）{/if}</span>
                 </div>
             {/if}
+            {#if r.recurrenceAnchor}
+                <div class="lv-rem-summary__item">
+                    <span class="label">{t("hub.kindRecurring")}:</span>
+                    <span>{r.recurrenceAnchor === "completion" ? t("hub.recurrenceAnchorCompletion") : t("hub.recurrenceAnchorDue")}</span>
+                </div>
+            {/if}
+            {#if (r.snoozeCount ?? 0) >= 3}
+                <div class="lv-rem-summary__item">
+                    <span class="label">{t("hub.snoozeHeavyBadge")}:</span>
+                    <span class="lv-tx-warn">{t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}</span>
+                </div>
+            {/if}
             {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
                 <div class="lv-rem-summary__item">
                     <button type="button" class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
@@ -258,5 +280,14 @@
 <style>
     .lv-batch-chk {
         flex-shrink: 0;
+    }
+    :global(.is-snooze-heavy) {
+        background: rgba(245, 158, 11, 0.16) !important;
+        color: #d97706 !important;
+        border: 1px solid rgba(245, 158, 11, 0.35) !important;
+        font-weight: 500;
+    }
+    :global(.lv-recurrence-badge) {
+        opacity: 0.85;
     }
 </style>

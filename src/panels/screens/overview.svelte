@@ -266,6 +266,34 @@
         }
     }
 
+    // 逾期事项「一键批量顺延至今日」与「撤销顺延」（Super Productivity / Vikunja 规格）
+    let lastPostponedOverdueMap = $state<Record<string, string | undefined> | null>(null);
+
+    async function handleBatchPostponeOverdue() {
+        const overdueIds = allReminders.filter((r: Reminder) => r.level === "overdue").map((r: Reminder) => r.id);
+        if (overdueIds.length === 0) return;
+        const { localDateKey } = await import("@/core/hub/rule");
+        const todayKey = localDateKey(new Date());
+        try {
+            const prev = await plugin.batchSnooze?.(overdueIds, todayKey);
+            lastPostponedOverdueMap = prev ?? {};
+            showMessage(t("dash.overduePostponed").replace("${n}", String(overdueIds.length)), 3500, "info");
+        } catch (e) {
+            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        }
+    }
+
+    async function handleUndoPostpone() {
+        if (!lastPostponedOverdueMap || Object.keys(lastPostponedOverdueMap).length === 0) return;
+        try {
+            await plugin.undoBatchSnooze?.(lastPostponedOverdueMap);
+            lastPostponedOverdueMap = null;
+            showMessage(t("dash.undoSuccess"), 2500, "info");
+        } catch (e) {
+            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        }
+    }
+
     // 300波里程碑：家庭年度生活指数与幸福资产盘点
     const openLifeIndexModal = () => showLifeIndex({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 
@@ -382,6 +410,7 @@
 <OverviewUpcomingList
     {reminders}
     {top}
+    overdueCount={overdueCount}
     {memberFilter}
     bind:pulseDateFilter
     {initialScanError}
@@ -402,6 +431,9 @@
     onCopyTaskBlock={copyAsTaskBlock}
     onCompleteReminder={(r) => void runOverviewAction(r.id, () => plugin.complete(r))}
     onSnoozeReminder={(r, days) => void runOverviewAction(r.id, () => plugin.snooze(r.id, days))}
+    onBatchPostponeOverdue={handleBatchPostponeOverdue}
+    onUndoPostpone={handleUndoPostpone}
+    canUndoPostpone={!!(lastPostponedOverdueMap && Object.keys(lastPostponedOverdueMap).length > 0)}
 />
 
 <ActivityFeed {plugin} {t} {version} compact={true} />

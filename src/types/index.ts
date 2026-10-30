@@ -95,6 +95,8 @@ export interface ReminderRuleSpec {
      * 缺省时行为完全不变（回退 leadDays 单一窗口），向后兼容旧 schema。
      */
     leadStages?: number[];
+    /** 周期循环基准（Tasks.org 规格）：due=按计划到期日循环（默认）；completion=按实际完成日顺延循环 */
+    recurrenceAnchor?: "due" | "completion";
 }
 
 /** 紧急级别：🔴 已逾期 / 🟠 7 天内 / 🟡 提前量内 / ⚪ 更远 */
@@ -120,6 +122,14 @@ export interface Reminder {
     lunar?: boolean;
     /** 自动续约条款标记（合同：到期前需做续/不续决策；卡片显示 🔄） */
     autoRenew?: boolean;
+    /** 周期循环基准（Tasks.org 规格）：due=按计划到期日循环；completion=按实际完成日顺延循环 */
+    recurrenceAnchor?: "due" | "completion";
+    /** 累计被推迟/顺延次数（>=3 次触发反拖延微步骤拆解提示） */
+    snoozeCount?: number;
+    /** 优先级标记（Quick Add !高/!中/!低 识别） */
+    priority?: "high" | "medium" | "low";
+    /** 分类标签（Quick Add #分类 识别） */
+    tag?: string;
 }
 
 /** 扫描结果聚合（内存 + kernel storage 缓存） */

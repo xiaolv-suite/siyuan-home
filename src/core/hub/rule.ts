@@ -64,6 +64,10 @@ export interface LedgerRowDates {
     lunar?: boolean;
     /** 自动续约条款标记（合同：升级为续约决策提醒） */
     autoRenew?: boolean;
+    /** 周期循环基准（Tasks.org 规格）：due=按计划到期日；completion=按实际完成日 */
+    recurrenceAnchor?: "due" | "completion";
+    /** 实际完成日（YYYY-MM-DD，用于 completion 基准） */
+    completedDate?: string;
 }
 
 const CYCLE_MONTHS: Record<string, number> = {
@@ -138,27 +142,93 @@ export async function nextOccurrence(rule: ReminderRuleSpec, row: LedgerRowDates
         return cand;
     }
 
-    // recurring：按周期滚动到今天及以后（O(1) 月数差；day/week 用差值跳步）
-    if (row.cycle === "day") {
-        const diff = differenceInCalendarDays(today0, base);
-        if (diff <= 0) return base;
-        return addDays(base, diff);
-    }
-    if (row.cycle === "week") {
-        const diff = differenceInCalendarDays(today0, base);
-        if (diff <= 0) return base;
-        return addDays(base, Math.ceil(diff / 7) * 7);
-    }
-    const months = CYCLE_MONTHS[row.cycle ?? ""] ?? 0;
-    if (months > 0) {
-        const diff = (today0.getFullYear() - base.getFullYear()) * 12 + (today0.getMonth() - base.getMonth());
-        if (diff <= 0 && base >= today0) return base;
-        const k = Math.max(1, Math.ceil(diff / months));
-        const next = addMonths(base, k * months); // date-fns 对月末做 clamp（1/31+1M→2/29）
-        return next < today0 ? addMonths(next, months) : next;
+    // recurring：按周期与基准锚点滚动（Tasks.org 双基准循环规则）
+    if (rule.kind === "recurring" && row.cycle) {
+        const anchor = row.recurrenceAnchor ?? rule.recurrenceAnchor ?? "due";
+        const completionDate = row.completedDate ? parseDate(row.completedDate) : undefined;
+        return calculateNextRecurrenceDate(base, row.cycle, { today: today0, anchor, completionDate });
     }
     // 未声明周期 → 一次性降级（决策 09）
     return base;
+}
+
+/**
+ * 计算周期提醒的下一次发生日（Tasks.org 标杆规格：双基准循环规则）
+ *
+ * @param base 计划日期（若 anchor="due" 则作为滚动原点）
+ * @param cycle 周期描述（day / week / month / quarter / year / 14d / 14天 / 2周 等）
+ * @param options 可选参数：anchor (due | completion), completionDate (实际完成日), today (今天)
+ */
+export function calculateNextRecurrenceDate(
+    base: Date,
+    cycle: string,
+    options: {
+        today?: Date;
+        anchor?: "due" | "completion";
+        completionDate?: Date;
+    } = {},
+): Date {
+    const today0 = options.today ? new Date(options.today.getFullYear(), options.today.getMonth(), options.today.getDate()) : new Date();
+    const anchor = options.anchor ?? "due";
+
+    // 当指定 completion 且提供实际完成日时，自实际完成日起跳（Tasks.org 核心：家务/护理等避免堆积）
+    const startPoint = (anchor === "completion" && options.completionDate)
+        ? new Date(options.completionDate.getFullYear(), options.completionDate.getMonth(), options.completionDate.getDate())
+        : new Date(base.getFullYear(), base.getMonth(), base.getDate());
+
+    const c = cycle.trim().toLowerCase();
+    const dayMatch = c.match(/^(\d+)\s*(?:d|天|day|days)?$/);
+    const weekMatch = c.match(/^(\d+)\s*(?:w|周|星期|礼拜|week|weeks)$/);
+    const monthMatch = c.match(/^(\d+)\s*(?:m|月|month|months)$/);
+
+    if (anchor === "completion" && options.completionDate) {
+        if (c === "day") return addDays(startPoint, 1);
+        if (c === "week") return addDays(startPoint, 7);
+        if (c === "month") return addMonths(startPoint, 1);
+        if (c === "quarter") return addMonths(startPoint, 3);
+        if (c === "year") return addYears(startPoint, 1);
+        if (dayMatch) return addDays(startPoint, parseInt(dayMatch[1], 10));
+        if (weekMatch) return addDays(startPoint, parseInt(weekMatch[1], 10) * 7);
+        if (monthMatch) return addMonths(startPoint, parseInt(monthMatch[1], 10));
+        return addDays(startPoint, 1);
+    }
+
+    // anchor === "due"：按日历固定周期滚动到今天及以后（O(1) 月数差；day/week 用差值跳步）
+    if (c === "day") {
+        const diff = differenceInCalendarDays(today0, startPoint);
+        if (diff <= 0) return startPoint;
+        return addDays(startPoint, diff);
+    }
+    if (c === "week") {
+        const diff = differenceInCalendarDays(today0, startPoint);
+        if (diff <= 0) return startPoint;
+        return addDays(startPoint, Math.ceil(diff / 7) * 7);
+    }
+    const months = CYCLE_MONTHS[c] ?? (monthMatch ? parseInt(monthMatch[1], 10) : 0);
+    if (months > 0) {
+        const diff = (today0.getFullYear() - startPoint.getFullYear()) * 12 + (today0.getMonth() - startPoint.getMonth());
+        if (diff <= 0 && startPoint >= today0) return startPoint;
+        const k = Math.max(1, Math.ceil(diff / months));
+        const next = addMonths(startPoint, k * months);
+        return next < today0 ? addMonths(next, months) : next;
+    }
+    if (dayMatch) {
+        const step = parseInt(dayMatch[1], 10);
+        if (step > 0) {
+            const diff = differenceInCalendarDays(today0, startPoint);
+            if (diff <= 0) return startPoint;
+            return addDays(startPoint, Math.ceil(diff / step) * step);
+        }
+    }
+    if (weekMatch) {
+        const step = parseInt(weekMatch[1], 10) * 7;
+        if (step > 0) {
+            const diff = differenceInCalendarDays(today0, startPoint);
+            if (diff <= 0) return startPoint;
+            return addDays(startPoint, Math.ceil(diff / step) * step);
+        }
+    }
+    return startPoint;
 }
 
 /** 紧急分级（03 §4）：🔴 已逾期 / 🟠 7 天内 / 🟡 提前量内 / ⚪ 更远 */
@@ -187,6 +257,7 @@ export async function buildReminder(
     const level = levelOf(daysLeft, leadDays);
     // 降噪：提前量之外（later）不进列表；overdue 始终保留
     if (level === "later") return null;
+    const anchor = row.recurrenceAnchor ?? rule.recurrenceAnchor;
     return {
         id: `${row.rowId}::${moduleId}.${rule.key}`,
         moduleId,
@@ -200,6 +271,7 @@ export async function buildReminder(
         kind: rule.kind,
         ...(row.lunar ? { lunar: true } : {}),
         ...(row.autoRenew ? { autoRenew: true } : {}),
+        ...(anchor ? { recurrenceAnchor: anchor } : {}),
     };
 }
 

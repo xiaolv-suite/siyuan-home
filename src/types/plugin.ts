@@ -39,11 +39,14 @@ export interface HomePluginLike extends Plugin {
 
     complete(r: Reminder): Promise<void>;
     snooze(id: string, days: number): Promise<void>;
+    snoozeToDate?(id: string, targetDate: string): Promise<void>;
+    batchSnooze?(ids: string[], targetDate: string): Promise<Record<string, string | undefined>>;
+    undoBatchSnooze?(previousMap: Record<string, string | undefined>): Promise<void>;
     mute(id: string): Promise<void>;
     unmute(id: string): Promise<void>;
     restore(id: string): Promise<void>;
     renew(r: Reminder, iso: string): Promise<unknown>;
-    addMemo(title: string, due: string): Promise<void>;
+    addMemo(title: string, due: string, options?: any): Promise<void>;
     removeMemo(id: string): Promise<void>;
     updateMemo(id: string, patch: { title?: string; dueDate?: string }): Promise<void>;
     /** 29 组：今日免打扰快捷开关（todaySilent 跨天自动失效） */

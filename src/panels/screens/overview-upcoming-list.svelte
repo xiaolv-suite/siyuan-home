@@ -8,6 +8,7 @@
     let {
         reminders,
         top,
+        overdueCount = 0,
         memberFilter,
         pulseDateFilter = $bindable(undefined),
         initialScanError = "",
@@ -28,9 +29,13 @@
         onCopyTaskBlock,
         onCompleteReminder,
         onSnoozeReminder,
+        onBatchPostponeOverdue,
+        onUndoPostpone,
+        canUndoPostpone = false,
     }: {
         reminders: Reminder[];
         top: Reminder[];
+        overdueCount?: number;
         memberFilter?: string;
         pulseDateFilter?: string;
         initialScanError?: string;
@@ -51,6 +56,9 @@
         onCopyTaskBlock: (r: Reminder) => void;
         onCompleteReminder: (r: Reminder) => void;
         onSnoozeReminder: (r: Reminder, days: number) => void;
+        onBatchPostponeOverdue?: () => void;
+        onUndoPostpone?: () => void;
+        canUndoPostpone?: boolean;
     } = $props();
 </script>
 
@@ -60,6 +68,16 @@
     {#if pulseDateFilter}
         <button type="button" class="lv-badge blue lv-filter-clear-badge" onclick={() => { pulseDateFilter = undefined; }} title={t("overview.clearDateFilter")} aria-label={t("overview.clearDateFilter")}>
             <UiIcon name="calendar" size={12} /> {pulseDateFilter} <UiIcon name="close" size={10} />
+        </button>
+    {/if}
+    {#if overdueCount > 0 && onBatchPostponeOverdue}
+        <button type="button" class="b3-button b3-button--outline lv-overdue-postpone-btn" onclick={onBatchPostponeOverdue} title={t("dash.postponeOverdueToToday").replace("${n}", String(overdueCount))}>
+            <UiIcon name="calendar" size={12} /> {t("dash.postponeOverdueToToday").replace("${n}", String(overdueCount))}
+        </button>
+    {/if}
+    {#if canUndoPostpone && onUndoPostpone}
+        <button type="button" class="b3-button b3-button--text lv-tx-accent lv-undo-btn" onclick={onUndoPostpone} title={t("dash.undoPostpone")}>
+            <UiIcon name="back" size={12} /> {t("dash.undoPostpone")}
         </button>
     {/if}
     <button type="button" class="b3-button b3-button--text" onclick={onViewAll}><span>{t("dash.viewAll")}</span> <UiIcon name="forward" size={12} /></button>
@@ -115,7 +133,14 @@
                     onclick={() => { if (r.moduleId !== 'adhoc') onOpenLedger(r.moduleId); else onGoto('reminders'); }}
                     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (r.moduleId !== 'adhoc') onOpenLedger(r.moduleId); else onGoto('reminders'); } }}
                     title={t("dash.heroOpen")}>
-                    <b>{r.title}</b><span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : t("adhoc.name")}{#if !r.memberId} · {t("members.unassigned")}{/if}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}</span>
+                    <b>
+                        {#if (r.snoozeCount ?? 0) >= 3}
+                            <span class="lv-plan-badge is-snooze-heavy" title={t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}>
+                                <UiIcon name="alert" size={11} /> {t("hub.snoozeHeavyBadge")}
+                            </span>
+                        {/if}
+                        {r.title}
+                    </b><span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : t("adhoc.name")}{#if !r.memberId} · {t("members.unassigned")}{/if}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}</span>
                 </div>
                 <div class="lv-rem-when"><b class="lv-num">
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
@@ -135,6 +160,31 @@
         cursor: pointer;
         border: none;
         margin-left: 8px;
+    }
+    .lv-overdue-postpone-btn {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+        color: var(--b3-theme-primary);
+        border-color: var(--b3-theme-primary);
+    }
+    .lv-undo-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+    :global(.is-snooze-heavy) {
+        background: rgba(245, 158, 11, 0.16) !important;
+        color: #d97706 !important;
+        border: 1px solid rgba(245, 158, 11, 0.35) !important;
+        font-weight: 500;
+        margin-right: 4px;
     }
     .lv-skel--icon {
         width: 38px;

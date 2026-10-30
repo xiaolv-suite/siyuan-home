@@ -12,6 +12,7 @@ export function defaultRuntime(): HubRuntime {
     return {
         schemaVersion: 1,
         snoozed: {},
+        snoozeCounts: {},
         muted: {},
         handledYear: {},
         handledUntil: {},
@@ -63,6 +64,10 @@ export function normalizeReminder(value: unknown): Reminder | undefined {
     if (["oneoff", "recurring", "anniversary", "after"].includes(value.kind)) reminder.kind = value.kind;
     if (typeof value.lunar === "boolean") reminder.lunar = value.lunar;
     if (typeof value.autoRenew === "boolean") reminder.autoRenew = value.autoRenew;
+    if (value.recurrenceAnchor === "due" || value.recurrenceAnchor === "completion") reminder.recurrenceAnchor = value.recurrenceAnchor;
+    if (typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount)) reminder.snoozeCount = value.snoozeCount;
+    if (value.priority === "high" || value.priority === "medium" || value.priority === "low") reminder.priority = value.priority;
+    if (typeof value.tag === "string") reminder.tag = value.tag;
     return reminder;
 }
 
@@ -78,6 +83,11 @@ export function normalizeMemo(value: unknown): AdhocMemo | undefined {
         dueDate: value.dueDate,
         createdAt: value.createdAt,
         ...(typeof value.doneAt === "string" ? { doneAt: value.doneAt } : {}),
+        ...(value.priority === "high" || value.priority === "medium" || value.priority === "low" ? { priority: value.priority } : {}),
+        ...(typeof value.category === "string" ? { category: value.category } : {}),
+        ...(value.recurrenceAnchor === "due" || value.recurrenceAnchor === "completion" ? { recurrenceAnchor: value.recurrenceAnchor } : {}),
+        ...(typeof value.cycle === "string" ? { cycle: value.cycle } : {}),
+        ...(typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount) ? { snoozeCount: value.snoozeCount } : {}),
     };
 }
 
@@ -176,6 +186,7 @@ export async function loadRuntime(plugin: Plugin): Promise<HubRuntime> {
         ledgerSortAsc: typeof data.ledgerSortAsc === "boolean" ? data.ledgerSortAsc : undefined,
         cache: normalizeCache(data.cache),
         snoozed: stringRecord(data.snoozed),
+        snoozeCounts: numberRecord(data.snoozeCounts),
         planDates: stringRecord(data.planDates),
         muted: booleanRecord(data.muted),
         handledYear: numberRecord(data.handledYear),
@@ -259,6 +270,7 @@ export function semanticRuntimeFingerprint(rt: HubRuntime): string {
             byModule: byModuleFiltered,
         } : undefined,
         snoozed: rt.snoozed,
+        snoozeCounts: rt.snoozeCounts,
         planDates: rt.planDates,
         muted: rt.muted,
         handledYear: rt.handledYear,

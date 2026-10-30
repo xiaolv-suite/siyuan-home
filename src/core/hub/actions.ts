@@ -51,10 +51,71 @@ function ymd(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** 延后 N 天（运行态，不改真实 due） */
+/** 延后 N 天（运行态，不改真实 due，记录推迟次数） */
 export function snooze(plugin: Plugin, reminderId: string, days: number, today = new Date()) {
     return withRuntime(plugin, (rt) => {
         rt.snoozed[reminderId] = ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days));
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        rt.snoozeCounts[reminderId] = (rt.snoozeCounts[reminderId] ?? 0) + 1;
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : undefined;
+        if (memoId) {
+            const m = rt.memos.find((x) => x.id === memoId);
+            if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+        }
+    });
+}
+
+/** 延后至目标日期（运行态，记录推迟次数） */
+export function snoozeToDate(plugin: Plugin, reminderId: string, targetDate: string) {
+    return withRuntime(plugin, (rt) => {
+        rt.snoozed[reminderId] = targetDate;
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        rt.snoozeCounts[reminderId] = (rt.snoozeCounts[reminderId] ?? 0) + 1;
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : undefined;
+        if (memoId) {
+            const m = rt.memos.find((x) => x.id === memoId);
+            if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+        }
+    });
+}
+
+/** 批量将提醒顺延至指定日期（支持撤销） */
+export async function batchSnooze(plugin: Plugin, reminderIds: string[], targetDate: string): Promise<Record<string, string | undefined>> {
+    const previous: Record<string, string | undefined> = {};
+    await withRuntime(plugin, (rt) => {
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        for (const id of reminderIds) {
+            previous[id] = rt.snoozed[id];
+            rt.snoozed[id] = targetDate;
+            rt.snoozeCounts[id] = (rt.snoozeCounts[id] ?? 0) + 1;
+            const memoId = id.startsWith("adhoc::") ? id.slice("adhoc::".length) : undefined;
+            if (memoId) {
+                const m = rt.memos.find((x) => x.id === memoId);
+                if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+            }
+        }
+    });
+    return previous;
+}
+
+/** 撤销批量顺延操作 */
+export async function undoBatchSnooze(plugin: Plugin, previousMap: Record<string, string | undefined>): Promise<void> {
+    await withRuntime(plugin, (rt) => {
+        for (const [id, prevDate] of Object.entries(previousMap)) {
+            if (prevDate === undefined) {
+                delete rt.snoozed[id];
+            } else {
+                rt.snoozed[id] = prevDate;
+            }
+            if (rt.snoozeCounts && rt.snoozeCounts[id]) {
+                rt.snoozeCounts[id] = Math.max(0, rt.snoozeCounts[id] - 1);
+            }
+            const memoId = id.startsWith("adhoc::") ? id.slice("adhoc::".length) : undefined;
+            if (memoId) {
+                const m = rt.memos.find((x) => x.id === memoId);
+                if (m && m.snoozeCount) m.snoozeCount = Math.max(0, m.snoozeCount - 1);
+            }
+        }
     });
 }
 
@@ -184,11 +245,27 @@ function validDate(value: string): boolean {
     return Number.isFinite(d.getTime()) && d.getFullYear() === Number(m[1]) && d.getMonth() + 1 === Number(m[2]) && d.getDate() === Number(m[3]);
 }
 
-export async function addMemo(plugin: Plugin, title: string, dueDate: string, idempotencyKey?: string): Promise<HubRuntime> {
+export interface AddMemoOptions {
+    idempotencyKey?: string;
+    priority?: "high" | "medium" | "low";
+    category?: string;
+    recurrenceAnchor?: "due" | "completion";
+    cycle?: string;
+}
+
+export async function addMemo(
+    plugin: Plugin,
+    title: string,
+    dueDate: string,
+    idempotencyOrOptions?: string | AddMemoOptions,
+): Promise<HubRuntime> {
     const normalizedTitle = title.trim();
     if (!normalizedTitle) throw new Error("备忘标题不能为空");
     if (!validDate(dueDate)) throw new Error("备忘日期无效");
-    const key = idempotencyKey?.trim() || `${normalizedTitle}\u0000${dueDate}`;
+    const options: AddMemoOptions = typeof idempotencyOrOptions === "string"
+        ? { idempotencyKey: idempotencyOrOptions }
+        : (idempotencyOrOptions ?? {});
+    const key = options.idempotencyKey?.trim() || `${normalizedTitle}\u0000${dueDate}`;
     const seen = memoIdempotency.get(plugin) ?? new Map<string, number>();
     memoIdempotency.set(plugin, seen);
     let inserted = false;
@@ -198,7 +275,16 @@ export async function addMemo(plugin: Plugin, title: string, dueDate: string, id
             for (const [k, at] of seen) if (now - at > MEMO_IDEMPOTENCY_TTL_MS) seen.delete(k);
             if (seen.has(key)) return;
             seen.set(key, now);
-            rt.memos.push({ id: `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, title: normalizedTitle, dueDate, createdAt: new Date().toISOString() });
+            rt.memos.push({
+                id: `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+                title: normalizedTitle,
+                dueDate,
+                createdAt: new Date().toISOString(),
+                ...(options.priority ? { priority: options.priority } : {}),
+                ...(options.category ? { category: options.category } : {}),
+                ...(options.recurrenceAnchor ? { recurrenceAnchor: options.recurrenceAnchor } : {}),
+                ...(options.cycle ? { cycle: options.cycle } : {}),
+            });
             inserted = true;
         });
         if (!inserted) return result;

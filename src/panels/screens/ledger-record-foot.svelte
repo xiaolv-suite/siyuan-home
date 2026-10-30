@@ -40,10 +40,10 @@
         {pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}
     </button>
     <span class="fn__flex-1"></span>
-    <button class="lv-btn" onclick={() => onSaveNewRecord(true)} disabled={!canSubmitNewRecord}>
+    <button class="lv-btn" onclick={() => onSaveNewRecord(true)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
         {saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}
     </button>
-    <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => onSaveNewRecord(false)} disabled={!canSubmitNewRecord}>
+    <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => onSaveNewRecord(false)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
         {saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}
     </button>
 </div>

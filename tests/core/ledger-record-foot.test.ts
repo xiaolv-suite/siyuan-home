@@ -39,4 +39,14 @@ describe("ledger-record-foot (台账建档弹层底部动作栏)", () => {
         expect(resolveClearButtonLabel("row-999")).toBe("放弃部分记录");
         expect(resolveClearButtonLabel(null)).toBe("清空草稿");
     });
+
+    it("保存进行中 (saving) 强力阻断重复提交并发", () => {
+        function canClickSubmit(saving: boolean, canSubmit: boolean) {
+            return !saving && canSubmit;
+        }
+
+        expect(canClickSubmit(true, true)).toBe(false);
+        expect(canClickSubmit(false, true)).toBe(true);
+        expect(canClickSubmit(false, false)).toBe(false);
+    });
 });

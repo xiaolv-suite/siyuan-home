@@ -66,4 +66,14 @@ describe("tab-shell-components (三栏架构 KPI 指标条与上下文侧板)", 
         handleRailKeydown("End", 1);
         expect(onGotoScreen).toHaveBeenCalledWith("members");
     });
+
+    it("提醒页签待办存在时声明精确的 aria-label 供屏幕阅读器朗读", () => {
+        function resolveTabAriaLabel(key: string, isReminders: boolean, pendingCount: number) {
+            return isReminders && pendingCount > 0 ? `${key}，${pendingCount}项待办` : key;
+        }
+
+        expect(resolveTabAriaLabel("提醒事项", true, 5)).toBe("提醒事项，5项待办");
+        expect(resolveTabAriaLabel("提醒事项", true, 0)).toBe("提醒事项");
+        expect(resolveTabAriaLabel("总览", false, 5)).toBe("总览");
+    });
 });

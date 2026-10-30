@@ -48,6 +48,7 @@
                 aria-controls={`lv-panel-${s.id}`}
                 tabindex={screen === s.id ? 0 : -1}
                 title={t(s.key)}
+                aria-label={s.id === "reminders" && pendingTotal > 0 ? `${t(s.key)}，${pendingTotal}项待办` : t(s.key)}
                 onkeydown={(e) => onRailKeydown(e, i)}
                 onclick={() => onGotoScreen(s.id)}
             >

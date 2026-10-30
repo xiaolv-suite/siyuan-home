@@ -508,6 +508,7 @@
                     {#each screens as s, i (s.id)}
                         <button id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
                             role="tab" aria-selected={screen === s.id} aria-current={screen === s.id ? "page" : undefined} aria-controls={`lv-panel-${s.id}`}
+                            aria-label={s.id === "reminders" && pendingTotal > 0 ? `${t(s.key)}，${pendingTotal}项待办` : t(s.key)}
                             tabindex={screen === s.id ? 0 : -1} onpointerdown={() => prepareTabNavigation(s.id)} onkeydown={(e) => onTabKeydown(e, i)} onclick={() => gotoScreen(s.id)}>
                             {t(s.key)}
                             {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}

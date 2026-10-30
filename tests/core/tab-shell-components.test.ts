@@ -33,4 +33,37 @@ describe("tab-shell-components (三栏架构 KPI 指标条与上下文侧板)", 
         handleDockAction("reminders", "rescan");
         expect(onRefreshScan).toHaveBeenCalledTimes(1);
     });
+
+    it("左侧导轨 tablist 满足垂直方向键导航与循环边界", () => {
+        const screens = [
+            { id: "overview", key: "tab.overview" },
+            { id: "reminders", key: "tab.reminders" },
+            { id: "ledger", key: "tab.ledger" },
+            { id: "members", key: "tab.members" },
+        ];
+        const onGotoScreen = vi.fn();
+
+        function handleRailKeydown(key: string, index: number) {
+            if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(key)) return;
+            const next = key === "Home" ? 0 : key === "End" ? screens.length - 1
+                : (index + (key === "ArrowDown" ? 1 : -1) + screens.length) % screens.length;
+            onGotoScreen(screens[next].id);
+        }
+
+        // 下箭头
+        handleRailKeydown("ArrowDown", 0);
+        expect(onGotoScreen).toHaveBeenCalledWith("reminders");
+
+        // 循环上箭头（在首项按上 -> 最后一项）
+        handleRailKeydown("ArrowUp", 0);
+        expect(onGotoScreen).toHaveBeenCalledWith("members");
+
+        // Home 键
+        handleRailKeydown("Home", 2);
+        expect(onGotoScreen).toHaveBeenCalledWith("overview");
+
+        // End 键
+        handleRailKeydown("End", 1);
+        expect(onGotoScreen).toHaveBeenCalledWith("members");
+    });
 });

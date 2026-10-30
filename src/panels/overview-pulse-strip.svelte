@@ -17,13 +17,14 @@
 <div class="lv-pulse-strip" role="region" aria-label="本周日程节奏">
     {#each weeklyPulse as p (p.date)}
         <button type="button" class="lv-pulse-pill" class:is-today={p.isToday} class:is-selected={pulseDateFilter === p.date}
+            aria-pressed={pulseDateFilter === p.date}
             onclick={() => { pulseDateFilter = pulseDateFilter === p.date ? undefined : p.date; }}
             title={`${p.date} ${p.weekday}：${p.dueCount} 项待办（点击筛选该日）`}>
             <span class="lv-pulse-weekday">{p.weekday}</span>
             <span class="lv-pulse-day lv-num">{p.dayNum}</span>
             <span class="lv-pulse-status" class:has-due={p.dueCount > 0} class:is-past-ok={p.isPast && p.dueCount === 0}>
                 {#if p.isToday}
-                    ●
+                    <UiIcon name="clock" size={10} />
                 {:else if p.isPast && p.dueCount === 0}
                     <UiIcon name="check" size={10} />
                 {:else if p.dueCount > 0}
@@ -38,9 +39,9 @@
 
 <!-- 原型参考图家庭生活就绪成就勋章（Achievements Badges） -->
 {#if achievements.some((a) => a.achieved)}
-    <div class="lv-achievements-row" aria-label="家庭生活就绪勋章">
+    <div class="lv-achievements-row" role="group" aria-label="家庭生活就绪勋章">
         {#each achievements.filter((a) => a.achieved) as ach (ach.id)}
-            <div class="lv-achievement-chip" title={ach.desc}>
+            <div class="lv-achievement-chip" title={ach.desc} role="group" aria-label={`${ach.title}：${ach.desc}`}>
                 <UiIcon name={ach.icon as any} size={15} />
                 <span>{ach.title}</span>
             </div>

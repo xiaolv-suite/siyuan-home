@@ -141,7 +141,7 @@
                     <button class="b3-button b3-button--text lv-th-sort-btn" title={t("ledger.sortTip")}
                         aria-label={`${resolveFieldLabel(k)}${sortKey === k ? (sortAsc ? "，升序" : "，降序") : "，未排序"}`}
                         onclick={() => onToggleSort(k)}>
-                        {resolveFieldLabel(k)}{#if sortKey === k}<span class="lv-sort-arrow" aria-hidden="true">{sortAsc ? " ↑" : " ↓"}</span>{/if}
+                        {resolveFieldLabel(k)}{#if sortKey === k}<span class="lv-sort-arrow" aria-hidden="true"><UiIcon name={sortAsc ? "chevronUp" : "chevronDown"} size={11} /></span>{/if}
                     </button>
                 </th>
             {/each}
@@ -153,7 +153,10 @@
             {#each virtualRows as r (r.itemID)}
                 {@const tone = ledgerTone(r)}
                 {@const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail")}
-                <tr class="lv-row-link" onclick={() => onOpenDetail(r)} title={t("ledger.detail")}>
+                <tr class="lv-row-link" tabindex="0"
+                    onclick={() => onOpenDetail(r)}
+                    onkeydown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) { e.preventDefault(); onOpenDetail(r); } }}
+                    title={t("ledger.detail")}>
                     <td class="lv-check-cell" onclick={(e) => e.stopPropagation()}>
                         <input type="checkbox" class="b3-checkbox lv-checkbox-clean" checked={selectedItemIds.includes(r.itemID)} onclick={() => toggleRowSelect(r.itemID)} aria-label={`${t("hub.select")} ${rowName}`} />
                     </td>
@@ -172,7 +175,7 @@
                                         title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}>−</button>
                                     <span class="lv-cell-center-min">{cellText(v, k)}</span>
                                     <button type="button" class="lv-qty-btn"
-                                        title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}>+</button>
+                                        title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}><UiIcon name="add" size={10} /></button>
                                 </div>
                             {:else}
                                 {cellText(v, k)}
@@ -210,6 +213,14 @@
     .lv-th-sort-btn {
         padding: 0 2px;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .lv-sort-arrow {
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
     }
     .lv-cell-center-min {
         min-width: 18px;

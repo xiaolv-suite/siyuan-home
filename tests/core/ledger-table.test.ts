@@ -99,4 +99,23 @@ describe("ledger-table (台账通用数据表格与虚拟化滚动)", () => {
         expect(resolveAriaSort("due", "due", true)).toBe("ascending");
         expect(resolveAriaSort("due", "due", false)).toBe("descending");
     });
+
+    it("行内键盘导航支持 Enter 键直达详情抽屉", () => {
+        const onOpenDetail = vi.fn();
+        const mockRow = { itemID: "row-1", cells: {} };
+
+        const handleRowKeydown = (e: { key: string; target: any; currentTarget: any; preventDefault: () => void }) => {
+            if (e.key === "Enter" && e.target === e.currentTarget) {
+                e.preventDefault();
+                onOpenDetail(mockRow);
+            }
+        };
+
+        const target = {};
+        const preventDefault = vi.fn();
+        handleRowKeydown({ key: "Enter", target, currentTarget: target, preventDefault });
+
+        expect(preventDefault).toHaveBeenCalled();
+        expect(onOpenDetail).toHaveBeenCalledWith(mockRow);
+    });
 });

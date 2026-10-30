@@ -21,21 +21,34 @@
         onOpenSpotlight: () => void;
         onOpenSetting: () => void;
     } = $props();
+
+    function onRailKeydown(event: KeyboardEvent, index: number) {
+        if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === "Home" ? 0 : event.key === "End" ? screens.length - 1
+            : (index + (event.key === "ArrowDown" ? 1 : -1) + screens.length) % screens.length;
+        onGotoScreen(screens[next].id);
+        requestAnimationFrame(() => (document.getElementById(`lv-rail-tab-${screens[next].id}`) as HTMLButtonElement | null)?.focus());
+    }
 </script>
 
 <nav class="lv-rail-nav" aria-label={t("tab.title")}>
     <button type="button" class="lv-rail-nav__brand" title={t("butler")} onclick={() => onGotoScreen("overview")}>
         <UiIcon name="home" size={20} />
     </button>
-    <div class="lv-rail-nav__menu" role="tablist">
-        {#each screens as s (s.id)}
+    <div class="lv-rail-nav__menu" role="tablist" aria-orientation="vertical">
+        {#each screens as s, i (s.id)}
             <button
                 type="button"
+                id={`lv-rail-tab-${s.id}`}
                 class="lv-rail-nav__item"
                 class:on={screen === s.id}
                 role="tab"
                 aria-selected={screen === s.id}
+                aria-controls={`lv-panel-${s.id}`}
+                tabindex={screen === s.id ? 0 : -1}
                 title={t(s.key)}
+                onkeydown={(e) => onRailKeydown(e, i)}
                 onclick={() => onGotoScreen(s.id)}
             >
                 <UiIcon name={s.icon} size={18} />

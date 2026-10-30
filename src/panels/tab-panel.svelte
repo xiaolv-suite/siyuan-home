@@ -5,6 +5,7 @@
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
     import UiIcon from "@/ui/icon.svelte";
+    import type { UiIconName } from "@/ui/icons";
     import type { HomePluginLike } from "@/types/plugin";
     import type { ActivityTarget } from "@/core/activity";
     import { formatLocalTime } from "@/core/date-display";
@@ -265,6 +266,8 @@
     $effect(() => {
         const onKey = (e: KeyboardEvent) => {
             const el = e.target as HTMLElement | null;
+            // 任意宿主弹窗、插件弹窗或生活检索打开时不响应快捷键，杜绝多层抢键与重复弹窗堆叠
+            if (document.querySelector("dialog[open], .b3-dialog, .lv-modal.open, .lv-spotlight-dialog-body")) return;
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
                 // 仅当焦点落在小驴管家宿主容器内部且非编辑器内部时响应，避免抢占思源官方插入超链接快捷键
                 if (homeEl && homeEl.contains(el) && !el?.isContentEditable) {
@@ -278,7 +281,6 @@
             if (e.key !== "n" && e.key !== "N") return;
             if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey) return;
             if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
-            if (document.querySelector("dialog[open], .b3-dialog, .lv-modal.open")) return; // 任意宿主或插件弹窗打开时不抢键
             e.preventDefault();
             openCapture();
         };
@@ -359,12 +361,45 @@
         void version;
         return plugin.scan?.reminders?.length ?? plugin.runtime?.cache?.reminders?.length ?? 0;
     });
-    const screens: { id: ScreenId; key: string }[] = [
-        { id: "overview", key: "tab.overview" },
-        { id: "reminders", key: "tab.reminders" },
-        { id: "ledger", key: "tab.ledger" },
-        { id: "members", key: "tab.members" },
+    const screens: { id: ScreenId; key: string; icon: UiIconName }[] = [
+        { id: "overview", key: "tab.overview", icon: "home" },
+        { id: "reminders", key: "tab.reminders", icon: "bell" },
+        { id: "ledger", key: "tab.ledger", icon: "archive" },
+        { id: "members", key: "tab.members", icon: "users" },
     ];
+
+    // 统计优先：关键指标行数据（从运行时派生，大数字 + 竖线分隔）
+    const kpiUrgentCount = $derived.by(() => {
+        void version;
+        const rems = plugin.scan?.reminders ?? plugin.runtime?.cache?.reminders ?? [];
+        return rems.filter((r: any) => r.level === "overdue" || (r.daysLeft >= 0 && r.daysLeft <= 7)).length;
+    });
+    const kpiMonthlyRatio = $derived.by(() => {
+        void version;
+        const now = new Date();
+        const monthKey = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+        const done = plugin.runtime?.monthlyCompletions?.[monthKey] ?? 0;
+        const total = plugin.runtime?.monthlyDueTotals?.[monthKey] ?? 0;
+        return total > 0 ? `${done}/${total}` : (done > 0 ? `${done}项` : "100%");
+    });
+    const kpiRecordsTotal = $derived.by(() => {
+        void version;
+        const byModule = plugin.runtime?.cache?.byModule ?? {};
+        let total = 0;
+        for (const stats of Object.values(byModule) as any[]) {
+            if (typeof stats?.rowCount === "number") total += stats.rowCount;
+        }
+        return total;
+    });
+    const kpiMemberCount = $derived.by(() => {
+        void version;
+        return plugin.settings?.members?.length ?? 0;
+    });
+
+    let dockOpen = $state<boolean>(false);
+    function toggleDock() {
+        dockOpen = !dockOpen;
+    }
 
     // C1b：滑动胶囊（offsetLeft/width + spring，与原型一致）
     let navEl: HTMLElement;
@@ -435,88 +470,212 @@
 </script>
 
 <div class="lv-home lv-tab" bind:this={homeEl}>
-    <header class="lv-tabbar">
-        <div class="lv-appbrand">
-            <span class="lv-logo" aria-hidden="true"><UiIcon name="home" size={19} className="lv-logo-mark" /></span>
-            <div class="lv-appbrand-t">
-                <b>{t("butler")}</b>
-                <span>LV HOME</span>
+    <div class="lv-shell-frame">
+        <!-- 1. 左侧极窄导航栏（Rail Navigation） -->
+        <nav class="lv-rail-nav" aria-label={t("tab.title")}>
+            <button type="button" class="lv-rail-nav__brand" title={t("butler")} onclick={() => gotoScreen("overview")}>
+                <UiIcon name="home" size={20} />
+            </button>
+            <div class="lv-rail-nav__menu" role="tablist">
+                {#each screens as s (s.id)}
+                    <button type="button" class="lv-rail-nav__item" class:on={screen === s.id}
+                        role="tab" aria-selected={screen === s.id}
+                        title={t(s.key)} onclick={() => gotoScreen(s.id)}>
+                        <UiIcon name={s.icon} size={18} />
+                        <span>{t(s.key)}</span>
+                        {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
+                    </button>
+                {/each}
             </div>
-            <span class="lv-appbrand-sep" aria-hidden="true"></span>
-            <div class="lv-avatar-wrap">
-                <AvatarSettings {plugin} {t} />
-            </div>
-        </div>
-        <span class="fn__flex-1" aria-hidden="true"></span>
-        <div class="lv-tabs" bind:this={navEl} style="position:relative" role="tablist" aria-label={t("tab.title")}>
-            <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
-            <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>
-            {#each screens as s, i (s.id)}
-                <button id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
-                    role="tab" aria-selected={screen === s.id} aria-current={screen === s.id ? "page" : undefined} aria-controls={`lv-panel-${s.id}`}
-                    tabindex={screen === s.id ? 0 : -1} onpointerdown={() => prepareTabNavigation(s.id)} onkeydown={(e) => onTabKeydown(e, i)} onclick={() => gotoScreen(s.id)}>
-                    {t(s.key)}
-                    {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
+            <div class="lv-rail-nav__foot">
+                <button type="button" class="lv-iconbtn is-primary" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(e) => openCapture(undefined, e)}>
+                    <UiIcon name="bolt" size={17} />
                 </button>
-            {/each}
-        </div>
-        <span class="fn__flex-1"></span>
-        <!-- 259 波：呼吸状态点 + mono 扫描时间，支持点击一键触发重新扫描 -->
-        <button type="button" class="lv-hubstatus lv-caption"
-            title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · 点击立即重新扫描`}
-            aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}
-            onclick={() => void refreshInitialScan(true)}>
-            <i class="lv-pulse" class:orange={plugin.scan?.stale && !plugin.scan?.errors?.length}
-                class:red={(plugin.scan?.errors?.length ?? 0) > 0} aria-hidden="true"></i>
-            <span class="lv-num">{formatLocalTime(plugin.runtime?.scannedAt, { hour: "2-digit", minute: "2-digit" }) ?? "—"}</span>
-            {#if plugin.scan?.stale}<span class="lv-badge orange" title={plugin.scan.errors.map((e) => e.moduleId).join(", ")}>{t("hub.stale")}</span>{/if}
-        </button>
-        <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
-        <div class="lv-tabbar-actions">
-            <button class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
-            <button class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-            <button class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
-            <button class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
-            {#if onMobileClose}
-                <button class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
-            {/if}
-        </div>
-    </header>
+                <button type="button" class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}>
+                    <UiIcon name="search" size={16} />
+                </button>
+                <button type="button" class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}>
+                    <UiIcon name="settings" size={16} />
+                </button>
+            </div>
+        </nav>
 
-    {#if isGuestMode}
-        <div class="lv-guest-banner" role="status">
-            <div class="lv-guest-banner__left">
-                <span class="lv-badge orange">{t("guest.bannerTitle")}</span>
-                <span class="lv-caption">{t("guest.bannerDesc")}</span>
-            </div>
-            <div class="lv-guest-banner__right">
-                <button class="b3-button b3-button--text" onclick={openEmergencyCardFromGuest}>
-                    🚨 {t("overview.emergencyCard")}
-                </button>
-                <button class="b3-button b3-button--text" onclick={toggleGuestMode}>
-                    {t("guest.exitMode")}
-                </button>
-            </div>
-        </div>
-    {/if}
-
-    {#key screen}
-        <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
-            <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
-                {#if screenLoadError}
-                    <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
-                {:else if loadedScreen !== screen || !ScreenView}
-                    <div class="lv-card lv-screen-loading" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
-                        <span class="lv-skel" aria-hidden="true" style="width:42%;height:16px"></span>
-                        <span class="lv-skel" aria-hidden="true" style="width:78%;height:12px"></span>
-                        <span class="lv-skel" aria-hidden="true" style="width:64%;height:12px"></span>
+        <!-- 2. 中间主工作台 -->
+        <div class="lv-main-stage">
+            <header class="lv-tabbar">
+                <div class="lv-appbrand">
+                    <span class="lv-logo" aria-hidden="true"><UiIcon name="home" size={19} className="lv-logo-mark" /></span>
+                    <div class="lv-appbrand-t">
+                        <b>{t("butler")}</b>
+                        <span>LV HOME</span>
                     </div>
-                {:else}
-                    <ScreenView {plugin} {t} {version} {initialScanError} onRetryScan={() => refreshInitialScan(true)} onCapture={(moduleId?: string) => openCapture(moduleId)} onGoto={(s: ScreenId) => gotoScreen(s)} />
-                {/if}
-            </ErrorBoundary>
+                    <span class="lv-appbrand-sep" aria-hidden="true"></span>
+                    <div class="lv-avatar-wrap">
+                        <AvatarSettings {plugin} {t} />
+                    </div>
+                </div>
+                <span class="fn__flex-1" aria-hidden="true"></span>
+                <div class="lv-tabs" bind:this={navEl} style="position:relative" role="tablist" aria-label={t("tab.title")}>
+                    <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
+                    <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>
+                    {#each screens as s, i (s.id)}
+                        <button id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
+                            role="tab" aria-selected={screen === s.id} aria-current={screen === s.id ? "page" : undefined} aria-controls={`lv-panel-${s.id}`}
+                            tabindex={screen === s.id ? 0 : -1} onpointerdown={() => prepareTabNavigation(s.id)} onkeydown={(e) => onTabKeydown(e, i)} onclick={() => gotoScreen(s.id)}>
+                            {t(s.key)}
+                            {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
+                        </button>
+                    {/each}
+                </div>
+                <span class="fn__flex-1"></span>
+                <!-- 259 波：呼吸状态点 + mono 扫描时间，支持点击一键触发重新扫描 -->
+                <button type="button" class="lv-hubstatus lv-caption"
+                    title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · 点击立即重新扫描`}
+                    aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}
+                    onclick={() => void refreshInitialScan(true)}>
+                    <i class="lv-pulse" class:orange={plugin.scan?.stale && !plugin.scan?.errors?.length}
+                        class:red={(plugin.scan?.errors?.length ?? 0) > 0} aria-hidden="true"></i>
+                    <span class="lv-num">{formatLocalTime(plugin.runtime?.scannedAt, { hour: "2-digit", minute: "2-digit" }) ?? "—"}</span>
+                    {#if plugin.scan?.stale}<span class="lv-badge orange" title={plugin.scan.errors.map((e) => e.moduleId).join(", ")}>{t("hub.stale")}</span>{/if}
+                </button>
+                <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
+                <div class="lv-tabbar-actions">
+                    <button class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
+                    <button class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
+                    <button class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+                    <button class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
+                    <button class="lv-iconbtn" class:orange={dockOpen} aria-label="切换侧边栏" title={dockOpen ? "收起右侧栏" : "展开右侧栏"} onclick={toggleDock}><UiIcon name="menu" size={16} /></button>
+                    {#if onMobileClose}
+                        <button class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
+                    {/if}
+                </div>
+            </header>
+
+            {#if isGuestMode}
+                <div class="lv-guest-banner" role="status">
+                    <div class="lv-guest-banner__left">
+                        <span class="lv-badge orange">{t("guest.bannerTitle")}</span>
+                        <span class="lv-caption">{t("guest.bannerDesc")}</span>
+                    </div>
+                    <div class="lv-guest-banner__right">
+                        <button class="b3-button b3-button--text" onclick={openEmergencyCardFromGuest}>
+                            🚨 {t("overview.emergencyCard")}
+                        </button>
+                        <button class="b3-button b3-button--text" onclick={toggleGuestMode}>
+                            {t("guest.exitMode")}
+                        </button>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- 统计优先：关键指标行（KPI Strip） -->
+            <div class="lv-kpi-row" role="region" aria-label="核心生活指标">
+                <div class="lv-kpi-row__item">
+                    <span class="lv-kpi-row__label">⏱️ {t("dash.bentoUrgentTitle") || "临期关注"}</span>
+                    <div class="lv-kpi-row__num-wrap">
+                        <b class="lv-kpi-row__num">{kpiUrgentCount}</b>
+                        <span class="lv-kpi-row__badge {kpiUrgentCount > 0 ? 'warn' : 'accent'}">{kpiUrgentCount > 0 ? '需留意' : '已就绪'}</span>
+                    </div>
+                </div>
+                <div class="lv-kpi-row__item">
+                    <span class="lv-kpi-row__label">✓ {t("dash.monthlyDoneTitle") || "本月进度"}</span>
+                    <div class="lv-kpi-row__num-wrap">
+                        <b class="lv-kpi-row__num">{kpiMonthlyRatio}</b>
+                        <span class="lv-kpi-row__badge accent">按期办</span>
+                    </div>
+                </div>
+                <div class="lv-kpi-row__item">
+                    <span class="lv-kpi-row__label">🗂️ {t("tab.ledger") || "台账事实"}</span>
+                    <div class="lv-kpi-row__num-wrap">
+                        <b class="lv-kpi-row__num">{kpiRecordsTotal}</b>
+                        <span class="lv-kpi-row__badge neutral">条记录</span>
+                    </div>
+                </div>
+                <div class="lv-kpi-row__item">
+                    <span class="lv-kpi-row__label">👥 {t("tabMembers") || "家庭成员"}</span>
+                    <div class="lv-kpi-row__num-wrap">
+                        <b class="lv-kpi-row__num">{kpiMemberCount}</b>
+                        <span class="lv-kpi-row__badge accent">位档案</span>
+                    </div>
+                </div>
+            </div>
+
+            {#key screen}
+                <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
+                    <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
+                        {#if screenLoadError}
+                            <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
+                        {:else if loadedScreen !== screen || !ScreenView}
+                            <div class="lv-card lv-screen-loading" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
+                                <span class="lv-skel" aria-hidden="true" style="width:42%;height:16px"></span>
+                                <span class="lv-skel" aria-hidden="true" style="width:78%;height:12px"></span>
+                                <span class="lv-skel" aria-hidden="true" style="width:64%;height:12px"></span>
+                            </div>
+                        {:else}
+                            <ScreenView {plugin} {t} {version} {initialScanError} onRetryScan={() => refreshInitialScan(true)} onCapture={(moduleId?: string) => openCapture(moduleId)} onGoto={(s: ScreenId) => gotoScreen(s)} />
+                        {/if}
+                    </ErrorBoundary>
+                </div>
+            {/key}
         </div>
-    {/key}
+
+        <!-- 3. 右侧可收起上下文侧板 -->
+        {#if dockOpen}
+            <aside class="lv-context-dock" aria-label="上下文面板">
+                <div class="lv-context-dock__head">
+                    <span>
+                        {#if screen === "overview"}
+                            📊 {t("dash.title") || "总览上下文"}
+                        {:else if screen === "reminders"}
+                            ⏰ {t("tab.reminders")}
+                        {:else if screen === "ledger"}
+                            🗂️ {t("tab.ledger")}
+                        {:else}
+                            👥 {t("tab.members")}
+                        {/if}
+                    </span>
+                    <button type="button" class="b3-button b3-button--text lv-caption" aria-label={t("close")} onclick={toggleDock}>✕</button>
+                </div>
+                <div class="lv-context-dock__body">
+                    {#if screen === "overview"}
+                        <div class="lv-context-card">
+                            <b>⚡ 快捷指令</b>
+                            <p class="lv-caption">按 N 快速记录 · Ctrl+K 聚焦检索</p>
+                            <div class="lv-context-actions">
+                                <button class="lv-btn ghost sm" onclick={() => openCapture()}><UiIcon name="add" size={13} /> {t("dash.quickRecord")}</button>
+                                <button class="lv-btn ghost sm" onclick={() => void openSpotlight()}><UiIcon name="search" size={13} /> {t("spotlight.title")}</button>
+                            </div>
+                        </div>
+                        <div class="lv-context-card">
+                            <b>🛡️ 家庭保障速览</b>
+                            <p class="lv-caption">已收录家庭档案 {kpiMemberCount} 位，核心台账事实 {kpiRecordsTotal} 条。</p>
+                        </div>
+                    {:else if screen === "reminders"}
+                        <div class="lv-context-card">
+                            <b>📌 待办聚焦</b>
+                            <p class="lv-caption">当前急迫待办 {kpiUrgentCount} 项，当月已办进度 {kpiMonthlyRatio}。</p>
+                            <div class="lv-context-actions">
+                                <button class="lv-btn ghost sm" onclick={() => refreshInitialScan(true)}><UiIcon name="repeat" size={13} /> {t("hub.rescan")}</button>
+                            </div>
+                        </div>
+                    {:else if screen === "ledger"}
+                        <div class="lv-context-card">
+                            <b>🗂️ 台账事实库</b>
+                            <p class="lv-caption">已归集 31 大类生活结构化数据，共 {kpiRecordsTotal} 条记录沉淀。</p>
+                            <div class="lv-context-actions">
+                                <button class="lv-btn ghost sm" onclick={() => openCapture(plugin.activeLedger)}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
+                            </div>
+                        </div>
+                    {:else}
+                        <div class="lv-context-card">
+                            <b>👥 成员中心</b>
+                            <p class="lv-caption">当前已登记 {kpiMemberCount} 位家庭成员与宠物档案，支持公农双历生日推演。</p>
+                        </div>
+                    {/if}
+                </div>
+            </aside>
+        {/if}
+    </div>
 
     <!-- 267 波：快速记录弹层（常驻挂载——关闭仅收起，草稿保留） -->
     {#if CaptureView}

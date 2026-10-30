@@ -427,6 +427,8 @@
     "mod.inLedger": "View in ledger",
     "mod.pendingDrill": "Click to see this module's due reminders",
     "dash.hello": "Home at a glance",
+    "dash.title": "Overview Context",
+    "dash.monthlyDoneTitle": "Monthly Progress",
     "dash.heroTitle": "make room for everyday life.",
     "dash.heroLead": "Handle what matters first, and capture new things as they come.",
     "dash.heroOpen": "View reminders",

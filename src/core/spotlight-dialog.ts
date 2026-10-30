@@ -37,6 +37,7 @@ export interface SpotlightDialogOptions {
 }
 
 export async function openSpotlightDialog(options: SpotlightDialogOptions): Promise<void> {
+    if (typeof document !== "undefined" && document.querySelector(".lv-spotlight-dialog-body")) return;
     const { t, plugin, DialogCls, renderLedgerAllFn, cellTextFn, onNavigateToTarget } = options;
 
     // 预先保证拼音字典加载就绪

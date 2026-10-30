@@ -224,6 +224,248 @@
   .lv-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   .lv-mono { font-family: var(--b3-font-family-code); font-size: .86em; letter-spacing: 0; }
 
+  // ── 3. 外壳分层与三段式结构（2026-10-30 升级）────────────────
+  .lv-shell-frame {
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: calc(100vh - 24px);
+    background: var(--lv-surface);
+    border-radius: var(--lv-r-card);
+    box-shadow: var(--lv-shadow-2);
+    border: 1px solid var(--lv-line);
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+  }
+
+  // 1. 左侧极窄导航栏（Rail Navigation）
+  .lv-rail-nav {
+    width: 68px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 6px 14px;
+    background: var(--lv-surface);
+    border-right: 1px solid var(--lv-line);
+    box-sizing: border-box;
+    user-select: none;
+    z-index: 10;
+
+    &__brand {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--lv-accent);
+      color: #fff;
+      margin-bottom: 16px;
+      box-shadow: var(--lv-shadow-pop);
+      cursor: pointer;
+      transition: transform var(--lv-t-fast) var(--lv-ease);
+      &:hover { transform: scale(1.05); }
+    }
+
+    &__menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
+      flex: 1;
+    }
+
+    &__item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      width: 54px;
+      height: 52px;
+      border-radius: var(--lv-r-inner);
+      border: none;
+      background: transparent;
+      color: var(--lv-tx-2);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      transition: all var(--lv-t-fast) var(--lv-ease);
+
+      &:hover {
+        background: var(--lv-surface-2);
+        color: var(--lv-tx);
+      }
+
+      &.on {
+        background: var(--lv-accent-soft);
+        color: var(--lv-accent);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(49, 83, 114, 0.08);
+      }
+
+      .lv-dot {
+        position: absolute;
+        top: 6px;
+        right: 10px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--lv-danger);
+        box-shadow: 0 0 0 2px var(--lv-surface);
+      }
+    }
+
+    &__foot {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--lv-line);
+      .lv-iconbtn {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--lv-r-inner);
+        display: grid;
+        place-items: center;
+        background: transparent;
+        border: none;
+        color: var(--lv-tx-2);
+        cursor: pointer;
+        transition: all var(--lv-t-fast) var(--lv-ease);
+        &:hover { background: var(--lv-surface-2); color: var(--lv-tx); }
+        &.is-primary { background: var(--lv-accent); color: #fff; box-shadow: var(--lv-shadow-pop); }
+      }
+    }
+  }
+
+  // 2. 中间主工作台
+  .lv-main-stage {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--lv-canvas);
+    box-sizing: border-box;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  // 统计优先：关键指标行（KPI Strip）——大数字配小标签，竖线分隔
+  .lv-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    background: var(--lv-surface);
+    border-bottom: 1px solid var(--lv-line);
+    padding: 10px 16px;
+    box-sizing: border-box;
+
+    &__item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 14px;
+      border-right: 1px solid var(--lv-line);
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+
+    &__label {
+      font-size: 11px;
+      color: var(--lv-tx-3);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    &__num-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    &__num {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--lv-tx);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &__badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 999px;
+      &.accent { background: var(--lv-data-soft); color: var(--lv-data-accent); }
+      &.warn { background: var(--lv-danger-soft); color: var(--lv-danger); }
+      &.neutral { background: var(--lv-surface-2); color: var(--lv-tx-3); }
+    }
+  }
+
+  // 3. 右侧可收起上下文侧板（Context Dock）
+  .lv-context-dock {
+    width: 280px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    background: var(--lv-surface);
+    border-left: 1px solid var(--lv-line);
+    box-sizing: border-box;
+    transition: width var(--lv-t-med) var(--lv-ease), opacity var(--lv-t-med) var(--lv-ease);
+    overflow: hidden;
+    user-select: none;
+
+    &__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--lv-line);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--lv-tx);
+    }
+
+    &__body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lv-context-card {
+      padding: 12px;
+      border-radius: var(--lv-r-inner);
+      background: var(--lv-surface-2);
+      border: 1px solid var(--lv-line);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      b { font-size: 12.5px; color: var(--lv-tx); }
+      p { margin: 0; line-height: 1.45; }
+    }
+
+    .lv-context-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+  }
+
   // ── 3. 页头与节奏 ───────────────────────────────────────
   // 主导航使用白面与细描边，普通工作面不依赖浮起阴影。
   .lv-tabbar { display: flex; align-items: center; gap: var(--lv-space-3); padding: 8px 16px; margin-bottom: var(--lv-space-4);
@@ -890,19 +1132,58 @@
   .t-amber { background: var(--lv-amber-soft); border: 1px solid color-mix(in srgb, var(--lv-amber) 26%, transparent); }
   .t-rose { background: var(--lv-danger-soft); border: 1px solid color-mix(in srgb, var(--lv-danger) 26%, transparent); }
   .lv-spark { display: flex; align-items: flex-end; gap: 3px; height: 20px; margin-left: auto;
-    i { width: 4px; border-radius: 2px; background: var(--lv-accent-soft); transform-origin: bottom;
+    i { width: 4px; border-radius: 4px; background: var(--lv-data-soft); transform-origin: bottom;
       transform: scaleY(0); transition: transform 520ms var(--lv-spring); }
-    i.hi { background: var(--lv-accent); } }
+    i.hi { background: var(--lv-data-accent); } }
   .lv-anim .lv-spark i { transform: scaleY(1); }
   .lv-spark i:nth-child(1) { transition-delay: 150ms; } .lv-spark i:nth-child(2) { transition-delay: 220ms; }
   .lv-spark i:nth-child(3) { transition-delay: 290ms; } .lv-spark i:nth-child(4) { transition-delay: 360ms; }
   .lv-spark i:nth-child(5) { transition-delay: 430ms; }
-  .lv-meter { height: 3px; border-radius: 3px; background: var(--lv-surface-2); overflow: hidden;
-    i { display: block; height: 100%; border-radius: 3px;
-      background: linear-gradient(90deg, var(--lv-accent), var(--lv-accent-2));
+  .lv-meter { height: 4px; border-radius: 999px; background: var(--lv-surface-2); overflow: hidden;
+    i { display: block; height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--lv-data-accent), var(--lv-accent));
       transform-origin: left; transform: scaleX(0); transition: transform 700ms var(--lv-spring) 200ms; } }
   .lv-anim .lv-meter i { transform: scaleX(1); }
   .lv-meter-cap { display: flex; justify-content: space-between; font-size: 11px; color: var(--lv-tx-3); margin-top: 5px; }
+
+  // 全局胶囊体系规范（状态小圆点、尺寸大小两档）
+  .lv-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid var(--lv-line);
+    background: var(--lv-surface);
+    color: var(--lv-tx-2);
+    transition: all var(--lv-t-fast) var(--lv-ease);
+
+    &--sm {
+      padding: 1px 8px;
+      font-size: 11px;
+    }
+
+    &.is-active, &.on {
+      background: var(--lv-accent-soft);
+      border-color: var(--lv-accent-line);
+      color: var(--lv-accent);
+      font-weight: 600;
+    }
+
+    .lv-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex: none;
+      &.ok { background: var(--lv-ok); }
+      &.warn { background: var(--lv-warn); }
+      &.danger { background: var(--lv-danger); }
+      &.accent { background: var(--lv-data-accent); }
+    }
+  }
 
   // ── 9. 表格（原生数据库视图外围）────────────────────────
   // 267 波：overflow-x auto 恢复窄容器横向滑动查看（DEVICE-02；hidden 会把右侧列直接裁掉且无法滑动）；
@@ -1517,6 +1798,14 @@
     .lv-vehicle-actions .b3-button,
     .lv-vehicle-quick-actions .b3-button { min-height: 44px; }
     .lv-table thead th .b3-button { min-height: 44px; padding-inline: 8px !important; }
+  }
+
+  @container lv-home (max-width: 900px) {
+    .lv-shell-frame { border-radius: 0; border: none; box-shadow: none; min-height: auto; }
+    .lv-rail-nav { display: none; }
+    .lv-context-dock { display: none; }
+    .lv-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 0; }
+    .lv-kpi-row__item:nth-child(2) { border-right: none; }
   }
 
   // 容器响应式：思源的侧栏/分屏 viewport 仍可能很宽，单靠 @media 会让

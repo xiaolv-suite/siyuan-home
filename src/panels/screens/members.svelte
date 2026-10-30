@@ -212,6 +212,19 @@
         ids.splice(to, 0, ids.splice(from, 1)[0]);
         await persistMemberOrder(ids);
     }
+    // 拖拽异常中断或在卡片外越界释放时的全局防护，彻底消除拖拽状态与悬停高光卡死
+    $effect(() => {
+        const resetDragState = () => {
+            dragId = null;
+            dragOverId = null;
+        };
+        window.addEventListener("dragend", resetDragState);
+        window.addEventListener("mouseup", resetDragState);
+        return () => {
+            window.removeEventListener("dragend", resetDragState);
+            window.removeEventListener("mouseup", resetDragState);
+        };
+    });
     // 26.7 删除文案升级：说明数据保留语义（仅移除引用，台账行保留）
     // H16：删除成员后复位指向它的失效筛选（总览与提醒页）
     function confirmRemove(m: FamilyMember) {

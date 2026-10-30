@@ -427,6 +427,8 @@
     "mod.inLedger": "在台账中查看",
     "mod.pendingDrill": "点击查看该模块的待办提醒",
     "dash.hello": "家事一览",
+    "dash.title": "总览上下文",
+    "dash.monthlyDoneTitle": "本月进度",
     "dash.heroTitle": "把家事安排妥当。",
     "dash.heroLead": "先处理重要的事，新想到的内容随手记下。",
     "dash.heroOpen": "查看待办",

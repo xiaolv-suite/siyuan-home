@@ -151,7 +151,8 @@ export async function toggleReminderQuickPlanToday(
 ): Promise<void> {
     const todayKey = localDateKey(new Date());
     const planDates = plugin.runtime.planDates ?? {};
-    const isAlreadyToday = planDates[r.id] === todayKey;
+    const previousDate = planDates[r.id];
+    const isAlreadyToday = previousDate === todayKey;
     try {
         if (isAlreadyToday) {
             clearReminderPlanDate(plugin.runtime, r.id);
@@ -163,6 +164,12 @@ export async function toggleReminderQuickPlanToday(
         await saveRuntime(plugin, plugin.runtime);
         await plugin.refreshHub?.(undefined, true);
     } catch (e) {
+        // 乐观更新失败时严格回滚内存态，防止脏状态扩散
+        if (previousDate !== undefined) {
+            setReminderPlanDate(plugin.runtime, r.id, previousDate);
+        } else {
+            clearReminderPlanDate(plugin.runtime, r.id);
+        }
         showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
     }
 }

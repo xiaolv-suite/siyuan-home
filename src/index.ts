@@ -568,10 +568,16 @@ export default class LvHomePlugin extends Plugin {
     async toggleTodaySilent() {
         const { localDateKey } = await import("@/core/hub/rule");
         const today = localDateKey(new Date());
+        const previous = this.runtime.todaySilent;
         this.runtime.todaySilent = this.runtime.todaySilent === today ? "" : today;
-        await saveRuntime(this, this.runtime);
-        showMessage(this.i18nText(this.runtime.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff"), 3000, "info");
-        await this.notifyHubChanged();
+        try {
+            await saveRuntime(this, this.runtime);
+            showMessage(this.i18nText(this.runtime.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff"), 3000, "info");
+            await this.notifyHubChanged();
+        } catch (e) {
+            this.runtime.todaySilent = previous;
+            throw e;
+        }
     }
     /** 已处理视图数据（H07） */
     listHandled() { return listHandled(this.runtime, this.runtime.cache?.derived ?? []); }

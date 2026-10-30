@@ -64,6 +64,7 @@
     }
 
     async function submitQuickFueling() {
+        if (saving) return;
         if (!selectedVehicleId || !fuelingAmount) {
             saveError = t("ledger.logInvalid");
             return;
@@ -97,6 +98,7 @@
     }
 
     async function submitQuickVital() {
+        if (saving) return;
         if (!vitalMemberId) {
             saveError = t("members.reassignSelectTo");
             return;
@@ -142,6 +144,7 @@
     }
 
     async function submitQuickShopping() {
+        if (saving) return;
         const name = quickShopName.trim();
         if (!name) {
             saveError = t("ledger.nameRequired");
@@ -167,6 +170,7 @@
     }
 
     async function submitQuickSnippet() {
+        if (saving) return;
         const text = quickSnippetText.trim();
         if (!text) {
             saveError = t("form.required");

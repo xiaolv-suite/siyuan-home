@@ -54,6 +54,8 @@ export const UI_ICON_PATHS = {
     sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z",
     filter: "M4 5h16l-6 7v6l-4 2v-8z",
     archive: "M4 7h16v13H4z M3 4h18v3H3z M9 11h6",
+    menu: "M4 6h16M4 12h16M4 18h16",
+    layout: "M4 4h16v16H4z M15 4v16",
 } as const;
 
 export type UiIconName = keyof typeof UI_ICON_PATHS;

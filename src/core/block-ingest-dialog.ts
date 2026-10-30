@@ -6,6 +6,7 @@
  */
 
 import { extractBlockId, parseBlockToLedgerRow, formatBlockIngestSnippet } from "./block-ingest";
+import { uiIcon } from "@/ui/icons";
 
 export interface BlockIngestDialogOptions {
     t: (k: string) => string;
@@ -100,9 +101,9 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
                 <span class="lv-badge green">${safeMod}</span>
             </div>
             <div class="lv-caption" style="display:flex;gap:8px;flex-wrap:wrap">
-                ${safeDate ? `<span>📅 ${safeDate}</span>` : ""}
-                ${res.rowPayload.amount !== undefined ? `<span>💰 ¥${res.rowPayload.amount}</span>` : ""}
-                <span>🔗 ${safeBlockId}</span>
+                ${safeDate ? `<span>${uiIcon("calendar", "", 12)} ${safeDate}</span>` : ""}
+                ${res.rowPayload.amount !== undefined ? `<span>${uiIcon("money", "", 12)} ¥${res.rowPayload.amount}</span>` : ""}
+                <span>${uiIcon("link", "", 12)} ${safeBlockId}</span>
             </div>
         `;
     };

@@ -4,9 +4,19 @@
  * 独立模块，按需延迟加载。
  */
 import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./spotlight";
-import { moduleIcon } from "./modules";
 import { showMessage } from "siyuan";
 import { ensurePinyin } from "./pinyin";
+import { uiIcon, moduleUiIcon, type UiIconName } from "@/ui/icons";
+
+const CMD_ICONS: Record<string, UiIconName> = {
+    "open-capture": "bolt",
+    "open-location": "mapPin",
+    "open-emergency": "alert",
+    "open-store-mode": "cart",
+    "open-life-index": "shield",
+    "open-reminders": "clock",
+    "open-settings": "settings",
+};
 
 function escapeHtml(str: string): string {
     return str
@@ -54,7 +64,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         content: `
             <div class="b3-dialog__content lv-spotlight-dialog-body">
                 <div class="lv-spotlight-input-wrap">
-                    <span class="lv-spotlight-icon">🔍</span>
+                    <span class="lv-spotlight-icon">${uiIcon("search", "", 16)}</span>
                     <input class="b3-text-field lv-spotlight-input" id="lv-spotlight-input"
                         placeholder="${t("spotlight.placeholder") || "输入生活记录、物品、证件、存放位置或备注..."}" />
                 </div>
@@ -142,6 +152,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             card.tabIndex = 0;
             card.innerHTML = `
                 <div class="lv-spotlight-item-head">
+                    <span class="lv-spotlight-icon-item">${uiIcon(CMD_ICONS[cmd.action] ?? "bolt", "", 16)}</span>
                     <b>${escapeHtml(cmd.title)}</b>
                     <span class="lv-caption lv-tx-muted">${escapeHtml(cmd.sub)}</span>
                 </div>
@@ -187,7 +198,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             left.className = "lv-spotlight-item-head";
             const safeTitle = escapeHtml(item.title);
             left.innerHTML = `
-                <span class="lv-spotlight-icon-item">${moduleIcon(item.moduleId)}</span>
+                <span class="lv-spotlight-icon-item">${uiIcon(moduleUiIcon(item.moduleId), "", 16)}</span>
                 <b>${safeTitle}</b>
             `;
 
@@ -220,12 +231,12 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             meta.className = "lv-spotlight-item__meta";
 
             const metaParts: string[] = [];
-            if (item.memberName) metaParts.push(`👤 ${item.memberName}`);
-            if (item.location) metaParts.push(`📍 ${item.location}`);
-            if (item.dueDate) metaParts.push(`📅 ${item.dueDate}`);
-            if (item.amount !== undefined) metaParts.push(`💰 ¥${item.amount}`);
-            if (item.note) metaParts.push(`📝 ${item.note.slice(0, 24)}`);
-            meta.innerHTML = metaParts.map((p) => `<span>${p}</span>`).join("");
+            if (item.memberName) metaParts.push(`<span>${uiIcon("users", "", 11)} ${escapeHtml(item.memberName)}</span>`);
+            if (item.location) metaParts.push(`<span>${uiIcon("mapPin", "", 11)} ${escapeHtml(item.location)}</span>`);
+            if (item.dueDate) metaParts.push(`<span>${uiIcon("calendar", "", 11)} ${escapeHtml(item.dueDate)}</span>`);
+            if (item.amount !== undefined) metaParts.push(`<span>${uiIcon("money", "", 11)} ¥${item.amount}</span>`);
+            if (item.note) metaParts.push(`<span>${uiIcon("note", "", 11)} ${escapeHtml(item.note.slice(0, 24))}</span>`);
+            meta.innerHTML = metaParts.join("");
 
             card.append(top, meta);
             card.onkeydown = (e) => {

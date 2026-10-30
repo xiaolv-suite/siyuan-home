@@ -5,6 +5,7 @@
 import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "./assets";
 import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, uploadAsset } from "./siyuan";
 import { confirm } from "@/libs/dialog";
+import { uiIcon } from "@/ui/icons";
 
 export interface AttachmentDrawerSectionOptions {
     body: HTMLElement;
@@ -131,7 +132,10 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
 
             const name = document.createElement("span");
             name.className = "lv-att-name";
-            name.textContent = `📎 ${f.name ?? f.content ?? "?"}`;
+            name.innerHTML = uiIcon("paperclip", "", 13);
+            const nameText = document.createElement("span");
+            nameText.textContent = ` ${f.name ?? f.content ?? "?"}`;
+            name.appendChild(nameText);
             line.appendChild(name);
 
             if (f.content) {

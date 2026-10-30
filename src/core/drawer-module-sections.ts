@@ -8,6 +8,7 @@
 import { formatAmount } from "./format";
 import * as rl from "./rowlog";
 import type { LogKind } from "./rowlog";
+import { uiIcon } from "@/ui/icons";
 import {
     renderHouseWarrantySection,
     renderFoodDietarySection,
@@ -75,7 +76,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 depCard.className = "lv-card lv-notice-card fn__text-left";
                 depCard.innerHTML = `
                     <div class="lv-row-split" style="margin-bottom:6px">
-                        <b>📉 资产折旧与法定残值测算</b>
+                        <b>${uiIcon("money", "", 13)} 资产折旧与法定残值测算</b>
                         <span class="lv-badge">${dep.statusLabel}</span>
                     </div>
                     <div class="lv-diag-grid" style="font-size:11.5px;color:var(--lv-tx-2)">
@@ -84,7 +85,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                         <div>已服役月数: <b class="lv-tx">${dep.usedMonths} / ${dep.lifespanMonths} 月</b></div>
                         <div>累计计提折旧: <b class="lv-tx-danger">¥${formatAmount(dep.accumulatedDepreciation)}</b></div>
                     </div>
-                    <div class="lv-caption lv-tx-muted" style="margin-top:6px">💡 ${dep.suggestion}</div>
+                    <div class="lv-caption lv-tx-muted" style="margin-top:6px;display:flex;align-items:center;gap:4px">${uiIcon("sparkle", "", 12)} <span>${dep.suggestion}</span></div>
                 `;
                 body.appendChild(depCard);
             }

@@ -15,8 +15,13 @@
     const roleOptions = ["spouse", "partner", "child", "elder", "kin"];
     let picked: string[] = $state(["self"]);
     let children = $state(0);
-    // 260 波：角色 chips 加表情前缀（对齐原型 rolechip 语言，提升扫读辨识）
-    const roleEmoji: Record<string, string> = { spouse: "👫", partner: "💞", child: "🧒", elder: "👴", kin: "👨‍👩‍👧" };
+    const roleIcon: Record<string, import("@/ui/icons").UiIconName> = {
+        spouse: "users",
+        partner: "heartPulse",
+        child: "child",
+        elder: "users",
+        kin: "users",
+    };
 
     // 推荐模块（C7b：按家庭构成预选）
     const recommended = $derived<string[]>(
@@ -141,15 +146,18 @@
             </div>
             <div class="lv-roles">
                 {#each roleOptions as r (r)}
-                    <button class="lv-rolechip" class:on={picked.includes(r)} aria-pressed={picked.includes(r)} disabled={provisioning} onclick={() => toggle(r)}>{roleEmoji[r]} {t(`role.${r}`)}</button>
+                    <button class="lv-rolechip" class:on={picked.includes(r)} aria-pressed={picked.includes(r)} disabled={provisioning} onclick={() => toggle(r)}>
+                        <UiIcon name={roleIcon[r]} size={13} />
+                        <span>{t(`role.${r}`)}</span>
+                    </button>
                 {/each}
             </div>
             {#if picked.includes("child")}
                 <div class="lv-wiz__children">
                     <span class="lv-sub">{t("wiz.children")}</span>
-                    <button class="b3-button b3-button--outline" aria-label={t("wiz.childrenDecrease")} disabled={provisioning} onclick={() => (children = Math.max(0, children - 1))}>−</button>
+                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenDecrease")} disabled={provisioning || children <= 0} onclick={() => (children = Math.max(0, children - 1))}>−</button>
                     <b class="lv-num" aria-live="polite">{children}</b>
-                    <button class="b3-button b3-button--outline" aria-label={t("wiz.childrenIncrease")} disabled={provisioning} onclick={() => (children += 1)}>＋</button>
+                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenIncrease")} disabled={provisioning} onclick={() => (children += 1)}><UiIcon name="add" size={12} /></button>
                 </div>
             {/if}
             <div class="lv-wiz__actions">
@@ -271,7 +279,7 @@
     .lv-onboarding .lv-wiz__lead { margin: 0 0 4px; font-size: 12px; }
     .lv-onboarding .lv-wiz__hint { margin: 0; line-height: 1.5; }
     .lv-onboarding .lv-roles { gap: 7px; margin: 0 0 14px; }
-    .lv-onboarding .lv-rolechip { min-height: 38px; padding: 7px 13px; font-size: 13px; }
+    .lv-onboarding .lv-rolechip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 7px 13px; font-size: 13px; }
 
     .lv-onboarding .lv-wiz__children {
         display: flex;

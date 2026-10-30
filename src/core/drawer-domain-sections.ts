@@ -9,6 +9,8 @@
  * 6. 家庭成员社保退休测算（Social Member Retirement Milestone）
  */
 
+import { uiIcon } from "@/ui/icons";
+
 export interface RenderHouseWarrantySectionOptions {
     body: HTMLElement;
     row: any;
@@ -162,17 +164,17 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
         if (check.isSafe) {
             const safeBadge = document.createElement("div");
             safeBadge.className = "lv-domain-safe-badge";
-            safeBadge.textContent = `✓ ${t("ledger.foodDietarySafe")}`;
+            safeBadge.innerHTML = `${uiIcon("checkCircle", "", 13)} <span>${t("ledger.foodDietarySafe")}</span>`;
             contentWrap.append(safeBadge);
         } else {
             for (const c of check.conflicts) {
                 const alertEl = document.createElement("div");
                 if (c.type === "allergy") {
                     alertEl.className = "lv-domain-danger";
-                    alertEl.innerHTML = `<span>🚨 <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
+                    alertEl.innerHTML = `<span>${uiIcon("alert", "", 13)} <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
                 } else {
                     alertEl.className = "lv-domain-warn";
-                    alertEl.innerHTML = `<span>⚠️ <b>${c.memberName}</b>：${t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}</span>`;
+                    alertEl.innerHTML = `<span>${uiIcon("info", "", 13)} <b>${c.memberName}</b>：${t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}</span>`;
                 }
                 contentWrap.append(alertEl);
             }
@@ -183,7 +185,7 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
             actionRow.className = "lv-domain-action-row";
             const copyIngBtn = document.createElement("button");
             copyIngBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
-            copyIngBtn.textContent = `＋ ${t("ledger.foodCopyIngredients")}`;
+            copyIngBtn.innerHTML = `${uiIcon("add", "", 12)} <span>${t("ledger.foodCopyIngredients")}</span>`;
             copyIngBtn.onclick = async () => {
                 const text = formatShoppingIngredientsText(foodName, check.parsedIngredients);
                 try {

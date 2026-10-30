@@ -36,8 +36,17 @@
 
     let nameInput: HTMLInputElement | undefined = $state();
     let memberSaving = $state(false);
+    let nameError = $state(false);
     let pendingNewMemberId = $state<string | undefined>();
     const roles: MemberRole[] = ["self", "spouse", "partner", "child", "elder", "kin", "other"];
+
+    $effect(() => {
+        if (editorOpen) {
+            requestAnimationFrame(() => nameInput?.focus());
+        } else {
+            nameError = false;
+        }
+    });
 
     export function focusName() {
         nameInput?.focus();
@@ -53,6 +62,7 @@
         lunar = false;
         notes = "";
         editorOpen = false;
+        nameError = false;
         if (onCancel) onCancel();
     }
 
@@ -64,10 +74,12 @@
             return;
         }
         if (!name.trim()) {
+            nameError = true;
             nameInput?.focus();
             showMessage(t("ledger.nameRequired"), 4000, "info");
             return;
         }
+        nameError = false;
         // D06 配套：同名成员会让按姓名回填产生歧义——新增时提示确认（编辑不受影响）
         const dup = !editId && (plugin.settings.members ?? []).some((m: any) => m.name.trim() === name.trim());
         if (dup) {
@@ -138,45 +150,50 @@
     }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="lv-member-editor" class="lv-card lv-member-editor" hidden={!editorOpen} onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); cancelEdit(); } }}>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div id="lv-member-editor" class="lv-card lv-member-editor" role="region" aria-labelledby="lv-member-editor-title" hidden={!editorOpen} onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); cancelEdit(); } }}>
     <div class="lv-member-editor-head">
         <div>
-            <h2>{editId ? t("members.editing") : t("add")}</h2>
+            <h2 id="lv-member-editor-title">{editId ? t("members.editing") : t("add")}</h2>
             <p>{editId ? t("members.editing") : t("settings.membersHint")}</p>
         </div>
     </div>
     <div class="lv-member-editor-fields">
-        <label class="lv-member-field">
-            <span>{t("members.name")}</span>
-            <input bind:this={nameInput} class="b3-text-field" placeholder={t("members.name")} aria-label={t("members.name")} bind:value={name} disabled={memberSaving}
+        <div class="lv-member-field">
+            <label for="lv-member-name-input">{t("members.name")} *</label>
+            <input bind:this={nameInput} id="lv-member-name-input" type="text" class="b3-text-field" placeholder={t("members.name")} aria-label={t("members.name")} bind:value={name} disabled={memberSaving}
+                aria-invalid={nameError} aria-describedby={nameError ? "lv-member-name-error" : undefined}
+                oninput={() => { if (nameError) nameError = false; }}
                 onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) save(); }} />
-        </label>
-        <label class="lv-member-field">
-            <span>{t("members.role")}</span>
-            <select class="b3-select" bind:value={role} aria-label={t("members.role")} disabled={memberSaving}>
+            {#if nameError}
+                <small id="lv-member-name-error" class="lv-record-field-error" role="alert">{t("ledger.nameRequired")}</small>
+            {/if}
+        </div>
+        <div class="lv-member-field">
+            <label for="lv-member-role-select">{t("members.role")}</label>
+            <select id="lv-member-role-select" class="b3-select" bind:value={role} aria-label={t("members.role")} disabled={memberSaving}>
                 {#each roles as r (r)}<option value={r}>{t(`role.${r}`)}</option>{/each}
             </select>
-        </label>
-        <label class="lv-member-field">
-            <span>{t("members.sex")}</span>
-            <select class="b3-select" bind:value={sex} aria-label={t("members.sex")} disabled={memberSaving}>
+        </div>
+        <div class="lv-member-field">
+            <label for="lv-member-sex-select">{t("members.sex")}</label>
+            <select id="lv-member-sex-select" class="b3-select" bind:value={sex} aria-label={t("members.sex")} disabled={memberSaving}>
                 <option value="">{t("members.sex.unknown")}</option>
                 <option value="male">{t("members.sex.male")}</option>
                 <option value="female">{t("members.sex.female")}</option>
             </select>
+        </div>
+        <div class="lv-member-field">
+            <label for="lv-member-birthday-input">{t("members.birthday")}</label>
+            <input id="lv-member-birthday-input" class="b3-text-field" type="date" title={t("members.birthday")} aria-label={t("members.birthday")} bind:value={birthday} disabled={memberSaving} />
+        </div>
+        <label class="lv-member-check" for="lv-member-lunar-checkbox">
+            <input id="lv-member-lunar-checkbox" type="checkbox" class="b3-checkbox" bind:checked={lunar} aria-label={t("members.lunar")} disabled={memberSaving} />{t("members.lunar")}
         </label>
-        <label class="lv-member-field">
-            <span>{t("members.birthday")}</span>
-            <input class="b3-text-field" type="date" title={t("members.birthday")} aria-label={t("members.birthday")} bind:value={birthday} disabled={memberSaving} />
-        </label>
-        <label class="lv-member-check">
-            <input type="checkbox" bind:checked={lunar} aria-label={t("members.lunar")} disabled={memberSaving} />{t("members.lunar")}
-        </label>
-        <label class="lv-member-field lv-member-field-wide">
-            <span>{t("members.notes")}</span>
-            <textarea class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
-        </label>
+        <div class="lv-member-field lv-member-field-wide">
+            <label for="lv-member-notes-input">{t("members.notes")}</label>
+            <textarea id="lv-member-notes-input" class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
+        </div>
         <div class="lv-member-editor-actions">
             {#if editorOpen}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
@@ -196,7 +213,7 @@
     .lv-member-editor-head p { margin: 3px 0 0; color: var(--lv-tx-3); font-size: 11.5px; line-height: 1.45; }
     .lv-member-editor-fields { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(120px, .9fr) minmax(135px, 1fr) auto auto; align-items: end; gap: 10px; }
     .lv-member-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-    .lv-member-field > span { color: var(--lv-tx-3); font-size: 11.5px; }
+    .lv-member-field > label { color: var(--lv-tx-3); font-size: 11.5px; }
     .lv-member-field .b3-text-field, .lv-member-field .b3-select { width: 100%; min-width: 0; box-sizing: border-box; }
     .lv-member-field-wide { grid-column: 1 / -1; }
     .lv-member-check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding-bottom: 1px; color: var(--lv-tx-2); font-size: 12px; white-space: nowrap; cursor: pointer; }

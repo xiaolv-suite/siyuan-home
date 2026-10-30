@@ -25,25 +25,25 @@
 </script>
 
 <div class="lv-sheet-foot">
-    <button class="b3-button b3-button--cancel" onclick={onClose} disabled={saving}>
+    <button type="button" class="b3-button b3-button--cancel" onclick={onClose} disabled={saving}>
         {t("cancel")}
     </button>
     {#if identityPending}
-        <button class="lv-btn ghost" onclick={onOpenPendingLedger}>
+        <button type="button" class="lv-btn ghost" onclick={onOpenPendingLedger}>
             {t("ledger.checkPending")}
         </button>
-        <button class="lv-btn ghost" onclick={onDiscardUncertainDraft}>
+        <button type="button" class="lv-btn ghost" onclick={onDiscardUncertainDraft}>
             {t("ledger.discardUncertain")}
         </button>
     {/if}
-    <button class="b3-button b3-button--text" onclick={onClearNewRecord} disabled={saving}>
+    <button type="button" class="b3-button b3-button--text" onclick={onClearNewRecord} disabled={saving}>
         {pendingItemID ? t("ledger.discardPartial") : t("ledger.clearDraft")}
     </button>
     <span class="fn__flex-1"></span>
-    <button class="lv-btn" onclick={() => onSaveNewRecord(true)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
+    <button type="button" class="lv-btn" onclick={() => onSaveNewRecord(true)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
         {saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryContinue") : t("ledger.saveContinue")}
     </button>
-    <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => onSaveNewRecord(false)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
+    <button type="button" class="lv-btn primary" title="Ctrl+Enter" onclick={() => onSaveNewRecord(false)} disabled={saving || !canSubmitNewRecord} aria-busy={saving}>
         {saving ? t("ledger.saving") : (pendingItemID || identityPending) ? t("capture.retryClose") : t("save")}
     </button>
 </div>

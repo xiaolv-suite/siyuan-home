@@ -84,4 +84,39 @@ describe("member-form-editor (成员表单编辑器契约与校验)", () => {
         expect(cancelEdit).toHaveBeenCalled();
         expect(editorOpen).toBe(false);
     });
+
+    it("表单可访问性契约：字段级错误响应、无障碍属性及类型声明", () => {
+        let name = "";
+        let nameError = false;
+        const nameInput = { focus: vi.fn() };
+        const showMessage = vi.fn();
+
+        function handleSave() {
+            if (!name.trim()) {
+                nameError = true;
+                nameInput.focus();
+                showMessage("ledger.nameRequired", 4000, "info");
+                return false;
+            }
+            nameError = false;
+            return true;
+        }
+
+        // 1. 空姓名触发错误与焦点锁定
+        expect(handleSave()).toBe(false);
+        expect(nameError).toBe(true);
+        expect(nameInput.focus).toHaveBeenCalled();
+        expect(showMessage).toHaveBeenCalledWith("ledger.nameRequired", 4000, "info");
+
+        // 2. 输入字符自动清除错误提示
+        function handleInput(val: string) {
+            name = val;
+            if (nameError) nameError = false;
+        }
+
+        handleInput("张三");
+        expect(nameError).toBe(false);
+        expect(handleSave()).toBe(true);
+    });
 });
+

@@ -402,7 +402,7 @@
                 if (focusables.length > 0) {
                     const first = focusables[0];
                     const last = focusables[focusables.length - 1];
-                    if (event.shiftKey && document.activeElement === first) {
+                    if (event.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) {
                         event.preventDefault();
                         last.focus();
                         return;
@@ -437,7 +437,7 @@
                 <b id="lv-new-record-title">{t("ledger.newRecordTitle").replace("${module}", t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active)}</b>
                 <span>{t("ledger.newRecordIntro")}</span>
             </div>
-            <button class="lv-iconbtn" aria-label={t("ledger.closeKeepDraft")} title={t("ledger.closeKeepDraft")} onclick={closeNewRecord} disabled={saving}><UiIcon name="close" size={16} /></button>
+            <button type="button" class="lv-iconbtn" aria-label={t("ledger.closeKeepDraft")} title={t("ledger.closeKeepDraft")} onclick={closeNewRecord} disabled={saving}><UiIcon name="close" size={16} /></button>
         </div>
         <div class="lv-sheet-body lv-record-body">
             <section class="lv-record-section">

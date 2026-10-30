@@ -39,7 +39,7 @@
                 <b>{compactUserMessage(error instanceof Error ? error.message : error, t?.("error.unknown") || "An unexpected error occurred")}</b>
                 <p class="lv-caption lv-error-boundary-msg">{t?.("error.retryHint") || "请重试；如果问题持续，请重新扫描或检查设置。"}</p>
             {/if}
-            <button class="b3-button b3-button--outline lv-mt-8" onclick={() => retry(resetBoundary)}>
+            <button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={() => retry(resetBoundary)}>
                 {t?.("error.retry") || "Retry"}
             </button>
         </div>

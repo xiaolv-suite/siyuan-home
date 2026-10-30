@@ -409,7 +409,7 @@
         <div class="eic" aria-hidden="true"><UiIcon name="users" size={24} /></div>
         <b>{t("members.empty")}</b>
         <span>{t("members.emptyHint")}</span>
-        <button class="lv-btn primary" onclick={startNewMember}>
+        <button type="button" class="lv-btn primary" onclick={startNewMember}>
             <UiIcon name="add" size={15} /> {t("add")}
         </button>
     </div></div>

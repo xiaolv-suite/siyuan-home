@@ -109,7 +109,7 @@
 </script>
 
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>
-    <button class="b3-button b3-button--text" onclick={onOpenSetting}><span>{t("dash.enableMore")}</span> <UiIcon name="forward" size={12} /></button>
+    <button type="button" class="b3-button b3-button--text" onclick={onOpenSetting}><span>{t("dash.enableMore")}</span> <UiIcon name="forward" size={12} /></button>
 </div>
 {#if firstScanPending}
     <!-- 262 波：首扫骨架补全模块网格（与提醒骨架同一 loading 故事） -->
@@ -141,7 +141,7 @@
     {#if moduleSections.length === 0}
         <div class="lv-card lv-module-empty" role="status">
             <UiIcon name="search" size={17} /><span>{t("dash.moduleEmpty")}</span>
-            <button class="b3-button b3-button--text" onclick={() => { moduleQuery = ""; moduleGroupFilter = "all"; }}>{t("dash.moduleClear")}</button>
+            <button type="button" class="b3-button b3-button--text" onclick={() => { moduleQuery = ""; moduleGroupFilter = "all"; }}>{t("dash.moduleClear")}</button>
         </div>
     {:else}
     {#each moduleSections as section, sectionIndex (section.id)}
@@ -151,9 +151,9 @@
     {@const sectionRowsKnown = section.ids.every((id) => rowCountOf(id) !== undefined)}
     <section class="lv-module-section" aria-labelledby={`lv-module-group-${section.id}`}>
         <h3 class="lv-module-section__heading">
-            <button class="lv-module-section__head" aria-expanded={expanded} aria-controls={expanded ? `lv-module-items-${section.id}` : undefined}
+            <button type="button" class="lv-module-section__head" aria-expanded={expanded} aria-controls={expanded ? `lv-module-items-${section.id}` : undefined}
                 onclick={() => toggleModuleGroup(section.id, !expanded)}>
-                <span class="lv-module-section__chevron" aria-hidden="true">{expanded ? "⌄" : "›"}</span>
+                <span class="lv-module-section__chevron" aria-hidden="true"><UiIcon name={expanded ? "chevronDown" : "forward"} size={12} /></span>
                 <span class="lv-module-section__title" id={`lv-module-group-${section.id}`}>{t(`group.${section.id}`)}</span>
                 <span class="lv-caption">{(sectionRowsKnown ? t("dash.moduleGroupSummary") : t("dash.moduleGroupSummaryUnknown")).replace("${m}", String(section.ids.length)).replace("${r}", String(sectionRows)).replace("${p}", String(sectionPending))}</span>
                 {#if sectionPending > 0}<span class="lv-badge red lv-num">{sectionPending} <UiIcon name="alert" size={12} /></span>{/if}

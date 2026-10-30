@@ -111,7 +111,7 @@
     {:else}
         <div class="lv-ledger-no-modules" role="status">
             <span>{t("ledger.noEnabledModules")}</span>
-            <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
+            <button type="button" class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
         </div>
     {/if}
     <span class="fn__flex-1"></span>
@@ -120,7 +120,7 @@
     {:else if ledgers.length === 0}
         <span class="lv-caption">{t("ledger.noEnabledModulesHint")}</span>
     {:else if !ref?.avId}
-        <button class="b3-button" onclick={onRebuildLedger}>{t("ledger.rebuild")}</button>
+        <button type="button" class="b3-button" onclick={onRebuildLedger}>{t("ledger.rebuild")}</button>
     {:else}
         <div class="lv-search-box">
             <input bind:this={searchInputEl} class="b3-text-field lv-search-input" type="search" placeholder={t("ledger.search")}
@@ -137,49 +137,49 @@
                     title={t("clear")} aria-label={t("clear")} onclick={handleSearchClear}><UiIcon name="close" size={12} /></button>
             {/if}
         </div>
-        <button class="b3-button b3-button--outline lv-density-btn"
+        <button type="button" class="b3-button b3-button--outline lv-density-btn"
             title={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
             aria-label={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
             onclick={onToggleDensity}>
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
-        <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
+        <button type="button" class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
         <details class="lv-ledger-more" bind:this={ledgerMoreDetails}>
             <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <div class="lv-ledger-more__menu" role="menu" tabindex="-1" onclick={() => { if (ledgerMoreDetails) ledgerMoreDetails.open = false; }}>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
                     disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportCsv}>{exporting ? t("ledger.saving") : t("ledger.exportCsv")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
                     disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportIcs}>{exporting ? t("ledger.saving") : t("ledger.exportIcs")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.exportArchiveTip")}
                     disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportArchiveManifest}>{exporting ? t("ledger.saving") : t("ledger.exportArchive")}</button>
-                <button class="b3-button b3-button--outline" title={t("ledger.printLabels")}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.printLabels")}
                     disabled={filteredRowsEmpty || printing || exporting} aria-busy={printing} onclick={onPrintLabels}>{printing ? t("ledger.saving") : t("ledger.printLabels")}</button>
-                {#if active === "vehicles"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("energy")}>{t("fuel.dashboardButton")}</button>{/if}
+                {#if active === "vehicles"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("energy")}>{t("fuel.dashboardButton")}</button>{/if}
                 {#if active === "parenting"}
-                    <button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("growth")}>{t("ledger.growthChart")}</button>
-                    <button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("vaccine")}>{t("ledger.vaccineSchedule")}</button>
+                    <button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("growth")}>{t("ledger.growthChart")}</button>
+                    <button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("vaccine")}>{t("ledger.vaccineSchedule")}</button>
                 {/if}
-                {#if active === "stock"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("shopping")}>{t("ledger.shoppingList")}</button>{/if}
-                {#if active === "stock"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("emergency-kit")}>{t("ledger.emergencyKit")}</button>{/if}
-                {#if active === "shopping"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("store-mode")}>{t("ledger.storeMode")}</button>{/if}
-                <button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("location-index")}>{t("ledger.locSearch")}</button>
-                <button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("block-ingest")}>{t("capture.ingestAction")}</button>
-                {#if ref?.columns?.amount}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("expense-trend")}>{t("ledger.expenseTrend")}</button>{/if}
-                {#if active === "favors"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("favors-report")}>{t("ledger.favorsReport")}</button>{/if}
-                {#if active === "bookmarks"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("bookmarks-check")}>{t("ledger.checkBookmarks")}</button>{/if}
-                {#if active === "memberships"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("subscription-stats")}>{t("ledger.subscriptionStats")}</button>{/if}
-                {#if active === "assets-real"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("asset-valuation")}>{t("ledger.assetValuationReport")}</button>{/if}
-                {#if active === "media"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("media-report")}>{t("ledger.mediaReport")}</button>{/if}
-                {#if active === "food"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("meal-plan")}>{t("ledger.mealPlan")}</button>{/if}
-                {#if active === "medicine"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("medicine-supply")}>{t("ledger.medicineSupply")}</button>{/if}
-                {#if active === "house"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("utility-tiers")}>{t("ledger.utilityTiers")}</button>{/if}
-                {#if active === "house" || active === "chores"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("waste-schedule")}>{t("ledger.wasteSchedule")}</button>{/if}
-                {#if active === "chores"}<button class="b3-button b3-button--outline" onclick={() => onOpenModal?.("rewards-settle")}>{t("ledger.rewardsSettle")}</button>{/if}
-                {#if active !== "members" && active !== "adhoc"}<button class="b3-button b3-button--outline" disabled={printing || exporting} onclick={() => onOpenModal?.("csv-import")}>{t("ledger.importCsv")}</button>{/if}
-                <button class="b3-button b3-button--outline" disabled={!ref?.docId}
+                {#if active === "stock"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("shopping")}>{t("ledger.shoppingList")}</button>{/if}
+                {#if active === "stock"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("emergency-kit")}>{t("ledger.emergencyKit")}</button>{/if}
+                {#if active === "shopping"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("store-mode")}>{t("ledger.storeMode")}</button>{/if}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("location-index")}>{t("ledger.locSearch")}</button>
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("block-ingest")}>{t("capture.ingestAction")}</button>
+                {#if ref?.columns?.amount}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("expense-trend")}>{t("ledger.expenseTrend")}</button>{/if}
+                {#if active === "favors"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("favors-report")}>{t("ledger.favorsReport")}</button>{/if}
+                {#if active === "bookmarks"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("bookmarks-check")}>{t("ledger.checkBookmarks")}</button>{/if}
+                {#if active === "memberships"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("subscription-stats")}>{t("ledger.subscriptionStats")}</button>{/if}
+                {#if active === "assets-real"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("asset-valuation")}>{t("ledger.assetValuationReport")}</button>{/if}
+                {#if active === "media"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("media-report")}>{t("ledger.mediaReport")}</button>{/if}
+                {#if active === "food"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("meal-plan")}>{t("ledger.mealPlan")}</button>{/if}
+                {#if active === "medicine"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("medicine-supply")}>{t("ledger.medicineSupply")}</button>{/if}
+                {#if active === "house"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("utility-tiers")}>{t("ledger.utilityTiers")}</button>{/if}
+                {#if active === "house" || active === "chores"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("waste-schedule")}>{t("ledger.wasteSchedule")}</button>{/if}
+                {#if active === "chores"}<button type="button" role="menuitem" class="b3-button b3-button--outline" onclick={() => onOpenModal?.("rewards-settle")}>{t("ledger.rewardsSettle")}</button>{/if}
+                {#if active !== "members" && active !== "adhoc"}<button type="button" role="menuitem" class="b3-button b3-button--outline" disabled={printing || exporting} onclick={() => onOpenModal?.("csv-import")}>{t("ledger.importCsv")}</button>{/if}
+                <button type="button" role="menuitem" class="b3-button b3-button--outline" disabled={!ref?.docId}
                     onclick={() => plugin.showTabDocs(ref?.docId)}><span>{t("ledger.openDoc")}</span> <UiIcon name="forward" size={12} /></button>
             </div>
         </details>

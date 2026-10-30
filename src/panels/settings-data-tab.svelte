@@ -46,11 +46,11 @@
 
 <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
 <nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>
-    <button class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
-    <button class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle") || "回收站"}</button>
-    <button class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
-    <button class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
-    <button class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle") || "回收站"}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
 </nav>
 <div class="lv-settings__scroll">
 {#if dataSection === "migration"}
@@ -78,13 +78,13 @@
         <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
         <div class="lv-setcard__hint lv-tx-warn"><UiIcon name="alert" size={13} /> {t("settings.migratePrivacy")}</div>
         <div class="lv-setcard__actions">
-            <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
-            <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
             <input type="file" accept="application/json,.json" class="fn__none"
                 aria-label={t("settings.import")}
                 bind:this={importInput} onchange={(e) => onImportSettings(e)} />
             {#if preImportBackupExists}
-                <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
+                <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
             {/if}
         </div>
     </div>
@@ -147,8 +147,8 @@
         <div class="lv-setcard__title">{t("settings.demoTitle")}</div>
         <div class="lv-setcard__hint">{t("settings.demoHint")}</div>
         <div class="lv-setcard__actions">
-            <button class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "generate"} onclick={onGenerateDemo}>{demoAction === "generate" ? t("ledger.saving") : t("settings.demoGenerate")}</button>
-            <button class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "clear"} onclick={onClearDemo}>{demoAction === "clear" ? t("ledger.saving") : t("settings.demoClear")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "generate"} onclick={onGenerateDemo}>{demoAction === "generate" ? t("ledger.saving") : t("settings.demoGenerate")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "clear"} onclick={onClearDemo}>{demoAction === "clear" ? t("ledger.saving") : t("settings.demoClear")}</button>
         </div>
     </div>
 {:else if dataSection === "ecosystem"}

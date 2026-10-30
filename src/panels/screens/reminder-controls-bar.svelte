@@ -79,9 +79,9 @@
         <div class="lv-hub-bar-row">
             <!-- 视图模式胶囊切换 -->
             <span class="lv-tabs lv-hub-view-toggle" role="group" aria-label={t("view.list") + "/" + t("view.calendar")}>
-                <button class="lv-tabs__item" class:on={viewMode === "list"}
+                <button type="button" class="lv-tabs__item" class:on={viewMode === "list"}
                     disabled={batchBusy} aria-pressed={viewMode === "list"} onclick={() => (viewMode = "list")}>{t("view.list")}</button>
-                <button class="lv-tabs__item" class:on={viewMode === "calendar"}
+                <button type="button" class="lv-tabs__item" class:on={viewMode === "calendar"}
                     disabled={batchBusy} aria-pressed={viewMode === "calendar"} onclick={() => (viewMode = "calendar")}>{t("view.calendar")}</button>
             </span>
             <div class="lv-toolbar lv-hub-filters">
@@ -111,22 +111,22 @@
                     <option value="30">{t("hub.due30")}</option>
                 </select>
                 <!-- 243 波（收件箱分诊）：一键切片到备忘项集合（转行/完成/延后集中处理） -->
-                <button class="b3-button b3-button--outline lv-btn-chip" class:is-filtered={filterModule === "adhoc"} disabled={batchBusy}
+                <button type="button" class="b3-button b3-button--outline lv-btn-chip" class:is-filtered={filterModule === "adhoc"} disabled={batchBusy}
                     aria-pressed={filterModule === "adhoc"} onclick={() => { filterModule = filterModule === "adhoc" ? undefined : "adhoc"; activeNamedViewId = undefined; onFilterChanged?.(); }}>
                     {t("hub.triageChip")}{#if filterModule === "adhoc"} <UiIcon name="check" size={12} />{/if}
                 </button>
             </div>
             <div class="lv-toolbar lv-hub-actions">
-                <button class="b3-button b3-button--outline" title={t("hub.digestTip")} disabled={batchBusy || digestBusy || filteredCount === 0}
+                <button type="button" class="b3-button b3-button--outline" title={t("hub.digestTip")} disabled={batchBusy || digestBusy || filteredCount === 0}
                     aria-busy={digestBusy} onclick={onOpenDigest}>{digestBusy ? t("ledger.saving") : t("hub.digest")}</button>
-                <button class="b3-button b3-button--outline" class:is-active={todaySilentOn}
+                <button type="button" class="b3-button b3-button--outline" class:is-active={todaySilentOn}
                     aria-pressed={todaySilentOn} title={t("hub.todaySilentTip")}
                     disabled={batchBusy} onclick={onToggleTodaySilent}>
                     {#if todaySilentOn}<UiIcon name="mute" size={13} /> {/if}{t("hub.todaySilent")}{#if todaySilentOn} <UiIcon name="check" size={12} />{/if}
                 </button>
-                <button class="b3-button b3-button--outline" class:is-active={batchMode} aria-pressed={batchMode} disabled={batchBusy} onclick={toggleBatchMode}>{t("hub.batch")}</button>
-                <button class="b3-button b3-button--outline" disabled={batchBusy || rescanning} aria-busy={rescanning} onclick={onRescan}>{t("hub.rescan")}</button>
-                <button class="b3-button b3-button--outline" disabled={batchBusy || exportingIcs} aria-busy={exportingIcs} onclick={onExportIcs}>{exportingIcs ? t("ledger.saving") : t("hub.icsExport")}</button>
+                <button type="button" class="b3-button b3-button--outline" class:is-active={batchMode} aria-pressed={batchMode} disabled={batchBusy} onclick={toggleBatchMode}>{t("hub.batch")}</button>
+                <button type="button" class="b3-button b3-button--outline" disabled={batchBusy || rescanning} aria-busy={rescanning} onclick={onRescan}>{t("hub.rescan")}</button>
+                <button type="button" class="b3-button b3-button--outline" disabled={batchBusy || exportingIcs} aria-busy={exportingIcs} onclick={onExportIcs}>{exportingIcs ? t("ledger.saving") : t("hub.icsExport")}</button>
             </div>
         </div>
         {#if !batchMode}

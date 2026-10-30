@@ -59,11 +59,11 @@
     </div>
 {:else if loadError}
     <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{loadError}</b>
-        <button class="b3-button b3-button--outline" onclick={onLoad}>{t("ledger.retryRead")}</button>
+        <button type="button" class="b3-button b3-button--outline" onclick={onLoad}>{t("ledger.retryRead")}</button>
     </div></div>
 {:else if ledgers.length === 0}
     <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="settings" size={22} /></div><b>{t("ledger.noEnabledModules")}</b><span>{t("ledger.noEnabledModulesHint")}</span>
-        <button class="lv-btn primary lv-mt-4" onclick={onOpenSettings}>{t("startGuide.openSettings")}</button>
+        <button type="button" class="lv-btn primary lv-mt-4" onclick={onOpenSettings}>{t("startGuide.openSettings")}</button>
     </div></div>
 {:else if !ref?.avId}
     <div class="lv-card">
@@ -77,13 +77,13 @@
                 </div>
             {/if}
             <div class="lv-blank-actions">
-                <button class="lv-btn primary" onclick={onRebuildLedger} disabled={rebuilding}>
+                <button type="button" class="lv-btn primary" onclick={onRebuildLedger} disabled={rebuilding}>
                     <UiIcon name="bolt" size={13} /> {rebuilding ? t("diag.rebuilding") : t("ledger.buildNow")}
                 </button>
-                <button class="b3-button b3-button--outline" onclick={onOpenBindDoc} disabled={rebuilding}>
+                <button type="button" class="b3-button b3-button--outline" onclick={onOpenBindDoc} disabled={rebuilding}>
                     <UiIcon name="link" size={13} /> {t("ledger.bindDoc")}
                 </button>
-                <button class="b3-button b3-button--outline" onclick={onOpenNewRecord} disabled={rebuilding}>
+                <button type="button" class="b3-button b3-button--outline" onclick={onOpenNewRecord} disabled={rebuilding}>
                     <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
                 </button>
             </div>
@@ -96,7 +96,7 @@
             <div class="eic"><UiIcon name="search" size={22} /></div>
             <b>{t("ledger.searchEmpty")}</b>
             <span>{searchText.trim() ? t("ledger.searchEmptyHint").replace("${q}", searchText.trim()) : (t("ledger.filterEmpty") || "当前筛选条件下暂无匹配记录")}</span>
-            <button class="b3-button b3-button--outline lv-mt-8" onclick={onClearSearch}>
+            <button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={onClearSearch}>
                 {t("clear")}
             </button>
         </div>
@@ -109,9 +109,9 @@
             <b>{t("ledger.empty")}</b>
             <span>{t("ledger.emptyHint")}</span>
             <div class="lv-blank-actions">
-                <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
+                <button type="button" class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
                 {#if active !== "members" && active !== "adhoc"}
-                    <button class="b3-button b3-button--outline" onclick={onImportCsv} disabled={rebuilding}><UiIcon name="archive" size={13} /> {t("ledger.importCsv")}</button>
+                    <button type="button" class="b3-button b3-button--outline" onclick={onImportCsv} disabled={rebuilding}><UiIcon name="archive" size={13} /> {t("ledger.importCsv")}</button>
                 {/if}
             </div>
         </div>

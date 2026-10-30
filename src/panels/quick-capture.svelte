@@ -415,7 +415,7 @@
             {:else}
                 <span class="fn__flex-1"></span>
             {/if}
-            <button class="lv-iconbtn" aria-label={t("capture.closeKeepDraft")} title={t("capture.closeKeepDraft")} onclick={close} disabled={saving}><UiIcon name="close" size={16} /></button>
+            <button type="button" class="lv-iconbtn" aria-label={t("capture.closeKeepDraft")} title={t("capture.closeKeepDraft")} onclick={close} disabled={saving}><UiIcon name="close" size={16} /></button>
         </div>
         <div class="lv-sheet-body lv-cap-body">
             <div class="lv-capture-mode-bar" role="tablist" aria-label={t("capture.title")}>
@@ -439,7 +439,7 @@
                 {#if modules.length === 0 || captureFields.length === 0}
                     <div class="lv-capture-empty">
                         <span class="lv-caption">{modules.length === 0 ? t("capture.noModules") : t("capture.noFields")}</span>
-                        <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
+                        <button type="button" class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
                     </div>
                 {:else}
                 <QuickSmartBar

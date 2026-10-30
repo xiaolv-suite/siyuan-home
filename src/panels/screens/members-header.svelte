@@ -42,14 +42,14 @@
 </div>
 
 <div class="lv-member-tools">
-    <button class="b3-button b3-button--outline" onclick={onReassign} disabled={membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
+    <button type="button" class="b3-button b3-button--outline" onclick={onReassign} disabled={membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
         {reassignBusy ? t("ledger.saving") : t("members.reassign")}
     </button>
-    <button class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
+    <button type="button" class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
         {exportingVcf ? t("ledger.saving") : t("members.exportVcf")}
     </button>
     <span class="fn__flex-1"></span>
-    <button class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
+    <button type="button" class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
         aria-expanded={editorOpen} aria-controls="lv-member-editor"
         onclick={onToggleEditor}>
         {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}

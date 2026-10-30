@@ -184,11 +184,11 @@
         <p class="lv-caption lv-scan-hint">{t("hub.firstScan")}</p>
     {:else if plugin.scan?.errors?.length}
         <div class="lv-card"><div class="lv-empty" role="alert"><div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("hub.partialScanTitle")}</b><span>{t("hub.partialScanBody").replace("${n}", String(plugin.scan.errors.length))}</span>
-            <button class="b3-button b3-button--outline lv-mt-8" disabled={rescanning} onclick={onRescan}>{rescanning ? t("diag.rebuilding") : t("hub.rescan")}</button>
+            <button type="button" class="b3-button b3-button--outline lv-mt-8" disabled={rescanning} onclick={onRescan}>{rescanning ? t("diag.rebuilding") : t("hub.rescan")}</button>
         </div></div>
     {:else if filter !== "all" || filterMember || filterModule || dueWithin !== "all"}
         <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("hub.filteredEmpty")}</b><span>{t("hub.filteredEmptyHint")}</span>
-            <button class="b3-button b3-button--outline lv-mt-8" onclick={onClearFilters}>{t("hub.clearFilters")}</button>
+            <button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={onClearFilters}>{t("hub.clearFilters")}</button>
         </div></div>
     {:else}
         <div class="lv-card"><div class="lv-empty"><div class="eic"><UiIcon name="checkCircle" size={22} /></div><b>{t("dash.allClear")}</b><span>{t("hub.emptyHint")}</span></div></div>
@@ -206,7 +206,7 @@
                         <div class="lv-rem-ic" aria-hidden="true"><UiIcon name="users" size={18} /></div>
                         <div class="lv-rem-t" title={`${memberName(entry.memberId)} · ${entry.dueDate}`}><b>{memberName(entry.memberId)} · {relDue(entry.row.daysLeft, entry.dueDate)}</b><span class="lv-caption">{t("hub.mergeHint")}</span></div>
                         <span class="lv-badge orange">{entry.items.length}</span>
-                        <div class="lv-rem-ops"><span class="lv-caption" aria-hidden="true">{expandedMerges.has(entry.key) ? "▾" : "▸"}</span></div>
+                        <div class="lv-rem-ops"><span class="lv-caption" aria-hidden="true"><UiIcon name={expandedMerges.has(entry.key) ? "chevronDown" : "forward"} size={13} /></span></div>
                     </div>
                     {#if expandedMerges.has(entry.key)}
                         {#each entry.items as sub (sub.id)}
@@ -221,7 +221,7 @@
     {/each}
     {#if filtered.length > renderLimit}
         <div class="lv-card lv-card-center-pad">
-            <button class="b3-button b3-button--outline" onclick={() => (renderLimit += REMINDER_PAGE_SIZE)}>
+            <button type="button" class="b3-button b3-button--outline" onclick={() => (renderLimit += REMINDER_PAGE_SIZE)}>
                 {t("ledger.loadMore").replace("${n}", String(filtered.length - renderLimit))}
             </button>
         </div>

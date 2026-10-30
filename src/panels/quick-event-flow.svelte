@@ -273,7 +273,7 @@
         {#if vehiclesList.length === 0}
             <div class="lv-capture-empty">
                 <span class="lv-caption">{t("capture.noVehicles")}</span>
-                <button class="b3-button b3-button--outline" onclick={() => onSwitchToLedger?.("vehicles")}><UiIcon name="add" size={13} /> {t("capture.addVehicleFirst")}</button>
+                <button type="button" class="b3-button b3-button--outline" onclick={() => onSwitchToLedger?.("vehicles")}><UiIcon name="add" size={13} /> {t("capture.addVehicleFirst")}</button>
             </div>
         {:else}
             <div class="lv-frow">

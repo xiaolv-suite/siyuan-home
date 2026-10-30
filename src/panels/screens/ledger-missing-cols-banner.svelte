@@ -22,7 +22,7 @@
     <span class="fn__flex-1 lv-tx-2">
         {t("ledger.missingColumnsPrompt")} <b>{missingSchemaCols.map((c) => fieldLabel(c.key)).join("、")}</b>
     </span>
-    <button class="b3-button b3-button--outline lv-btn-text-sm" disabled={rebuilding} onclick={onRebuild}>
+    <button type="button" class="b3-button b3-button--outline lv-btn-text-sm" disabled={rebuilding} onclick={onRebuild}>
         {rebuilding ? t("diag.rebuilding") : t("ledger.autoFixColumns")}
     </button>
 </div>

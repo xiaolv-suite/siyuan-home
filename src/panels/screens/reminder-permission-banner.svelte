@@ -16,6 +16,7 @@
     <UiIcon name="alert" size={18} />
     <span class="lv-alert-text">{t("permission.body")}</span>
     <button
+        type="button"
         class="b3-button b3-button--outline"
         disabled={rescanning}
         aria-busy={rescanning}

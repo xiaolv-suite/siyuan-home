@@ -67,6 +67,7 @@
     <nav class="lv-settings__subnav" aria-label={t("settings.moduleCategory")}>
         {#each MODULE_GROUPS as gid (gid)}
             <button
+                type="button"
                 class="lv-setnav__item {moduleGroup === gid ? 'on' : ''}"
                 aria-current={moduleGroup === gid ? 'true' : undefined}
                 onclick={() => (moduleGroup = gid)}
@@ -75,7 +76,7 @@
     </nav>
 {/if}
 
-<div class="lv-settings__scroll" aria-label={moduleSearch.trim() ? "搜索模块" : t(`group.${moduleGroup}`)}>
+<div class="lv-settings__scroll" aria-label={moduleSearch.trim() ? t("dash.moduleSearch") : t(`group.${moduleGroup}`)}>
     <div class="lv-card lv-setcard lv-setcard--hint">{t("settings.modulesHint")}</div>
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{moduleSearch.trim() ? `搜索结果 · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>

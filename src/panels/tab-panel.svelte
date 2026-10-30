@@ -506,9 +506,9 @@
                     <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
                     <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>
                     {#each screens as s, i (s.id)}
-                        <button id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
+                        <button type="button" id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
                             role="tab" aria-selected={screen === s.id} aria-current={screen === s.id ? "page" : undefined} aria-controls={`lv-panel-${s.id}`}
-                            aria-label={s.id === "reminders" && pendingTotal > 0 ? `${t(s.key)}，${pendingTotal}项待办` : t(s.key)}
+                            aria-label={s.id === "reminders" && pendingTotal > 0 ? t("tab.remindersPending").replace("${label}", t(s.key)).replace("${n}", String(pendingTotal)) : t(s.key)}
                             tabindex={screen === s.id ? 0 : -1} onpointerdown={() => prepareTabNavigation(s.id)} onkeydown={(e) => onTabKeydown(e, i)} onclick={() => gotoScreen(s.id)}>
                             {t(s.key)}
                             {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
@@ -528,13 +528,13 @@
                 </button>
                 <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
                 <div class="lv-tabbar-actions">
-                    <button class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
-                    <button class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-                    <button class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
-                    <button class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
-                    <button class="lv-iconbtn" class:orange={dockOpen} aria-label="切换侧边栏" title={dockOpen ? "收起右侧栏" : "展开右侧栏"} onclick={toggleDock}><UiIcon name="menu" size={16} /></button>
+                    <button type="button" class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
+                    <button type="button" class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
+                    <button type="button" class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+                    <button type="button" class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
+                    <button type="button" class="lv-iconbtn" class:orange={dockOpen} aria-label={t("tab.toggleDock")} title={dockOpen ? t("tab.collapseDock") : t("tab.expandDock")} onclick={toggleDock}><UiIcon name="menu" size={16} /></button>
                     {#if onMobileClose}
-                        <button class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
+                        <button type="button" class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
                     {/if}
                 </div>
             </header>
@@ -560,7 +560,7 @@
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
                     <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
                         {#if screenLoadError}
-                            <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
+                            <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button type="button" class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
                         {:else if loadedScreen !== screen || !ScreenView}
                             <div class="lv-card lv-screen-loading" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
                                 <span class="lv-skel lv-skel--w42-h16" aria-hidden="true"></span>

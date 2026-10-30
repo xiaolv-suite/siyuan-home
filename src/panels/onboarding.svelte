@@ -146,7 +146,7 @@
             </div>
             <div class="lv-roles">
                 {#each roleOptions as r (r)}
-                    <button class="lv-rolechip" class:on={picked.includes(r)} aria-pressed={picked.includes(r)} disabled={provisioning} onclick={() => toggle(r)}>
+                    <button type="button" class="lv-rolechip" class:on={picked.includes(r)} aria-pressed={picked.includes(r)} disabled={provisioning} onclick={() => toggle(r)}>
                         <UiIcon name={roleIcon[r]} size={13} />
                         <span>{t(`role.${r}`)}</span>
                     </button>
@@ -155,14 +155,14 @@
             {#if picked.includes("child")}
                 <div class="lv-wiz__children">
                     <span class="lv-sub">{t("wiz.children")}</span>
-                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenDecrease")} disabled={provisioning || children <= 0} onclick={() => (children = Math.max(0, children - 1))}><UiIcon name="minus" size={12} /></button>
+                    <button type="button" class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenDecrease")} disabled={provisioning || children <= 0} onclick={() => (children = Math.max(0, children - 1))}><UiIcon name="minus" size={12} /></button>
                     <b class="lv-num" aria-live="polite">{children}</b>
-                    <button class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenIncrease")} disabled={provisioning} onclick={() => (children += 1)}><UiIcon name="add" size={12} /></button>
+                    <button type="button" class="b3-button b3-button--outline lv-wiz__step-btn" aria-label={t("wiz.childrenIncrease")} disabled={provisioning} onclick={() => (children += 1)}><UiIcon name="add" size={12} /></button>
                 </div>
             {/if}
             <div class="lv-wiz__actions">
-                <button class="lv-btn ghost" disabled={provisioning} onclick={skip}>{provisioning ? t("wiz.provisioningShort") : t("wiz.skip")}</button>
-                <button class="lv-btn primary" disabled={provisioning} onclick={() => goToStep(2)}><span>{t("wiz.next")}</span> <UiIcon name="forward" size={12} /></button>
+                <button type="button" class="lv-btn ghost" disabled={provisioning} onclick={skip}>{provisioning ? t("wiz.provisioningShort") : t("wiz.skip")}</button>
+                <button type="button" class="lv-btn primary" disabled={provisioning} onclick={() => goToStep(2)}><span>{t("wiz.next")}</span> <UiIcon name="forward" size={12} /></button>
             </div>
             {#if provisionError}<p class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</p>{/if}
         {:else}
@@ -182,11 +182,11 @@
                 <p class="lv-caption lv-wiz__note" role="note"><UiIcon name="info" size={13} /> {t("wiz.sexHint")}</p>
             {/if}
             <div class="lv-wiz__actions lv-wiz__actions--split">
-                <button class="lv-btn" disabled={provisioning} onclick={() => goToStep(1)}><UiIcon name="back" size={12} /> <span>{t("wiz.back")}</span></button>
+                <button type="button" class="lv-btn" disabled={provisioning} onclick={() => goToStep(1)}><UiIcon name="back" size={12} /> <span>{t("wiz.back")}</span></button>
                 {#if provisionError}
                     <span class="lv-caption lv-wiz__error" role="alert"><UiIcon name="alert" size={13} /> {skipFailed ? `${t("wiz.skipFailed")}: ${provisionError}` : provisionError}</span>
                 {/if}
-                <button class="lv-btn primary" disabled={provisioning}
+                <button type="button" class="lv-btn primary" disabled={provisioning}
                     title={t("wiz.finishCta")} onclick={finishAndCapture}>
                     {provisioning ? t("wiz.provisioningShort") : t("wiz.finishAndCapture")}
                 </button>

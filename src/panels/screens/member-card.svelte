@@ -136,12 +136,12 @@
                 <div class="lv-caption">{t(`role.${m.role}`)}{m.sex ? ` · ${t(`members.sex.${m.sex}`)}` : ""}{m.lunarBirthday ? ` · ${t("members.lunar")}` : ""} {m.birthday ?? ""}</div>
             </div>
         </button>
-        <button class="lv-iconbtn" title={t("members.uploadAvatar")} aria-label={t("members.uploadAvatar")}
+        <button type="button" class="lv-iconbtn" title={t("members.uploadAvatar")} aria-label={t("members.uploadAvatar")}
             disabled={isAvatarBusy} aria-busy={isAvatarBusy}
-            onclick={() => onPickAvatar()}>{isAvatarBusy ? "…" : "头像"}</button>
-        <button class="b3-button b3-button--text lv-member-edit" onclick={() => onStartEdit()}>{t("members.edit")}</button>
-        <button class="b3-button b3-button--text" title={t("members.moreActions")} aria-label={t("members.moreActions")}
-            onclick={(e) => openCardMenu(e)}>⋯</button>
+            onclick={() => onPickAvatar()}>{isAvatarBusy ? "…" : t("field.avatar")}</button>
+        <button type="button" class="b3-button b3-button--text lv-member-edit" onclick={() => onStartEdit()}>{t("members.edit")}</button>
+        <button type="button" class="b3-button b3-button--text" title={t("members.moreActions")} aria-label={t("members.moreActions")}
+            onclick={(e) => openCardMenu(e)}><UiIcon name="moreHorizontal" size={14} /></button>
     </div>
     {#if m.syncError}
         <div class="lv-caption lv-member-sync-error" role="alert">{t("members.syncError")}: {m.syncError}</div>
@@ -168,24 +168,24 @@
         <div id={`member-details-${m.id}`} class="lv-person-expanded">
             {#if m.notes}<p class="lv-member-notes">{m.notes}</p>{/if}
             <div class="lv-person-actions-row">
-                <button class="b3-button b3-button--text" disabled={reorderBusy || isFirst} aria-busy={reorderBusy} onclick={() => onMove(-1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
-                <button class="b3-button b3-button--text" disabled={reorderBusy || isLast} aria-busy={reorderBusy} onclick={() => onMove(1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
+                <button type="button" class="b3-button b3-button--text" disabled={reorderBusy || isFirst} aria-busy={reorderBusy} onclick={() => onMove(-1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
+                <button type="button" class="b3-button b3-button--text" disabled={reorderBusy || isLast} aria-busy={reorderBusy} onclick={() => onMove(1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
                 {#if plugin.settings?.dbRefs?.members?.docId}
-                    <button class="b3-button b3-button--text" onclick={() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
+                    <button type="button" class="b3-button b3-button--text" onclick={() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
                 {/if}
-                <button class="b3-button b3-button--text ft__error lv-tx-danger" onclick={() => onDelete()}>{t("delete")}</button>
+                <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" onclick={() => onDelete()}>{t("delete")}</button>
             </div>
             {#if contact}
                 <div class="lv-person-row-between">
                     <span class="lv-caption lv-member-contact" title={contact ?? ""}>{t("field.contact")}: {contact.split(" [")[0]}</span>
                     <span class="lv-flex-spacer"></span>
-                    <button class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onUnlinkContact()}>{t("members.contactUnlink")}</button>
+                    <button type="button" class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onUnlinkContact()}>{t("members.contactUnlink")}</button>
                 </div>
             {:else if getContactsBridge()}
                 <div class="lv-person-row-between">
                     <span class="lv-caption">{t("members.contactLink")}</span>
                     <span class="lv-flex-spacer"></span>
-                    <button class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onLinkContact()}>{t("members.contactLink")}</button>
+                    <button type="button" class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onLinkContact()}>{t("members.contactLink")}</button>
                 </div>
             {/if}
             {#if alerts.length === 0}
@@ -196,7 +196,7 @@
                         <span class="lv-badge {r.level === 'overdue' ? 'red' : r.level === 'soon' ? 'orange' : 'yellow'}">{r.dueDate}</span>
                         <span>{r.title}</span>
                         <span class="lv-flex-spacer"></span>
-                        <button class="b3-button b3-button--text" disabled={actionBusy} aria-busy={actionBusy} onclick={() => onCompleteAlert(r)}>{actionBusy ? t("ledger.saving") : t("act.done")}</button>
+                        <button type="button" class="b3-button b3-button--text" disabled={actionBusy} aria-busy={actionBusy} onclick={() => onCompleteAlert(r)}>{actionBusy ? t("ledger.saving") : t("act.done")}</button>
                     </div>
                 {/each}
             {/if}
@@ -223,7 +223,7 @@
                 {/if}
             {/if}
             <div class="lv-member-timeline-card">
-                <button class="b3-button b3-button--outline lv-member-timeline-btn"
+                <button type="button" class="b3-button b3-button--outline lv-member-timeline-btn"
                     onclick={() => onOpenAssetTimeline()}>
                     <span class="lv-member-timeline-label">
                         <span class="lv-timeline-icon"><UiIcon name="archive" size={14} /></span>

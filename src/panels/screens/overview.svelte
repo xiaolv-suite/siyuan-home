@@ -333,15 +333,15 @@
             {/if}
         </p>
         <div class="lv-hero-actions">
-            <button class="lv-btn primary lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
+            <button type="button" class="lv-btn primary lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
             {#if onCapture}
-                <button class="lv-btn lv-hero-action-btn lv-hero-capture-btn" onclick={() => onCapture()}><UiIcon name="add" size={15} />{t("dash.quickRecord")}</button>
+                <button type="button" class="lv-btn lv-hero-action-btn lv-hero-capture-btn" onclick={() => onCapture()}><UiIcon name="add" size={15} />{t("dash.quickRecord")}</button>
             {/if}
-            <div class="lv-hero-tools-group" role="group" aria-label="快捷工具">
-                <button class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
-                <button class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
-                <button class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
-                <button class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
+            <div class="lv-hero-tools-group" role="group" aria-label={t("dash.quickTools")}>
+                <button type="button" class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
+                <button type="button" class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
+                <button type="button" class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
+                <button type="button" class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
             </div>
         </div>
         {#if monthlyDone > 0}<p><span class="lv-badge green"><UiIcon name="check" size={12} /> {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span></p>{/if}
@@ -357,7 +357,7 @@
             </div>
             <div class="lv-hero-stat-footer">
                 <span class="lv-badge {reminders.length > 0 ? 'orange' : 'green'}">
-                    {reminders.length > 0 ? `${reminders.length} 项需留意` : '全家就绪 · 暂无到期'}
+                    {reminders.length > 0 ? t("dash.needAttentionN").replace("${n}", String(reminders.length)) : t("dash.allReadyClear")}
                 </span>
             </div>
         </div>
@@ -368,7 +368,7 @@
     <div class="lv-card lv-alert-banner" role="alert">
         <UiIcon name="alert" size={18} />
         <span class="lv-alert-text">{t("permission.body")}</span>
-        <button class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={retryScan}>
+        <button type="button" class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={retryScan}>
             {retryingScan ? t("ledger.saving") : t("hub.rescan")}
         </button>
     </div>
@@ -439,20 +439,20 @@
 <ActivityFeed {plugin} {t} {version} compact={true} />
 
 <div class="lv-sec"><h2 class="lv-title-sec">{t("dash.quickRecord")}</h2><span class="lv-sub">{t("dash.quickRecordSub")}</span>
-    {#if onCapture}<button class="b3-button b3-button--text" onclick={() => onCapture()}>{t("capture.openFull")}</button>{/if}
+    {#if onCapture}<button type="button" class="b3-button b3-button--text" onclick={() => onCapture()}>{t("capture.openFull")}</button>{/if}
 </div>
 <div id="lv-quick-modules" class="lv-quick">
     {#each quickVisibleModules as mid (mid)}
         {@const tone = moduleTone(mid)}
-        <button class="lv-qbtn {tone}" onclick={() => mid === "members" ? onGoto("members") : openQuickCapture(mid)}>
+        <button type="button" class="lv-qbtn {tone}" onclick={() => mid === "members" ? onGoto("members") : openQuickCapture(mid)}>
             <span class="qi"><UiIcon name={moduleUiIcon(mid)} size={18} /></span>
             <span class="ql">{mid === "members" ? t("tab.members") : t(`module.${mid}`)}</span>
         </button>
     {/each}
     {#if quickModules.length > 6}
-        <button class="lv-qbtn lv-qbtn--toggle" aria-expanded={quickExpanded}
+        <button type="button" class="lv-qbtn lv-qbtn--toggle" aria-expanded={quickExpanded}
             onclick={() => (quickExpanded = !quickExpanded)}>
-            <span class="qi lv-quick-expand-icon" aria-hidden="true">{quickExpanded ? "⌃" : "⌄"}</span>
+            <span class="qi lv-quick-expand-icon" aria-hidden="true"><UiIcon name={quickExpanded ? "chevronUp" : "chevronDown"} size={14} /></span>
             <span class="ql">{quickExpanded ? t("dash.quickModulesLess") : t("dash.quickModulesMore").replace("${n}", String(quickModules.length - 6))}</span>
         </button>
     {/if}

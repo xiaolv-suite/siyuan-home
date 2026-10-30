@@ -49,10 +49,10 @@
             <p>{t("about.line1")}</p>
             <p>{t("about.tagline")}</p>
             <p class="ft__on-surface">{t("about.principles")}</p>
-            <button class="b3-button b3-button--outline lv-setcard__action"
+            <button type="button" class="b3-button b3-button--outline lv-setcard__action"
                 disabled={rerunBusy || saving || migrationBusy || demoBusy}
                 onclick={onRerunOnboarding}>{rerunBusy ? t("ledger.saving") : t("wiz.rerun")}</button>
-            <button class="b3-button b3-button--outline lv-mt-8 lv-ml-6"
+            <button type="button" class="b3-button b3-button--outline lv-mt-8 lv-ml-6"
                 onclick={() => window.open("https://github.com/ai68298100/siyuan-home", "_blank")}>{t("about.repo")}</button>
         </div>
     </div>
@@ -81,29 +81,29 @@
                 {/each}
             {/if}
             <div class="lv-setcard__actions lv-mt-8">
-                <button class="b3-button b3-button--outline" onclick={onPreviewDiagnostics}><UiIcon name="search" size={13} /> {t("settings.diagPreview")}</button>
-                <button class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={onExportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
+                <button type="button" class="b3-button b3-button--outline" onclick={onPreviewDiagnostics}><UiIcon name="search" size={13} /> {t("settings.diagPreview")}</button>
+                <button type="button" class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={onExportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
                 {#if (plugin.settings?.members ?? []).some((m: any) => !m.avItemId || m.syncError)}
-                    <button class="b3-button b3-button--outline"
+                    <button type="button" class="b3-button b3-button--outline"
                         disabled={diagnosticsBusy !== null || exportingDiagnostics}
                         aria-busy={diagnosticsBusy === "backfill"}
                         onclick={onRunBackfill}>{diagnosticsBusy === "backfill" ? t("ledger.saving") : t("diag.backfill")}</button>
                 {/if}
-                <button class="b3-button b3-button--outline"
+                <button type="button" class="b3-button b3-button--outline"
                     disabled={diagnosticsBusy !== null || exportingDiagnostics}
                     aria-busy={diagnosticsBusy === "duplicates"}
                     onclick={onRunDuplicateCheck}>{diagnosticsBusy === "duplicates" ? t("ledger.saving") : t("diag.dupCheck")}</button>
                 <!-- D12 最小健康检查：实际读取每个启用模块，登记存在≠健康 -->
-                <button class="b3-button b3-button--outline"
+                <button type="button" class="b3-button b3-button--outline"
                     disabled={diagnosticsBusy !== null || exportingDiagnostics}
                     aria-busy={diagnosticsBusy === "health"}
                     onclick={onRunDeepHealthCheck}>{diagnosticsBusy === "health" ? t("ledger.saving") : t("diag.health")}</button>
                 <!-- §15 一键重建全部启用台账文档与视图 -->
-                <button class="b3-button b3-button--outline"
+                <button type="button" class="b3-button b3-button--outline"
                     disabled={diagnosticsBusy !== null || exportingDiagnostics}
                     aria-busy={diagnosticsBusy === "adopt"}
                     onclick={onRunAdoptHistory}>{diagnosticsBusy === "adopt" ? t("ledger.saving") : t("diag.adoptHistory")}</button>
-                <button class="b3-button b3-button--outline"
+                <button type="button" class="b3-button b3-button--outline"
                     disabled={diagnosticsBusy !== null || exportingDiagnostics}
                     aria-busy={diagnosticsBusy === "rebuild"}
                     onclick={onRebuildAll}>{diagnosticsBusy === "rebuild" ? t("ledger.saving") : t("diag.rebuildAll")}</button>

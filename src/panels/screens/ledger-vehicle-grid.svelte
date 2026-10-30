@@ -87,15 +87,15 @@
                     <span>{t("field.insurance_due")} · {vehicleText(r, "insurance_due")}</span>
                 </div>
                 <div class="lv-vehicle-actions">
-                    <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "fuel"); }}>{t("vehicle.quick.fuel")}</button>
-                    <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "charging"); }}>{t("vehicle.quick.charging")}</button>
-                    <button class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "maintenance"); }}>{t("vehicle.quick.maintenance")}</button>
-                    <button class="b3-button b3-button--text" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "edit"); }}>{t("members.edit")}</button>
+                    <button type="button" class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "fuel"); }}>{t("vehicle.quick.fuel")}</button>
+                    <button type="button" class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "charging"); }}>{t("vehicle.quick.charging")}</button>
+                    <button type="button" class="b3-button b3-button--outline" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "maintenance"); }}>{t("vehicle.quick.maintenance")}</button>
+                    <button type="button" class="b3-button b3-button--text" onclick={(e) => { e.stopPropagation(); onOpenDetail(r, "edit"); }}>{t("members.edit")}</button>
                 </div>
             </div>
         </article>
     {/each}
     {#if filteredRows.length > visibleRows.length}
-        <button class="b3-button b3-button--outline lv-vehicle-more" onclick={() => (renderLimit += RENDER_PAGE)}>{t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}</button>
+        <button type="button" class="b3-button b3-button--outline lv-vehicle-more" onclick={() => (renderLimit += RENDER_PAGE)}>{t("ledger.loadMore").replace("${n}", String(filteredRows.length - visibleRows.length))}</button>
     {/if}
 </div>

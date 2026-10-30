@@ -505,17 +505,17 @@
 
     <div class="fn__flex lv-settings__footer">
         {#if area === "modules"}
-            <button class="b3-button b3-button--text" disabled={saving || migrationBusy || demoBusy} onclick={enableAll}>{t("enableAll")}</button>
-            <button class="b3-button b3-button--text" disabled={saving || migrationBusy || demoBusy} onclick={coreOnly}>{t("coreOnly")}</button>
+            <button type="button" class="b3-button b3-button--text" disabled={saving || migrationBusy || demoBusy} onclick={enableAll}>{t("enableAll")}</button>
+            <button type="button" class="b3-button b3-button--text" disabled={saving || migrationBusy || demoBusy} onclick={coreOnly}>{t("coreOnly")}</button>
         {/if}
         <span class="fn__flex-1"></span>
         <!-- 263 波：未保存更改徽章（脏检查口径=落盘口径）——设置页有两种生效心智（草稿+保存），
              让"改了但还没保存"可见，不再靠猜 -->
         {#if dirty}
             <span class="lv-badge orange" role="status"><UiIcon name="clock" size={11} /> {t("settings.unsaved")}</span>
-            <button class="b3-button b3-button--text lv-tx-muted lv-btn-text-sm" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
+            <button type="button" class="b3-button b3-button--text lv-tx-muted lv-btn-text-sm" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
         {/if}
         <!-- 256 波：保存是设置视图唯一核心动作，升为主按钮（对齐原型"主按钮每视图 ≤1 个"） -->
-        <button class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>
+        <button type="button" class="lv-btn primary" disabled={saving || migrationBusy || demoBusy} onclick={save}>{saving || demoBusy ? t("ledger.saving") : t("save")}</button>
     </div>
 </div>

@@ -3,8 +3,6 @@
     import Onboarding from "../onboarding.svelte";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
-    import { localDateKey } from "@/core/hub/rule";
-    import { parseNaturalDate } from "@/core/dateparse";
     import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
     import { showMessage, Dialog } from "siyuan";
@@ -15,6 +13,8 @@
     import { getWeeklyPulse, getFamilyAchievements } from "@/core/pulse-and-achievements";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import OverviewPulseStrip from "../overview-pulse-strip.svelte";
+    import OverviewStartGuide from "./overview-start-guide.svelte";
+    import OverviewQuickMemo from "./overview-quick-memo.svelte";
     import {
         openLifeIndexModal as showLifeIndex,
         openEmergencyCardModal as showEmergencyCard,
@@ -173,14 +173,6 @@
     });
     const scopeLabel = $derived(memberFilter ? (members.find((m) => m.id === memberFilter)?.name ?? "?") : t("dash.scopeAll"));
 
-    // 262 波（Todoist quick add 灵感）：自然语言日期即时预览——输入即解析，
-    // 命中且未显式选日期时在输入行内亮出 chip，比"提交后才 toast"早一步反馈
-    const memoParsed = $derived.by(() => {
-        const raw = memoTitle.trim();
-        if (!raw || memoDue) return null;
-        return parseNaturalDate(raw);
-    });
-
     // 264 波：行数口径（cache.byModule 随扫描快照；version 驱动重算）——模块卡主数字与成员卡统计格
     const statsByModule = $derived.by(() => {
         void version;
@@ -260,10 +252,6 @@
         }
     }
 
-    let memoTitle = $state("");
-    let memoDue = $state("");
-    let memoInput: HTMLInputElement | undefined = $state();
-    let savingMemo = $state(false);
     // 每条提醒独立锁定写操作，避免双击把同一条完成/延后写入两次。
     let overviewBusy = $state<Set<string>>(new Set());
     async function runOverviewAction(key: string, action: () => Promise<void>) {
@@ -275,36 +263,6 @@
             const next = new Set(overviewBusy);
             next.delete(key);
             overviewBusy = next;
-        }
-    }
-    async function addMemo() {
-        if (savingMemo) return;
-        if (!memoTitle.trim()) {
-            memoInput?.focus();
-            showMessage(t("memo.titleRequired"), 4000, "info");
-            return;
-        }
-        // 16 组/214 波：智能日期解析（滴答清单规格）——标题命中日期表达式则剥离进到期日；
-        // 显式选择的日期优先于解析（用户选了日期选择器即为明确意图）。
-        const parsed = parseNaturalDate(memoTitle);
-        let title = memoTitle.trim();
-        let due = memoDue;
-        if (parsed && parsed.rest) {
-            if (!due) due = parsed.date;
-            title = parsed.rest;
-            showMessage(t("memo.dateParsed").replace("${d}", parsed.date), 2500, "info");
-        }
-        if (!title) return;
-        // 默认到期日走本地时区（33.3：禁 toISOString，UTC+8 夜间会偏一天）
-        const d = due || localDateKey(new Date(Date.now() + 3 * 86400000));
-        savingMemo = true;
-        try {
-            await plugin.addMemo(title, d);
-            memoTitle = ""; memoDue = "";
-        } catch (e) {
-            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-        } finally {
-            savingMemo = false;
         }
     }
 
@@ -389,38 +347,13 @@
 {/if}
 
 {#if showStartGuide}
-    <details class="lv-start-guide" open aria-labelledby="lv-start-guide-title">
-        <summary class="lv-start-guide__summary">
-            <span class="lv-start-guide__copy">
-                <span class="lv-kicker">{t("startGuide.kicker")}</span>
-                <span id="lv-start-guide-title" class="lv-start-guide__title">{t("startGuide.title")}</span>
-                <span class="lv-start-guide__intro">{t("startGuide.intro")}</span>
-            </span>
-            <span class="lv-start-guide__mark" aria-hidden="true">⌄</span>
-        </summary>
-        <div class="lv-start-guide__steps">
-            <div class="lv-start-guide__step">
-                <span class="lv-start-guide__num">1</span>
-                <div><b>{t("startGuide.stepMembers")}</b><span>{t("startGuide.stepMembersHint")}</span></div>
-                <button class="b3-button b3-button--outline" onclick={() => onGoto("members")}>{t("startGuide.openMembers")}</button>
-            </div>
-            <div class="lv-start-guide__step">
-                <span class="lv-start-guide__num">2</span>
-                <div><b>{t("startGuide.stepRecord")}</b><span>{starterModule ? t("startGuide.stepRecordHint") : t("startGuide.stepRecordNoModule")}</span></div>
-                <button class="b3-button b3-button--outline" onclick={openStarterRecord}>{starterModule ? t("startGuide.openLedger") : t("startGuide.openSettings")}</button>
-            </div>
-            <div class="lv-start-guide__step">
-                <span class="lv-start-guide__num">3</span>
-                <div><b>{t("startGuide.stepModules")}</b><span>{t("startGuide.stepModulesHint")}</span></div>
-                <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
-            </div>
-            <div class="lv-start-guide__step">
-                <span class="lv-start-guide__num">4</span>
-                <div><b>{t("startGuide.stepReminders")}</b><span>{t("startGuide.stepRemindersHint")}</span></div>
-                <button class="b3-button b3-button--outline" onclick={() => onGoto("reminders")}>{t("startGuide.openReminders")}</button>
-            </div>
-        </div>
-    </details>
+    <OverviewStartGuide
+        {t}
+        {starterModule}
+        {onGoto}
+        onOpenStarterRecord={openStarterRecord}
+        onOpenSettings={() => plugin.openSetting()}
+    />
 {/if}
 
 <OverviewBentoGrid
@@ -492,18 +425,7 @@
         </button>
     {/if}
 </div>
-<div class="lv-sec"><h2 class="lv-title-sec">{t("memo.quick")}</h2><span class="lv-sub">{t("memo.quickSub")}</span></div>
-<div class="lv-card lv-memo">
-    <!-- 261 波：回车提交（isComposing 守卫——中文输入法选词的 Enter 不算提交） -->
-    <input bind:this={memoInput} class="b3-text-field fn__flex-1 lv-memo-input" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
-        disabled={savingMemo} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-    <!-- 262 波（Todoist 式即时预览）：解析命中即亮 chip，提交前就知道日期去哪了 -->
-    {#if memoParsed}
-        <span class="lv-parsechip" role="status"><UiIcon name="calendar" size={13} /> <span class="lv-num">{memoParsed.date}</span></span>
-    {/if}
-    <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-    <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemo} title={t("memo.add")} aria-label={t("memo.add")}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
-</div>
+<OverviewQuickMemo {plugin} {t} />
 
 <OverviewModuleGrid
     {plugin}
@@ -538,8 +460,5 @@
     .lv-quick-expand-icon {
         font-size: 15px;
         font-weight: 600;
-    }
-    .lv-memo-input {
-        min-width: 180px;
     }
 </style>

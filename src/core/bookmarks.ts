@@ -195,8 +195,8 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
 
     const dlg = new DialogCls({
         title: t("ledger.checkBookmarks"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-bm-check-body" style="max-height:65vh;overflow:auto">
-            <div style="display:flex;align-items:center;gap:8px;padding:24px;justify-content:center">
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-bm-check-body">
+            <div class="lv-loading-center">
                 <span class="lv-caption">${t("ledger.bookmarksChecking").replace("${n}", String(rows.length))}</span>
             </div>
         </div>
@@ -213,66 +213,62 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
 
     if (report.total === 0) {
         const empty = document.createElement("div");
-        empty.className = "lv-caption";
-        empty.style.cssText = "text-align:center;padding:24px 0";
+        empty.className = "lv-caption fn__text-center";
         empty.textContent = t("ledger.bookmarksNoLinks");
         body.appendChild(empty);
         return;
     }
 
     const metrics = document.createElement("div");
-    metrics.style.cssText = "display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:8px";
+    metrics.className = "lv-metric-grid-3";
 
     const totalCard = document.createElement("div");
     totalCard.className = "lv-metric-lg";
-    totalCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksTotal")}</span><b class="lv-num" style="font-size:18px">${report.total}</b>`;
+    totalCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksTotal")}</span><b class="lv-num lv-metric-val">${report.total}</b>`;
 
     const healthyCard = document.createElement("div");
     healthyCard.className = "lv-metric-lg";
-    healthyCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksHealthy")}</span><b class="lv-num" style="color:var(--lv-accent);font-size:18px">${report.healthyCount}</b>`;
+    healthyCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksHealthy")}</span><b class="lv-num lv-metric-val lv-tx-accent">${report.healthyCount}</b>`;
 
     const brokenCard = document.createElement("div");
-    const brokenColor = report.brokenCount > 0 ? "var(--lv-danger)" : "var(--lv-tx-3)";
+    const brokenColorClass = report.brokenCount > 0 ? "lv-tx-danger" : "lv-tx-muted";
     brokenCard.className = "lv-metric-lg";
-    brokenCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksBroken")}</span><b class="lv-num" style="color:${brokenColor};font-size:18px">${report.brokenCount}</b>`;
+    brokenCard.innerHTML = `<span class="lv-caption">${t("ledger.bookmarksBroken")}</span><b class="lv-num lv-metric-val ${brokenColorClass}">${report.brokenCount}</b>`;
 
     metrics.append(totalCard, healthyCard, brokenCard);
     body.appendChild(metrics);
 
     if (report.brokenCount === 0) {
         const okMsg = document.createElement("div");
-        okMsg.style.cssText = "padding:14px;background:var(--lv-surface-2);border-radius:8px;border:1px solid var(--lv-accent);color:var(--lv-accent);text-align:center;font-size:13px";
+        okMsg.className = "lv-notice-card is-success";
         okMsg.textContent = `✓ ${t("ledger.bookmarksAllHealthy")}`;
         body.appendChild(okMsg);
     } else {
         if (copyBtn) copyBtn.disabled = false;
         const sec = document.createElement("div");
-        sec.style.cssText = "margin-top:4px";
-        sec.innerHTML = `<div class="ft__on-surface lv-section-title" style="font-weight:600;font-size:13px;margin:8px 0 4px">${t("ledger.bookmarksBrokenCount").replace("${n}", String(report.brokenCount))}</div>`;
+        sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.bookmarksBrokenCount").replace("${n}", String(report.brokenCount))}</div>`;
 
         const list = document.createElement("div");
-        list.style.cssText = "display:flex;flex-direction:column;gap:6px";
+        list.className = "fn__flex-column";
 
         for (const item of report.brokenItems) {
             const rowEl = document.createElement("div");
-            rowEl.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--lv-surface-2);border-radius:6px;border:1px solid var(--lv-line)";
+            rowEl.className = "lv-broken-link-row";
 
             const left = document.createElement("div");
-            left.style.cssText = "display:flex;flex-direction:column;gap:2px;min-width:0";
+            left.className = "lv-broken-link-row__left";
 
             const titleSpan = document.createElement("span");
-            titleSpan.style.cssText = "font-weight:500;color:var(--lv-tx)";
             titleSpan.textContent = item.name;
 
             const urlSpan = document.createElement("span");
             urlSpan.className = "lv-caption";
-            urlSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
             urlSpan.textContent = item.url || "（空链接）";
 
             left.append(titleSpan, urlSpan);
 
             const right = document.createElement("div");
-            right.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0";
+            right.className = "lv-broken-link-row__right";
 
             const badge = document.createElement("span");
             badge.className = "lv-badge danger";
@@ -283,7 +279,6 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
             if (item.url && (item.url.startsWith("http://") || item.url.startsWith("https://"))) {
                 const testBtn = document.createElement("button");
                 testBtn.className = "b3-button b3-button--text";
-                testBtn.style.cssText = "font-size:12px;padding:2px 6px";
                 testBtn.textContent = t("ledger.bookmarksOpenTest");
                 testBtn.onclick = () => window.open(item.url, "_blank");
                 right.append(testBtn);

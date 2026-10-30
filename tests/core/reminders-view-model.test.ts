@@ -167,5 +167,16 @@ describe("reminders-view-model (提醒中枢视图模型与计算引擎)", () =>
         // 再次切换应清除
         await toggleReminderQuickPlanToday(r, mockPlugin, t, showMessage);
         expect(showMessage).toHaveBeenCalledWith("已清除今日计划", 2000, "info");
+
+        // 异常分支回滚守护：保存失败时内存状态严格回滚
+        const failingPlugin = {
+            runtime: {
+                planDates: { r1: "2026-10-30" },
+            },
+            saveData: vi.fn().mockRejectedValue(new Error("disk IO error")),
+            refreshHub: vi.fn(),
+        };
+        await toggleReminderQuickPlanToday(r, failingPlugin, t, showMessage);
+        expect(failingPlugin.runtime.planDates.r1).toBe("2026-10-30"); // 保持原值，不留脏数据
     });
 });

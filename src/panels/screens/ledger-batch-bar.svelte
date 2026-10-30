@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Dialog, showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
+    import UiIcon from "@/ui/icon.svelte";
 
     let {
         plugin,
@@ -153,22 +154,22 @@
         </span>
         {#if ref?.columns?.location}
             <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchLocationModal}>
-                📍 {t("ledger.batchLocation")}
+                <UiIcon name="mapPin" size={13} /> {t("ledger.batchLocation")}
             </button>
         {/if}
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
             <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchMemberModal}>
-                👤 {t("ledger.batchMember")}
+                <UiIcon name="users" size={13} /> {t("ledger.batchMember")}
             </button>
         {/if}
         <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchCopyRefs}>
-            🔗 {t("ledger.copyBlockRef")}
+            <UiIcon name="paperclip" size={13} /> {t("ledger.copyBlockRef")}
         </button>
         <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} onclick={batchDelete}>
-            🗑️ {t("ledger.batchDelete")}
+            <UiIcon name="close" size={13} /> {t("ledger.batchDelete")}
         </button>
         <button type="button" class="b3-button b3-button--text lv-batch-close" onclick={() => { selectedItemIds = []; }} title={t("close")} aria-label={t("close")}>
-            ✕
+            <UiIcon name="close" size={12} />
         </button>
     </div>
 {/if}

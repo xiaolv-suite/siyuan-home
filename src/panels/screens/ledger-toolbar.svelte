@@ -2,6 +2,7 @@
     import type { HomePluginLike } from "@/types/plugin";
     import type { TableDensity } from "../panel-session";
     import { optLabel } from "@/core/format";
+    import UiIcon from "@/ui/icon.svelte";
 
     let {
         plugin,
@@ -186,7 +187,7 @@
 
 {#if pinnedLedgers.length > 1}
     <div class="lv-ledger-pinned-bar">
-        <span class="lv-caption lv-pinned-icon">📌</span>
+        <span class="lv-caption lv-pinned-icon"><UiIcon name="bookmark" size={13} /></span>
         {#each pinnedLedgers as pid (pid)}
             <button type="button" class="lv-preset-tag" class:active={active === pid}
                 aria-pressed={active === pid}
@@ -201,7 +202,7 @@
     <div class="lv-filter-bar">
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
             <div class="lv-filter-pill-group">
-                <span class="lv-caption lv-filter-pill-icon">👤</span>
+                <span class="lv-caption lv-filter-pill-icon"><UiIcon name="users" size={13} /></span>
                 <button type="button" class="lv-preset-tag" class:active={!filterMemberId} aria-pressed={!filterMemberId} onclick={() => { filterMemberId = ""; }}>{t("ledger.allMembers")}</button>
                 {#each plugin.settings.members ?? [] as m (m.id)}
                     {#if m.avItemId}
@@ -214,7 +215,7 @@
         {/if}
         {#if categoryCol && availableCategories.length > 0}
             <div class="lv-filter-pill-group">
-                <span class="lv-caption lv-filter-pill-icon">🏷️</span>
+                <span class="lv-caption lv-filter-pill-icon"><UiIcon name="note" size={13} /></span>
                 <button type="button" class="lv-preset-tag" class:active={!filterCategory} aria-pressed={!filterCategory} onclick={() => { filterCategory = ""; }}>{t("ledger.allCategories")}</button>
                 {#each availableCategories as catVal (catVal)}
                     <button type="button" class="lv-preset-tag" class:active={filterCategory === catVal} aria-pressed={filterCategory === catVal} onclick={() => { filterCategory = filterCategory === catVal ? "" : catVal; }}>

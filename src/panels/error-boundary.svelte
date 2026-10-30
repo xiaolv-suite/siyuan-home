@@ -2,6 +2,7 @@
     // 32 组：Svelte 错误边界——单屏崩溃不拖垮管家面板，提供重试按钮
     import type { Snippet } from "svelte";
     import { compactUserMessage } from "@/core/auth";
+    import UiIcon from "@/ui/icon.svelte";
     type Props = {
         children: Snippet;
         /** 重试回调（可选：切换页签时自动重置） */
@@ -27,7 +28,7 @@
     {@render children()}
     {#snippet failed(error, resetBoundary)}
         <div class="lv-card lv-error-boundary-card" role="alert" aria-live="assertive">
-            <div class="lv-error-boundary-icon">⚠️</div>
+            <div class="lv-error-boundary-icon"><UiIcon name="alert" size={28} /></div>
             {#if errorKind(error) === "permission"}
                 <b>{t?.("permission.title") || "Access is not permitted"}</b>
                 <p class="lv-caption lv-error-boundary-msg">{t?.("permission.body") || "The current account cannot access this data. Check permissions and retry."}</p>

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import UiIcon from "@/ui/icon.svelte";
+
     let {
         t,
         onOpenEmergencyCard,
@@ -17,7 +19,7 @@
     </div>
     <div class="lv-guest-banner__right">
         <button class="b3-button b3-button--text" onclick={onOpenEmergencyCard}>
-            🚨 {t("overview.emergencyCard")}
+            <UiIcon name="alert" size={14} /> {t("overview.emergencyCard")}
         </button>
         <button class="b3-button b3-button--text" onclick={onToggleGuestMode}>
             {t("guest.exitMode")}

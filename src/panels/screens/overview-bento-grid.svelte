@@ -42,9 +42,9 @@
         <div class="lv-bento-hero-header">
             <span class="lv-badge {urgentDueReminder && urgentDueReminder.daysLeft <= 0 ? 'red' : urgentDueReminder && urgentDueReminder.daysLeft <= 7 ? 'orange' : 'amber'}">
                 {#if urgentDueReminder}
-                    ⏱️ {t("dash.bentoUrgentTitle")} · {t(`module.${urgentDueReminder.moduleId}`) !== `module.${urgentDueReminder.moduleId}` ? t(`module.${urgentDueReminder.moduleId}`) : t("adhoc.name")}
+                    <UiIcon name="clock" size={12} /> {t("dash.bentoUrgentTitle")} · {t(`module.${urgentDueReminder.moduleId}`) !== `module.${urgentDueReminder.moduleId}` ? t(`module.${urgentDueReminder.moduleId}`) : t("adhoc.name")}
                 {:else}
-                    🛡️ {t("dash.bentoAllGood")}
+                    <UiIcon name="shield" size={12} /> {t("dash.bentoAllGood")}
                 {/if}
             </span>
             {#if urgentDueReminder}
@@ -58,9 +58,9 @@
                 <h3 class="lv-bento-hero-title">{urgentDueReminder.title}</h3>
                 <p class="lv-bento-hero-sub">
                     {#if memberOf(urgentDueReminder.memberId)}
-                        <span class="lv-caption">👤 {memberOf(urgentDueReminder.memberId)?.name} · </span>
+                        <span class="lv-caption"><UiIcon name="users" size={12} /> {memberOf(urgentDueReminder.memberId)?.name} · </span>
                     {/if}
-                    <span class="lv-caption">📅 {urgentDueReminder.dueDate}</span>
+                    <span class="lv-caption"><UiIcon name="calendar" size={12} /> {urgentDueReminder.dueDate}</span>
                 </p>
             {:else}
                 <h3 class="lv-bento-hero-title is-all-good">{t("dash.bentoAllGood")}</h3>

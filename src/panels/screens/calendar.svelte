@@ -233,7 +233,7 @@
             <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
             {#if dayItems.length > 0}
                 <button class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={copyDayTasks}>
-                    📋 {t("hub.batchCopyTasks")}
+                    <UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}
                 </button>
             {/if}
         </div>
@@ -252,7 +252,7 @@
                                 onclick={() => onLocate?.(r)}
                                 onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLocate?.(r); } }}>
                                 <b>
-                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark">📌</span>{/if}
+                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark"><UiIcon name="bookmark" size={12} /></span>{/if}
                                     {r.title}
                                 </b>
                                 <span class="lv-caption">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
@@ -260,16 +260,16 @@
                         {:else}
                             <div class="lv-cal-item-t">
                                 <b>
-                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark">📌</span>{/if}
+                                    {#if isPinnedFn?.(r)}<span class="lv-tx-accent lv-cal-pin-mark"><UiIcon name="bookmark" size={12} /></span>{/if}
                                     {r.title}
                                 </b>
                                 <span class="lv-caption">{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId}</span>
                             </div>
                         {/if}
                         <span class="lv-badge {r.level === "overdue" ? "red" : r.level === "soon" ? "orange" : "yellow"}">{r.level === "overdue" ? t("level.overdue") : r.level === "soon" ? t("level.soon") : t("level.lead")}</span>
-                        <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}>📋</button>
+                        <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}><UiIcon name="note" size={13} /></button>
                         {#if onTogglePin}
-                            <button type="button" class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} aria-label={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}>{isPinnedFn?.(r) ? "📌 " + t("act.unpin") : "📌 " + t("act.pin")}</button>
+                            <button type="button" class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} aria-label={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}><UiIcon name="bookmark" size={12} /> {isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")}</button>
                         {/if}
                         {#if r.moduleId === "adhoc"}
                             <!-- 241 波：备忘项同步提供分诊入口（与提醒中枢一致） -->

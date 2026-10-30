@@ -104,12 +104,12 @@
         <b>
             {#if isItemPinned}
                 <span class="lv-plan-badge is-planned-now is-pinned" title={t("hub.pinned")}>
-                    📌 {t("hub.pinned")}
+                    <UiIcon name="bookmark" size={11} /> {t("hub.pinned")}
                 </span>
             {/if}
             {#if stageLabel}
                 <span class="lv-plan-badge" class:is-planned-now={stage?.isUrgent} title={t("hub.stageDesc").replace("${stages}", (stage?.stages ?? []).join(" / "))}>
-                    ⏱ {stageLabel}
+                    <UiIcon name="clock" size={11} /> {stageLabel}
                 </span>
             {/if}
             {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
@@ -118,14 +118,14 @@
                     title={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
                     aria-label={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
                     onclick={(e) => { e.stopPropagation(); onSchedulePlan?.(r); }}>
-                    🗓️ {plan.planDate}{#if plan.isPlannedNow} · 🎯 {t("hub.planActive")}{/if}
+                    <UiIcon name="calendar" size={11} /> {plan.planDate}{#if plan.isPlannedNow} · <UiIcon name="check" size={11} /> {t("hub.planActive")}{/if}
                 </button>
             {:else}
                 <button type="button" class="lv-plan-tag-add"
                     title={t("hub.setPlanDate")}
                     aria-label={t("hub.setPlanDate")}
                     onclick={(e) => { e.stopPropagation(); onSchedulePlan?.(r); }}>
-                    🗓️
+                    <UiIcon name="calendar" size={12} />
                 </button>
             {/if}
             <button class="lv-rem-expand-btn" type="button"
@@ -197,7 +197,7 @@
             {#if plan.hasPlan}
                 <div class="lv-rem-summary__item">
                     <span class="label">{t("hub.planDateLabel")}:</span>
-                    <span>{plan.planDate}{#if plan.isPlannedNow}（🎯 {t("hub.planActive")}）{/if}</span>
+                    <span>{plan.planDate}{#if plan.isPlannedNow}（<UiIcon name="check" size={11} /> {t("hub.planActive")}）{/if}</span>
                 </div>
             {/if}
             {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}

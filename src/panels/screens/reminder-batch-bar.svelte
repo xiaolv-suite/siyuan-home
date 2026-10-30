@@ -2,6 +2,7 @@
     import { showMessage } from "siyuan";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import { saveRuntime } from "@/core/hub/runtime";
+    import UiIcon from "@/ui/icon.svelte";
     import type { Reminder } from "@/types";
 
     let {
@@ -142,9 +143,9 @@
     <b class="lv-caption">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
     <span class="fn__flex-1"></span>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}>📋 {t("hub.batchCopyTasks")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyBlockRefs}>🔗 {t("hub.batchCopyRefs")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}>📅 {t("hub.planPresetToday")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyBlockRefs}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}>{t("act.done")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}>{t("act.snooze7")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}>{t("act.mute")}</button>

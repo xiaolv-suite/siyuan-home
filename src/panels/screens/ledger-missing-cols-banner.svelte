@@ -1,4 +1,5 @@
 <script lang="ts">
+    import UiIcon from "@/ui/icon.svelte";
     import type { ColumnDef } from "@/core/schema";
 
     let {
@@ -17,7 +18,7 @@
 </script>
 
 <div class="lv-card lv-notice-card">
-    <span class="lv-tx-warn">⚠️</span>
+    <span class="lv-tx-warn"><UiIcon name="alert" size={16} /></span>
     <span class="fn__flex-1 lv-tx-2">
         {t("ledger.missingColumnsPrompt")} <b>{missingSchemaCols.map((c) => fieldLabel(c.key)).join("、")}</b>
     </span>

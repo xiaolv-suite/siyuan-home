@@ -76,7 +76,7 @@
     </div>
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
-        <div class="lv-setcard__hint lv-tx-warn">⚠ {t("settings.migratePrivacy")}</div>
+        <div class="lv-setcard__hint lv-tx-warn"><UiIcon name="alert" size={13} /> {t("settings.migratePrivacy")}</div>
         <div class="lv-setcard__actions">
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
             <button class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
@@ -89,7 +89,7 @@
     </div>
     {:else if dataSection === "trash"}
         <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title">🗑️ {t("settings.trashTitle") || "台账安全回收站"}</div>
+            <div class="lv-setcard__title"><UiIcon name="archive" size={15} /> {t("settings.trashTitle") || "台账安全回收站"}</div>
             <div class="lv-setcard__hint">{t("settings.trashHint") || "最近删除的 50 条台账记录快照（包含单条删除与批量删除）。"}</div>
             <div class="lv-mt-10 lv-dialog-list">
                 {#if trashItems.length === 0}

@@ -59,7 +59,7 @@
     <span class="lv-sub">{t("dash.upcomingSub")}</span>
     {#if pulseDateFilter}
         <button type="button" class="lv-badge blue lv-filter-clear-badge" onclick={() => { pulseDateFilter = undefined; }} title="清除日期聚焦">
-            🗓️ {pulseDateFilter} ✕
+            <UiIcon name="calendar" size={12} /> {pulseDateFilter} <UiIcon name="close" size={10} />
         </button>
     {/if}
     <button class="b3-button b3-button--text" onclick={onViewAll}>{t("dash.viewAll")} →</button>
@@ -121,7 +121,7 @@
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
                 </b><span class="lv-num">{r.dueDate}</span></div>
                 <div class="lv-rem-ops">
-                    <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} onclick={() => onCopyTaskBlock(r)}>📋</button>
+                    <button class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => onCopyTaskBlock(r)}><UiIcon name="note" size={13} /></button>
                     <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onCompleteReminder(r)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
                     <button class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onSnoozeReminder(r, 7)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>
                 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import UiIcon from "@/ui/icon.svelte";
     import type { ParsedCaptureResult } from "@/core/block-capture";
     import type { QuickRecordTemplate } from "@/core/quick-templates";
 
@@ -77,7 +78,7 @@
 
 {#if currentTemplates.length > 0}
     <div class="lv-template-bar">
-        <span class="lv-caption lv-tx-muted">✨ {t("capture.frequentTemplates") || "常用模板"}:</span>
+        <span class="lv-caption lv-tx-muted"><UiIcon name="sparkle" size={13} /> {t("capture.frequentTemplates") || "常用模板"}:</span>
         {#each currentTemplates as tpl (tpl.id)}
             <button type="button" class="lv-preset-tag lv-template-tag" onclick={() => onApplyTemplate?.(tpl)} disabled={saving}>
                 {#if tpl.icon}<span>{tpl.icon}</span>{/if}

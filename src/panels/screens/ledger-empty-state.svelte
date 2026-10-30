@@ -73,12 +73,12 @@
             <span class="lv-blank-desc">{t("ledger.defaultBlankDesc")}</span>
             {#if ref?.provisionError}
                 <div class="lv-caption lv-tx-warn lv-blank-warn">
-                    ⚠️ {ref.provisionError}
+                    <UiIcon name="alert" size={13} /> {ref.provisionError}
                 </div>
             {/if}
             <div class="lv-blank-actions">
                 <button class="lv-btn primary" onclick={onRebuildLedger} disabled={rebuilding}>
-                    🚀 {rebuilding ? t("diag.rebuilding") : t("ledger.buildNow")}
+                    <UiIcon name="bolt" size={13} /> {rebuilding ? t("diag.rebuilding") : t("ledger.buildNow")}
                 </button>
                 <button class="b3-button b3-button--outline" onclick={onOpenBindDoc} disabled={rebuilding}>
                     {t("ledger.bindDoc")}
@@ -111,7 +111,7 @@
             <div class="lv-blank-actions">
                 <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}>+ {t("ledger.newRecord")}</button>
                 {#if active !== "members" && active !== "adhoc"}
-                    <button class="b3-button b3-button--outline" onclick={onImportCsv} disabled={rebuilding}>📥 {t("ledger.importCsv")}</button>
+                    <button class="b3-button b3-button--outline" onclick={onImportCsv} disabled={rebuilding}><UiIcon name="archive" size={13} /> {t("ledger.importCsv")}</button>
                 {/if}
             </div>
         </div>

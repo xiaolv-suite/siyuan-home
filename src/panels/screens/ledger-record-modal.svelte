@@ -436,7 +436,7 @@
                 <h3>{t("ledger.newRecordBasic")}</h3>
                 {#if currentLedgerTemplates.length > 0}
                     <div class="lv-template-bar">
-                        <span class="lv-caption lv-tx-3">✨ {t("capture.frequentTemplates")}:</span>
+                        <span class="lv-caption lv-tx-3"><UiIcon name="sparkle" size={13} /> {t("capture.frequentTemplates")}:</span>
                         {#each currentLedgerTemplates as tpl (tpl.id)}
                             <button type="button" class="lv-preset-tag" onclick={() => applyLedgerTemplate(tpl)} disabled={saving}>
                                 {#if tpl.icon}<span>{tpl.icon}</span>{/if}

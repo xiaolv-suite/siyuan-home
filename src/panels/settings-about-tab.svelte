@@ -1,4 +1,6 @@
 <script lang="ts">
+    import UiIcon from "@/ui/icon.svelte";
+
     let {
         plugin,
         t,
@@ -79,7 +81,7 @@
                 {/each}
             {/if}
             <div class="lv-setcard__actions lv-mt-8">
-                <button class="b3-button b3-button--outline" onclick={onPreviewDiagnostics}>🔍 {t("settings.diagPreview")}</button>
+                <button class="b3-button b3-button--outline" onclick={onPreviewDiagnostics}><UiIcon name="search" size={13} /> {t("settings.diagPreview")}</button>
                 <button class="b3-button b3-button--outline" disabled={exportingDiagnostics || diagnosticsBusy !== null} onclick={onExportDiagnostics}>{exportingDiagnostics ? t("ledger.saving") : t("settings.diagExport")}</button>
                 {#if (plugin.settings?.members ?? []).some((m: any) => !m.avItemId || m.syncError)}
                     <button class="b3-button b3-button--outline"

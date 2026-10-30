@@ -1332,6 +1332,18 @@
     }
     .lv-sheet-head { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; padding: var(--lv-space-4) 22px;
       border-bottom: 1px solid var(--lv-line);
+      .lv-sheet-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--lv-tx);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .lv-cap-select {
+        margin-left: auto;
+        max-width: 200px;
+      }
       // 保证窄屏下关闭操作也有足够的触控面积。
       .lv-iconbtn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex: 0 0 44px; } }
     .lv-sheet-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;
@@ -1536,7 +1548,8 @@
     .eic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 22px;
       background: var(--lv-accent-soft); color: var(--lv-accent); border: 1px solid rgba(217, 119, 6, 0.2); box-shadow: 0 2px 8px rgba(217, 119, 6, 0.12); }
     b { font-size: 14.5px; font-weight: 600; color: var(--lv-tx); }
-    span { font-size: 12.5px; color: var(--lv-tx-3); max-width: 320px; line-height: 1.5; } }
+    span { font-size: 12.5px; color: var(--lv-tx-3); max-width: 320px; line-height: 1.5; }
+    .lv-btn, .b3-button { margin-top: 8px; } }
   .lv-empty-compact { display: flex; align-items: center; gap: 14px; padding: 14px 18px; min-height: auto; border-radius: var(--lv-r-3);
     .eic-sm { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 16px;
       background: var(--lv-accent-soft); color: var(--lv-accent); flex: none; border: 1px solid rgba(217, 119, 6, 0.2); box-shadow: 0 2px 6px rgba(217, 119, 6, 0.1); }

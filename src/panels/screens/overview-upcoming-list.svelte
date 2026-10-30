@@ -68,14 +68,14 @@
     <div class="lv-card"><div class="lv-empty" role="alert">
         <div class="eic"><UiIcon name="alert" size={22} /></div><b>{t("dash.scanUnavailable")}</b>
         <span>{initialScanError || t("dash.focusDataErr").replace("${t}", snapshotLabel).replace("${n}", String(scanErrors.length))}</span>
-        <button class="b3-button b3-button--outline" style="margin-top:8px" disabled={retryingScan} aria-busy={retryingScan} onclick={onRetryScan}>
+        <button class="b3-button b3-button--outline" disabled={retryingScan} aria-busy={retryingScan} onclick={onRetryScan}>
             {retryingScan ? t("ledger.saving") : t("hub.rescan")}
         </button>
     </div></div>
 {:else if reminders.length === 0 && memberFilter}
     <!-- 174 波（对齐原型空态解释）：筛选导致的空 ≠ 无资料，说明并给清除出口 -->
     <div class="lv-card"><div class="lv-empty" role="status"><div class="eic"><UiIcon name="search" size={22} /></div><b>{t("dash.filteredEmpty")}</b><span>{t("dash.filteredEmptyHint")}</span>
-        <button class="b3-button b3-button--outline" style="margin-top:8px" onclick={onClearMemberFilter}>{t("dash.clearFilter")}</button>
+        <button class="b3-button b3-button--outline" onclick={onClearMemberFilter}>{t("dash.clearFilter")}</button>
     </div></div>
 {:else if reminders.length === 0}
     {#if firstScanPending}

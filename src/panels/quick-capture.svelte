@@ -411,9 +411,9 @@
             </div>
         {/if}
         <div class="lv-sheet-head">
-            <b id="lv-capture-title" style="font-size:14px;display:inline-flex;align-items:center;gap:6px"><UiIcon name="bolt" size={15} /> {t("capture.title")}</b>
+            <b id="lv-capture-title" class="lv-sheet-title"><UiIcon name="bolt" size={15} /> {t("capture.title")}</b>
             {#if captureTab === "ledger"}
-                <select class="b3-select" style="margin-left:auto;max-width:200px" bind:value={moduleId} aria-label={t("capture.moduleSelect")} disabled={saving || identityPending || !!pendingRowId}>
+                <select class="b3-select lv-cap-select" bind:value={moduleId} aria-label={t("capture.moduleSelect")} disabled={saving || identityPending || !!pendingRowId}>
                     {#each groupedMods as g (g.groupId)}
                         <optgroup label={g.groupLabel}>
                             {#each g.modules as m (m.id)}

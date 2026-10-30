@@ -101,7 +101,7 @@
             </div>
             {#if starterModule}
                 <button class="b3-button b3-button--outline" onclick={onOpenStarterRecord}>
-                    ＋ {t("ledger.newRecord")}
+                    <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
                 </button>
             {/if}
         </div>

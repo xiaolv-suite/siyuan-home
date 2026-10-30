@@ -419,14 +419,8 @@
         </div>
         <div class="lv-sheet-body lv-cap-body">
             <div class="lv-capture-mode-bar" role="tablist" aria-label={t("capture.title")}>
-                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "event"}
-                    role="tab" aria-selected={captureTab === "event"} onclick={() => { captureTab = "event"; }}>
-                    <span>{t("capture.tabEvent")}</span>
-                </button>
-                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "ledger"}
-                    role="tab" aria-selected={captureTab === "ledger"} onclick={() => { captureTab = "ledger"; }}>
-                    <span>{t("capture.tabLedger")}</span>
-                </button>
+                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "event"} role="tab" aria-selected={captureTab === "event"} tabindex={captureTab === "event" ? 0 : -1} onclick={() => { captureTab = "event"; }} onkeydown={(e) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); captureTab = "ledger"; requestAnimationFrame(() => (document.querySelector(".lv-capture-mode-btn[aria-selected='true']") as HTMLElement)?.focus()); } }}><span>{t("capture.tabEvent")}</span></button>
+                <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "ledger"} role="tab" aria-selected={captureTab === "ledger"} tabindex={captureTab === "ledger" ? 0 : -1} onclick={() => { captureTab = "ledger"; }} onkeydown={(e) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); captureTab = "event"; requestAnimationFrame(() => (document.querySelector(".lv-capture-mode-btn[aria-selected='true']") as HTMLElement)?.focus()); } }}><span>{t("capture.tabLedger")}</span></button>
             </div>
 
             {#if captureTab === "event"}

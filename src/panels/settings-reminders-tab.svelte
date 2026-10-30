@@ -205,7 +205,7 @@
                         draftLeads = {};
                         showMessage(t("settings.leadsResetDone"), 2500, "info");
                     }}>
-                        ↺ {t("settings.resetLeadsDefault")}
+                        <UiIcon name="repeat" size={12} /> {t("settings.resetLeadsDefault")}
                     </button>
                 {/if}
             </div>
@@ -259,7 +259,7 @@
                 {#if checkinItems.length > 0 && draftMembers.length > 0 && !availableBindingPair}
                     <p class="lv-setcard__hint" role="status">{t("settings.checkinAllBound")}</p>
                 {/if}
-                <button type="button" class="b3-button b3-button--outline lv-setcard__action" disabled={!availableBindingPair} onclick={addBinding}>＋ {t("settings.checkinAdd")}</button>
+                <button type="button" class="b3-button b3-button--outline lv-setcard__action" disabled={!availableBindingPair} onclick={addBinding}><UiIcon name="add" size={13} /> {t("settings.checkinAdd")}</button>
             {/if}
         </div>
     {/if}

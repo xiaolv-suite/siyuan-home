@@ -13,6 +13,7 @@
     import SettingsDataTab from "@/panels/settings-data-tab.svelte";
     import SettingsAboutTab from "@/panels/settings-about-tab.svelte";
     import UiIcon from "@/ui/icon.svelte";
+    import type { UiIconName } from "@/ui/icons";
 
     interface IHomePluginLike {
         i18n: Record<string, unknown>;
@@ -54,6 +55,26 @@
     }
 
     type SettingsArea = "modules" | "members" | "reminders" | "data" | "about";
+    const areas: { id: SettingsArea; labelKey: string; icon: UiIconName }[] = [
+        { id: "modules", labelKey: "tabModules", icon: "archive" },
+        { id: "members", labelKey: "tabMembers", icon: "users" },
+        { id: "reminders", labelKey: "tabReminders", icon: "bell" },
+        { id: "data", labelKey: "settings.dataTitle", icon: "bank" },
+        { id: "about", labelKey: "tabAbout", icon: "info" },
+    ];
+
+    function onNavKeydown(e: KeyboardEvent, index: number) {
+        if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        const next = e.key === "Home" ? 0 : e.key === "End" ? areas.length - 1
+            : (index + (e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : -1) + areas.length) % areas.length;
+        area = areas[next].id;
+        requestAnimationFrame(() => {
+            const btn = document.querySelector<HTMLButtonElement>(`.lv-setnav__item[aria-current="true"]`);
+            btn?.focus();
+        });
+    }
+
     let area: SettingsArea = $state("modules");
     let saving = $state(false);
     // 33.4 编辑事务：draft 副本，保存才落盘（取消/关闭不污染 settings）。
@@ -397,11 +418,18 @@
     <!-- 左侧主分类；模块和提醒等复杂页面在右侧继续细分。 -->
     <nav class="lv-setnav" aria-label={t("settingsTitle")} inert={saving || migrationBusy || demoBusy}>
         <div class="lv-setnav__brand"><span class="lv-setnav__brand-mark" aria-hidden="true"><UiIcon name="home" size={16} /></span><div><b>{t("butler")}</b><span>LV HOME</span></div></div>
-        <button class="lv-setnav__item {area === 'modules' ? 'on' : ''}" aria-current={area === 'modules' ? 'true' : undefined} onclick={() => (area = "modules")}><span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="archive" size={15} /></span>{t("tabModules")}</button>
-        <button class="lv-setnav__item {area === 'members' ? 'on' : ''}" aria-current={area === 'members' ? 'true' : undefined} onclick={() => (area = "members")}><span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="users" size={15} /></span>{t("tabMembers")}</button>
-        <button class="lv-setnav__item {area === 'reminders' ? 'on' : ''}" aria-current={area === 'reminders' ? 'true' : undefined} onclick={() => (area = "reminders")}><span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="bell" size={15} /></span>{t("tabReminders")}</button>
-        <button class="lv-setnav__item {area === 'data' ? 'on' : ''}" aria-current={area === 'data' ? 'true' : undefined} onclick={() => (area = "data")}><span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="bank" size={15} /></span>{t("settings.dataTitle")}</button>
-        <button class="lv-setnav__item {area === 'about' ? 'on' : ''}" aria-current={area === 'about' ? 'true' : undefined} onclick={() => (area = "about")}><span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="info" size={15} /></span>{t("tabAbout")}</button>
+        {#each areas as a, i (a.id)}
+            <button
+                type="button"
+                class="lv-setnav__item {area === a.id ? 'on' : ''}"
+                aria-current={area === a.id ? 'true' : undefined}
+                tabindex={area === a.id ? 0 : -1}
+                onclick={() => (area = a.id)}
+                onkeydown={(e) => onNavKeydown(e, i)}
+            >
+                <span class="lv-setnav__icon" aria-hidden="true"><UiIcon name={a.icon} size={15} /></span>{t(a.labelKey)}
+            </button>
+        {/each}
     </nav>
 
     <div class="lv-setpane" aria-busy={saving || migrationBusy || demoBusy} inert={saving || migrationBusy || demoBusy}>
@@ -484,7 +512,7 @@
         <!-- 263 波：未保存更改徽章（脏检查口径=落盘口径）——设置页有两种生效心智（草稿+保存），
              让"改了但还没保存"可见，不再靠猜 -->
         {#if dirty}
-            <span class="lv-badge orange" role="status">● {t("settings.unsaved")}</span>
+            <span class="lv-badge orange" role="status"><UiIcon name="clock" size={11} /> {t("settings.unsaved")}</span>
             <button class="b3-button b3-button--text lv-tx-muted lv-btn-text-sm" disabled={saving || migrationBusy || demoBusy} onclick={revertDraft}>{t("cancel")}</button>
         {/if}
         <!-- 256 波：保存是设置视图唯一核心动作，升为主按钮（对齐原型"主按钮每视图 ≤1 个"） -->

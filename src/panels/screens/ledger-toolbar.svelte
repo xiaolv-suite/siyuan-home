@@ -133,7 +133,7 @@
                     {filteredRowsCount}
                 </span>
                 <button type="button" class="b3-button b3-button--text lv-search-clear"
-                    title={t("clear")} aria-label={t("clear")} onclick={handleSearchClear}>✕</button>
+                    title={t("clear")} aria-label={t("clear")} onclick={handleSearchClear}><UiIcon name="close" size={12} /></button>
             {/if}
         </div>
         <button class="b3-button b3-button--outline lv-density-btn"
@@ -142,7 +142,7 @@
             onclick={onToggleDensity}>
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
-        <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}>＋ {t("ledger.newRecord")}</button>
+        <button class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
         <details class="lv-ledger-more" bind:this={ledgerMoreDetails}>
             <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
             <!-- svelte-ignore a11y_click_events_have_key_events -->

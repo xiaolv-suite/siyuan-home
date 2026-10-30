@@ -6,6 +6,7 @@ import { collectGrowthSeries, whoBand, whoPercentile } from "./growth";
 import { calculateVaccineSchedule, type GivenDoseRecord } from "./immunization";
 import { addDetachedRow, setCell, renderLedgerAll, type AvRow } from "./siyuan";
 import { pointsToSmoothBezierPath } from "./chart";
+import { uiIcon } from "@/ui/icons";
 import type { FamilyMember } from "@/types";
 
 export interface GrowthChartDialogOptions {
@@ -315,7 +316,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                 if (it.status !== "given") {
                     const recordBtn = document.createElement("button");
                     recordBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
-                    recordBtn.textContent = `＋ ${t("ledger.recordVaccineDose")}`;
+                    recordBtn.innerHTML = `${uiIcon("add", "", 13)} ${t("ledger.recordVaccineDose")}`;
                     recordBtn.onclick = () => {
                         const rdlg = new DialogCls({
                             title: `${t("ledger.recordVaccineTitle")} · ${it.vaccine}`,

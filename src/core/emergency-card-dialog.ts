@@ -141,7 +141,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
         if (m.allergies.length > 0) {
             const allSec = document.createElement("div");
             allSec.className = "lv-ecard-allergies";
-            allSec.innerHTML = `<span class="lv-badge red">⚠️ ${t("overview.emergencyAllergies")}</span>`;
+            allSec.innerHTML = `<span class="lv-badge red">${uiIcon("alert", "", 12)} ${t("overview.emergencyAllergies")}</span>`;
             for (const a of m.allergies) {
                 const b = document.createElement("span");
                 b.className = "lv-badge red";

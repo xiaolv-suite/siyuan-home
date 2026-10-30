@@ -285,7 +285,9 @@
             <input bind:this={memoInput} class="b3-text-field fn__flex-1" placeholder={t("cal.memoPlaceholder")} aria-label={t("cal.memoPlaceholder")} disabled={savingMemo}
                 bind:value={memoTitle}
                 onkeydown={(e: KeyboardEvent) => e.key === "Enter" && !e.isComposing && void addMemoForDay()} />
-            <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>{savingMemo ? t("ledger.saving") : `＋ ${t("memo.add")}`}</button>
+            <button class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>
+                {#if !savingMemo}<UiIcon name="add" size={12} /> {/if}{savingMemo ? t("ledger.saving") : t("memo.add")}
+            </button>
         </div>
     </div>
 </div>

@@ -86,4 +86,48 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(pathStr.length, `icon ${name} 路径非空`).toBeGreaterThan(5);
     }
   });
+
+  it('触屏设备 (@media (hover: none)) 下关键可交互控件满足 44px 最小触控目标规范', () => {
+    expect(scssContent).toContain('@media (hover: none)');
+    expect(scssContent).toMatch(/\.lv-setnav__item\s*\{[^}]*min-height:\s*44px;/);
+    expect(scssContent).toMatch(/\.lv-event-subbtn,\s*\.lv-capture-mode-btn\s*\{[^}]*min-height:\s*44px;/);
+    expect(scssContent).toMatch(/\.lv-settings__footer\s*:is\(\.b3-button,\s*\.lv-btn\)\s*\{[^}]*min-height:\s*44px;/);
+    expect(scssContent).toMatch(/\.lv-batch-bar\s*\.b3-button\s*\{[^}]*min-height:\s*44px;/);
+  });
+
+  it('index.scss 声明设置页与容器 640px / 400px 响应式断点', () => {
+    expect(indexContent).toContain('@container lv-home (max-width: 640px)');
+    expect(indexContent).toContain('@container lv-home (max-width: 400px)');
+  });
+
+  it('主视图与交互面板按钮消除操作系统依赖的字符 Emoji 与符号 (+, ＋, ✕, ↺, ●)', () => {
+    const filesToCheck = [
+      '../../src/panels/settings.svelte',
+      '../../src/panels/settings-reminders-tab.svelte',
+      '../../src/panels/quick-event-flow.svelte',
+      '../../src/panels/screens/ledger-toolbar.svelte',
+      '../../src/panels/screens/overview-upcoming-list.svelte',
+      '../../src/panels/screens/calendar.svelte',
+      '../../src/panels/screens/reminder-controls-bar.svelte',
+      '../../src/panels/screens/members.svelte',
+      '../../src/core/drawer-domain-sections.ts',
+      '../../src/core/growth-dialog.ts',
+      '../../src/core/emergency-card-dialog.ts',
+      '../../src/core/ledger-detail-drawer.ts',
+      '../../src/core/location-dialog.ts',
+    ];
+
+    for (const rel of filesToCheck) {
+      const fullPath = path.resolve(__dirname, rel);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      expect(content).not.toMatch(/>\s*●\s*\{/);
+      expect(content).not.toMatch(/>\s*↺\s*\{/);
+      expect(content).not.toMatch(/>\s*＋\s*\{/);
+      expect(content).not.toMatch(/>\s*✕\s*</);
+      expect(content).not.toMatch(/>\s*×\s*</);
+      expect(content).not.toMatch(/>\s*[＋+]\s*\{t\(/);
+      expect(content).not.toMatch(/textContent\s*=\s*`[＋+]/);
+      expect(content).not.toMatch(/textContent\s*=\s*`\${t\("ledger\.openDoc"\)}\s*→`/);
+    }
+  });
 });

@@ -447,7 +447,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                 if (conflict) {
                     const alertLine = document.createElement("div");
                     alertLine.className = "lv-domain-danger";
-                    alertLine.innerHTML = `<span>⚠️ ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
+                    alertLine.innerHTML = `<span>${uiIcon("alert", "", 13)} ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
                     contentWrap.append(alertLine);
                 }
             } catch { /* soft */ }
@@ -458,7 +458,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
             actionRow.className = "lv-domain-action-row";
             const addAllergyBtn = document.createElement("button");
             addAllergyBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
-            addAllergyBtn.textContent = `＋ ${t("ledger.recordAllergyToHealth")}`;
+            addAllergyBtn.innerHTML = `${uiIcon("add", "", 13)} ${t("ledger.recordAllergyToHealth")}`;
             addAllergyBtn.onclick = () => {
                 const adlg = new DialogCls({
                     title: t("ledger.recordAllergyTitle"),

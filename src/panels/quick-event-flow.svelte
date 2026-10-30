@@ -26,7 +26,20 @@
     } = $props();
 
     type EventSubAction = "fuel" | "vital" | "shopping" | "snippet";
+    const subActions: EventSubAction[] = ["fuel", "vital", "shopping", "snippet"];
     let eventSub = $state<EventSubAction>("fuel");
+
+    function onSubKeydown(e: KeyboardEvent, index: number) {
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        const next = e.key === "Home" ? 0 : e.key === "End" ? subActions.length - 1
+            : (index + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1) + subActions.length) % subActions.length;
+        eventSub = subActions[next];
+        requestAnimationFrame(() => {
+            const btn = document.querySelector<HTMLButtonElement>(".lv-event-subbtn[aria-selected='true']");
+            btn?.focus();
+        });
+    }
 
     // 常用流水：车辆与加油
     let vehiclesList = $state<Array<{ itemID: string; name: string; plate: string; mileage?: number }>>([]);
@@ -239,10 +252,20 @@
 </script>
 
 <div class="lv-event-subnav" role="tablist" aria-label={t("capture.tabEvent")}>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "fuel"} role="tab" aria-selected={eventSub === "fuel"} onclick={() => { eventSub = "fuel"; }}>{t("capture.actFuel")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "vital"} role="tab" aria-selected={eventSub === "vital"} onclick={() => { eventSub = "vital"; }}>{t("capture.actVital")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "shopping"} role="tab" aria-selected={eventSub === "shopping"} onclick={() => { eventSub = "shopping"; }}>{t("capture.actShopping")}</button>
-    <button type="button" class="lv-event-subbtn" class:active={eventSub === "snippet"} role="tab" aria-selected={eventSub === "snippet"} onclick={() => { eventSub = "snippet"; }}>{t("capture.actSnippet")}</button>
+    {#each subActions as s, i (s)}
+        <button
+            type="button"
+            class="lv-event-subbtn"
+            class:active={eventSub === s}
+            role="tab"
+            aria-selected={eventSub === s}
+            tabindex={eventSub === s ? 0 : -1}
+            onclick={() => { eventSub = s; }}
+            onkeydown={(e) => onSubKeydown(e, i)}
+        >
+            {s === "fuel" ? t("capture.actFuel") : s === "vital" ? t("capture.actVital") : s === "shopping" ? t("capture.actShopping") : t("capture.actSnippet")}
+        </button>
+    {/each}
 </div>
 
 <div class="lv-event-card">
@@ -250,7 +273,7 @@
         {#if vehiclesList.length === 0}
             <div class="lv-capture-empty">
                 <span class="lv-caption">{t("capture.noVehicles")}</span>
-                <button class="b3-button b3-button--outline" onclick={() => onSwitchToLedger?.("vehicles")}>+ {t("capture.addVehicleFirst")}</button>
+                <button class="b3-button b3-button--outline" onclick={() => onSwitchToLedger?.("vehicles")}><UiIcon name="add" size={13} /> {t("capture.addVehicleFirst")}</button>
             </div>
         {:else}
             <div class="lv-frow">

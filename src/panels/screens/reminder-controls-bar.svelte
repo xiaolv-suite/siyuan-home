@@ -143,13 +143,13 @@
                             onclick={(e) => { e.stopPropagation(); onConfirmDeleteNamedView(v); }}
                             title={t("hub.deleteView")}
                             aria-label={`${t("hub.deleteView")}: ${v.name}`}>
-                            ×
+                            <UiIcon name="close" size={11} />
                         </button>
                     </span>
                 {/each}
                 <button type="button" class="b3-button b3-button--text lv-save-view-btn"
                     onclick={onPromptSaveNamedView}>
-                    ＋ {t("hub.saveCurrentView")}
+                    <UiIcon name="add" size={13} /> {t("hub.saveCurrentView")}
                 </button>
             </div>
         {/if}

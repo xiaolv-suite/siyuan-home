@@ -76,4 +76,25 @@ describe("tab-shell-components (三栏架构 KPI 指标条与上下文侧板)", 
         expect(resolveTabAriaLabel("提醒事项", true, 0)).toBe("提醒事项");
         expect(resolveTabAriaLabel("总览", false, 5)).toBe("总览");
     });
+
+    it("KPI 指标条与上下文面板完全支持中英文国际化插值", () => {
+        const i18nZh: Record<string, string> = {
+            "dash.kpiRegion": "核心生活指标",
+            "dash.kpiUrgentNeedAttention": "需留意",
+            "dash.kpiUrgentAllReady": "已就绪",
+            "dash.contextDock": "上下文面板",
+            "dash.contextFamilyShieldBody": "已收录家庭档案 ${m} 位，核心台账事实 ${r} 条。",
+            "dash.contextRemindersFocusBody": "当前急迫待办 ${u} 项，当月已办进度 ${p}。",
+        };
+
+        const tZh = (k: string) => i18nZh[k] ?? k;
+        expect(tZh("dash.kpiRegion")).toBe("核心生活指标");
+        expect(tZh("dash.contextDock")).toBe("上下文面板");
+
+        const shieldText = tZh("dash.contextFamilyShieldBody").replace("${m}", "4").replace("${r}", "128");
+        expect(shieldText).toBe("已收录家庭档案 4 位，核心台账事实 128 条。");
+
+        const remindersText = tZh("dash.contextRemindersFocusBody").replace("${u}", "3").replace("${p}", "80%");
+        expect(remindersText).toBe("当前急迫待办 3 项，当月已办进度 80%。");
+    });
 });

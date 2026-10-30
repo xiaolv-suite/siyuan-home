@@ -202,17 +202,17 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         const openForm = (existing?: MaintenanceRecord) => {
             const dialog = new DialogCls({
                 title: t(existing ? "vehicle.maintenance.edit" : "vehicle.maintenance.add"),
-                content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-maintenance-form" style="max-height:65vh;overflow:auto"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-maintenance-cancel">${t("cancel")}</button><span style="flex:1"></span><button class="b3-button" id="lv-maintenance-save">${t(existing ? "vehicle.maintenance.update" : "save")}</button></div>`,
+                content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-maintenance-form"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-maintenance-cancel">${t("cancel")}</button><span class="fn__flex-1"></span><button class="b3-button" id="lv-maintenance-save">${t(existing ? "vehicle.maintenance.update" : "save")}</button></div>`,
                 width: "560px",
             });
             const formBody = dialog.element.querySelector("#lv-maintenance-form") as HTMLElement;
             const grid = document.createElement("div");
-            grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px 8px";
+            grid.className = "lv-diag-grid";
             const controls: Record<string, HTMLInputElement | HTMLSelectElement> = {};
             const fieldErrors: Record<string, HTMLSpanElement> = {};
             const field = (key: string, type: "date" | "number" | "text" | "select", opts?: string[]) => {
                 const label = document.createElement("label");
-                label.style.cssText = "display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12px";
+                label.className = "lv-form-group";
                 const caption = document.createElement("span"); caption.className = "ft__on-surface"; caption.textContent = t(`vehicle.maintenance.field.${key}`);
                 const input = type === "select" ? document.createElement("select") : document.createElement("input");
                 input.className = type === "select" ? "b3-select" : "b3-text-field";

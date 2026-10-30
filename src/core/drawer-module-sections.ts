@@ -72,20 +72,19 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
             const dep = calculateAssetDepreciation({ initialCost: costVal, purchaseDate: dateVal });
             if (dep) {
                 const depCard = document.createElement("section");
-                depCard.className = "lv-card";
-                depCard.style.cssText = "margin-top:10px;padding:10px 12px;background:var(--lv-surface-2);border:1px solid var(--lv-line);border-radius:8px";
+                depCard.className = "lv-card lv-notice-card fn__text-left";
                 depCard.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                        <b style="font-size:12.5px;color:var(--lv-tx)">📉 资产折旧与法定残值测算</b>
-                        <span class="lv-badge" style="font-size:11px">${dep.statusLabel}</span>
+                    <div class="lv-row-split" style="margin-bottom:6px">
+                        <b>📉 资产折旧与法定残值测算</b>
+                        <span class="lv-badge">${dep.statusLabel}</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;font-size:11.5px;color:var(--lv-tx-2)">
-                        <div>购入原值: <b style="color:var(--lv-tx)">¥${formatAmount(dep.initialCost)}</b></div>
-                        <div>当前估算净值: <b style="color:var(--lv-accent)">¥${formatAmount(dep.currentNetValue)}</b></div>
-                        <div>已服役月数: <b style="color:var(--lv-tx)">${dep.usedMonths} / ${dep.lifespanMonths} 月</b></div>
-                        <div>累计计提折旧: <b style="color:var(--lv-danger)">¥${formatAmount(dep.accumulatedDepreciation)}</b></div>
+                    <div class="lv-diag-grid" style="font-size:11.5px;color:var(--lv-tx-2)">
+                        <div>购入原值: <b class="lv-tx">¥${formatAmount(dep.initialCost)}</b></div>
+                        <div>当前估算净值: <b class="lv-tx-accent">¥${formatAmount(dep.currentNetValue)}</b></div>
+                        <div>已服役月数: <b class="lv-tx">${dep.usedMonths} / ${dep.lifespanMonths} 月</b></div>
+                        <div>累计计提折旧: <b class="lv-tx-danger">¥${formatAmount(dep.accumulatedDepreciation)}</b></div>
                     </div>
-                    <div class="lv-caption" style="margin-top:6px;color:var(--lv-tx-3)">💡 ${dep.suggestion}</div>
+                    <div class="lv-caption lv-tx-muted" style="margin-top:6px">💡 ${dep.suggestion}</div>
                 `;
                 body.appendChild(depCard);
             }

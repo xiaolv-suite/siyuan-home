@@ -164,16 +164,15 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
 
     const dlg = new DialogCls({
         title: t("ledger.shoppingList"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-shop-body" style="max-height:65vh;overflow:auto"></div>
-<div class="b3-dialog__action"><span class="lv-caption" id="lv-shop-total" style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-shop-close">${t("cancel")}</button><button class="b3-button b3-button--text" id="lv-shop-copy" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopCopy")}</button><button class="b3-button" id="lv-shop-write" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopWriteToLedger")}</button></div>`,
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-shop-body"></div>
+<div class="b3-dialog__action"><span class="lv-caption fn__flex-1" id="lv-shop-total"></span><button class="b3-button b3-button--cancel" id="lv-shop-close">${t("cancel")}</button><button class="b3-button b3-button--text" id="lv-shop-copy" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopCopy")}</button><button class="b3-button" id="lv-shop-write" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopWriteToLedger")}</button></div>`,
         width: "560px",
     });
 
     const body = dlg.element.querySelector("#lv-shop-body") as HTMLElement;
     if (items.length === 0) {
         const none = document.createElement("div");
-        none.className = "ft__on-surface";
-        none.style.cssText = "font-size:13px;padding:12px 0;text-align:center";
+        none.className = "ft__on-surface fn__text-center";
         none.textContent = t("ledger.shopEmpty");
         body.appendChild(none);
     }

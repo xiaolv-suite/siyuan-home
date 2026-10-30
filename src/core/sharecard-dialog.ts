@@ -117,8 +117,8 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
 
     const dlg = new DialogCls({
         title: t("overview.shareCardTitle"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-sharecard-body" style="text-align:center;padding:12px">
-  <div id="lv-sharecard-preview" style="display:flex;justify-content:center;margin-bottom:8px">
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body fn__text-center" id="lv-sharecard-body">
+  <div id="lv-sharecard-preview" class="lv-loading-center">
     <span class="lv-caption">${t("activity.loading")}...</span>
   </div>
 </div>
@@ -173,6 +173,6 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
             showMessageFn(t("overview.shareCardDownloaded"), 3000, "info");
         };
     } catch {
-        previewEl.innerHTML = `<pre class="lv-caption" style="text-align:left;white-space:pre-wrap;line-height:1.7">${plainText}</pre>`;
+        previewEl.innerHTML = `<pre class="lv-report-pre">${plainText}</pre>`;
     }
 }

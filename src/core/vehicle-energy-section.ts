@@ -93,13 +93,13 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
         const isFuel = kind === "fuel";
         const dialog = new DialogCls({
             title: t(existing ? "fuel.editRecord" : isFuel ? "fuel.addFuel" : "fuel.addCharging"),
-            content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-energy-form-body" style="max-height:65vh;overflow:auto"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-energy-cancel">${t("cancel")}</button><span style="flex:1"></span><button class="b3-button" id="lv-energy-save">${t(existing ? "fuel.update" : "save")}</button></div>`,
+            content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-energy-form-body"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-energy-cancel">${t("cancel")}</button><span class="fn__flex-1"></span><button class="b3-button" id="lv-energy-save">${t(existing ? "fuel.update" : "save")}</button></div>`,
             width: "560px",
         });
         dialog.element.classList.add("lv-energy-dialog");
         const formBody = dialog.element.querySelector("#lv-energy-form-body") as HTMLElement;
         const grid = document.createElement("div");
-        grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px 8px";
+        grid.className = "lv-diag-grid";
         const controls: Record<string, HTMLInputElement | HTMLSelectElement> = {};
         const fieldErrors: Record<string, HTMLSpanElement> = {};
 

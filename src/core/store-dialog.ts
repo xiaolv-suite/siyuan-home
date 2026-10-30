@@ -45,7 +45,7 @@ export async function openStoreModeDialog(opts: StoreModeDialogOptions): Promise
     const dlg = new DialogCls({
         title: t("ledger.storeModeTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-store-body"></div>
-<div class="b3-dialog__action"><span class="lv-caption" id="lv-store-progress" role="status" aria-live="polite" style="flex:1"></span><button class="b3-button b3-button--cancel" id="lv-store-close">${t("close")}</button><button class="b3-button" id="lv-store-copy">${t("ledger.storeModeCopy")}</button></div>`,
+<div class="b3-dialog__action"><span class="lv-caption fn__flex-1" id="lv-store-progress" role="status" aria-live="polite"></span><button class="b3-button b3-button--cancel" id="lv-store-close">${t("close")}</button><button class="b3-button" id="lv-store-copy">${t("ledger.storeModeCopy")}</button></div>`,
         width: "560px",
     });
     const body = dlg.element.querySelector("#lv-store-body") as HTMLElement;

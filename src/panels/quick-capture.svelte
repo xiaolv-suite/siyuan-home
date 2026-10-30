@@ -10,6 +10,8 @@
     import QuickEventFlow from "./quick-event-flow.svelte";
     import QuickSmartBar from "./quick-smart-bar.svelte";
     import QuickCaptureForm from "./quick-capture-form.svelte";
+    import QuickCaptureConfirm from "./quick-capture-confirm.svelte";
+    import QuickCaptureFoot from "./quick-capture-foot.svelte";
     import type { ColumnDef, ModuleSchema } from "@/core/schema";
     import type { HomeSettings } from "@/types";
     import UiIcon from "@/ui/icon.svelte";
@@ -391,24 +393,12 @@
 <div class="lv-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-capture-title" aria-busy={saving} tabindex="-1" inert={!open}>
     <div class="lv-sheet" style={keyboardOffset > 0 ? `transform:translateY(-${Math.min(keyboardOffset, 200)}px)` : undefined}>
         {#if showDiscardConfirm}
-            <div class="lv-sheet-confirm-mask" role="dialog" aria-modal="true">
-                <div class="lv-sheet-confirm-card">
-                    <b>
-                        <UiIcon name="alert" size={16} /> {t("capture.discardUncertain")}
-                    </b>
-                    <p class="lv-caption">
-                        {t("capture.discardUncertainConfirm").replace("${module}", modLabel(pendingModuleId ?? moduleId))}
-                    </p>
-                    <div class="actions">
-                        <button type="button" class="b3-button b3-button--cancel" onclick={() => { showDiscardConfirm = false; }}>
-                            {t("cancel")}
-                        </button>
-                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-tx-strong" onclick={confirmDiscardUncertain}>
-                            {t("capture.discardUncertain")}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <QuickCaptureConfirm
+                {t}
+                moduleName={modLabel(pendingModuleId ?? moduleId)}
+                onCancel={() => { showDiscardConfirm = false; }}
+                onConfirm={confirmDiscardUncertain}
+            />
         {/if}
         <div class="lv-sheet-head">
             <b id="lv-capture-title" class="lv-sheet-title"><UiIcon name="bolt" size={15} /> {t("capture.title")}</b>
@@ -452,17 +442,12 @@
                 />
             {:else}
                 <!-- 实体台账建档模式 -->
-                {#if modules.length === 0}
+                {#if modules.length === 0 || captureFields.length === 0}
                     <div class="lv-capture-empty">
-                        <span class="lv-caption">{t("capture.noModules")}</span>
+                        <span class="lv-caption">{modules.length === 0 ? t("capture.noModules") : t("capture.noFields")}</span>
                         <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
                     </div>
-                {:else if captureFields.length === 0}
-                <div class="lv-capture-empty">
-                    <span class="lv-caption">{t("capture.noFields")}</span>
-                    <button class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
-                </div>
-            {:else}
+                {:else}
                 <QuickSmartBar
                     bind:moduleId
                     bind:smartInputText
@@ -498,27 +483,17 @@
             {/if}
             {/if}
         </div>
-        <div class="lv-sheet-foot">
-            <button class="b3-button b3-button--cancel" onclick={close} disabled={saving}>{t("cancel")}</button>
-            <span class="fn__flex-1"></span>
-            {#if captureTab === "event"}
-                <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => {
-                    eventFlowRef?.submitCurrentSubAction();
-                }} disabled={saving}>
-                    {saving ? t("ledger.saving") : t("save")}
-                </button>
-            {:else}
-                {#if identityPending}
-                    <button class="lv-btn ghost" onclick={openPendingLedger} disabled={saving}>{t("capture.checkLedger")}</button>
-                {/if}
-                <!-- 268 波：连续录入（家庭数据常成批）——保存后清空字段保留弹层，焦点回名称 -->
-                <button class="lv-btn" onclick={() => save(true)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
-                    {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryContinue") : t("capture.saveContinue")}
-                </button>
-                <button class="lv-btn primary" title="Ctrl+Enter" onclick={() => save(false)} disabled={saving || modules.length === 0 || captureFields.length === 0}>
-                    {saving ? t("ledger.saving") : (pendingRowId || identityPending) ? t("capture.retryClose") : t("capture.saveClose")}
-                </button>
-            {/if}
-        </div>
+        <QuickCaptureFoot
+            {captureTab}
+            {saving}
+            {identityPending}
+            {pendingRowId}
+            canSubmitLedger={modules.length > 0 && captureFields.length > 0}
+            {t}
+            onClose={close}
+            onSubmitEvent={() => { eventFlowRef?.submitCurrentSubAction(); }}
+            onOpenPendingLedger={openPendingLedger}
+            onSaveLedger={(continueAfter) => void save(continueAfter)}
+        />
     </div>
 </div>

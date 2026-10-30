@@ -26,6 +26,48 @@
     } = $props();
 
     let batchBusy = $state(false);
+    let toolbarEl = $state<HTMLElement | undefined>(undefined);
+
+    function restoreFocusAfterClear() {
+        try {
+            const root = toolbarEl?.closest(".lv-home") || document;
+            const selectAll = root.querySelector<HTMLElement>(".lv-check-col input, .lv-table thead input");
+            selectAll?.focus();
+        } catch { /* soft */ }
+    }
+
+    function clearSelection() {
+        selectedItemIds = [];
+        restoreFocusAfterClear();
+    }
+
+    function handleToolbarKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            clearSelection();
+            return;
+        }
+        if (["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+            const buttons = Array.from(
+                toolbarEl?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []
+            );
+            if (buttons.length === 0) return;
+            const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            let nextIndex = 0;
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                nextIndex = currentIndex >= 0 ? (currentIndex + 1) % buttons.length : 0;
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                nextIndex = currentIndex > 0 ? currentIndex - 1 : buttons.length - 1;
+            } else if (e.key === "Home") {
+                nextIndex = 0;
+            } else if (e.key === "End") {
+                nextIndex = buttons.length - 1;
+            }
+            e.preventDefault();
+            buttons[nextIndex]?.focus();
+        }
+    }
 
     async function openBatchMemberModal() {
         if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
@@ -148,8 +190,17 @@
 </script>
 
 {#if selectedItemIds.length > 0}
-    <div class="lv-batch-bar" role="toolbar" aria-label="批量操作">
-        <span class="lv-caption lv-batch-selected-count">
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div
+        bind:this={toolbarEl}
+        class="lv-batch-bar"
+        role="toolbar"
+        tabindex="0"
+        aria-label={t("hub.batch")}
+        aria-busy={batchBusy}
+        onkeydown={handleToolbarKeydown}
+    >
+        <span class="lv-caption lv-batch-selected-count" aria-live="polite" aria-atomic="true">
             {t("ledger.batchSelected").replace("${n}", String(selectedItemIds.length))}
         </span>
         {#if ref?.columns?.location}
@@ -165,10 +216,10 @@
         <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchCopyRefs}>
             <UiIcon name="paperclip" size={13} /> {t("ledger.copyBlockRef")}
         </button>
-        <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} onclick={batchDelete}>
-            <UiIcon name="close" size={13} /> {t("ledger.batchDelete")}
+        <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} aria-busy={batchBusy} onclick={batchDelete}>
+            <UiIcon name="close" size={13} /> {batchBusy ? t("ledger.saving") : t("ledger.batchDelete")}
         </button>
-        <button type="button" class="b3-button b3-button--text lv-batch-close" onclick={() => { selectedItemIds = []; }} title={t("close")} aria-label={t("close")}>
+        <button type="button" class="b3-button b3-button--text lv-batch-close" onclick={clearSelection} title={t("close")} aria-label={t("close")}>
             <UiIcon name="close" size={12} />
         </button>
     </div>

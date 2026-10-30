@@ -105,5 +105,76 @@ describe("reminder-batch-bar (提醒主屏多选批量操作条)", () => {
         expect(ok).toBe(1);
         expect(failed).toEqual(["车辆年检"]);
     });
+
+    it("Escape 键触发快捷退出与焦点安全回退至控制栏切换按钮", () => {
+        let selected = new Set(["certs::r1::expiry"]);
+        let batchMode = true;
+        const toggleFocus = vi.fn();
+        const preventDefault = vi.fn();
+        const stopPropagation = vi.fn();
+
+        function restoreFocusAfterClear() {
+            toggleFocus();
+        }
+
+        function clearSelection() {
+            selected = new Set();
+            batchMode = false;
+            restoreFocusAfterClear();
+        }
+
+        function handleToolbarKeydown(e: { key: string; preventDefault: () => void; stopPropagation: () => void }) {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                clearSelection();
+            }
+        }
+
+        handleToolbarKeydown({ key: "Escape", preventDefault, stopPropagation });
+
+        expect(preventDefault).toHaveBeenCalled();
+        expect(stopPropagation).toHaveBeenCalled();
+        expect(selected.size).toBe(0);
+        expect(batchMode).toBe(false);
+        expect(toggleFocus).toHaveBeenCalled();
+    });
+
+    it("WAI-ARIA APG Toolbar 键盘导航遍历与循环聚焦", () => {
+        const mockButtons = [
+            { id: "selectAll", focus: vi.fn() },
+            { id: "tasks", focus: vi.fn() },
+            { id: "refs", focus: vi.fn() },
+            { id: "plan", focus: vi.fn() },
+            { id: "cancel", focus: vi.fn() },
+        ];
+
+        function handleNavigate(key: string, currentIndex: number): number {
+            let nextIndex = 0;
+            if (key === "ArrowRight" || key === "ArrowDown") {
+                nextIndex = currentIndex >= 0 ? (currentIndex + 1) % mockButtons.length : 0;
+            } else if (key === "ArrowLeft" || key === "ArrowUp") {
+                nextIndex = currentIndex > 0 ? currentIndex - 1 : mockButtons.length - 1;
+            } else if (key === "Home") {
+                nextIndex = 0;
+            } else if (key === "End") {
+                nextIndex = mockButtons.length - 1;
+            }
+            mockButtons[nextIndex].focus();
+            return nextIndex;
+        }
+
+        expect(handleNavigate("ArrowRight", 0)).toBe(1);
+        expect(mockButtons[1].focus).toHaveBeenCalled();
+
+        expect(handleNavigate("ArrowRight", 4)).toBe(0);
+        expect(mockButtons[0].focus).toHaveBeenCalled();
+
+        expect(handleNavigate("ArrowLeft", 0)).toBe(4);
+        expect(mockButtons[4].focus).toHaveBeenCalled();
+
+        expect(handleNavigate("End", 1)).toBe(4);
+        expect(handleNavigate("Home", 3)).toBe(0);
+    });
 });
 

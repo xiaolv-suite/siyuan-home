@@ -92,7 +92,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(scssContent).toMatch(/\.lv-setnav__item\s*\{[^}]*min-height:\s*44px;/);
     expect(scssContent).toMatch(/\.lv-event-subbtn,\s*\.lv-capture-mode-btn\s*\{[^}]*min-height:\s*44px;/);
     expect(scssContent).toMatch(/\.lv-settings__footer\s*:is\(\.b3-button,\s*\.lv-btn\)\s*\{[^}]*min-height:\s*44px;/);
-    expect(scssContent).toMatch(/\.lv-batch-bar\s*\.b3-button\s*\{[^}]*min-height:\s*44px;/);
+    expect(scssContent).toMatch(/\.lv-batch-bar\s*\.b3-button,\s*\.lv-hub-batchbar\s*\.b3-button\s*\{[^}]*min-height:\s*44px;/);
     expect(scssContent).toMatch(/\.lv-activity-footer\s*\.lv-iconbtn,\s*\.lv-tabbar-actions\s*\.lv-iconbtn\s*\{[^}]*width:\s*44px;\s*height:\s*44px;/);
   });
 
@@ -120,6 +120,10 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       '../../src/core/media.ts',
       '../../src/panels/onboarding.svelte',
       '../../src/panels/screens/ledger-table.svelte',
+      '../../src/panels/screens/ledger-batch-bar.svelte',
+      '../../src/panels/screens/reminder-batch-bar.svelte',
+      '../../src/core/drawer-conversions.ts',
+      '../../src/core/bookmarks.ts',
     ];
 
     for (const rel of filesToCheck) {
@@ -131,9 +135,11 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
       expect(content).not.toMatch(/>\s*✕\s*</);
       expect(content).not.toMatch(/>\s*×\s*</);
       expect(content).not.toMatch(/>\s*−\s*</);
+      expect(content).not.toMatch(/>\s*✓\s*</);
       expect(content).not.toMatch(/>\s*[＋+]\s*\{t\(/);
       expect(content).not.toMatch(/textContent\s*=\s*`[＋+]/);
       expect(content).not.toMatch(/textContent\s*=\s*`\${t\("ledger\.openDoc"\)}\s*→`/);
+      expect(content).not.toMatch(/textContent\s*=\s*`✓/);
       expect(content).not.toMatch(/innerHTML\s*=\s*`<span[^>]*>[✔] /);
       expect(content).not.toMatch(/innerHTML\s*=.*[★]/);
     }

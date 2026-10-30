@@ -7,6 +7,7 @@
  */
 
 import { confirm } from "@/libs/dialog";
+import { uiIcon } from "@/ui/icons";
 
 export interface RxToMedicineButtonOptions {
     body: HTMLElement;
@@ -325,7 +326,7 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                             });
                         }
                         showMessageFn(t("ledger.shoppingToAssetDone").replace("${name}", nameVal), 3500, "info");
-                        btn.textContent = `✓ ${t("ledger.shoppingToAssetDoneShort")}`;
+                        btn.innerHTML = `${uiIcon("check", "", 13)} ${t("ledger.shoppingToAssetDoneShort")}`;
                         btn.disabled = true;
                     } catch (err) {
                         showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");

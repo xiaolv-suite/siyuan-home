@@ -4,6 +4,7 @@
  * 并提供汇总报告与结构化文本导出。
  */
 import type { AvRow } from "@/core/siyuan";
+import { uiIcon } from "@/ui/icons";
 
 export type BookmarkLinkStatus = "healthy" | "broken" | "invalid_url" | "timeout" | "unreachable";
 
@@ -241,7 +242,7 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
     if (report.brokenCount === 0) {
         const okMsg = document.createElement("div");
         okMsg.className = "lv-notice-card is-success";
-        okMsg.textContent = `✓ ${t("ledger.bookmarksAllHealthy")}`;
+        okMsg.innerHTML = `${uiIcon("check", "", 14)} ${t("ledger.bookmarksAllHealthy")}`;
         body.appendChild(okMsg);
     } else {
         if (copyBtn) copyBtn.disabled = false;

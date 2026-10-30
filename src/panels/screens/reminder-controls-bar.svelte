@@ -113,7 +113,7 @@
                 <!-- 243 波（收件箱分诊）：一键切片到备忘项集合（转行/完成/延后集中处理） -->
                 <button class="b3-button b3-button--outline lv-btn-chip" class:is-filtered={filterModule === "adhoc"} disabled={batchBusy}
                     aria-pressed={filterModule === "adhoc"} onclick={() => { filterModule = filterModule === "adhoc" ? undefined : "adhoc"; activeNamedViewId = undefined; onFilterChanged?.(); }}>
-                    {t("hub.triageChip")}{#if filterModule === "adhoc"} ✓{/if}
+                    {t("hub.triageChip")}{#if filterModule === "adhoc"} <UiIcon name="check" size={12} />{/if}
                 </button>
             </div>
             <div class="lv-toolbar lv-hub-actions">

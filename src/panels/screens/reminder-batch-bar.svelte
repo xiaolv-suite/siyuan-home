@@ -24,15 +24,53 @@
     } = $props();
 
     let batchBusy = $state(false);
+    let toolbarEl = $state<HTMLElement | undefined>(undefined);
     const selectedCount = $derived(selected.size);
 
     function selectAllFiltered() {
         selected = new Set(filtered.map((r: Reminder) => r.id));
     }
 
+    function restoreFocusAfterClear() {
+        try {
+            const root = toolbarEl?.closest(".lv-home") || document;
+            const toggleBtn = root.querySelector<HTMLElement>(".lv-hub-actions button[aria-pressed], .lv-hub-actions .b3-button");
+            toggleBtn?.focus();
+        } catch { /* soft */ }
+    }
+
     function clearSelection() {
         selected = new Set();
         batchMode = false;
+        restoreFocusAfterClear();
+    }
+
+    function handleToolbarKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            clearSelection();
+            return;
+        }
+        if (["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+            const buttons = Array.from(
+                toolbarEl?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []
+            );
+            if (buttons.length === 0) return;
+            const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            let nextIndex = 0;
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                nextIndex = currentIndex >= 0 ? (currentIndex + 1) % buttons.length : 0;
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                nextIndex = currentIndex > 0 ? currentIndex - 1 : buttons.length - 1;
+            } else if (e.key === "Home") {
+                nextIndex = 0;
+            } else if (e.key === "End") {
+                nextIndex = buttons.length - 1;
+            }
+            e.preventDefault();
+            buttons[nextIndex]?.focus();
+        }
     }
 
     async function batchCopyAsTasks() {
@@ -139,17 +177,26 @@
     }
 </script>
 
-<div class="lv-card lv-toolbar lv-hub-batchbar" role="toolbar" aria-label={t("hub.batch")}>
-    <b class="lv-caption">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+    bind:this={toolbarEl}
+    class="lv-card lv-toolbar lv-hub-batchbar"
+    role="toolbar"
+    tabindex="0"
+    aria-label={t("hub.batch")}
+    aria-busy={batchBusy}
+    onkeydown={handleToolbarKeydown}
+>
+    <b class="lv-caption" aria-live="polite" aria-atomic="true">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
     <span class="fn__flex-1"></span>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyBlockRefs}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}>{t("act.done")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}>{t("act.snooze7")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}>{t("act.mute")}</button>
-    <button type="button" class="b3-button b3-button--outline" disabled={batchBusy} onclick={clearSelection}>{t("cancel")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}><UiIcon name="check" size={13} /> {t("act.done")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}><UiIcon name="clock" size={13} /> {t("act.snooze7")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}><UiIcon name="mute" size={13} /> {t("act.mute")}</button>
+    <button type="button" class="b3-button b3-button--outline" disabled={batchBusy} onclick={clearSelection}><UiIcon name="close" size={12} /> {t("cancel")}</button>
 </div>
 
 <style>

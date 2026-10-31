@@ -67,7 +67,7 @@
                     await saveSettings(plugin, plugin.settings);
                     showMessage(t("saved"), 2000, "info");
                 }}>
-                <option value="">🏠 默认（使用或自动创建「🏠 小驴管家」笔记本）</option>
+                <option value="">🏠 {t("settings.targetNotebookHint")}</option>
                 {#each notebookList as nb (nb.id)}
                     <option value={nb.id}>📚 {nb.name}</option>
                 {/each}
@@ -103,7 +103,7 @@
                                 <span class="lv-caption lv-tx-muted">{item.moduleId} · {item.deletedAt.slice(0, 16).replace("T", " ")}</span>
                             </div>
                             <div class="lv-trash-ops">
-                                <span class="lv-badge gray lv-badge--xs">已存快照</span>
+                                <span class="lv-badge gray lv-badge--xs">{t("settings.trashTitle")}</span>
                                 <button type="button" class="b3-button b3-button--outline lv-btn-xs" onclick={async () => {
                                     const { restoreTrashItem } = await import("@/core/trash");
                                     const res = await restoreTrashItem(plugin, item.id);

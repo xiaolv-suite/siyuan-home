@@ -164,6 +164,16 @@
                     <UiIcon name="repeat" size={11} /> {r.recurrenceAnchor === "completion" ? t("hub.recurrenceAnchorCompletion") : t("hub.recurrenceAnchorDue")}
                 </span>
             {/if}
+            {#if r.priority}
+                <span class="lv-plan-badge lv-priority-badge--{r.priority}" title={r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}>
+                    <UiIcon name="alert" size={11} /> {r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}
+                </span>
+            {/if}
+            {#if r.tag}
+                <span class="lv-plan-badge lv-tag-badge" title={`#${r.tag}`}>
+                    <UiIcon name="bookmark" size={11} /> #{r.tag}
+                </span>
+            {/if}
             {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
             {#if plan.hasPlan}
                 <button type="button" class="lv-plan-badge lv-plan-badge-btn" class:is-planned-now={plan.isPlannedNow}
@@ -280,14 +290,5 @@
 <style>
     .lv-batch-chk {
         flex-shrink: 0;
-    }
-    :global(.is-snooze-heavy) {
-        background: rgba(245, 158, 11, 0.16) !important;
-        color: #d97706 !important;
-        border: 1px solid rgba(245, 158, 11, 0.35) !important;
-        font-weight: 500;
-    }
-    :global(.lv-recurrence-badge) {
-        opacity: 0.85;
     }
 </style>

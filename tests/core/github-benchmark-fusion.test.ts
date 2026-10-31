@@ -5,13 +5,16 @@
  * 3. Super Productivity 规格：批量顺延逾期至今日、撤销恢复与 snoozeCount 反拖延判定
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { parseQuickAdd } from "@/core/quick-add";
 import { calculateNextRecurrenceDate, localDateKey } from "@/core/hub/rule";
 import { getSnoozePresets, calculateSnoozeTarget } from "@/core/snooze-presets";
-import { snooze, snoozeToDate, batchSnooze, undoBatchSnooze, addMemo } from "@/core/hub/actions";
-import { applyRuntime } from "@/core/hub/runtime";
+import { snooze, snoozeToDate, batchSnooze, undoBatchSnooze, addMemo, mute, complete, removeMemo, updateMemo } from "@/core/hub/actions";
+import { applyRuntime, listHandled, cleanupRowRuntimeData } from "@/core/hub/runtime";
 import { defaultRuntime } from "@/core/hub/runtime-store";
+import { SchemaLedgerProvider } from "@/core/hub/providers";
+import { CHORES_SCHEMA } from "@/core/schema";
+import { setTransport } from "@/core/siyuan";
 import type { Reminder } from "@/types";
 
 describe("1. Quick Add Magic 自然语言标记解析器 (Vikunja 标杆融合)", () => {
@@ -280,5 +283,174 @@ describe("3. 逾期批量顺延与反拖延微步骤拆解 (Super Productivity �
         expect(applied[0].tag).toBe("家庭");
         expect(applied[0].recurrenceAnchor).toBe("due");
         expect(applied[0].kind).toBe("recurring");
+    });
+
+    it("parseQuickAdd 解析 *周期 与 *!完成顺延周期 语法（含 *每月15号 隐含到期日）", () => {
+        const today = new Date(2026, 9, 5); // 2026-10-05
+        const r1 = parseQuickAdd("交物业费 !p1 #家庭 *每月15号", today);
+        expect(r1.cleanTitle).toBe("交物业费");
+        expect(r1.priority).toBe("high");
+        expect(r1.category).toBe("家庭");
+        expect(r1.cycle).toBe("month");
+        expect(r1.recurrenceAnchor).toBe("due");
+        expect(r1.dueDate).toBe("2026-10-15");
+
+        const r2 = parseQuickAdd("换床单 #家务 @今天 *!14天", today);
+        expect(r2.cleanTitle).toBe("换床单");
+        expect(r2.cycle).toBe("14d");
+        expect(r2.recurrenceAnchor).toBe("completion");
+        expect(r2.dueDate).toBe("2026-10-05");
+
+        const r3 = parseQuickAdd("绿植浇水 *完成后7天", today);
+        expect(r3.cleanTitle).toBe("绿植浇水");
+        expect(r3.cycle).toBe("7d");
+        expect(r3.recurrenceAnchor).toBe("completion");
+    });
+
+    it("adhoc 备忘支持延后 (snooze)、忽略 (mute)、已处理回显与删除孤儿清理", async () => {
+        const fakePlugin = createMemoryPlugin();
+        const rt1 = await addMemo(fakePlugin, "缴纳水费", "2026-10-01", { priority: "medium", category: "生活" });
+        const memoId = rt1.memos[0].id;
+        const reminderId = `adhoc::${memoId}`;
+
+        // 1. 延后到 2026-10-25：在 10-20 查看应隐藏；在 10-25 查看应显示延后日
+        const rtSnoozed = await snoozeToDate(fakePlugin, reminderId, "2026-10-25");
+        expect(applyRuntime([], rtSnoozed, new Date(2026, 9, 20))).toHaveLength(0);
+        const onSnoozeDay = applyRuntime([], rtSnoozed, new Date(2026, 9, 25));
+        expect(onSnoozeDay).toHaveLength(1);
+        expect(onSnoozeDay[0].dueDate).toBe("2026-10-25");
+        expect(onSnoozeDay[0].daysLeft).toBe(0);
+
+        // 2. 忽略备忘：活跃列表隐藏，listHandled 显示真实标题与 adhoc 模块
+        const rtMuted = await mute(fakePlugin, reminderId);
+        expect(applyRuntime([], rtMuted, new Date(2026, 9, 25))).toHaveLength(0);
+        const handled = listHandled(rtMuted, []);
+        expect(handled).toHaveLength(1);
+        expect(handled[0]).toMatchObject({
+            id: reminderId,
+            title: "缴纳水费",
+            moduleId: "adhoc",
+            dueDate: "2026-10-01",
+            kind: "muted",
+        });
+
+        // 3. 删除备忘：彻底清理 muted / snoozed / snoozeCounts 孤儿记录
+        const rtRemoved = await removeMemo(fakePlugin, reminderId);
+        expect(rtRemoved.muted[reminderId]).toBeUndefined();
+        expect(rtRemoved.snoozed[reminderId]).toBeUndefined();
+        expect(rtRemoved.snoozeCounts?.[reminderId]).toBeUndefined();
+        expect(listHandled(rtRemoved, [])).toHaveLength(0);
+    });
+
+    it("周期性备忘完成时按 recurrenceAnchor 自动滚动至下一周期，updateMemo 支持更新优先级与分类", async () => {
+        const fakePlugin = createMemoryPlugin();
+        const rt1 = await addMemo(fakePlugin, "清洗空调滤网", "2026-10-01", {
+            cycle: "14d",
+            recurrenceAnchor: "completion",
+            priority: "low",
+            category: "家务",
+        });
+        const memo = rt1.memos[0];
+        const reminderId = `adhoc::${memo.id}`;
+
+        // 在 2026-10-10 完成该周期备忘 -> 应从完成日 10-10 顺延 14 天至 2026-10-24，而非设置 doneAt 终结
+        const rtCompleted = await complete(
+            fakePlugin,
+            { id: reminderId, moduleId: "adhoc", ruleKey: "memo", rowId: memo.id, title: memo.title, dueDate: memo.dueDate, daysLeft: -9, level: "overdue", kind: "recurring" },
+            2026,
+            new Date(2026, 9, 10),
+        );
+        expect(rtCompleted.memos[0].doneAt).toBeUndefined();
+        expect(rtCompleted.memos[0].dueDate).toBe("2026-10-24");
+
+        // updateMemo 更新优先级和分类
+        const rtUpdated = await updateMemo(fakePlugin, reminderId, {
+            title: "深度清洗空调滤网",
+            priority: "high",
+            category: "换季家务",
+        });
+        expect(rtUpdated.memos[0].title).toBe("深度清洗空调滤网");
+        expect(rtUpdated.memos[0].priority).toBe("high");
+        expect(rtUpdated.memos[0].category).toBe("换季家务");
+    });
+
+    it("cleanupRowRuntimeData 同步清理台账行的 muted 与 snoozeCounts 孤儿状态", () => {
+        const rt = defaultRuntime();
+        rt.muted["row99::certs.expiry"] = true;
+        rt.snoozeCounts = { "row99::certs.expiry": 4 };
+        expect(cleanupRowRuntimeData(rt, "row99")).toBe(true);
+        expect(rt.muted["row99::certs.expiry"]).toBeUndefined();
+        expect(rt.snoozeCounts["row99::certs.expiry"]).toBeUndefined();
+    });
+});
+
+describe("4. SchemaLedgerProvider 家务完成日顺延 (recurrenceAnchor='completion') 联动", () => {
+    afterEach(() => setTransport(null));
+
+    it("chores 台账读取 last_done 与 chexecs 流水，按实际完成日顺延派生下一期提醒", async () => {
+        setTransport(async (endpoint: string) => {
+            if (endpoint === "/api/av/renderAttributeView") {
+                return {
+                    code: 0,
+                    msg: "",
+                    data: {
+                        view: {
+                            columns: [
+                                { id: "k-name", type: "text", name: "name" },
+                                { id: "k-cycle", type: "select", name: "cycle" },
+                                { id: "k-due", type: "date", name: "due" },
+                                { id: "k-last", type: "date", name: "last_done" },
+                            ],
+                            rowCount: 1,
+                            rows: [
+                                {
+                                    id: "chore-1",
+                                    cells: [
+                                        { value: { type: "text", text: { content: "除垢清洗" } } },
+                                        { value: { type: "select", select: { content: "14d" } } },
+                                        { value: { type: "date", date: { content: new Date(2026, 9, 1).getTime(), isNotEmpty: true } } },
+                                        { value: { type: "date", date: { content: new Date(2026, 9, 10).getTime(), isNotEmpty: true } } },
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                };
+            }
+            return { code: 0, msg: "", data: { rows: { values: ["chore-1"] } } };
+        });
+
+        const provider = new SchemaLedgerProvider("chores", CHORES_SCHEMA, {
+            settings: {
+                enabledModules: ["chores"],
+                members: [],
+                leadOverrides: {},
+                notifyHour: 8,
+                silentFrom: 22,
+                silentTo: 8,
+                dbRefs: {},
+            },
+            getDbRef: () => ({
+                avId: "av-chores",
+                columns: {
+                    name: "k-name",
+                    cycle: "k-cycle",
+                    due: "k-due",
+                    last_done: "k-last",
+                },
+            }),
+            loadRowLogs: async () => ({
+                "av-chores|chore-1": {
+                    chexecs: [{ date: "2026-10-12", member: "我" }],
+                },
+            }),
+        });
+
+        // chexecs 最新完成日为 2026-10-12（晚于 last_done 10-10），周期 14d -> 下次到期应为 2026-10-26
+        const list = await provider.collect(new Date(2026, 9, 22));
+        expect(list).toHaveLength(1);
+        expect(list[0].dueDate).toBe("2026-10-26");
+        expect(list[0].recurrenceAnchor).toBe("completion");
+        expect(list[0].kind).toBe("recurring");
     });
 });

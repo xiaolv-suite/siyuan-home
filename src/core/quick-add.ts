@@ -39,6 +39,12 @@ export interface QuickAddResult {
     category?: string;
     /** 命中的分类原始 Token（如 "#家庭"） */
     categoryToken?: string;
+    /** 解析出的循环周期（如 "day" | "week" | "month" | "quarter" | "year" | "14d" 等） */
+    cycle?: string;
+    /** 命中的周期原始 Token（如 "*每月" 或 "*!14天"） */
+    cycleToken?: string;
+    /** 解析出的循环基准：due=按计划日固定循环；completion=按完成日顺延 */
+    recurrenceAnchor?: "due" | "completion";
 }
 
 const WEEKDAY_MAP: Record<string, number> = {
@@ -125,10 +131,52 @@ function parsePriorityToken(token: string): QuickAddPriority | undefined {
     return undefined;
 }
 
+function parseCycleToken(token: string, today: Date): { cycle: string; anchor: "due" | "completion"; impliedDueDate?: string } | undefined {
+    let raw = token.slice(1).trim(); // strip leading '*'
+    if (!raw) return undefined;
+    let anchor: "due" | "completion" = "due";
+    if (/^(!|完成后|完成起|顺延)/.test(raw)) {
+        anchor = "completion";
+        raw = raw.replace(/^(!|完成后|完成起|顺延)/, "").trim();
+    }
+    if (/^每/.test(raw)) {
+        raw = raw.slice(1).trim();
+    }
+    const monthDayMatch = raw.match(/^月\s*(\d{1,2})\s*[日号]?$/);
+    if (monthDayMatch) {
+        const dayNum = parseInt(monthDayMatch[1], 10);
+        if (dayNum >= 1 && dayNum <= 31) {
+            const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const maxThisMonth = new Date(today0.getFullYear(), today0.getMonth() + 1, 0).getDate();
+            let cand = new Date(today0.getFullYear(), today0.getMonth(), Math.min(dayNum, maxThisMonth));
+            if (cand < today0) {
+                const nextMonth = new Date(today0.getFullYear(), today0.getMonth() + 1, 1);
+                const maxNextMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
+                cand = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(dayNum, maxNextMonth));
+            }
+            return { cycle: "month", anchor, impliedDueDate: localDateKey(cand) };
+        }
+    }
+    const lower = raw.toLowerCase();
+    if (["天", "日", "day", "daily", "1d", "1天"].includes(lower)) return { cycle: "day", anchor };
+    if (["周", "星期", "礼拜", "week", "weekly", "1w", "1周"].includes(lower)) return { cycle: "week", anchor };
+    if (["月", "month", "monthly", "1m", "1月", "1个月"].includes(lower)) return { cycle: "month", anchor };
+    if (["季", "季度", "quarter", "quarterly"].includes(lower)) return { cycle: "quarter", anchor };
+    if (["年", "year", "yearly", "1y", "1年"].includes(lower)) return { cycle: "year", anchor };
+
+    const nDay = lower.match(/^(\d{1,3})\s*(?:d|day|days|天|日)$/);
+    if (nDay) return { cycle: `${parseInt(nDay[1], 10)}d`, anchor };
+    const nWeek = lower.match(/^(\d{1,2})\s*(?:w|week|weeks|周|星期|礼拜)$/);
+    if (nWeek) return { cycle: `${parseInt(nWeek[1], 10)}w`, anchor };
+    const nMonth = lower.match(/^(\d{1,2})\s*(?:m|month|months|个?月)$/);
+    if (nMonth) return { cycle: `${parseInt(nMonth[1], 10)}m`, anchor };
+    return undefined;
+}
+
 /**
  * 解析快速备忘自然语言输入
  *
- * @param input 用户输入的文本，如 "交物业费 !高 #家庭 @明天"
+ * @param input 用户输入的文本，如 "交物业费 !高 #家庭 @明天 *每月"
  * @param today 参考基准时间，默认当前时间
  */
 export function parseQuickAdd(input: string, today: Date = new Date()): QuickAddResult {
@@ -141,9 +189,12 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
     let priorityToken: string | undefined;
     let category: string | undefined;
     let categoryToken: string | undefined;
+    let cycle: string | undefined;
+    let cycleToken: string | undefined;
+    let recurrenceAnchor: "due" | "completion" | undefined;
 
     // 1. 扫描 @日期 Token：匹配 @ 紧跟非空白字符（允许 @+3d, @明天, @2026-11-01, @10月15日 等）
-    const atDateRegex = /@([^\s,，;；!#!]+)/;
+    const atDateRegex = /@([^\s,，;；!#*]+)/;
     const atMatch = working.match(atDateRegex);
     if (atMatch) {
         const fullToken = atMatch[0];
@@ -155,7 +206,25 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         }
     }
 
-    // 2. 扫描 !优先级 Token：匹配 ! 紧跟字母/数字/中文
+    // 2. 扫描 *周期 Token：匹配 * 紧跟周期描述（允许 *每月, *每周, *14天, *!14天, *完成后7天, *每月15号 等）
+    const cycleRegex = /\*(!?[^\s,，;；!#@]+)/;
+    const cycMatch = working.match(cycleRegex);
+    if (cycMatch) {
+        const fullToken = cycMatch[0];
+        const parsedCycle = parseCycleToken(fullToken, today);
+        if (parsedCycle) {
+            cycle = parsedCycle.cycle;
+            cycleToken = fullToken;
+            recurrenceAnchor = parsedCycle.anchor;
+            if (!dueDate && parsedCycle.impliedDueDate) {
+                dueDate = parsedCycle.impliedDueDate;
+                dateToken = fullToken;
+            }
+            working = working.replace(fullToken, " ");
+        }
+    }
+
+    // 3. 扫描 !优先级 Token：匹配 ! 紧跟字母/数字/中文
     const priorityRegex = /!([高|中|低|p1|p2|p3|1|2|3|high|med|medium|low|h|m|l|urgent]+)(?=\s|$)/i;
     const prioMatch = working.match(priorityRegex);
     if (prioMatch) {
@@ -168,7 +237,7 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         }
     }
 
-    // 3. 扫描 #分类 Token：匹配 # 紧跟中文、字母、数字、下划线、短横线
+    // 4. 扫描 #分类 Token：匹配 # 紧跟中文、字母、数字、下划线、短横线
     const categoryRegex = /#([\w\u4e00-\u9fa5-]+)/;
     const catMatch = working.match(categoryRegex);
     if (catMatch) {
@@ -177,7 +246,7 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         working = working.replace(catMatch[0], " ");
     }
 
-    // 4. 若未通过 @ 语法识别到日期，尝试复用传统自然语言中文日期解析（如 "明天交水费"）
+    // 5. 若未通过 @ 语法识别到日期，尝试复用传统自然语言中文日期解析（如 "明天交水费"）
     if (!dueDate) {
         const natural = parseNaturalDate(working, today);
         if (natural) {
@@ -186,7 +255,7 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         }
     }
 
-    // 5. 收敛剩余空白获得干净的标题
+    // 6. 收敛剩余空白获得干净的标题
     const cleanTitle = working.replace(/\s+/g, " ").trim();
 
     return {
@@ -198,5 +267,8 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         priorityToken,
         category,
         categoryToken,
+        cycle,
+        cycleToken,
+        recurrenceAnchor,
     };
 }

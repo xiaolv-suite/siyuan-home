@@ -12,6 +12,15 @@ if (pkg.name !== plugin.name) {
 if (pkg.version !== plugin.version) {
     errors.push(`version mismatch: package.json "${pkg.version}" vs plugin.json "${plugin.version}"`);
 }
+for (const codeFile of ["src/index.ts", "src/core/ecosystem-integration.ts"]) {
+    if (existsSync(codeFile)) {
+        const src = readFileSync(codeFile, "utf8");
+        const m = src.match(/PLUGIN_VERSION\s*=\s*typeof __PLUGIN_VERSION__[\s\S]*?:\s*"([^"]+)"/);
+        if (m && m[1] !== pkg.version) {
+            errors.push(`version mismatch: ${codeFile} fallback "${m[1]}" vs package.json "${pkg.version}"`);
+        }
+    }
+}
 if (plugin.displayName?.default && plugin.displayName["zh-CN"] === undefined) {
     errors.push("plugin.json displayName 缺 zh-CN");
 }

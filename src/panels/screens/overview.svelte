@@ -270,28 +270,33 @@
     let lastPostponedOverdueMap = $state<Record<string, string | undefined> | null>(null);
 
     async function handleBatchPostponeOverdue() {
-        const overdueIds = allReminders.filter((r: Reminder) => r.level === "overdue").map((r: Reminder) => r.id);
-        if (overdueIds.length === 0) return;
-        const { localDateKey } = await import("@/core/hub/rule");
-        const todayKey = localDateKey(new Date());
-        try {
-            const prev = await plugin.batchSnooze?.(overdueIds, todayKey);
-            lastPostponedOverdueMap = prev ?? {};
-            showMessage(t("dash.overduePostponed").replace("${n}", String(overdueIds.length)), 3500, "info");
-        } catch (e) {
-            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-        }
+        await runOverviewAction("batch-postpone", async () => {
+            const overdueIds = allReminders.filter((r: Reminder) => r.level === "overdue").map((r: Reminder) => r.id);
+            if (overdueIds.length === 0) return;
+            const { localDateKey } = await import("@/core/hub/rule");
+            const todayKey = localDateKey(new Date());
+            try {
+                const prev = await plugin.batchSnooze?.(overdueIds, todayKey);
+                lastPostponedOverdueMap = prev ?? {};
+                showMessage(t("dash.overduePostponed").replace("${n}", String(overdueIds.length)), 3500, "info");
+            } catch (e) {
+                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            }
+        });
     }
 
     async function handleUndoPostpone() {
-        if (!lastPostponedOverdueMap || Object.keys(lastPostponedOverdueMap).length === 0) return;
-        try {
-            await plugin.undoBatchSnooze?.(lastPostponedOverdueMap);
-            lastPostponedOverdueMap = null;
-            showMessage(t("dash.undoSuccess"), 2500, "info");
-        } catch (e) {
-            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
-        }
+        await runOverviewAction("batch-postpone", async () => {
+            const mapToUndo = lastPostponedOverdueMap;
+            if (!mapToUndo || Object.keys(mapToUndo).length === 0) return;
+            try {
+                await plugin.undoBatchSnooze?.(mapToUndo);
+                lastPostponedOverdueMap = null;
+                showMessage(t("dash.undoSuccess"), 2500, "info");
+            } catch (e) {
+                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            }
+        });
     }
 
     // 300波里程碑：家庭年度生活指数与幸福资产盘点

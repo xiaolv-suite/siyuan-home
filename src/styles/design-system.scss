@@ -966,7 +966,13 @@
   .lv-parsechip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; flex: none;
     border-radius: 999px; background: var(--lv-accent-soft); border: 1px solid var(--lv-accent-line);
     color: var(--lv-accent); font-size: 11.5px; font-weight: 500;
-    animation: lv-rise var(--lv-t-med) var(--lv-ease); }
+    animation: lv-rise var(--lv-t-med) var(--lv-ease);
+    &.lv-parsechip--high { background: var(--lv-danger-soft); color: var(--lv-danger); border-color: var(--lv-danger); }
+    &.lv-parsechip--medium { background: var(--lv-warn-soft); color: var(--lv-warn); border-color: var(--lv-warn); }
+    &.lv-parsechip--low { background: var(--lv-accent-soft); color: var(--lv-accent); border-color: var(--lv-accent-line); }
+    &.lv-parsechip--cat { background: var(--lv-ok-soft); color: var(--lv-ok); border-color: var(--lv-ok); }
+    &.lv-parsechip--cycle { background: var(--lv-surface-2); color: var(--lv-tx-2); border-color: var(--lv-line-strong); }
+  }
 
   // ── 7. 提醒行（色轨四级）───────────────────────────────
   .lv-rems { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--lv-r-3); }
@@ -1028,6 +1034,24 @@
       }
       &.is-pinned {
         background: var(--lv-accent); color: #ffffff; border-color: transparent; font-weight: 600;
+      }
+      &.is-snooze-heavy {
+        background: var(--lv-warn-soft); color: var(--lv-warn); border-color: var(--lv-warn); font-weight: 500; margin-right: 4px;
+      }
+      &.lv-recurrence-badge {
+        opacity: 0.88;
+      }
+      &.lv-priority-badge--high {
+        background: var(--lv-danger-soft); color: var(--lv-danger); border-color: var(--lv-danger); font-weight: 600;
+      }
+      &.lv-priority-badge--medium {
+        background: var(--lv-warn-soft); color: var(--lv-warn); border-color: var(--lv-warn);
+      }
+      &.lv-priority-badge--low {
+        background: var(--lv-accent-soft); color: var(--lv-accent); border-color: var(--lv-accent-line);
+      }
+      &.lv-tag-badge {
+        background: var(--lv-ok-soft); color: var(--lv-ok); border-color: var(--lv-ok);
       }
     }
     .lv-plan-badge-btn {

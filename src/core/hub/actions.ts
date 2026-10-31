@@ -10,6 +10,7 @@
 import type { Plugin } from "siyuan";
 import type { Reminder } from "@/types";
 import { setCell } from "../siyuan";
+import { addDays, calculateNextRecurrenceDate, localDateKey, parseDate } from "./rule";
 import { loadRuntime, persistRuntimeUnderLock, withRuntimeSaveLock, reminderKind, toggleReminderPinInRuntime, type HubRuntime, type HandledRecord } from "./runtime";
 
 function cloneRuntime(rt: HubRuntime): HubRuntime {
@@ -136,7 +137,7 @@ export function unmute(plugin: Plugin, reminderId: string) {
  * - adhoc 备忘 → 标记 doneAt（保留在运行态可恢复，不物理删除，H03）
  * - oneoff → 记已办条目（可在已处理视图恢复）
  */
-export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullYear()) {
+export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullYear(), today = new Date()) {
     return withRuntime(plugin, (rt) => {
         const rec: HandledRecord = {
             title: r.title, moduleId: r.moduleId, ruleKey: r.ruleKey,
@@ -144,8 +145,26 @@ export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullY
         };
         if (r.moduleId === "adhoc") {
             const m = rt.memos.find((m) => `adhoc::${m.id}` === r.id);
-            if (m) m.doneAt = rec.at;
-            else rt.handled[r.id] = rec;
+            if (m) {
+                if (m.cycle) {
+                    const baseDate = parseDate(m.dueDate) ?? today;
+                    const anchor = m.recurrenceAnchor ?? "due";
+                    const refToday = anchor === "due"
+                        ? addDays(baseDate >= today ? baseDate : today, 1)
+                        : today;
+                    const nextDate = calculateNextRecurrenceDate(baseDate, m.cycle, {
+                        today: refToday,
+                        anchor,
+                        completionDate: today,
+                    });
+                    m.dueDate = localDateKey(nextDate);
+                    delete rt.snoozed[r.id];
+                } else {
+                    m.doneAt = rec.at;
+                }
+            } else {
+                rt.handled[r.id] = rec;
+            }
         } else if (reminderKind(r) === "anniversary") {
             rt.handledYear[r.id] = year;
         } else if (reminderKind(r) === "recurring") {
@@ -299,18 +318,53 @@ export async function addMemo(
 export function removeMemo(plugin: Plugin, reminderId: string) {
     return withRuntime(plugin, (rt) => {
         const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : reminderId;
+        const fullId = `adhoc::${memoId}`;
         rt.memos = rt.memos.filter((m) => m.id !== memoId);
+        delete rt.muted[fullId];
+        delete rt.snoozed[fullId];
+        if (rt.snoozeCounts) delete rt.snoozeCounts[fullId];
+        if (rt.planDates) delete rt.planDates[fullId];
+        if (rt.handled) delete rt.handled[fullId];
+        if (rt.pinnedMemoIds) rt.pinnedMemoIds = rt.pinnedMemoIds.filter((id) => id !== memoId && id !== fullId);
+        if (rt.pinnedReminderIds) rt.pinnedReminderIds = rt.pinnedReminderIds.filter((id) => id !== fullId && id !== memoId);
     });
 }
 
-/** 编辑备忘（246 波，收件箱深化）：标题/到期日修正；完成后仍可改（历史留痕不变） */
-export function updateMemo(plugin: Plugin, memoId: string, patch: { title?: string; dueDate?: string }) {
+/** 编辑备忘（246 波，收件箱深化）：标题/到期日/优先级/分类/周期修正；完成后仍可改（历史留痕不变） */
+export function updateMemo(
+    plugin: Plugin,
+    memoId: string,
+    patch: {
+        title?: string;
+        dueDate?: string;
+        priority?: "high" | "medium" | "low" | null;
+        category?: string | null;
+        cycle?: string | null;
+        recurrenceAnchor?: "due" | "completion" | null;
+    },
+) {
     return withRuntime(plugin, (rt) => {
         const id = memoId.startsWith("adhoc::") ? memoId.slice("adhoc::".length) : memoId;
         const m = rt.memos.find((x) => x.id === id);
         if (!m) return;
         if (patch.title !== undefined && patch.title.trim()) m.title = patch.title.trim();
         if (patch.dueDate !== undefined && patch.dueDate) m.dueDate = patch.dueDate;
+        if (patch.priority !== undefined) {
+            if (patch.priority) m.priority = patch.priority;
+            else delete m.priority;
+        }
+        if (patch.category !== undefined) {
+            if (patch.category && patch.category.trim()) m.category = patch.category.trim();
+            else delete m.category;
+        }
+        if (patch.cycle !== undefined) {
+            if (patch.cycle && patch.cycle.trim()) m.cycle = patch.cycle.trim();
+            else delete m.cycle;
+        }
+        if (patch.recurrenceAnchor !== undefined) {
+            if (patch.recurrenceAnchor) m.recurrenceAnchor = patch.recurrenceAnchor;
+            else delete m.recurrenceAnchor;
+        }
     });
 }
 

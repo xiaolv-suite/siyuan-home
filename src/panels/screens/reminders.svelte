@@ -413,7 +413,7 @@
         onTogglePin={(r: Reminder) => runReminderAction(async () => { await toggleReminderPin(plugin, r.id); await plugin.refreshHub(); }, `calendar:pin:${r.id}`)}
         isPinnedFn={(r: Reminder) => isPinned(r)}
         onLocate={(r: Reminder) => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}
-        onAddMemo={(title: string, due: string) => plugin.addMemo(title, due)}
+        onAddMemo={(title: string, due: string, options?: any) => plugin.addMemo(title, due, options)}
         onConvert={(r: Reminder) => toLedgerDialog(r)} />
 {:else}
     <ReminderGroupsList

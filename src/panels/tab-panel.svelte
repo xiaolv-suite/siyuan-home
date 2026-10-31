@@ -518,7 +518,7 @@
                 <span class="fn__flex-1"></span>
                 <!-- 259 波：呼吸状态点 + mono 扫描时间，支持点击一键触发重新扫描 -->
                 <button type="button" class="lv-hubstatus lv-caption"
-                    title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · 点击立即重新扫描`}
+                    title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · ${t("hub.rescan")}`}
                     aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}
                     onclick={() => void refreshInitialScan(true)}>
                     <i class="lv-pulse" class:orange={plugin.scan?.stale && !plugin.scan?.errors?.length}

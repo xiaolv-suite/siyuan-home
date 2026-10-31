@@ -79,7 +79,7 @@
 <div class="lv-settings__scroll" aria-label={moduleSearch.trim() ? t("dash.moduleSearch") : t(`group.${moduleGroup}`)}>
     <div class="lv-card lv-setcard lv-setcard--hint">{t("settings.modulesHint")}</div>
     <div class="lv-card lv-setcard">
-        <div class="lv-setcard__title">{moduleSearch.trim() ? `搜索结果 · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>
+        <div class="lv-setcard__title">{moduleSearch.trim() ? `${t("dash.moduleSearch")} · ${currentModules.length}` : t(`group.${moduleGroup}`)}</div>
         {#if currentModules.length === 0}
             <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("ledger.searchEmpty")}</div>
         {:else}

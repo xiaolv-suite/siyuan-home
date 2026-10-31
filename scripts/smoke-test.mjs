@@ -102,6 +102,11 @@ if (relativeRequires.length) {
 const chunkFiles = existsSync(path.join(tmp, "chunks"));
 if (chunkFiles) errors.push("package.zip contains chunks/ directory — forbidden (single-file bundle only)");
 
+// 6. Svelte 5 props getter 响应式守卫：严禁 Terser 开启 pure_getters:true 把 `void $$props.version` 剔除
+if (!/\.version/.test(bundledJs)) {
+    errors.push("index.js missing `.version` prop getter access — Terser pure_getters:true may have stripped Svelte 5 reactive dependency tracking");
+}
+
 // 汇总
 if (warnings.length) console.log("warnings:\n" + warnings.map((w) => " ⚠ " + w).join("\n"));
 if (errors.length) {

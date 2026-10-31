@@ -5,6 +5,7 @@
 
 import type { Reminder } from "@/types";
 import { localDateKey } from "./hub/rule";
+import { parseQuickAdd } from "./quick-add";
 import {
     saveRuntime,
     setReminderPlanDate,
@@ -277,13 +278,22 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     let saving = false;
     save.addEventListener("click", async () => {
         if (saving) return;
-        const title = titleInput.value.trim();
-        if (!title) { err.textContent = t("ledger.nameRequired"); titleInput.focus(); return; }
+        const rawTitle = titleInput.value.trim();
+        if (!rawTitle) { err.textContent = t("ledger.nameRequired"); titleInput.focus(); return; }
         if (!dateInput.value) { err.textContent = t("form.required"); dateInput.focus(); return; }
+        const parsed = parseQuickAdd(rawTitle);
+        const title = parsed.cleanTitle || rawTitle;
+        const dueDate = (dateInput.value === r.dueDate && parsed.dueDate) ? parsed.dueDate : dateInput.value;
         saving = true;
         save.disabled = true;
         try {
-            await plugin.updateMemo(r.id, { title, dueDate: dateInput.value });
+            await plugin.updateMemo(r.id, {
+                title,
+                dueDate,
+                ...(parsed.priority ? { priority: parsed.priority } : {}),
+                ...(parsed.category ? { category: parsed.category } : {}),
+                ...(parsed.cycle ? { cycle: parsed.cycle, recurrenceAnchor: parsed.recurrenceAnchor ?? "due" } : {}),
+            });
             dlg.destroy();
             if (onMemoUpdated) await onMemoUpdated();
         } catch (e) {

@@ -1,3 +1,26 @@
+## v0.5.184 2026-10-31（本地就绪版）
+
+### 存量材料收口、回收站与备忘运行态持久化修复、双基准循环与自然语言标记全链路闭环
+
+#### 🛠️ 修复（Fixed）
+- **[P0 级] 生产构建 Svelte 5 响应式追踪守卫（`pure_getters: false`）**：修复 `vite.config.ts` 开启 Terser `pure_getters: true` 将 `void version`（编译为 `void $$props.version`）当作无副作用代码剔除、导致生产包面板无法随扫描与操作实时刷新的缺陷，并在 `scripts/smoke-test.mjs` 增加产物守卫；
+- **[P0 级] 运行态语义指纹补齐 `trash` 与 `firstRunWelcomed`**：修复 `semanticRuntimeFingerprint` 遗漏 `trash` 导致单删无提醒记录、恢复或清空回收站时因指纹不变跳过 `saveData` 写盘的缺陷；`loadRuntime` 新增 `normalizeTrash` 结构清洗，杜绝重载后僵尸快照复活；
+- **[P0 级] 快速备忘（`adhoc`）延后、批量顺延与忽略闭环 + 孤儿清理**：修复 `applyRuntime` 遍历 `rt.memos` 时未检查 `muted` 与 `snoozed` 的缺陷；修复 `listHandled` 对被忽略备忘丢失标题与模块归属的问题；在 `removeMemo` 与 `cleanupRowRuntimeData` 中同步清理 `muted` 与 `snoozeCounts` 孤儿键；
+- **[P1 级] 总览逾期批量顺延与撤销并发互斥锁**：为总览页「逾期顺延至今日」与「撤销顺延」接入 `runOverviewAction("batch-postpone")` 互斥锁与按钮 `disabled` / `aria-busy` 状态，防止连点重复顺延覆盖原始撤销快照；
+- **[P2 级] 代码回退版本常量漂移治理**：同步 `src/index.ts` 与 `src/core/ecosystem-integration.ts` 的 `PLUGIN_VERSION` 回退常量至 `0.5.184`，并在 `scripts/check-meta.mjs` 增加静态交叉校验。
+
+#### 🚀 新增与补齐（Added）
+- **Quick Add `*周期` 与 `*!完成顺延` 语法解析**：`parseQuickAdd` 新增支持 `*每天`、`*每周`、`*每月`、`*每月15号`（含隐含到期日推算）、`*14天` 及完成顺延语法 `*!14天` / `*完成后7天` / `*顺延每周`，打通总览快速备忘预览胶囊、日历当日备忘录入，以及周期性备忘办结（`complete`）自动滚动至下一周期；
+- **家务台账按实际完成日顺延（`recurrenceAnchor: "completion"`）**：`SchemaLedgerProvider` 打通 `chores` 等模块的 `last_done` 列及 `chexecs` 完成流水读取，自动以最新实际完成日为基准派生下一期提醒；
+- **备忘优先级与分类标签展示及编辑闭环**：在 `reminder-card.svelte` 与 `overview-upcoming-list.svelte` 渲染 `!高/!中/!低` 优先级徽章与 `#分类` 标签徽章，`openMemoEditDialog` 与 `updateMemo` 支持修改优先级、分类与周期。
+
+#### 🔄 优化（Changed）
+- **设计令牌统一与 `:global` 裸类清零**：将 `.lv-parsechip` 变体、`.is-snooze-heavy`、`.lv-recurrence-badge`、`.lv-priority-badge`、`.lv-tag-badge` 收口至 `src/styles/design-system.scss` 的 `.lv-home` 作用域内，全部改用 `--lv-danger`、`--lv-warn`、`--lv-accent`、`--lv-ok` 语义令牌；
+- **残留中文硬编码国际化**：清零 `member-card.svelte`、`settings-data-tab.svelte`、`settings-modules-tab.svelte`、`tab-panel.svelte` 中的 7 处硬编码中文文案。
+
+<details>
+<summary><b>查看历史版本更新记录（v0.5.183 及更早版本）</b></summary>
+
 ## v0.5.183 2026-10-30（本地就绪版）
 
 ### 视觉感知层现代进化、双色分工与深色重音卡、全功能可用性闭环修复、体积门禁绿灯
@@ -2592,3 +2615,6 @@ UI 原型阶段：
 - UI 设计成套：新增「组件库」活体样式指南屏（七屏）、`src/styles/design-system.scss` 可编译设计系统（token 全部 b3 变量派生）、`docs/design/08` 组件契约（类名/变体/使用位置/状态矩阵/动效清单/C1-C8 对应）
 - `TODO.md` 项目待办总清单：24 组 276 项（含数据完整性、模块深化、UI 增强、kernel 基础设施、安全、性能、质量工程、文档、发布维护、数据管理十个补充维度），关键路径与阻塞点标注
 - `TODO.md` 扩充至 33 组 348 项（新增 GitHub 公开化准备、集市上架⏸暂缓、开发流程、思源平台适配、提醒中枢深化、i18n 细节、体验研究、前端工程规范八个维度）；发布策略定为「GitHub 公开 + Release，集市上架暂缓」
+
+</details>
+

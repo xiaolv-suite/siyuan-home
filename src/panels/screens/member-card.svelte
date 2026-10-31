@@ -152,15 +152,15 @@
                 <span class="lv-badge gray">{c.label} <b class="lv-num">{c.n}</b></span>
             {/each}
             {#if stats.birthday}
-                <span class="lv-badge lv-member-birthday">生日 · {stats.birthday}</span>
+                <span class="lv-badge lv-member-birthday">{t("field.birthday")} · {stats.birthday}</span>
             {/if}
         </div>
     {/if}
     {#if alerts.length > 0}
         <button type="button" class="lv-person-alert"
-            title="点击展开该成员详情与到期提醒"
+            title={t("members.toggleDetails").replace("${name}", m.name)}
             onclick={() => { if (!expanded) onToggleExpand(); }}>
-            <span><UiIcon name="alert" size={13} /> 需关注 · <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
+            <span><UiIcon name="alert" size={13} /> <b>{alerts.length}</b> {alerts.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
             <span class="lv-caption lv-person-alert-arrow" aria-hidden="true"><UiIcon name="forward" size={12} /></span>
         </button>
     {/if}

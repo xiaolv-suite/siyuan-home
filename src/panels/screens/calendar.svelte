@@ -5,6 +5,7 @@
     import { monthGrid, weekGrid } from "@/core/calendar";
     import type { CalCell } from "@/core/calendar";
     import { localDateKey } from "@/core/hub/rule";
+    import { parseQuickAdd } from "@/core/quick-add";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { showMessage } from "siyuan";
@@ -15,7 +16,7 @@
         t: (k: string) => string;
         version?: number;
         onComplete: (r: Reminder) => void | Promise<void>;
-        onAddMemo: (title: string, due: string) => void | Promise<void>;
+        onAddMemo: (title: string, due: string, options?: any) => void | Promise<void>;
         onConvert: (r: Reminder) => void;
         /** 263 波：会历模式偏好（runtime 持久化，由父组件读写） */
         initialMode?: "month" | "week";
@@ -121,15 +122,23 @@
     }
     async function addMemoForDay() {
         if (savingMemo) return;
-        const title = memoTitle.trim();
-        if (!title) {
+        const rawTitle = memoTitle.trim();
+        if (!rawTitle) {
             memoInput?.focus();
             showMessage(t("memo.titleRequired"), 4000, "info");
             return;
         }
+        const parsed = parseQuickAdd(memoTitle);
+        const cleanTitle = parsed.cleanTitle || rawTitle;
+        const targetDue = parsed.dueDate || selected;
         savingMemo = true;
         try {
-            await onAddMemo(title, selected);
+            await onAddMemo(cleanTitle, targetDue, {
+                priority: parsed.priority,
+                category: parsed.category,
+                cycle: parsed.cycle,
+                recurrenceAnchor: parsed.recurrenceAnchor,
+            });
             memoTitle = "";
         } catch (e) {
             showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");

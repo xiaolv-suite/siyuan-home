@@ -161,6 +161,19 @@ export function normalizeNestedCounts(value: unknown): Record<string, Record<str
     return Object.fromEntries(Object.entries(value).filter((entry) => isPlainObject(entry[1])).map(([date, counts]) => [date, numberRecord(counts)]));
 }
 
+export function normalizeTrash(value: unknown): HubRuntime["trash"] {
+    if (!Array.isArray(value)) return undefined;
+    return value
+        .filter((item) => isPlainObject(item) && typeof item.id === "string" && typeof item.moduleId === "string" && typeof item.title === "string" && typeof item.deletedAt === "string")
+        .map((item) => ({
+            id: item.id as string,
+            moduleId: item.moduleId as string,
+            title: item.title as string,
+            deletedAt: item.deletedAt as string,
+            rowSnapshot: isPlainObject(item.rowSnapshot) ? item.rowSnapshot : {},
+        }));
+}
+
 /** 旧缓存迁移（33.3）：缺字段补默认值；byModule/derived 为 H02/H04 新增。坏文件容错同 settings（15 组） */
 export async function loadRuntime(plugin: Plugin): Promise<HubRuntime> {
     const { data } = await import("../settings").then((m) => m.loadDataSafe(plugin, RUNTIME_NAME));
@@ -182,6 +195,7 @@ export async function loadRuntime(plugin: Plugin): Promise<HubRuntime> {
         hubCalMode: data.hubCalMode === "month" || data.hubCalMode === "week" ? data.hubCalMode : undefined,
         // 267 波：快速记录上次模块（坏值回退 undefined=首个启用模块）
         hubQuickModule: optionalString("hubQuickModule"),
+        firstRunWelcomed: typeof data.firstRunWelcomed === "boolean" ? data.firstRunWelcomed : undefined,
         ledgerSortKey: optionalString("ledgerSortKey"),
         ledgerSortAsc: typeof data.ledgerSortAsc === "boolean" ? data.ledgerSortAsc : undefined,
         cache: normalizeCache(data.cache),
@@ -211,6 +225,7 @@ export async function loadRuntime(plugin: Plugin): Promise<HubRuntime> {
         monthlyDueTotals: numberRecord(data.monthlyDueTotals),
         moduleHistory: normalizeNestedCounts(data.moduleHistory),
         guestModeActive: typeof data.guestModeActive === "boolean" ? data.guestModeActive : undefined,
+        trash: normalizeTrash(data.trash),
     };
     if (isPlainObject(data.lastExamStats)
         && [data.lastExamStats.streak, data.lastExamStats.accuracy, data.lastExamStats.attempts, data.lastExamStats.generatedAt].every((n) => typeof n === "number" && Number.isFinite(n))) {
@@ -258,6 +273,7 @@ export function semanticRuntimeFingerprint(rt: HubRuntime): string {
         hubViewMode: rt.hubViewMode,
         hubCalMode: rt.hubCalMode,
         hubQuickModule: rt.hubQuickModule,
+        firstRunWelcomed: rt.firstRunWelcomed,
         ledgerSortKey: rt.ledgerSortKey,
         ledgerSortAsc: rt.ledgerSortAsc,
         namedViews: rt.namedViews,
@@ -299,6 +315,7 @@ export function semanticRuntimeFingerprint(rt: HubRuntime): string {
         monthlyDueTotals: rt.monthlyDueTotals,
         moduleHistory: rt.moduleHistory,
         guestModeActive: rt.guestModeActive,
+        trash: rt.trash,
     });
 }
 

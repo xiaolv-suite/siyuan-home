@@ -158,4 +158,33 @@ describe("runtime-store (提醒中枢运行态序列化与持久化中枢)", () 
         await Promise.all([p1, p2]);
         expect(executionOrder).toEqual([1, 2]);
     });
+
+    it("trash 回收站增删与清空纳入语义指纹，单独修改 trash 时必须触发真实落盘", async () => {
+        savedData[RUNTIME_NAME] = {
+            schemaVersion: 1,
+            trash: [
+                {
+                    id: "t-1",
+                    moduleId: "certs",
+                    title: "旧身份证",
+                    deletedAt: "2026-10-30T10:00:00.000Z",
+                    rowSnapshot: { itemID: "row-1", cells: {} },
+                },
+                { invalid: true },
+            ],
+        };
+
+        const rt = await loadRuntime(mockPlugin);
+        expect(rt.trash).toHaveLength(1);
+        expect(rt.trash?.[0].title).toBe("旧身份证");
+
+        // 清空回收站并保存，指纹必须变化并写入磁盘
+        rt.trash = [];
+        await saveRuntime(mockPlugin, rt);
+        expect(mockPlugin.saveData).toHaveBeenCalledTimes(1);
+
+        // 重新加载验证不会复活僵尸条目
+        const reloaded = await loadRuntime(mockPlugin);
+        expect(reloaded.trash).toEqual([]);
+    });
 });

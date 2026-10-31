@@ -109,7 +109,10 @@ export default defineConfig(buildTarget === "kernel" ? {
                 passes: 6,
                 drop_console: true,
                 drop_debugger: true,
-                pure_getters: true,
+                // 严禁开启 pure_getters: true！Svelte 5 的组件 props 通过对象 getter (get version() { return $.get(version); })
+                // 进行响应式依赖追踪，开启 pure_getters 会导致 Terser 将 `void version;` (即 `void $$props.version;`) 当作无副作用死代码剔除，
+                // 从而彻底破坏全站 $derived 与 $effect 的响应式刷新！
+                pure_getters: false,
                 unsafe_arrows: true,
                 toplevel: true,
                 reduce_funcs: true,

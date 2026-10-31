@@ -181,6 +181,9 @@ export class SchemaLedgerProvider implements DataProvider {
         const { ref, rows } = loaded;
         const out: Reminder[] = [];
         const members = this.deps.settings.members ?? [];
+        const logs = (this.moduleId === "chores" && this.deps.loadRowLogs && ref.avId)
+            ? await this.deps.loadRowLogs().catch(() => ({}))
+            : undefined;
         // 通用终态过滤：状态命中即跳过（字典 status 枚举的非活跃值）
         const skip = new Set(["archived", "void", "expired", "renewed", "refunded", "discarded", "surrendered", "ins_expired", "med_expired", "m_expired"]);
         for (const row of rows) {
@@ -189,6 +192,18 @@ export class SchemaLedgerProvider implements DataProvider {
             const name = textFromValue(cell("name")) ?? this.moduleId;
             const rel: string[] | undefined = cell("member")?.relation?.blockIDs ?? undefined;
             const member = rel?.[0] ? members.find((m) => m.avItemId === rel[0]) : undefined;
+            let completedDate = ref.columns?.last_done
+                ? (dateFromValue(cell("last_done")) ?? textFromValue(cell("last_done")))
+                : undefined;
+            if (this.moduleId === "chores" && logs && ref.avId) {
+                const execs = getEntries<{ date?: string }>(logs, ref.avId, row.itemID, "chexecs");
+                for (const ex of execs) {
+                    const d = typeof ex?.date === "string" ? ex.date.trim() : "";
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!completedDate || d > completedDate)) {
+                        completedDate = d;
+                    }
+                }
+            }
             for (const rule of this.schema.reminders ?? []) {
                 // onlyIf（190 波）：仅当指定 select 列值匹配时才派生（favors 只对收礼 direction=in 回礼）
                 if (rule.onlyIf) {
@@ -199,9 +214,19 @@ export class SchemaLedgerProvider implements DataProvider {
                 const fieldValue = dateFromValue(v) ?? textFromValue(v);
                 if (!fieldValue) continue;
                 const cycleKey = rule.cycleField ?? "cycle";
-                const r = await buildReminder(rule, this.moduleId, {
+                const rawCycle = selectFromValue(cell(cycleKey)) ?? textFromValue(cell(cycleKey));
+                const isRecurring = rule.kind === "recurring" || (this.moduleId === "chores" && !!rawCycle);
+                const effectiveRule: ReminderRuleSpec = isRecurring && rule.kind !== "recurring"
+                    ? { ...rule, kind: "recurring" }
+                    : rule;
+                const recurrenceAnchor = isRecurring
+                    ? (completedDate ? "completion" : (rule.recurrenceAnchor ?? (this.moduleId === "chores" ? "completion" : undefined)))
+                    : undefined;
+                const r = await buildReminder(effectiveRule, this.moduleId, {
                     rowId: row.itemID, title: name, memberId: member?.id, fieldValue,
-                    cycle: rule.kind === "recurring" ? (selectFromValue(cell(cycleKey)) ?? textFromValue(cell(cycleKey))) : undefined,
+                    cycle: isRecurring ? rawCycle : undefined,
+                    ...(completedDate ? { completedDate } : {}),
+                    ...(recurrenceAnchor ? { recurrenceAnchor } : {}),
                     lunar: !!cell(rule.lunarField ?? "lunar")?.checkbox?.checked,
                     ...(rule.autoRenewField ? { autoRenew: !!cell(rule.autoRenewField)?.checkbox?.checked } : {}),
                 }, { today, leadOverride: leadFor(this.deps.settings, this.moduleId, rule) });

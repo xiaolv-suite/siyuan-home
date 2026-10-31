@@ -44,6 +44,8 @@
             await plugin.addMemo(title, d, {
                 priority: parsed.priority,
                 category: parsed.category,
+                cycle: parsed.cycle,
+                recurrenceAnchor: parsed.recurrenceAnchor,
             });
             memoTitle = ""; memoDue = "";
         } catch (e) {
@@ -76,6 +78,11 @@
                 <UiIcon name="bookmark" size={12} /> #{quickParsed.category}
             </span>
         {/if}
+        {#if quickParsed.cycle}
+            <span class="lv-parsechip lv-parsechip--cycle" role="status" title={quickParsed.recurrenceAnchor === "completion" ? t("hub.recurrenceAnchorCompletion") : t("hub.recurrenceAnchorDue")}>
+                <UiIcon name="repeat" size={12} /> {quickParsed.cycleToken || quickParsed.cycle}
+            </span>
+        {/if}
     {/if}
     <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
     <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim()} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
@@ -84,25 +91,5 @@
 <style>
     .lv-memo-input {
         min-width: 180px;
-    }
-    .lv-parsechip--high {
-        background: rgba(239, 68, 68, 0.12);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .lv-parsechip--medium {
-        background: rgba(245, 158, 11, 0.12);
-        color: #f59e0b;
-        border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-    .lv-parsechip--low {
-        background: rgba(59, 130, 246, 0.12);
-        color: #3b82f6;
-        border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-    .lv-parsechip--cat {
-        background: rgba(16, 185, 129, 0.12);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.3);
     }
 </style>

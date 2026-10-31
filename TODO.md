@@ -1,5 +1,21 @@
-# 小驴管家（Lv Home）· 项目待办总清单
-> **当前事实（2026-10-27）**：本地 `main` 为 v0.5.111，91 个测试文件 / 811 项单测、类型/Svelte/i18n/meta/audit/build/smoke/loader 全绿；Spotlight键盘流式导航、双语国际化闭环、单测811项；i18n 1962 键对齐。真实 Android WebView、独立窗口、兄弟插件、双端冲突和用户工作区验证待完成；`pnpm test:live` 缺少 `SIYUAN_TOKEN` 时阻断；集市发布继续暂缓。
+# 小驴管家（Lv Home）· 项目待办总清单（单一事实来源池）
+> **当前事实（2026-10-31）**：本地 `main` 为 **v0.5.184**，173 个测试文件 / **1,133 项单测**、类型/Svelte/i18n（2,052 键对齐）/meta/audit/build/smoke/loader 全绿；完整存量盘点、原型对照、缺陷排查、功能链路验证与界面审查报告见 [`docs/audit/2026-10-31-全量盘点与闭环验收报告.md`](./docs/audit/2026-10-31-全量盘点与闭环验收报告.md)。
+
+## 统一待办池（2026-10-31 单一事实来源 · 优先级 = 影响面 × 频率 ÷ 成本）
+
+> 评分标尺：影响面（1–5）、触发频率（1–5）、实施成本（1–5）；优先级得分 = `(影响面 × 频率) / 成本`。同一根因多条已合并为单一条目。本轮按“先修缺陷 ➔ 再补半成品功能 ➔ 最后体验与文档收口”顺序执行。
+
+| 编号 | 状态 | 类型 | 问题描述与合并根因 | 影响面 | 验收方式 | 成本 | 依赖项 | 优先级（得分与理由） |
+|---|---|---|---|---|---|---|---|---|
+| **POOL-00** | ✅ 已完成 | 缺陷 | **Terser `pure_getters: true` 剥离 Svelte 5 `void version` 属性 getter 导致生产包全站响应式失效**：靶场实测发现生产包总览待办数恒为 `0`，关闭 `pure_getters` 并在 `smoke-test.mjs` 增加 `.version` 守卫后恢复实时响应 | 5（全站生产UI） | `pnpm run smoke` + 隔离靶场浏览器实测 `.lv-hero-stat-num` 与 `.lv-rem` 实时更新 | 1 | 无 | **P0（25.0 = 5×5÷1）**：生产打包压缩破坏 Svelte 5 props 响应式追踪，必须首修 |
+| **POOL-01** | ✅ 已完成 | 缺陷 | **运行态语义指纹遗漏 `trash` 与 `firstRunWelcomed`**：单删无提醒行、恢复或清空回收站时因指纹未变跳过 `saveData`，重载后已删/已清空条目复活或快照丢失；`loadRuntime` 缺 `trash` 归一化 | 5（数据持久化） | 单测 `runtime-store.test.ts` 断言单独清空 `trash` 触发 `saveData` 且重载后为空 | 1 | 无 | **P0（20.0 = 5×4÷1）**：直接导致回收站清空/恢复在重载后失效 |
+| **POOL-02** | ✅ 已完成 | 缺陷 | **快速备忘（`adhoc`）延后/忽略在 `applyRuntime` 与 `listHandled` 中断路 + 删行孤儿残留**：`applyRuntime` 未检查备忘的 `muted` 与 `snoozed`；`listHandled` 对忽略备忘丢标题与模块；`removeMemo` 与 `cleanupRowRuntimeData` 未清理 `muted`/`snoozeCounts` | 5（提醒中枢核心） | 单测 `github-benchmark-fusion.test.ts` 验证备忘延后隐藏、到期重现、忽略进入已处理并带标题、删除后零孤儿残留 | 2 | 无 | **P0（12.5 = 5×5÷2）**：备忘延后/批量顺延/忽略高频操作完全不生效 |
+| **POOL-03** | ✅ 已完成 | 缺陷 | **总览「逾期一键顺延至今日」与「撤销顺延」缺少并发互斥锁**：连点重复执行 `batchSnooze` 导致 `snoozeCount` 双重累加且覆盖 `lastPostponedOverdueMap` 破坏撤销 | 3（总览高频交互） | `runOverviewAction("batch-postpone")` 互斥锁 + 按钮 `disabled`/`aria-busy` 绑定验证 | 1 | 无 | **P1（9.0 = 3×3÷1）**：连点即破坏撤销快照，修复成本极低 |
+| **POOL-04** | ✅ 已完成 | 功能 | **半成品补齐：双基准循环（`recurrenceAnchor`）与 `*周期` 语法全链路闭环**：补齐 `parseQuickAdd` 的 `*周期`/`*!完成顺延` 解析、总览与日历快速备忘接线、周期备忘 `complete` 自动滚下一期、`SchemaLedgerProvider` 读取 `chores` 的 `last_done`/`chexecs` 按实际完成日派生 | 4（周期提醒核心） | 单测验证 `*每月15号`/`*!14天` 解析、周期备忘完成滚期、`chores` 完成流水顺延派生 | 2 | POOL-02 | **P1（8.0 = 4×4÷2）**：消除只写纯函数未接数据源与 UI 的半成品 |
+| **POOL-05** | ✅ 已完成 | 功能 | **半成品补齐：快速备忘 `!优先级` 与 `#分类` 标签在提醒卡/总览/编辑弹窗闭环**：在 `reminder-card.svelte` 与 `overview-upcoming-list.svelte` 渲染优先级与 `#分类` 徽章，`openMemoEditDialog` 与 `updateMemo` 支持修改优先级/分类/周期 | 3（提醒与总览展示） | 单测 + 提醒卡片/总览组件渲染与 `updateMemo` 字段更新验证 | 1 | POOL-04 | **P1（9.0 = 3×3÷1）**：消除录入时有预览胶囊、保存后消失的半成品体验 |
+| **POOL-06** | ✅ 已完成 | 体验 | **界面令牌收口与残留硬编码文案国际化**：移除 `overview-quick-memo`/`reminder-card`/`overview-upcoming-list` 中硬编码色值与顶层 `:global` 裸类，统一收口至 `.lv-home` 设计令牌；清除 `member-card`/`settings-data-tab`/`settings-modules-tab`/`tab-panel` 7 处中文硬编码 | 3（全界面双主题/双语） | `svelte-check` + `check:i18n` + 靶场亮暗双主题走查零裸类零硬编码 | 1 | 无 | **P2（9.0 = 3×3÷1）**：保障暗色模式对比度与英文环境完整性 |
+| **POOL-07** | ⏸ 挂起 | 技术债 | **真实 Android WebView 软键盘/返回键与双物理设备同步冲突验证**（原 `DEVICE-01~06` 残余项） | 3（移动端/多端） | 真实 Android 手机与双端工作区手工 runbook 验证 | 5 | 物理真机环境 | **P3（1.2 = 3×2÷5）**：桌面与移动端视口 e2e 已自动化覆盖，真机物理项待硬件环境 |
+| **POOL-08** | ⏸ 观察 | 功能 | **分级可见性与身后交接（G9）/ 对外标准 MCP 端点（G10）** | 2（远期扩展） | 宿主权限模型与外部契约立项评审 | 5 | 思源宿主 ACL | **P3（0.4 = 2×1÷5）**：受宿主单工作区无逐用户 ACL 限制，当前由只读访客模式替代 |
 
 ## 第 224 波复审行动清单（当前唯一入口）
 

@@ -168,7 +168,7 @@ export const HANDLED_KEEP_DAYS = 30;
 export function cleanupRowRuntimeData(rt: HubRuntime, rowId: string): boolean {
     let dirty = false;
     const prefix = `${rowId}::`;
-    for (const map of [rt.handled, rt.handledYear, rt.handledUntil, rt.snoozed, rt.planDates ?? {}]) {
+    for (const map of [rt.handled, rt.handledYear, rt.handledUntil, rt.snoozed, rt.muted, rt.snoozeCounts ?? {}, rt.planDates ?? {}]) {
         for (const key of Object.keys(map)) {
             if (key.startsWith(prefix)) { delete map[key]; dirty = true; }
         }
@@ -276,17 +276,21 @@ export function applyRuntime(
     }
     for (const m of rt.memos ?? []) {
         if (m.doneAt) continue; // 已办备忘不进活跃列表（已处理视图可见可恢复）
-        const daysLeft = Math.round((parseLocal(m.dueDate) - todayZero) / 86400000);
-        const level: ReminderLevel = daysLeft < 0 ? "overdue" : daysLeft <= 7 ? "soon" : "lead";
         const memoReminderId = `adhoc::${m.id}`;
+        if (rt.muted[memoReminderId]) continue; // 忽略的备忘隐藏（可在已处理视图恢复）
         const memoSnoozeCount = rt.snoozeCounts?.[memoReminderId] ?? m.snoozeCount;
+        const snoozeDate = rt.snoozed[memoReminderId];
+        if (snoozeDate && todayKey < snoozeDate) continue; // 延后未到期 → 隐藏
+        const effectiveDue = snoozeDate || m.dueDate;
+        const daysLeft = Math.round((parseLocal(effectiveDue) - todayZero) / 86400000);
+        const level: ReminderLevel = daysLeft < 0 ? "overdue" : (snoozeDate || daysLeft <= 7) ? "soon" : "lead";
         out.push({
             id: memoReminderId,
             moduleId: "adhoc",
             ruleKey: "memo",
             rowId: m.id,
             title: m.title,
-            dueDate: m.dueDate,
+            dueDate: effectiveDue,
             daysLeft,
             level,
             kind: m.cycle ? "recurring" : "oneoff",
@@ -315,6 +319,7 @@ export interface HandledEntry {
  * 从这个稳定部分回推模块，避免模块筛选把历史条目当成无归属数据隐藏。
  */
 function moduleIdFromReminderId(id: string): string {
+    if (id.startsWith("adhoc::")) return "adhoc";
     const marker = id.indexOf("::");
     if (marker < 0) return "";
     const moduleAndRule = id.slice(marker + 2);
@@ -329,13 +334,21 @@ function moduleIdFromReminderId(id: string): string {
  */
 export function listHandled(rt: HubRuntime, derived: Reminder[]): HandledEntry[] {
     const byId = new Map(derived.map((r) => [r.id, r]));
+    const memoById = new Map((rt.memos ?? []).map((m) => [`adhoc::${m.id}`, m]));
     const out: HandledEntry[] = [];
     for (const [id, rec] of Object.entries(rt.handled)) {
         out.push({ id, title: rec.title, moduleId: rec.moduleId, dueDate: rec.dueDate, at: rec.at, kind: "done" });
     }
     for (const id of Object.keys(rt.muted)) {
         const r = byId.get(id);
-        out.push({ id, title: r?.title ?? "", moduleId: r?.moduleId ?? moduleIdFromReminderId(id), dueDate: r?.dueDate, kind: "muted" });
+        const m = memoById.get(id);
+        out.push({
+            id,
+            title: r?.title ?? m?.title ?? "",
+            moduleId: r?.moduleId ?? (m ? "adhoc" : moduleIdFromReminderId(id)),
+            dueDate: r?.dueDate ?? m?.dueDate,
+            kind: "muted",
+        });
     }
     for (const [id, year] of Object.entries(rt.handledYear)) {
         const r = byId.get(id);

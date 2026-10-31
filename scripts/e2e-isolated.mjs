@@ -966,6 +966,188 @@ async function main() {
             `lifelog=${docSyncVerification.lifelogFormatValid}, ymDesc=${docSyncVerification.yearMonthDesc}, biLinks=${docSyncVerification.hasBidirectionalLinks}`,
         );
 
+        // ── Step 15: 各种录入方式与全部按钮交互全面实测（三数换算/加满充满/步进器/便签芯片/通知置顶/记忆引擎）──
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(800);
+        await clearSnackbars();
+
+        // 1. 打开快速记录弹窗并切换至加油
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(600);
+        const quickModal = page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']");
+        assert.equal(await quickModal.isVisible(), true, "快速记录弹层应正常唤起");
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "加油" }).click();
+        await sleep(300);
+
+        // 2. 测试【昨天 / 此刻】按钮与时间联动
+        const chipYesterday = page.locator(".lv-dt-quick-bar .lv-dt-chip").filter({ hasText: "昨天" }).first();
+        await chipYesterday.click();
+        await sleep(200);
+        const yDateVal = await page.locator("#lv-fuel-date, input.lv-date-field").first().inputValue();
+        const expectedYesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        assert.equal(yDateVal, expectedYesterday, "点击【昨天】芯片应自动填入昨天日期");
+
+        const btnSnapNow = page.locator(".lv-snap-now-btn").first();
+        await btnSnapNow.click();
+        await sleep(200);
+        const nowDateVal = await page.locator("#lv-fuel-date, input.lv-date-field").first().inputValue();
+        const todayStr = new Date().toISOString().slice(0, 10);
+        assert.equal(nowDateVal, todayStr, "点击【此刻】按钮应自动同步恢复到今天日期");
+
+        // 3. 测试加油单价与金额联动换算
+        const chip95 = page.locator(".lv-pill-chip").filter({ hasText: "95#" }).first();
+        if (await chip95.count()) await chip95.click();
+        await sleep(150);
+
+        // 输入油价 8.00 与金额 400 ➔ 升数自动计算为 50
+        await page.locator("#lv-unit-price").fill("8");
+        await sleep(100);
+        await page.locator("#lv-fuel-amount").fill("400");
+        await sleep(200);
+        const autoLiters = await page.locator("#lv-fuel-liters").inputValue();
+        assert.equal(Number(autoLiters), 50, "输入单价8元和总额400元，升数应自动联动算为50升");
+
+        // 清空金额输入升数 60 ➔ 金额自动换算为 480
+        await page.locator("#lv-fuel-amount").fill("");
+        await sleep(100);
+        await page.locator("#lv-fuel-liters").fill("60");
+        await sleep(200);
+        const autoAmount = await page.locator("#lv-fuel-amount").inputValue();
+        assert.equal(Number(autoAmount), 480, "输入单价8元和升数60升，总额应自动联动算为480元");
+
+        // 双方均有值时反推实际单价：输入总额 420 ➔ 单价反推为 7.00 元/升
+        await page.locator("#lv-fuel-amount").fill("420");
+        await sleep(200);
+        const autoPrice = await page.locator("#lv-unit-price").inputValue();
+        assert.equal(Number(autoPrice), 7, "实付420元与加60升，单价应自动反推为7.00元/升");
+
+        // 重设为 8 元单价与 400 元
+        await page.locator("#lv-unit-price").fill("8");
+        await sleep(100);
+        await page.locator("#lv-fuel-amount").fill("400");
+        await sleep(200);
+
+        // 勾选【加满】
+        const fuelFullCheckbox = page.locator("#lv-fuel-full");
+        if (!(await fuelFullCheckbox.isChecked())) await fuelFullCheckbox.click();
+        await sleep(100);
+        assert.equal(await fuelFullCheckbox.isChecked(), true, "加满复选框应成功勾选");
+
+        // 4. 测试切换【充电】方式与家充单价联动
+        const chargeKindBtn = page.locator(".lv-segmented-group .lv-seg-btn").filter({ hasText: "充电" }).first();
+        await chargeKindBtn.click();
+        await sleep(200);
+        const homeChargeChip = page.locator(".lv-pill-chip").filter({ hasText: "家充" }).first();
+        if (await homeChargeChip.count()) await homeChargeChip.click();
+        await sleep(150);
+        await page.locator("#lv-fuel-amount").fill("");
+        await page.locator("#lv-fuel-liters").fill("");
+        await sleep(100);
+        await page.locator("#lv-unit-price").fill("0.6");
+        await sleep(100);
+        await page.locator("#lv-fuel-liters").fill("50");
+        await sleep(200);
+        const chargeAmount = await page.locator("#lv-fuel-amount").inputValue();
+        assert.equal(Number(chargeAmount), 30, "输入家充电价0.6元与50度，总额应自动算为30元");
+
+        // 切回加油，填入里程并保存
+        const fuelKindBtn = page.locator(".lv-segmented-group .lv-seg-btn").filter({ hasText: "加油" }).first();
+        await fuelKindBtn.click();
+        await sleep(200);
+        await page.locator("#lv-fuel-amount").fill("400");
+        await page.locator("#lv-fuel-liters").fill("50");
+        await page.locator("#lv-fuel-mileage").fill("16000");
+
+        // 点击保存，验证秒级关闭弹窗（耗时小于 1500ms）
+        const saveStart = Date.now();
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']").waitFor({ state: "detached", timeout: 2500 });
+        const saveDuration = Date.now() - saveStart;
+        assert.equal(saveDuration < 1500, true, `快速录入保存应秒级响应 (耗时 ${saveDuration}ms)`);
+        await sleep(600);
+
+        // 5. 验证弹窗与系统通知层级（z-index 规则置顶）
+        const zIndexCheck = await page.evaluate(() => {
+            const el = document.getElementById("message") || document.getElementById("tempMessage");
+            return el ? window.getComputedStyle(el).zIndex : "";
+        });
+        assert.equal(zIndexCheck, "99999", `系统通知容器 z-index 必须为 99999 (当前: ${zIndexCheck})`);
+
+        // 6. 测试健康体征扩充录入：体重 (kg) 与 体温 (℃)
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(400);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: /血压|体征/ }).click();
+        await sleep(300);
+        await page.locator(".lv-segmented-group .lv-seg-btn").filter({ hasText: "体重" }).click();
+        await sleep(200);
+        await page.locator("#lv-vital-weight").fill("68.5");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await sleep(800);
+
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(400);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: /血压|体征/ }).click();
+        await sleep(300);
+        await page.locator(".lv-segmented-group .lv-seg-btn").filter({ hasText: "体温" }).click();
+        await sleep(200);
+        await page.locator("#lv-vital-temp").fill("36.6");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await sleep(800);
+
+        // 7. 测试待买清单数量步进器按钮（+ / -）
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(400);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "待买" }).click();
+        await sleep(300);
+        await page.locator("#lv-shop-name").fill("纸巾抽纸");
+        const stepPlus = page.locator(".lv-stepper-row button").filter({ hasText: "+" }).first();
+        const stepMinus = page.locator(".lv-stepper-row button").filter({ hasText: "-" }).first();
+        await stepPlus.click();
+        await sleep(100);
+        await stepPlus.click();
+        await sleep(100);
+        let qtyVal = await page.locator("#lv-shop-qty").inputValue();
+        assert.equal(Number(qtyVal), 3, "连续点击两次加号，待买数量应步进至 3");
+        await stepMinus.click();
+        await sleep(100);
+        qtyVal = await page.locator("#lv-shop-qty").inputValue();
+        assert.equal(Number(qtyVal), 2, "点击减号，待买数量应减为 2");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await sleep(800);
+
+        // 8. 测试便签标签芯片一键添加
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(400);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "便签" }).click();
+        await sleep(300);
+        await page.locator("#lv-snip-text").fill("给阳台绿植浇水");
+        const dailyTagChip = page.locator(".lv-pill-chips button").filter({ hasText: "#日常" }).first();
+        if (await dailyTagChip.count()) await dailyTagChip.click();
+        await sleep(150);
+        const snipContent = await page.locator("#lv-snip-text").inputValue();
+        assert.equal(snipContent.includes("#日常"), true, "点击标签芯片应自动追加 #日常 到便签末尾");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await sleep(800);
+
+        // 9. 验证记忆引擎：再次打开快速记录，验证油价、加满状态自动保留！
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(400);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "加油" }).click();
+        await sleep(300);
+        const rememberedUnitPrice = await page.locator("#lv-unit-price").inputValue();
+        const rememberedIsFull = await page.locator("#lv-fuel-full").isChecked();
+        assert.equal(Number(rememberedUnitPrice), 8, "记忆引擎应记住上次油价 8.00 元");
+        assert.equal(rememberedIsFull, true, "记忆引擎应记住上次加满状态");
+        await page.keyboard.press("Escape");
+        await sleep(300);
+
+        await page.screenshot({ path: path.join(SHOT_DIR, "15-quick-flows-comprehensive.png") });
+        rec(
+            "Step 15 · 各种录入方式与全部按钮交互全面实测（三数换算/加满充满/步进器/便签芯片/通知置顶/记忆引擎）",
+            true,
+            `三数联动与记忆正常，通知置顶z=${zIndexCheck}，保存耗时${saveDuration}ms`,
+        );
+
         await browser.close();
         browser = undefined;
 

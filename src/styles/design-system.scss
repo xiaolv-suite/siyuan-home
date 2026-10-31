@@ -981,6 +981,9 @@
   .lv-skel-col { flex: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
   .lv-skel--w42 { height: 13px; width: 42%; }
   .lv-skel--w26 { height: 11px; width: 26%; }
+  .lv-skel--w56 { height: 13px; width: 56%; }
+  .lv-skel--w38 { height: 11px; width: 38%; }
+  .lv-mod-doc-btn { margin-left: auto; padding: 2px 5px; min-height: 24px; color: var(--lv-tx-3); &:hover { color: var(--lv-accent); } }
   .lv-scan-hint { margin: 8px 2px; }
   .lv-card-center-pad { display: flex; justify-content: center; padding: 12px; }
   .lv-rem { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; position: relative;
@@ -2286,6 +2289,48 @@
   @media (prefers-reduced-motion: reduce) {
     .lv-person-expanded { animation: none; }
   }
+
+  .lv-avatar-trigger { width: 32px; height: 32px; min-width: 32px; min-height: 32px; margin: 0; padding: 0; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; overflow: hidden;
+    border: 1.5px solid var(--lv-line-strong); border-radius: 50%; background: var(--lv-surface-2); color: var(--lv-accent);
+    font-size: 13px; font-weight: 650; cursor: pointer; line-height: 1; transition: border-color var(--lv-t-med) var(--lv-ease), transform var(--lv-t-med) var(--lv-ease);
+    &:hover { border-color: var(--lv-accent); transform: translateY(-1px); }
+    img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; background: var(--lv-accent-soft); line-height: 1; text-align: center; } }
+  .lv-avatar-dialog { width: min(460px, calc(100vw - 28px)); max-height: min(680px, calc(100dvh - 28px)); overflow: auto; padding: 20px;
+    border: 1px solid var(--lv-line-strong); border-radius: var(--lv-r-3); background: var(--lv-surface); color: var(--lv-tx);
+    box-shadow: var(--lv-shadow-3);
+    &::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(6px); }
+    .lv-avatar-status { margin: 9px 0 0; color: var(--lv-tx-3); font-size: 11px; } }
+  .lv-avatar-head { display: flex; align-items: flex-start; gap: 12px;
+    h2 { margin: 0; font-size: 16px; font-weight: 650; }
+    p { margin: 5px 0 0; color: var(--lv-tx-3); font-size: 12px; line-height: 1.5; } }
+  .lv-avatar-close { width: 32px; height: 32px; flex: none; margin-left: auto; border: 0; border-radius: 8px; background: transparent; color: var(--lv-tx-2); font-size: 20px; cursor: pointer;
+    &:hover { background: var(--lv-surface-2); } }
+  .lv-avatar-current { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 12px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); font-size: 12px;
+    img, > span { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 50%; object-fit: cover; background: var(--lv-accent-soft); color: var(--lv-accent); font-size: 16px; } }
+  .lv-avatar-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px;
+    button { min-height: 68px; display: grid; justify-items: center; align-content: center; gap: 4px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); color: var(--lv-tx-2); cursor: pointer;
+      &:hover, &[aria-pressed="true"] { border-color: var(--lv-accent); background: var(--lv-surface); color: var(--lv-tx); }
+      > span { font-size: 18px; line-height: 1.1; } }
+    small { color: var(--lv-tx-3); font-size: 10.5px; } }
+  .lv-avatar-custom { display: grid; gap: 6px; margin-top: 16px;
+    label { font-size: 12px; font-weight: 600; }
+    > div { display: flex; gap: 8px; }
+    input { flex: 1; min-width: 0; }
+    small { color: var(--lv-tx-3); font-size: 10.5px; } }
+  .lv-avatar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+    > :first-child { margin-right: auto; } }
+  .lv-avatar-status { min-height: 18px; }
+  .lv-avatar-crop-stage { display: grid; grid-template-columns: minmax(0, 1fr) 64px; align-items: center; justify-items: center; gap: 12px; margin-top: 16px; padding: 12px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); }
+  .lv-avatar-crop-canvas { width: min(100%, 300px); aspect-ratio: 1; touch-action: none; border-radius: 8px; background: var(--lv-surface-2); cursor: grab; outline-offset: 3px;
+    &:active { cursor: grabbing; } }
+  .lv-avatar-preview { width: 60px; height: 60px; border: 1px solid var(--lv-line); border-radius: 50%; background: var(--lv-surface); }
+  .lv-avatar-crop-tools { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 12px; margin-top: 14px;
+    label { color: var(--lv-tx-2); font-size: 12px; }
+    output { margin-left: 5px; color: var(--lv-tx); font-variant-numeric: tabular-nums; }
+    input { grid-column: 1 / -1; width: 100%; accent-color: var(--lv-accent); } }
+  @media (max-width: 460px) { .lv-avatar-dialog { padding: 16px; } .lv-avatar-trigger { width: 30px; height: 30px; } }
 
   // ── 活动流（Activity Feed）全局样式 ──
   .lv-activity { display:flex; flex-direction:column; gap:10px; min-width:0; margin-block:14px; }

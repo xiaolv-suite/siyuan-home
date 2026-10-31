@@ -242,27 +242,3 @@
     {/if}
 {/if}
 
-<style>
-    .lv-skel--icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 11px;
-    }
-    .lv-skel--w56 {
-        height: 13px;
-        width: 56%;
-    }
-    .lv-skel--w38 {
-        height: 11px;
-        width: 38%;
-    }
-    .lv-mod-doc-btn {
-        margin-left: auto;
-        padding: 2px 5px;
-        min-height: 24px;
-        color: var(--lv-tx-3);
-    }
-    .lv-mod-doc-btn:hover {
-        color: var(--lv-accent);
-    }
-</style>

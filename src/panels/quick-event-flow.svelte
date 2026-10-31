@@ -600,6 +600,14 @@
 
     export function reloadContext() {
         eventTime = currentLocalHHMM();
+        const defs = loadQuickDefaults(plugin);
+        if (defs.fuelPrice !== undefined) fuelPrice = defs.fuelPrice;
+        if (defs.chargePrice !== undefined) chargePrice = defs.chargePrice;
+        if (defs.fuelGrade !== undefined) fuelGrade = defs.fuelGrade;
+        if (defs.fuelIsFull !== undefined) isEnergyFull = defs.fuelIsFull;
+        if (defs.chargingMode !== undefined) chargingMode = defs.chargingMode;
+        if (defs.vitalMetricType) vitalMetricType = defs.vitalMetricType;
+        if (defs.shoppingCategory) quickShopCategory = defs.shoppingCategory;
         void loadQuickEventContext();
     }
 

@@ -46,6 +46,7 @@
     let moduleGroupFilter = $state<ModuleGroupId | "all">("all");
     let moduleQuery = $state("");
     let moduleGroupOpen = $state<Partial<Record<ModuleGroupId, boolean>>>({});
+    let showModuleTools = $state(false);
 
     const moduleGroupStats = $derived.by(() => {
         void version;
@@ -110,7 +111,13 @@
     const sparkOf = (mid: string): number[] | null => moduleSparks.get(mid) ?? null;
 </script>
 
-<div class="lv-sec"><h2 class="lv-title-sec">{t("dash.myModules")}</h2>
+<div class="lv-sec">
+    <h2 class="lv-title-sec">{t("dash.myModules")}</h2>
+    <span class="lv-sub"><b class="lv-num">{moduleCards.length}</b> {t("dash.moduleCount")}</span>
+    <span class="fn__flex-1"></span>
+    <button type="button" class="b3-button b3-button--text" aria-pressed={showModuleTools} onclick={() => { showModuleTools = !showModuleTools; }}>
+        <UiIcon name="filter" size={13} /> <span>{t("filter")}</span>
+    </button>
     <button type="button" class="b3-button b3-button--text" onclick={onOpenSetting}><span>{t("dash.enableMore")}</span> <UiIcon name="forward" size={12} /></button>
 </div>
 {#if firstScanPending}
@@ -125,21 +132,22 @@
         {/each}
     </div>
 {:else}
-    <div class="lv-module-tools" aria-label={t("dash.moduleFilterLabel")}>
-        <div class="lv-module-filters" role="group" aria-label={t("dash.moduleFilterLabel")}>
-            <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === "all"} aria-pressed={moduleGroupFilter === "all"}
-                onclick={() => (moduleGroupFilter = "all")}>{t("dash.moduleAll")}</button>
-            {#each moduleGroupStats as group (group.id)}
-                <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === group.id} aria-pressed={moduleGroupFilter === group.id}
-                    onclick={() => (moduleGroupFilter = group.id)}>{t(`group.${group.id}`)} <span>{group.count}</span></button>
-            {/each}
+    {#if showModuleTools || moduleQuery || moduleGroupFilter !== "all"}
+        <div class="lv-module-tools" aria-label={t("dash.moduleFilterLabel")}>
+            <div class="lv-module-filters" role="group" aria-label={t("dash.moduleFilterLabel")}>
+                <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === "all"} aria-pressed={moduleGroupFilter === "all"}
+                    onclick={() => (moduleGroupFilter = "all")}>{t("dash.moduleAll")}</button>
+                {#each moduleGroupStats as group (group.id)}
+                    <button type="button" class="lv-module-filter" class:on={moduleGroupFilter === group.id} aria-pressed={moduleGroupFilter === group.id}
+                        onclick={() => (moduleGroupFilter = group.id)}>{t(`group.${group.id}`)} <span>{group.count}</span></button>
+                {/each}
+            </div>
+            <label class="lv-module-search">
+                <UiIcon name="search" size={15} />
+                <input class="b3-text-field" type="search" bind:value={moduleQuery} placeholder={t("dash.moduleSearch")} aria-label={t("dash.moduleSearch")} />
+            </label>
         </div>
-        <label class="lv-module-search">
-            <UiIcon name="search" size={15} />
-            <input class="b3-text-field" type="search" bind:value={moduleQuery} placeholder={t("dash.moduleSearch")} aria-label={t("dash.moduleSearch")} />
-        </label>
-        <span class="lv-module-total"><b class="lv-num">{moduleCards.length}</b> {t("dash.moduleCount")}</span>
-    </div>
+    {/if}
     {#if moduleSections.length === 0}
         <div class="lv-card lv-module-empty" role="status">
             <UiIcon name="search" size={17} /><span>{t("dash.moduleEmpty")}</span>
@@ -174,6 +182,14 @@
                 <span class="lv-mi" class:tone-blue={moduleTone(mid) === "t-blue"} class:tone-green={moduleTone(mid) === "t-green"}
                     class:tone-rose={moduleTone(mid) === "t-rose"} class:tone-amber={moduleTone(mid) === "t-amber"}
                     aria-hidden="true"><UiIcon name={moduleUiIcon(mid) as any} size={20} /></span><b>{t(`module.${mid}`)}</b>
+                {#if plugin.settings.dbRefs?.[mid]?.docId}
+                    <button type="button" class="b3-button b3-button--text lv-mod-doc-btn"
+                        title={t("ledger.openDoc")}
+                        aria-label={`${t(`module.${mid}`)} · ${t("ledger.openDoc")}`}
+                        onclick={(e: MouseEvent) => { e.stopPropagation(); plugin.showTabDocs?.(plugin.settings.dbRefs[mid].docId); }}>
+                        <UiIcon name="folder" size={13} />
+                    </button>
+                {/if}
             </div>
             <div class="lv-stat" title={t("dash.statScope").replace("${t}", snapshotLabel)}>
             {#if rowCountOf(mid) !== undefined}
@@ -239,5 +255,14 @@
     .lv-skel--w38 {
         height: 11px;
         width: 38%;
+    }
+    .lv-mod-doc-btn {
+        margin-left: auto;
+        padding: 2px 5px;
+        min-height: 24px;
+        color: var(--lv-tx-3);
+    }
+    .lv-mod-doc-btn:hover {
+        color: var(--lv-accent);
     }
 </style>

@@ -4,7 +4,6 @@
     import { showMessage, Dialog } from "siyuan";
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
-    import TabKpiBar from "./tab-kpi-bar.svelte";
     import TabRailNav from "./tab-rail-nav.svelte";
     import TabGuestBanner from "./tab-guest-banner.svelte";
     import UiIcon from "@/ui/icon.svelte";
@@ -222,9 +221,18 @@
         captureInvoker = event?.currentTarget instanceof HTMLElement
             ? event.currentTarget
             : document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
-        if (moduleId) {
+        if (!moduleId || moduleId === "event" || moduleId.startsWith("event:")) {
+            if (plugin.runtime) {
+                (plugin.runtime as any).hubQuickMode = "event";
+                (plugin.runtime as any).hubQuickEventSub = moduleId?.startsWith("event:") ? moduleId.slice(6) : undefined;
+            }
+        } else {
             plugin.setActiveLedger(moduleId);
-            plugin.runtime.hubQuickModule = moduleId;
+            if (plugin.runtime) {
+                plugin.runtime.hubQuickModule = moduleId;
+                (plugin.runtime as any).hubQuickMode = "ledger";
+                (plugin.runtime as any).hubQuickEventSub = undefined;
+            }
         }
         captureOpen = true;
         void loadCapture();
@@ -379,34 +387,6 @@
         { id: "members", key: "tab.members", icon: "users" },
     ];
 
-    // 统计优先：关键指标行数据（从运行时派生，大数字 + 竖线分隔）
-    const kpiUrgentCount = $derived.by(() => {
-        void version;
-        const rems = plugin.scan?.reminders ?? plugin.runtime?.cache?.reminders ?? [];
-        return rems.filter((r: any) => r.level === "overdue" || (r.daysLeft >= 0 && r.daysLeft <= 7)).length;
-    });
-    const kpiMonthlyRatio = $derived.by(() => {
-        void version;
-        const now = new Date();
-        const monthKey = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-        const done = plugin.runtime?.monthlyCompletions?.[monthKey] ?? 0;
-        const total = plugin.runtime?.monthlyDueTotals?.[monthKey] ?? 0;
-        return total > 0 ? `${done}/${total}` : (done > 0 ? `${done}项` : "100%");
-    });
-    const kpiRecordsTotal = $derived.by(() => {
-        void version;
-        const byModule = plugin.runtime?.cache?.byModule ?? {};
-        let total = 0;
-        for (const stats of Object.values(byModule) as any[]) {
-            if (typeof stats?.rowCount === "number") total += stats.rowCount;
-        }
-        return total;
-    });
-    const kpiMemberCount = $derived.by(() => {
-        void version;
-        return plugin.settings?.members?.length ?? 0;
-    });
-
     // C1b：滑动胶囊（offsetLeft/width + spring，与原型一致）
     let navEl: HTMLElement;
     let pill = $state({ x: 0, w: 0 });
@@ -546,17 +526,6 @@
                     {t}
                     onOpenEmergencyCard={openEmergencyCardFromGuest}
                     onToggleGuestMode={toggleGuestMode}
-                />
-            {/if}
-
-            <!-- 关键指标行只属于总览；提醒/台账/成员页把首屏留给列表本身 -->
-            {#if screen === "overview"}
-                <TabKpiBar
-                    {t}
-                    {kpiUrgentCount}
-                    {kpiMonthlyRatio}
-                    {kpiRecordsTotal}
-                    {kpiMemberCount}
                 />
             {/if}
 

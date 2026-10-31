@@ -237,7 +237,15 @@ export async function saveRowLogs(plugin: Plugin, logs: RowLogs): Promise<void> 
     // newer append.  Clone before queueing because callers commonly keep
     // mutating their local object after awaiting a refresh.
     const snapshot = JSON.parse(JSON.stringify(logs)) as RowLogs;
-    await enqueueRowLogWrite(plugin, () => plugin.saveData(ROWLOGS_NAME, snapshot));
+    await enqueueRowLogWrite(plugin, async () => {
+        await plugin.saveData(ROWLOGS_NAME, snapshot);
+        if ((plugin as any)?.app && (plugin as any)?.settings?.dbRefs) {
+            try {
+                const { syncRowLogsToSiYuanDocs } = await import("./doc-sync");
+                await syncRowLogsToSiYuanDocs(plugin, snapshot);
+            } catch { /* soft */ }
+        }
+    });
 }
 
 const rowLogSaveChains = new WeakMap<object, Promise<unknown>>();
@@ -258,6 +266,12 @@ export function updateRowLogs(plugin: Plugin, update: (current: RowLogs) => RowL
         const next = update(current);
         const snapshot = JSON.parse(JSON.stringify(next)) as RowLogs;
         await plugin.saveData(ROWLOGS_NAME, snapshot);
+        if ((plugin as any)?.app && (plugin as any)?.settings?.dbRefs) {
+            try {
+                const { syncRowLogsToSiYuanDocs } = await import("./doc-sync");
+                await syncRowLogsToSiYuanDocs(plugin, snapshot);
+            } catch { /* soft */ }
+        }
         return snapshot;
     });
 }

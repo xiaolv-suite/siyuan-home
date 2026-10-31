@@ -805,6 +805,78 @@ async function main() {
             `docOpened=${nativeDocCheck.docTabOpened}, cols=${nativeDocCheck.firstCols.join("->")}`,
         );
 
+        // ── Step 14: 总览精简与【快速记录·日常流水优先】直达 + 全部日常流水与备忘在思源文档落地验证 ──
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(800);
+        const overviewCleanCheck = await page.evaluate(() => ({
+            noRedundantKpiRow: !document.querySelector(".lv-kpi-row"),
+            noRedundantHeroStat: !document.querySelector(".lv-hero-stat-card"),
+            hasQuickFlowHub: Boolean(document.querySelector("section.lv-quick-hub")),
+            flowBtnCount: document.querySelectorAll(".lv-quick-flow-grid .lv-flow-btn").length,
+        }));
+        assert.equal(overviewCleanCheck.noRedundantKpiRow && overviewCleanCheck.noRedundantHeroStat, true, "总览应消除重复统计条与冗余大数字卡");
+        assert.equal(overviewCleanCheck.hasQuickFlowHub && overviewCleanCheck.flowBtnCount === 5, true, "总览首屏应突出展示 5 项日常流水快捷入口");
+
+        // 直接点击总览首屏的「🛒 记待买」流水按钮 -> 验证一步打开对应子页签并同步落盘
+        await page.locator(".lv-quick-flow-grid .lv-flow-btn").nth(3).click();
+        await sleep(500);
+        await page.locator("#lv-shop-name").fill("有机纯牛奶");
+        await page.locator("#lv-shop-qty").fill("2");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await sleep(2200);
+        await page.screenshot({ path: path.join(SHOT_DIR, "14a-streamlined-overview.png") });
+
+        // 点击总览「流水与备忘文档」按钮，直接打开思源原生 `/📒 日常流水与备忘` 文档页签
+        await page.locator("section.lv-quick-hub .lv-quick-hub__doc-btn").click();
+        await sleep(2500);
+        const docSyncVerification = await page.evaluate(async () => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            const exportMd = async (id) => {
+                if (!id) return "";
+                const res = await fetch("/api/export/exportMdContent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id }),
+                }).then((r) => r.json());
+                return res?.data?.content || "";
+            };
+            const journalDocId = p.settings.dbRefs?.adhoc?.docId;
+            const journalMd = await exportMd(journalDocId);
+            const vehMd = await exportMd(p.settings.dbRefs?.vehicles?.docId);
+            const healthMd = await exportMd(p.settings.dbRefs?.health?.docId);
+            const choresMd = await exportMd(p.settings.dbRefs?.chores?.docId);
+            const protyleText = document.querySelector(".protyle-wysiwyg")?.innerText || "";
+            return {
+                journalDocId: Boolean(journalDocId),
+                protyleShowsJournal: protyleText.includes("日常流水记录") && protyleText.includes("清洗空调滤网"),
+                journalHasAllFlows:
+                    journalMd.includes("家用SUV") &&
+                    journalMd.includes("138/88 mmHg") &&
+                    journalMd.includes("+30 积分") &&
+                    journalMd.includes("有机纯牛奶") &&
+                    journalMd.includes("清洗空调滤网"),
+                vehDocHasFuelLog: vehMd.includes("日常流水与附属记录") && vehMd.includes("42 L"),
+                healthDocHasVitalLog: healthMd.includes("日常流水与附属记录") && healthMd.includes("138/88 mmHg"),
+                choresDocHasCheckinLog: choresMd.includes("日常流水与附属记录") && choresMd.includes("+30 积分"),
+            };
+        });
+        await page.screenshot({ path: path.join(SHOT_DIR, "14b-native-daily-journal-doc.png") });
+        await page.evaluate(() => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            p?.showTab?.();
+        });
+        await sleep(500);
+        rec(
+            "Step 14 · 总览精简、快速日常流水优先直达及全量流水/备忘同步思源原生文档",
+            docSyncVerification.journalDocId &&
+                docSyncVerification.protyleShowsJournal &&
+                docSyncVerification.journalHasAllFlows &&
+                docSyncVerification.vehDocHasFuelLog &&
+                docSyncVerification.healthDocHasVitalLog &&
+                docSyncVerification.choresDocHasCheckinLog,
+            `journal=${docSyncVerification.journalHasAllFlows}, vehDoc=${docSyncVerification.vehDocHasFuelLog}, healthDoc=${docSyncVerification.healthDocHasVitalLog}, choresDoc=${docSyncVerification.choresDocHasCheckinLog}`,
+        );
+
         await browser.close();
         browser = undefined;
 

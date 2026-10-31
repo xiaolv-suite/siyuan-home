@@ -21,7 +21,7 @@
         i18n: Record<string, unknown>;
         settings: HomeSettings;
         schemaCatalog?: Record<string, ModuleSchema>;
-        runtime?: { hubQuickModule?: string };
+        runtime?: { hubQuickModule?: string; hubQuickMode?: "event" | "ledger"; hubQuickEventSub?: string };
         openSetting: () => void;
         refreshHub?: (only?: string | string[], force?: boolean) => Promise<unknown>;
         repairModule?: (moduleId: string) => Promise<unknown>;
@@ -78,7 +78,17 @@
         if (open && !wasOpen) {
             wasOpen = true;
             document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
-            eventFlowRef?.reloadContext?.();
+            const reqMode = plugin.runtime?.hubQuickMode;
+            const reqSub = plugin.runtime?.hubQuickEventSub;
+            if (plugin.runtime) {
+                plugin.runtime.hubQuickMode = undefined;
+                plugin.runtime.hubQuickEventSub = undefined;
+            }
+            captureTab = reqMode === "ledger" ? "ledger" : "event";
+            void tick().then(() => {
+                eventFlowRef?.reloadContext?.();
+                if (reqSub) eventFlowRef?.selectSubAction?.(reqSub);
+            });
             const last = identityPending || pendingRowId ? pendingModuleId : plugin.runtime?.hubQuickModule;
             moduleId = last && (modules.includes(last) || ((identityPending || pendingRowId) && last === pendingModuleId))
                 ? last
@@ -413,8 +423,16 @@
                         </optgroup>
                     {/each}
                 </select>
+                {#if plugin.settings.dbRefs?.[moduleId]?.docId}
+                    <button type="button" class="b3-button b3-button--text" onclick={openPendingLedger} title={t("ledger.openDoc")} disabled={saving}>
+                        <UiIcon name="folder" size={14} />
+                    </button>
+                {/if}
             {:else}
                 <span class="fn__flex-1"></span>
+                <button type="button" class="b3-button b3-button--text" onclick={() => eventFlowRef?.openCurrentTargetDoc?.()} title={t("ledger.openDoc")} disabled={saving}>
+                    <UiIcon name="folder" size={14} /> <span>{t("ledger.openDoc")}</span>
+                </button>
             {/if}
             <button type="button" class="lv-iconbtn" aria-label={t("capture.closeKeepDraft")} title={t("capture.closeKeepDraft")} onclick={close} disabled={saving}><UiIcon name="close" size={16} /></button>
         </div>

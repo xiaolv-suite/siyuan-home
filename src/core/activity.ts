@@ -58,7 +58,7 @@ export interface ActivityTarget {
     activityId?: string;
 }
 
-const LOG_KINDS: readonly LogKind[] = ["valuations", "moves", "prices", "transfers", "meters", "checks", "loans", "deposits", "fuelings", "chargings", "maintenance"];
+const LOG_KINDS: readonly LogKind[] = ["valuations", "moves", "prices", "transfers", "meters", "checks", "loans", "deposits", "fuelings", "chargings", "maintenance", "chexecs", "vitals"];
 const ROWLOG_DETAIL_KEYS: Partial<Record<LogKind, readonly string[]>> = {
     valuations: ["value"], moves: ["from", "to"], prices: ["price", "channel"],
     transfers: ["from", "to"], meters: ["reading", "usage"], checks: ["result"],
@@ -66,6 +66,8 @@ const ROWLOG_DETAIL_KEYS: Partial<Record<LogKind, readonly string[]>> = {
     fuelings: ["fuelGrade", "quantity", "odometer", "totalCost", "station"],
     chargings: ["chargingMode", "quantity", "odometer", "totalCost", "station"],
     maintenance: ["category", "odometer", "cost", "shop"],
+    chexecs: ["points", "note"],
+    vitals: ["val1", "val2", "pulse", "note"],
 };
 
 interface CacheEntry {
@@ -225,9 +227,12 @@ export function projectRowLogActivities(input: {
                 const recordedAt = normalizedTimestamp(entry.at);
                 const baseTime = recordedAt ? new Date(recordedAt).getTime() : eventTimestamp(eventDate);
                 if (baseTime === undefined) continue;
+                const entryMemberId = typeof entry.memberId === "string" && entry.memberId.trim()
+                    ? (memberByAvItem.get(entry.memberId.trim()) ?? entry.memberId.trim())
+                    : relationMember(row, columns, memberByAvItem);
                 records.push({
                     id: rowLogActivityId(moduleId, rowId, kind, entry),
-                    moduleId, avId, rowId, title, memberId: relationMember(row, columns, memberByAvItem),
+                    moduleId, avId, rowId, title, memberId: entryMemberId,
                     eventDate, recordedAt, sortAt: baseTime, source: "rowlog", logKind: kind,
                     details: entryDetails(kind, entry),
                 });

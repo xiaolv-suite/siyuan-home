@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage } from "siyuan";
-    import { addDetachedRow, setCell, renderLedgerAll } from "@/core/siyuan";
+    import { renderLedgerAll } from "@/core/siyuan";
     import { buildChoreLog, buildFuelingLog, buildVitalLog, validateFuelingInput, validateVitalInput } from "@/core/quick-actions";
     import type { EnergyKind } from "@/core/fuel";
     import { appendEntry, updateRowLogs } from "@/core/rowlog";
@@ -108,10 +108,24 @@
                 mileage: fuelingMileage!,
             });
             const vRef = await ensureTargetRef("vehicles");
-            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingKind === "charging" ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
-            if (fuelingMileage && vRef.columns?.mileage) {
-                await setCell(vRef.avId!, vRef.columns.mileage, selectedVehicleId, { type: "number", number: { content: fuelingMileage } });
-            }
+            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingKind === "charging" ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
+            const summaryNote = `最近${fuelingKind === "charging" ? "充电" : "加油"}：${fuelingDate} · ${fuelingLiters}${fuelingKind === "charging" ? "kWh" : "L"}${fuelingAmount !== undefined ? ` · ¥${fuelingAmount}` : ""} · ${fuelingMileage}km`;
+            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            await writeLedgerRow({
+                moduleId: "vehicles",
+                target: vRef,
+                itemId: selectedVehicleId,
+                name: "",
+                fields: {
+                    ...(fuelingMileage ? { mileage: fuelingMileage } : {}),
+                    note: summaryNote,
+                },
+            });
+            try {
+                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncModuleDocSection(plugin, "vehicles", nextLogs);
+                await syncDailyJournalDoc(plugin, nextLogs);
+            } catch { /* soft */ }
             try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             fuelingAmount = undefined;
@@ -153,17 +167,53 @@
             let row = vitalMemberId
                 ? (all.rows ?? []).find((r) => r.cells?.[healthRef.columns?.member ?? ""]?.relation?.blockIDs?.includes(vitalMemberId))
                 : (all.rows?.[0]);
+            const targetMember = plugin.settings.members?.find((m: any) => m.avItemId === vitalMemberId || m.id === vitalMemberId);
+            const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
+            const summaryDiag = vitalMetricType === "bp"
+                ? `血压 ${vitalSys}/${vitalDia} mmHg${vitalPulse ? ` · 心率 ${vitalPulse} bpm` : ""}`
+                : `${vitalTiming === "postprandial" ? "餐后" : "空腹"}血糖 ${vitalGlucose} mmol/L`;
+            const { writeLedgerRow } = await import("@/core/ledger-writer");
             if (!row) {
-                const targetMember = plugin.settings.members?.find((m) => m.avItemId === vitalMemberId);
-                const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
-                const rowId = await addDetachedRow(healthRef.avId!, memberName, { idempotencyKey: `vital:init:${vitalMemberId || "default"}:${Date.now()}` });
-                if (healthRef.columns?.member && vitalMemberId) {
-                    await setCell(healthRef.avId!, healthRef.columns.member, rowId, { type: "relation", relation: { blockIDs: [vitalMemberId] } });
-                }
-                row = { itemID: rowId, cells: {} };
+                const { itemID } = await writeLedgerRow({
+                    moduleId: "health",
+                    target: healthRef,
+                    name: memberName,
+                    members: plugin.settings.members,
+                    operationKey: `vital:init:${vitalMemberId || "default"}:${Date.now()}`,
+                    fields: {
+                        member: vitalMemberId,
+                        category: "checkup",
+                        status: "following",
+                        date: vitalDate,
+                        diagnosis: summaryDiag,
+                        note: `${vitalDate} 录入：${summaryDiag}`,
+                    },
+                });
+                row = { itemID, cells: {} };
+            } else {
+                await writeLedgerRow({
+                    moduleId: "health",
+                    target: healthRef,
+                    itemId: row.itemID,
+                    name: "",
+                    members: plugin.settings.members,
+                    fields: {
+                        member: vitalMemberId,
+                        category: "checkup",
+                        status: "following",
+                        date: vitalDate,
+                        diagnosis: summaryDiag,
+                        note: `${vitalDate} 录入：${summaryDiag}`,
+                    },
+                });
             }
-            await updateRowLogs(plugin as any, (cur) => readings.reduce(
-                (acc, reading) => appendEntry(acc, healthRef.avId!, row.itemID, "vitals", reading as unknown as Record<string, unknown>), cur));
+            const nextLogs = await updateRowLogs(plugin as any, (cur) => readings.reduce(
+                (acc, reading) => appendEntry(acc, healthRef.avId!, row!.itemID, "vitals", reading as unknown as Record<string, unknown>), cur));
+            try {
+                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncModuleDocSection(plugin, "health", nextLogs);
+                await syncDailyJournalDoc(plugin, nextLogs);
+            } catch { /* soft */ }
             try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             vitalSys = undefined;
@@ -190,10 +240,33 @@
         try {
             const cRef = await ensureTargetRef("chores");
             const log = buildChoreLog({ date: choreDate, memberId: choreMemberId || undefined, points: chorePoints, note: choreNote });
-            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, cRef.avId!, choreRowId, "chexecs", log));
-            // 同步“上次完成”列：活动流与按完成日顺延的周期提醒都读它
+            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, cRef.avId!, choreRowId, "chexecs", log));
+            const whoMember = (plugin.settings.members ?? []).find((m: any) => m.id === choreMemberId || m.avItemId === choreMemberId);
+            const summaryParts = [
+                `最近打卡：${choreDate}`,
+                whoMember?.name ? `执行人 ${whoMember.name}` : "",
+                chorePoints ? `+${chorePoints}分` : "",
+                choreNote.trim(),
+            ].filter(Boolean);
+            // 同步“上次完成”列及备注摘要：活动流、周期提醒与思源原生表格均直接可见
             const { writeLedgerRow } = await import("@/core/ledger-writer");
-            const { failed } = await writeLedgerRow({ moduleId: "chores", target: cRef, itemId: choreRowId, name: "", fields: { last_done: choreDate } });
+            const { failed } = await writeLedgerRow({
+                moduleId: "chores",
+                target: cRef,
+                itemId: choreRowId,
+                name: "",
+                members: plugin.settings.members,
+                fields: {
+                    last_done: choreDate,
+                    ...(whoMember?.avItemId ? { member: whoMember.avItemId } : {}),
+                    note: summaryParts.join(" · "),
+                },
+            });
+            try {
+                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncModuleDocSection(plugin, "chores", nextLogs);
+                await syncDailyJournalDoc(plugin, nextLogs);
+            } catch { /* soft */ }
             try { await plugin.refreshHub?.(["chores"], true); } catch { /* soft */ }
             if (failed.length > 0) showMessage(t("ledger.writePartialFailed").replace("${fields}", t("field.last_done")), 5000, "error");
             else showMessage(t("capture.savedEvent"), 2500, "info");
@@ -219,10 +292,22 @@
         saveError = "";
         try {
             const shopRef = await ensureTargetRef("shopping");
-            const rowId = await addDetachedRow(shopRef.avId!, name, { idempotencyKey: `quick:shop:${Date.now()}` });
-            if (shopRef.columns?.qty && quickShopQty) {
-                await setCell(shopRef.avId!, shopRef.columns.qty, rowId, { type: "number", number: { content: quickShopQty } });
-            }
+            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            await writeLedgerRow({
+                moduleId: "shopping",
+                target: shopRef,
+                name,
+                operationKey: `quick:shop:${Date.now()}`,
+                fields: {
+                    qty: quickShopQty || 1,
+                    date: localDateKey(new Date()),
+                    category: "daily",
+                },
+            });
+            try {
+                const { syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncDailyJournalDoc(plugin);
+            } catch { /* soft */ }
             try { await plugin.refreshHub?.(["shopping"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickShopName = "";
@@ -248,11 +333,22 @@
         try {
             const snipRef = await ensureTargetRef("snippets");
             const title = text.slice(0, 30);
-            const rowId = await addDetachedRow(snipRef.avId!, title, { idempotencyKey: `quick:snip:${Date.now()}` });
-            const col = snipRef.columns?.content || snipRef.columns?.note || snipRef.columns?.name;
-            if (col) {
-                await setCell(snipRef.avId!, col, rowId, { type: "text", text: { content: text } });
-            }
+            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            await writeLedgerRow({
+                moduleId: "snippets",
+                target: snipRef,
+                name: title,
+                operationKey: `quick:snip:${Date.now()}`,
+                fields: {
+                    content: text,
+                    category: "other_sn",
+                    note: text,
+                },
+            });
+            try {
+                const { syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncDailyJournalDoc(plugin);
+            } catch { /* soft */ }
             try { await plugin.refreshHub?.(["snippets"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickSnippetText = "";
@@ -308,6 +404,26 @@
         else if (eventSub === "chore") void submitQuickChore();
         else if (eventSub === "shopping") void submitQuickShopping();
         else if (eventSub === "snippet") void submitQuickSnippet();
+    }
+
+    export function selectSubAction(sub: string) {
+        if ((subActions as string[]).includes(sub)) {
+            eventSub = sub as EventSubAction;
+        }
+    }
+
+    const subTargetModule: Record<EventSubAction, string> = {
+        fuel: "vehicles",
+        vital: "health",
+        chore: "chores",
+        shopping: "shopping",
+        snippet: "snippets",
+    };
+
+    export async function openCurrentTargetDoc() {
+        const { openModuleOrJournalDoc } = await import("@/core/doc-sync");
+        onClose?.();
+        await openModuleOrJournalDoc(plugin, subTargetModule[eventSub]);
     }
 
     export function reloadContext() {
@@ -479,6 +595,12 @@
             <span>{saveError}</span>
         </div>
     {/if}
+    <div class="lv-event-doc-bar">
+        <span class="lv-caption"><UiIcon name="note" size={12} /> {t("capture.docSyncHint")}</span>
+        <button type="button" class="b3-button b3-button--text lv-event-doc-btn" onclick={() => void openCurrentTargetDoc()} disabled={saving}>
+            <span>{t("ledger.openDoc")}</span> <UiIcon name="forward" size={11} />
+        </button>
+    </div>
 </div>
 
 <style>
@@ -507,5 +629,19 @@
         display: flex;
         align-items: center;
         gap: 6px;
+    }
+    .lv-event-doc-bar {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--lv-line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .lv-event-doc-btn {
+        font-size: 12px;
+        min-height: 24px;
+        padding: 2px 6px;
     }
 </style>

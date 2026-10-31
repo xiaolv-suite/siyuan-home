@@ -185,6 +185,10 @@
             onclick={onToggleDensity}>
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
+        <button type="button" class="b3-button b3-button--outline lv-open-doc-btn" disabled={!ref?.docId}
+            title={t("ledger.openDoc")} onclick={() => plugin.showTabDocs(ref?.docId)}>
+            <UiIcon name="folder" size={13} /> <span>{t("ledger.openDoc")}</span>
+        </button>
         <button type="button" class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <details class="lv-ledger-more" bind:this={ledgerMoreDetails} onkeydown={handleMoreKeydown}>

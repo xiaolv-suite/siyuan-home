@@ -25,6 +25,7 @@
         onRetryScan,
         onOpenStarterRecord,
         onOpenLedger,
+        onOpenDoc,
         onGoto,
         onCopyTaskBlock,
         onCompleteReminder,
@@ -52,6 +53,7 @@
         onRetryScan: () => void;
         onOpenStarterRecord: () => void;
         onOpenLedger: (moduleId: string) => void;
+        onOpenDoc?: (r: Reminder) => void;
         onGoto: (s: string) => void;
         onCopyTaskBlock: (r: Reminder) => void;
         onCompleteReminder: (r: Reminder) => void;
@@ -156,6 +158,9 @@
                     {r.daysLeft < 0 ? t("days.overdue").replace("${n}", String(-r.daysLeft)) : r.daysLeft === 0 ? t("days.today") : t("days.after").replace("${n}", String(r.daysLeft))}
                 </b><span class="lv-num">{r.dueDate}</span></div>
                 <div class="lv-rem-ops">
+                    {#if onOpenDoc}
+                        <button type="button" class="b3-button b3-button--text" title={t("act.locate")} aria-label={t("act.locate")} onclick={() => onOpenDoc(r)}><UiIcon name="folder" size={13} /></button>
+                    {/if}
                     <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => onCopyTaskBlock(r)}><UiIcon name="note" size={13} /></button>
                     <button type="button" class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onCompleteReminder(r)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.done")}</button>
                     <button type="button" class="b3-button b3-button--text" disabled={overviewBusy.has(r.id)} aria-busy={overviewBusy.has(r.id)} onclick={() => onSnoozeReminder(r, 7)}>{overviewBusy.has(r.id) ? t("ledger.saving") : t("act.snooze7")}</button>

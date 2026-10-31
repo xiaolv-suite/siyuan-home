@@ -24,7 +24,7 @@ import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.188";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.189";
 
 /**
  * 小驴管家（Lv Home）
@@ -196,6 +196,9 @@ export default class LvHomePlugin extends Plugin {
         try {
             await this.adoptHistoryLedgers();
             await this.refreshHub(undefined, true);
+            if (this.settings?.onboarded && this.app) {
+                import("@/core/doc-sync").then(({ syncRowLogsToSiYuanDocs }) => syncRowLogsToSiYuanDocs(this)).catch(() => undefined);
+            }
         } catch (e) {
             console.warn("[LvHome] initial adopt/scan deferred:", e instanceof Error ? e.message : e);
         }
@@ -503,6 +506,14 @@ export default class LvHomePlugin extends Plugin {
         }
     }
 
+    private async syncJournalSafely(): Promise<void> {
+        if (!this.app) return;
+        try {
+            const { syncDailyJournalDoc } = await import("@/core/doc-sync");
+            await syncDailyJournalDoc(this);
+        } catch { /* soft */ }
+    }
+
     activeLedger = "certs";
     setActiveLedger(id: string) { this.activeLedger = id; }
 
@@ -562,6 +573,7 @@ export default class LvHomePlugin extends Plugin {
             });
         } catch { /* 零强依赖优雅降级 */ }
         await this.notifyHubChanged();
+        if (r?.moduleId === "adhoc") await this.syncJournalSafely();
     }
     async snooze(id: string, days: number) { await snooze(this, id, days); await this.notifyHubChanged(); }
     async snoozeToDate(id: string, targetDate: string) {
@@ -583,17 +595,41 @@ export default class LvHomePlugin extends Plugin {
     async mute(id: string) { await mute(this, id); await this.notifyHubChanged(); }
     async unmute(id: string) { await unmute(this, id); await this.notifyHubChanged(); }
     /** 恢复已处理/忽略项（H07） */
-    async restore(id: string) { await restore(this, id); await this.notifyHubChanged(); }
+    async restore(id: string) {
+        await restore(this, id);
+        await this.notifyHubChanged();
+        await this.syncJournalSafely();
+    }
     /** 续期写回台账行（H10：按规则自己的 field 列，缴费不改保障到期日）→ 增量重扫该模块 */
     renew(r: any, iso: string) {
         const rule = (this.schemaCatalog[r.moduleId]?.reminders ?? []).find((x: any) => x.key === r.ruleKey);
         return renew(this, r, iso, this.settings.dbRefs[r.moduleId] ?? {}, rule?.field ?? "expiry")
-            .then(() => this.refreshHub(r.moduleId));
+            .then(async () => {
+                if (this.app && r?.moduleId) {
+                    try {
+                        const { syncModuleDocSection } = await import("@/core/doc-sync");
+                        await syncModuleDocSection(this, r.moduleId);
+                    } catch { /* soft */ }
+                }
+                return this.refreshHub(r.moduleId);
+            });
     }
-    async addMemo(title: string, due: string, options?: any) { await addMemo(this, title, due, options); await this.notifyHubChanged(); }
-    async updateMemo(id: string, patch: { title?: string; dueDate?: string }) { await updateMemo(this, id, patch); await this.notifyHubChanged(); }
+    async addMemo(title: string, due: string, options?: any) {
+        await addMemo(this, title, due, options);
+        await this.notifyHubChanged();
+        await this.syncJournalSafely();
+    }
+    async updateMemo(id: string, patch: { title?: string; dueDate?: string }) {
+        await updateMemo(this, id, patch);
+        await this.notifyHubChanged();
+        await this.syncJournalSafely();
+    }
     /** 删除备忘（显式动作，H03：未处理备忘只经此删除） */
-    async removeMemo(id: string) { await removeMemo(this, id); await this.notifyHubChanged(); }
+    async removeMemo(id: string) {
+        await removeMemo(this, id);
+        await this.notifyHubChanged();
+        await this.syncJournalSafely();
+    }
     /** 29 组：今日免打扰快捷开关（todaySilent 存当日 localDateKey，跨天自动失效；闸口在 inSilentHours） */
     async toggleTodaySilent() {
         const { localDateKey } = await import("@/core/hub/rule");
@@ -650,6 +686,10 @@ export default class LvHomePlugin extends Plugin {
             }
         }
         this.settings.onboarded = true;
+        try {
+            const { syncDailyJournalDoc } = await import("@/core/doc-sync");
+            await syncDailyJournalDoc(this);
+        } catch { /* soft */ }
         await saveSettings(this, this.settings);
         // C7c 收尾：建库失败浮出（此前只进诊断区，向导完成后用户无感）
         const failed = provisioning.issues.map(({ moduleId }) => this.i18nText(`module.${moduleId}`));

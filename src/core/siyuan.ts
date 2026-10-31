@@ -121,6 +121,23 @@ export async function insertBlock(parentID: string, markdown: string, options?: 
     return inserted;
 }
 
+/** 在文档末尾追加 markdown 块，返回新块 ID */
+export async function appendBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
+    const d = await post<any>("/api/block/appendBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
+    const ops: any[] = Array.isArray(d) ? (d[0]?.doOperations ?? []) : (d?.doOperations ?? d?.data?.doOperations ?? []);
+    for (const op of ops) {
+        if (typeof op?.id === "string" && op.id) return op.id;
+        const m = String(op?.data ?? "").match(/data-node-id="(\d{14}-[a-z0-9]+)"/);
+        if (m) return m[1];
+    }
+    return String(d?.id ?? d?.blockID ?? d?.data?.id ?? "");
+}
+
+/** 原地更新指定块 ID 的 markdown 内容 */
+export async function updateBlock(id: string, markdown: string, options?: RequestOptions): Promise<void> {
+    await post("/api/block/updateBlock", { dataType: "markdown", id, data: markdown }, options);
+}
+
 /** 新思源 ID（yyyyMMddHHmmss-xxxxxxx 形态；内核对 keyID/avIdSeed 接受自造值）。crypto 随机，非加密用途但避可预测值 */
 export function newSiYuanId(): string {
     const t = new Date();

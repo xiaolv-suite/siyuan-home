@@ -88,6 +88,13 @@
         action();
     }
 
+    async function openReminderDoc() {
+        const { openModuleOrJournalDoc } = await import("@/core/doc-sync");
+        await openModuleOrJournalDoc(plugin, r.moduleId, r.moduleId === "adhoc" ? undefined : r.rowId);
+    }
+
+    const hasTargetDoc = $derived(r.moduleId === "adhoc" || !!plugin.settings?.dbRefs?.[r.moduleId]?.docId);
+
     function handleToggleKeydown(e: KeyboardEvent) {
         if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
             if (!moreOpen && e.key === "ArrowDown") {
@@ -209,6 +216,11 @@
         <b class="lv-num">{relDue(r.daysLeft, r.dueDate)}</b>
     </div>
     <div class="lv-rem-ops">
+        {#if hasTargetDoc}
+            <button type="button" class="b3-button b3-button--text" disabled={batchBusy} title={t("act.locate")} aria-label={t("act.locate")} onclick={() => void openReminderDoc()}>
+                <UiIcon name="folder" size={13} />
+            </button>
+        {/if}
         <button type="button" class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
             onRunAction?.(async () => {
                 await plugin.complete(r);
@@ -225,8 +237,8 @@
                 {#if ["certs", "insurance", "contracts"].includes(r.moduleId)}
                     <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
                 {/if}
-                {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
-                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={t("act.locate")} onclick={() => handleMoreAction(() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId))}>{t("act.locate")}</button>
+                {#if hasTargetDoc}
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={t("act.locate")} onclick={() => handleMoreAction(() => void openReminderDoc())}>{t("act.locate")}</button>
                 {/if}
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
@@ -275,10 +287,10 @@
                     <span class="lv-tx-warn">{t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}</span>
                 </div>
             {/if}
-            {#if r.moduleId !== "adhoc" && plugin.settings.dbRefs[r.moduleId]?.docId}
+            {#if hasTargetDoc}
                 <div class="lv-rem-summary__item">
                     <button type="button" class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
-                        onclick={() => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}>
+                        onclick={() => void openReminderDoc()}>
                         <span>{t("act.locate")}</span> <UiIcon name="forward" size={11} />
                     </button>
                 </div>

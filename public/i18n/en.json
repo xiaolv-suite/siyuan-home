@@ -2028,7 +2028,7 @@
     "capture.amountCny": "Cost (CNY)",
     "capture.fuelLiters": "Liters / kWh",
     "capture.currentMileage": "Odometer (km)",
-    "capture.savedEvent": "Event recorded successfully!",
+    "capture.savedEvent": "Daily flow recorded and synced to SiYuan document!",
     "capture.metricBp": "Blood Pressure",
     "capture.metricGlucose": "Blood Glucose",
     "capture.systolic": "Systolic",
@@ -2061,5 +2061,17 @@
     "capture.phShopName": "e.g. milk / tissues",
     "capture.phShopQty": "Quantity, default 1",
     "capture.phSnippet": "Jot a note, phrase or family memo (Ctrl+Enter to save)",
-    "modal.readIncomplete": "These ledgers failed to load or loaded partially, so the content may be incomplete: ${modules}. Retry later or run the ledger health check in settings."
+    "modal.readIncomplete": "These ledgers failed to load or loaded partially, so the content may be incomplete: ${modules}. Retry later or run the ledger health check in settings.",
+    "filter": "Filter",
+    "activity.log.chexecs": "Chore",
+    "activity.log.vitals": "Vitals",
+    "dash.quickFlowTitle": "Quick Record · Daily Flows",
+    "dash.quickFlowSub": "Daily flows first, synced to SiYuan documents",
+    "capture.openJournalDoc": "Flows & Memos Doc",
+    "capture.docSyncHint": "Auto-synced to SiYuan ledger & daily flow docs",
+    "capture.flowDescFuel": "Energy & mileage",
+    "capture.flowDescVital": "Health vitals",
+    "capture.flowDescChore": "Chores & points",
+    "capture.flowDescShopping": "Shopping list",
+    "capture.flowDescSnippet": "Quick snippet"
 }

@@ -25,6 +25,7 @@
     let moduleFilter = $state("all");
     let page = $state(1);
     let collapsed = $state(false);
+    let showFilterTools = $state(false);
     let loadedVersion = $state<number | undefined>();
     let activeController: AbortController | undefined;
     let prevBtnEl = $state<HTMLButtonElement | undefined>(undefined);
@@ -66,7 +67,7 @@
         activeController?.abort();
         activeController = undefined;
     });
-    const pageSize = $derived(compact ? 5 : 8);
+    const pageSize = $derived(compact ? 3 : 8);
 
     const records = $derived.by(() => {
         void version;
@@ -250,6 +251,18 @@
         plugin.setActiveLedger(moduleId);
         plugin.panelScreenSwitch?.("ledger");
     }
+
+    function openRecordDoc(record: ActivityRecord) {
+        const docId = plugin.settings?.dbRefs?.[record.moduleId]?.docId;
+        if (docId && plugin.showTabDocs) {
+            plugin.showTabDocs(docId, record.rowId);
+        }
+    }
+
+    async function openJournalDoc() {
+        const { openDailyJournalDoc } = await import("@/core/doc-sync");
+        await openDailyJournalDoc(plugin);
+    }
 </script>
 
     <section class="lv-activity" aria-labelledby={memberId ? `lv-activity-${memberId}` : "lv-activity-title"}>
@@ -260,6 +273,14 @@
         </div>
         <div class="lv-activity-actions">
             {#if !collapsed}
+                {#if compact && (snapshot?.records.length || query || moduleFilter !== "all")}
+                    <button type="button" class="b3-button b3-button--text" aria-pressed={showFilterTools} onclick={() => { showFilterTools = !showFilterTools; }}>
+                        <UiIcon name="filter" size={13} /> {t("filter")}
+                    </button>
+                {/if}
+                <button type="button" class="b3-button b3-button--text" onclick={() => void openJournalDoc()} title={t("capture.openJournalDoc")}>
+                    <UiIcon name="note" size={13} /> {t("capture.openJournalDoc")}
+                </button>
                 <button type="button" class="b3-button b3-button--text" onclick={() => void refresh(true)} disabled={loading} aria-busy={loading}>
                     {#if loading}<span class="lv-activity-spinner lv-activity-spinner--small" aria-hidden="true"></span>{:else}<UiIcon name="history" size={14} />{/if}{t("activity.refresh")}
                 </button>
@@ -274,7 +295,7 @@
     </div>
 
         <div id={memberId ? `lv-activity-body-${memberId}` : "lv-activity-body"} class="lv-activity-body" hidden={collapsed}>
-            {#if snapshot?.records.length || loading || loadError}
+            {#if (!compact || showFilterTools || query || moduleFilter !== "all") && (snapshot?.records.length || loading || loadError)}
                 <div class="lv-activity-tools">
                     <label class="lv-activity-search">
                         <UiIcon name="search" size={15} />
@@ -337,12 +358,19 @@
                 <div class="lv-card lv-activity-list">
                     {#each pageRecords as record (record.id)}
                         <article class="lv-activity-row">
-                            <span class="lv-activity-mark" aria-hidden="true"><UiIcon name={record.logKind === "fuelings" ? "fuel" : record.logKind === "chargings" ? "bolt" : record.logKind === "maintenance" ? "wrench" : "note"} size={16} /></span>
+                            <span class="lv-activity-mark" aria-hidden="true"><UiIcon name={record.logKind === "fuelings" ? "fuel" : record.logKind === "chargings" ? "bolt" : record.logKind === "maintenance" ? "wrench" : record.logKind === "vitals" ? "heartPulse" : record.logKind === "chexecs" ? "checkCircle" : "note"} size={16} /></span>
                             <div class="lv-activity-main">
-                                <button class="lv-activity-open" type="button" onclick={() => open(record)} title={t("activity.openRecord")}>
-                                    <b>{record.title || t("ledger.unnamed")}</b>
-                                    <span class="lv-activity-module">{t(`module.${record.moduleId}`)}{record.memberId ? ` · ${memberName(record.memberId)}` : ` · ${t("members.unassigned")}`}</span>
-                                </button>
+                                <div class="lv-activity-title-row">
+                                    <button class="lv-activity-open" type="button" onclick={() => open(record)} title={t("activity.openRecord")}>
+                                        <b>{record.title || t("ledger.unnamed")}</b>
+                                        <span class="lv-activity-module">{t(`module.${record.moduleId}`)}{record.memberId ? ` · ${memberName(record.memberId)}` : ` · ${t("members.unassigned")}`}</span>
+                                    </button>
+                                    {#if plugin.settings?.dbRefs?.[record.moduleId]?.docId}
+                                        <button type="button" class="b3-button b3-button--text lv-activity-doc-btn" title={t("ledger.openDoc")} aria-label={t("ledger.openDoc")} onclick={() => openRecordDoc(record)}>
+                                            <UiIcon name="folder" size={13} />
+                                        </button>
+                                    {/if}
+                                </div>
                                 <div class="lv-activity-details">
                                     {#if record.logKind}
                                         <span class="lv-badge gray">{t(`activity.log.${record.logKind}`)}</span>
@@ -375,10 +403,10 @@
 
 <style>
     .lv-activity { display:flex; flex-direction:column; gap:10px; min-width:0; margin-block:18px; }
-    .lv-activity-head { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+    .lv-activity-head { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; min-width:0; flex-wrap:wrap; }
     .lv-activity-heading { display:flex; align-items:baseline; gap:9px; min-width:0; flex-wrap:wrap; }
     .lv-activity-heading h2 { margin:0; }
-    .lv-activity-actions { display:flex; align-items:center; gap:5px; flex:none; }
+    .lv-activity-actions { display:flex; align-items:center; gap:5px; flex-wrap:wrap; min-width:0; }
     .lv-activity-body { display:flex; flex-direction:column; gap:8px; min-width:0; }
     .lv-activity-body[hidden] { display:none; }
     .lv-activity-tools { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -392,6 +420,9 @@
     .lv-activity-row:last-of-type { border-bottom:0; }
     .lv-activity-mark { display:grid; place-items:center; width:32px; height:32px; border-radius:var(--lv-r-inner); color:var(--lv-accent); background:var(--lv-accent-soft); border:1px solid var(--lv-accent-line); }
     .lv-activity-main { display:flex; flex-direction:column; gap:5px; min-width:0; }
+    .lv-activity-title-row { display:flex; align-items:center; gap:6px; min-width:0; }
+    .lv-activity-doc-btn { padding:2px 5px; min-height:24px; color:var(--lv-tx-3); flex-shrink:0; }
+    .lv-activity-doc-btn:hover { color:var(--lv-accent); }
     .lv-activity-open { display:flex; align-items:center; min-height:24px; gap:8px; min-width:0; width:fit-content; max-width:100%; padding:2px 0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; font:inherit; }
     .lv-activity-open b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
     .lv-activity-open:hover b { color:var(--lv-accent); }

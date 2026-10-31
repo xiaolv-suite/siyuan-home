@@ -8,8 +8,10 @@
         reassignBusy,
         exportingVcf,
         editorOpen,
+        membersDocId,
         onReassign,
         onExportVcf,
+        onOpenMembersDoc,
         onToggleEditor,
     }: {
         t: (k: string) => string;
@@ -18,8 +20,10 @@
         reassignBusy: boolean;
         exportingVcf: boolean;
         editorOpen: boolean;
+        membersDocId?: string;
         onReassign: () => void;
         onExportVcf: () => void;
+        onOpenMembersDoc?: () => void;
         onToggleEditor: () => void;
     } = $props();
 </script>
@@ -48,6 +52,11 @@
     <button type="button" class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
         {exportingVcf ? t("ledger.saving") : t("members.exportVcf")}
     </button>
+    {#if membersDocId && onOpenMembersDoc}
+        <button type="button" class="b3-button b3-button--outline" onclick={onOpenMembersDoc} title={t("members.openLedger")}>
+            <UiIcon name="folder" size={14} /> {t("members.openLedger")}
+        </button>
+    {/if}
     <span class="fn__flex-1"></span>
     <button type="button" class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
         aria-expanded={editorOpen} aria-controls="lv-member-editor"

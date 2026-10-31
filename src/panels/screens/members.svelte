@@ -381,8 +381,13 @@
     {reassignBusy}
     {exportingVcf}
     {editorOpen}
+    membersDocId={plugin.settings?.dbRefs?.members?.docId}
     onReassign={() => openReassignDialog()}
     onExportVcf={exportVcf}
+    onOpenMembersDoc={() => {
+        const docId = plugin.settings?.dbRefs?.members?.docId;
+        if (docId) plugin.showTabDocs?.(docId);
+    }}
     onToggleEditor={editorOpen ? cancelEdit : startNewMember}
 />
 

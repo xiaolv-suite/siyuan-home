@@ -2028,7 +2028,7 @@
     "capture.amountCny": "金额 (元)",
     "capture.fuelLiters": "升数 / 度数",
     "capture.currentMileage": "当前里程 (km)",
-    "capture.savedEvent": "已成功记录流水！",
+    "capture.savedEvent": "已记录日常流水并同步至思源文档！",
     "capture.metricBp": "血压",
     "capture.metricGlucose": "血糖",
     "capture.systolic": "高压(收缩压)",
@@ -2061,5 +2061,17 @@
     "capture.phShopName": "例如：纯牛奶 / 抽纸",
     "capture.phShopQty": "数量，默认 1",
     "capture.phSnippet": "记一句话、常用语或家庭备忘（Ctrl+Enter 保存）",
-    "modal.readIncomplete": "以下台账读取失败或未读完整，内容可能不全：${modules}。请稍后重试或在设置中运行台账体检。"
+    "modal.readIncomplete": "以下台账读取失败或未读完整，内容可能不全：${modules}。请稍后重试或在设置中运行台账体检。",
+    "filter": "筛选",
+    "activity.log.chexecs": "家务打卡",
+    "activity.log.vitals": "生理体征",
+    "dash.quickFlowTitle": "快速记录 · 日常流水",
+    "dash.quickFlowSub": "优先记日常流水，实时同步至思源笔记文档",
+    "capture.openJournalDoc": "流水与备忘文档",
+    "capture.docSyncHint": "记录内容自动同步至思源台账与日常流水文档",
+    "capture.flowDescFuel": "能耗与里程入档",
+    "capture.flowDescVital": "健康体征入档",
+    "capture.flowDescChore": "轮换与积分入档",
+    "capture.flowDescShopping": "采购清单直写",
+    "capture.flowDescSnippet": "常用碎片入档"
 }

@@ -46,6 +46,28 @@
         else onGoto("ledger");
     }
 
+    function openQuickEvent(sub?: "fuel" | "vital" | "chore" | "shopping" | "snippet") {
+        if (onCapture) onCapture(sub ? `event:${sub}` : "event");
+    }
+
+    async function openJournalDoc() {
+        const { openDailyJournalDoc } = await import("@/core/doc-sync");
+        if (!(await openDailyJournalDoc(plugin))) {
+            showMessage(t("capture.docSyncHint"), 3000, "info");
+        }
+    }
+
+    const DAILY_FLOWS = [
+        { sub: "fuel" as const, icon: "fuel" as const, tone: "t-blue", label: "capture.actFuel", desc: "capture.flowDescFuel" },
+        { sub: "vital" as const, icon: "heartPulse" as const, tone: "t-rose", label: "capture.actVital", desc: "capture.flowDescVital" },
+        { sub: "chore" as const, icon: "checkCircle" as const, tone: "t-green", label: "capture.actChore", desc: "capture.flowDescChore" },
+        { sub: "shopping" as const, icon: "cart" as const, tone: "t-amber", label: "capture.actShopping", desc: "capture.flowDescShopping" },
+        { sub: "snippet" as const, icon: "note" as const, tone: "t-blue", label: "capture.actSnippet", desc: "capture.flowDescSnippet" },
+    ];
+
+    let showLedgerQuickChips = $state(false);
+    let showPulseStrip = $state(false);
+
     const onboarded = $derived.by(() => {
         void version;
         return !!plugin.settings.onboarded;
@@ -321,12 +343,15 @@
 {#if !onboarded}
     <Onboarding {plugin} {t} onGoto={onGoto} {onCapture} />
 {:else}
-<div class="lv-hero">
+<div class="lv-hero lv-hero--compact">
     <div class="lv-hero-copy">
         <div class="lv-hero-meta" role="status" aria-label={t("dash.stripLabel")}>
             <span>{dateLine}{scanStale ? ` · ${t("dash.stale")}` : ""}</span>
             {#if memberFilter}
                 <span><strong>{t("dash.stripScope")}</strong> {scopeLabel}</span>
+            {/if}
+            {#if monthlyDone > 0}
+                <span class="lv-badge green"><UiIcon name="check" size={11} /> {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span>
             {/if}
             {#if scanErrors.length > 0}
                 <span class="lv-badge red"><strong>{t("dash.stripErrors")}</strong> {scanErrors.length}</span>
@@ -341,32 +366,16 @@
             {/if}
         </p>
         <div class="lv-hero-actions">
-            <button type="button" class="lv-btn primary lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={16} />{t("dash.heroOpen")}</button>
             {#if onCapture}
-                <button type="button" class="lv-btn lv-hero-action-btn lv-hero-capture-btn" onclick={() => onCapture()}><UiIcon name="add" size={15} />{t("dash.quickRecord")}</button>
+                <button type="button" class="lv-btn primary lv-hero-capture-btn" onclick={() => openQuickEvent()}><UiIcon name="bolt" size={16} />{t("dash.quickRecord")}</button>
             {/if}
+            <button type="button" class="lv-btn lv-hero-action-btn lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={15} />{t("dash.heroOpen")}</button>
+            <button type="button" class="lv-btn ghost sm" onclick={() => void openJournalDoc()} title={t("capture.openJournalDoc")}><UiIcon name="note" size={14} />{t("capture.openJournalDoc")}</button>
             <div class="lv-hero-tools-group" role="group" aria-label={t("dash.quickTools")}>
                 <button type="button" class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
-            </div>
-        </div>
-        {#if monthlyDone > 0}<p><span class="lv-badge green"><UiIcon name="check" size={12} /> {t("dash.monthlyDone").replace("${n}", monthlyDueTotal > 0 ? `${monthlyDone}/${monthlyDueTotal}` : String(monthlyDone))}</span></p>{/if}
-    </div>
-    <div class="lv-hero-tools">
-        <div class="lv-hero-stat-card" title={t("dash.statScope").replace("${t}", snapshotLabel)}>
-            <div class="lv-hero-stat-header">
-                <span class="lv-hero-stat-icon" aria-hidden="true"><UiIcon name="clock" size={16} /></span>
-                <span class="lv-hero-stat-label">{reminders.length === 1 ? t("dash.needAttentionOne") : t("dash.needAttention")}</span>
-            </div>
-            <div class="lv-hero-stat-body">
-                <b class="lv-num lv-hero-stat-num">{reminders.length}</b>
-            </div>
-            <div class="lv-hero-stat-footer">
-                <span class="lv-badge {reminders.length > 0 ? 'orange' : 'green'}">
-                    {reminders.length > 0 ? t("dash.needAttentionN").replace("${n}", String(reminders.length)) : t("dash.allReadyClear")}
-                </span>
             </div>
         </div>
     </div>
@@ -392,6 +401,60 @@
     />
 {/if}
 
+<!-- 首屏核心区：快速记录（日常流水优先 + 随手备忘 + 思源文档实时同步） -->
+<section class="lv-card lv-quick-hub" aria-label={t("dash.quickRecord")}>
+    <div class="lv-quick-hub__head">
+        <div class="lv-quick-hub__title-wrap">
+            <span class="lv-quick-hub__icon" aria-hidden="true"><UiIcon name="bolt" size={16} /></span>
+            <h2 class="lv-title-sec">{t("dash.quickFlowTitle")}</h2>
+            <span class="lv-sub">{t("dash.quickFlowSub")}</span>
+        </div>
+        <div class="lv-quick-hub__actions">
+            {#if quickModules.length > 0}
+                <button type="button" class="b3-button b3-button--text lv-quick-hub__toggle" aria-expanded={showLedgerQuickChips} onclick={() => { showLedgerQuickChips = !showLedgerQuickChips; }}>
+                    <UiIcon name="archive" size={13} /> <span>{t("capture.tabLedger")}</span> <UiIcon name={showLedgerQuickChips ? "chevronUp" : "chevronDown"} size={12} />
+                </button>
+            {/if}
+            <button type="button" class="b3-button b3-button--text lv-quick-hub__doc-btn" onclick={() => void openJournalDoc()}>
+                <UiIcon name="note" size={13} /> <span>{t("capture.openJournalDoc")}</span> <UiIcon name="forward" size={11} />
+            </button>
+        </div>
+    </div>
+
+    <div class="lv-quick-flow-grid" role="group" aria-label={t("capture.tabEvent")}>
+        {#each DAILY_FLOWS as flow (flow.sub)}
+            <button type="button" class="lv-flow-btn {flow.tone}" onclick={() => openQuickEvent(flow.sub)}>
+                <span class="lv-flow-btn__ic" aria-hidden="true"><UiIcon name={flow.icon} size={18} /></span>
+                <span class="lv-flow-btn__copy">
+                    <b>{t(flow.label)}</b>
+                    <span>{t(flow.desc)}</span>
+                </span>
+            </button>
+        {/each}
+    </div>
+
+    {#if showLedgerQuickChips}
+        <div id="lv-quick-modules" class="lv-quick lv-quick--inline">
+            {#each quickVisibleModules as mid (mid)}
+                {@const tone = moduleTone(mid)}
+                <button type="button" class="lv-qbtn {tone}" onclick={() => mid === "members" ? onGoto("members") : openQuickCapture(mid)}>
+                    <span class="qi"><UiIcon name={moduleUiIcon(mid)} size={17} /></span>
+                    <span class="ql">{mid === "members" ? t("tab.members") : t(`module.${mid}`)}</span>
+                </button>
+            {/each}
+            {#if quickModules.length > 6}
+                <button type="button" class="lv-qbtn lv-qbtn--toggle" aria-expanded={quickExpanded}
+                    onclick={() => (quickExpanded = !quickExpanded)}>
+                    <span class="qi lv-quick-expand-icon" aria-hidden="true"><UiIcon name={quickExpanded ? "chevronUp" : "chevronDown"} size={14} /></span>
+                    <span class="ql">{quickExpanded ? t("dash.quickModulesLess") : t("dash.quickModulesMore").replace("${n}", String(quickModules.length - 6))}</span>
+                </button>
+            {/if}
+        </div>
+    {/if}
+
+    <OverviewQuickMemo {plugin} {t} embedded={true} />
+</section>
+
 <OverviewBentoGrid
     {urgentDueReminder}
     {overdueCount}
@@ -410,8 +473,6 @@
     }}
 />
 
-<OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter {t} />
-
 <div class="lv-members" role="group" aria-label={t("tabMembers")}>
     <button type="button" class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>
     {#each members as m (m.id)}
@@ -420,7 +481,15 @@
         </button>
     {/each}
     <button type="button" class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>
+    <span class="fn__flex-1"></span>
+    <button type="button" class="lv-chip {showPulseStrip || pulseDateFilter ? 'on' : ''}" aria-expanded={showPulseStrip || !!pulseDateFilter} onclick={() => { showPulseStrip = !showPulseStrip; }}>
+        <UiIcon name="calendar" size={13} /> <span>{t("overview.weeklyPulse")}</span>
+    </button>
 </div>
+
+{#if showPulseStrip || pulseDateFilter}
+    <OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter {t} />
+{/if}
 
 <OverviewUpcomingList
     {reminders}
@@ -442,6 +511,11 @@
     onRetryScan={retryScan}
     onOpenStarterRecord={openStarterRecord}
     onOpenLedger={openLedgerFor}
+    onOpenDoc={(r) => {
+        const docId = plugin.settings?.dbRefs?.[r.moduleId]?.docId;
+        if (docId && plugin.showTabDocs) plugin.showTabDocs(docId, r.rowId);
+        else if (r.moduleId === "adhoc") void openJournalDoc();
+    }}
     {onGoto}
     onCopyTaskBlock={copyAsTaskBlock}
     onCompleteReminder={(r) => void runOverviewAction(r.id, () => plugin.complete(r))}
@@ -452,27 +526,6 @@
 />
 
 <ActivityFeed {plugin} {t} {version} compact={true} />
-
-<div class="lv-sec"><h2 class="lv-title-sec">{t("dash.quickRecord")}</h2><span class="lv-sub">{t("dash.quickRecordSub")}</span>
-    {#if onCapture}<button type="button" class="b3-button b3-button--text" onclick={() => onCapture()}>{t("capture.openFull")}</button>{/if}
-</div>
-<div id="lv-quick-modules" class="lv-quick">
-    {#each quickVisibleModules as mid (mid)}
-        {@const tone = moduleTone(mid)}
-        <button type="button" class="lv-qbtn {tone}" onclick={() => mid === "members" ? onGoto("members") : openQuickCapture(mid)}>
-            <span class="qi"><UiIcon name={moduleUiIcon(mid)} size={18} /></span>
-            <span class="ql">{mid === "members" ? t("tab.members") : t(`module.${mid}`)}</span>
-        </button>
-    {/each}
-    {#if quickModules.length > 6}
-        <button type="button" class="lv-qbtn lv-qbtn--toggle" aria-expanded={quickExpanded}
-            onclick={() => (quickExpanded = !quickExpanded)}>
-            <span class="qi lv-quick-expand-icon" aria-hidden="true"><UiIcon name={quickExpanded ? "chevronUp" : "chevronDown"} size={14} /></span>
-            <span class="ql">{quickExpanded ? t("dash.quickModulesLess") : t("dash.quickModulesMore").replace("${n}", String(quickModules.length - 6))}</span>
-        </button>
-    {/if}
-</div>
-<OverviewQuickMemo {plugin} {t} />
 
 <OverviewModuleGrid
     {plugin}
@@ -507,5 +560,148 @@
     .lv-quick-expand-icon {
         font-size: 15px;
         font-weight: 600;
+    }
+    .lv-quick-hub {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        min-width: 0;
+        border: 1px solid var(--lv-accent-line, var(--lv-line));
+    }
+    .lv-quick-hub__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 10px;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+    .lv-quick-hub__title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+    .lv-quick-hub__title-wrap h2 {
+        margin: 0;
+    }
+    .lv-quick-hub__icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: var(--lv-accent-soft);
+        color: var(--lv-accent);
+    }
+    .lv-quick-hub__actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+    .lv-quick-flow-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        min-width: 0;
+    }
+    .lv-flow-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 10px 12px;
+        border-radius: var(--lv-r-inner, 12px);
+        border: 1px solid var(--lv-line);
+        background: var(--lv-surface-2);
+        color: var(--lv-tx);
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+        transition: transform 130ms var(--lv-ease-out), border-color 130ms var(--lv-ease-out), background 130ms var(--lv-ease-out);
+    }
+    .lv-flow-btn:hover {
+        border-color: var(--lv-accent);
+        background: var(--lv-surface);
+        transform: translateY(-1px);
+    }
+    .lv-flow-btn:focus-visible {
+        outline: 2px solid var(--lv-accent);
+        outline-offset: 2px;
+    }
+    .lv-flow-btn__ic {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        background: var(--lv-accent-soft);
+        color: var(--lv-accent);
+    }
+    .lv-flow-btn.t-rose .lv-flow-btn__ic {
+        background: rgba(225, 29, 72, 0.1);
+        color: #e11d48;
+    }
+    .lv-flow-btn.t-green .lv-flow-btn__ic {
+        background: rgba(13, 148, 136, 0.12);
+        color: var(--lv-data-accent, #0d9488);
+    }
+    .lv-flow-btn.t-amber .lv-flow-btn__ic {
+        background: rgba(217, 119, 6, 0.12);
+        color: #d97706;
+    }
+    .lv-flow-btn__copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .lv-flow-btn__copy b {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lv-flow-btn__copy span {
+        font-size: 11px;
+        color: var(--lv-tx-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lv-quick--inline {
+        padding-top: 4px;
+        border-top: 1px dashed var(--lv-line);
+    }
+    :global(.lv-memo--embedded) {
+        padding: 10px 12px !important;
+        background: var(--lv-surface-2);
+        border-radius: var(--lv-r-inner, 12px);
+        border: 1px solid var(--lv-line);
+    }
+    @container lv-home (max-width: 860px) {
+        .lv-quick-flow-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @container lv-home (max-width: 560px) {
+        .lv-quick-flow-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .lv-quick-hub {
+            padding: 14px;
+        }
+    }
+    @container lv-home (max-width: 380px) {
+        .lv-quick-flow-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>

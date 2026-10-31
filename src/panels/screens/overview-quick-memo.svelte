@@ -7,9 +7,11 @@
     let {
         plugin,
         t,
+        embedded = false,
     }: {
         plugin: any;
         t: (k: string) => string;
+        embedded?: boolean;
     } = $props();
 
     let memoTitle = $state("");
@@ -60,8 +62,10 @@
     }
 </script>
 
-<div class="lv-sec"><h2 class="lv-title-sec">{t("memo.quick")}</h2><span class="lv-sub">{t("memo.quickSub")}</span></div>
-<div class="lv-card lv-memo">
+{#if !embedded}
+    <div class="lv-sec"><h2 class="lv-title-sec">{t("memo.quick")}</h2><span class="lv-sub">{t("memo.quickSub")}</span></div>
+{/if}
+<div class={embedded ? "lv-memo lv-memo--embedded" : "lv-card lv-memo"}>
     <!-- 261 波：回车提交（isComposing 守卫——中文输入法选词的 Enter 不算提交） -->
     <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1 lv-memo-input" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
         disabled={savingMemo} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
@@ -94,6 +98,6 @@
 
 <style>
     .lv-memo-input {
-        min-width: 180px;
+        min-width: min(180px, 100%);
     }
 </style>

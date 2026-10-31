@@ -11,6 +11,7 @@
         t,
         onGoto,
         onOpenLedger,
+        onFocusToday,
     }: {
         urgentDueReminder?: Reminder;
         overdueCount: number;
@@ -20,6 +21,7 @@
         t: (k: string) => string;
         onGoto: (s: string) => void;
         onOpenLedger: (moduleId: string) => void;
+        onFocusToday?: () => void;
     } = $props();
 
     function handleHeroClick() {
@@ -76,7 +78,7 @@
 
     <!-- 双小方块 Bento 副卡：今日待办与资料核对 -->
     <div class="lv-bento-side">
-        <button type="button" class="lv-focus-card lv-focus-card--today" onclick={() => onGoto("reminders")} aria-label={`${t("dash.focusToday")}：${overdueCount + soon7Count}`}>
+        <button type="button" class="lv-focus-card lv-focus-card--today" onclick={() => onFocusToday ? onFocusToday() : onGoto("reminders")} aria-label={`${t("dash.focusToday")}：${overdueCount + soon7Count}`}>
             <div class="lv-focus-copy">
                 <span class="lv-focus-label">{t("dash.focusToday")}</span>
                 <strong class="lv-focus-num lv-num">{overdueCount + soon7Count}</strong>

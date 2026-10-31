@@ -59,6 +59,13 @@ function checkPortFree(port) {
 }
 
 async function choosePort() {
+    const preferred = Number(process.env.TEST_ISOLATED_PORT);
+    if (preferred && preferred !== 6806 && preferred !== 14680) {
+        try {
+            await checkPortFree(preferred);
+            return preferred;
+        } catch { /* fallback to random */ }
+    }
     for (let i = 0; i < 40; i++) {
         const port = 31000 + Math.floor(Math.random() * 20000);
         if (port === 6806 || port === 14680) continue;
@@ -757,6 +764,46 @@ async function main() {
         await page.screenshot({ path: path.join(SHOT_DIR, "12-after-reload-overview.png") });
         assert.equal(pageErrors.length, 0, `页面不应存在未捕获异常: ${pageErrors.join("; ")}`);
         rec("Step 12 · F5 整页重载后设置/成员/台账/提醒完整存活且零报错", afterReload.onboarded && afterReload.members >= 3 && afterReload.reminders >= 2 && afterReload.memos >= 1, `members=${afterReload.members}, reminders=${afterReload.reminders}, pageErrors=0`);
+
+        // ── Step 13: 思源笔记原生文档真实落地、列序正序（主键在首列）与点击「定位」打开文档验证 ──
+        await page.addStyleTag({ content: "#message, #tempMessage, section.onboarding { pointer-events: none !important; display: none !important; }" });
+        await page.locator("#lv-rail-tab-reminders").click();
+        await sleep(900);
+        const certRemCard = page.locator(".lv-rem").filter({ hasText: "本人居民身份证" }).first();
+        await certRemCard.locator(".lv-rem-expand-btn").click();
+        await sleep(350);
+        await certRemCard.locator(".lv-rem-summary button").click(); // 点击“定位台账文档”
+        await sleep(2500);
+
+        const nativeDocCheck = await page.evaluate(async () => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            const certsRef = p.settings.dbRefs.certs;
+            const avEl = document.querySelector(`.protyle-wysiwyg .av[data-av-id="${certsRef.avId}"]`);
+            const avText = avEl?.innerText || "";
+            const r = await fetch("/api/av/renderAttributeView", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: certsRef.avId, pageSize: 10 }),
+            }).then((x) => x.json());
+            const colNames = (r?.data?.view?.columns ?? []).slice(0, 4).map((c) => c.name);
+            return {
+                docTabOpened: Boolean(avEl),
+                avShowsIdCard: avText.includes("本人居民身份证"),
+                firstCols: colNames,
+            };
+        });
+        await page.screenshot({ path: path.join(SHOT_DIR, "13-native-siyuan-doc-av.png") });
+        // 切回小驴管家主面板页签，保持体验环境首屏即管家
+        await page.evaluate(() => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            p?.showTab?.();
+        });
+        await sleep(500);
+        rec(
+            "Step 13 · 思源原生文档表格真实落地、列序正序且点击定位直达",
+            nativeDocCheck.docTabOpened && nativeDocCheck.avShowsIdCard && nativeDocCheck.firstCols[0] === "主键",
+            `docOpened=${nativeDocCheck.docTabOpened}, cols=${nativeDocCheck.firstCols.join("->")}`,
+        );
 
         await browser.close();
         browser = undefined;

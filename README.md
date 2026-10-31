@@ -1,5 +1,5 @@
 > **内测说明**：小驴管家（Lv Home）功能持续稳健迭代中。欢迎体验并通过交流 QQ 群 **871707735** 反馈建议与功能需求。
-> 当前版本 **v0.5.187** 已通过全仓 175 个测试套件、1,151 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
+> 当前版本 **v0.5.188** 已通过全仓 175 个测试套件、1,151 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.187-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.188-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
@@ -182,16 +182,17 @@
 
 ## 📝 更新日志（Changelog）
 
-### v0.5.187（2026-10-31 · 当前版本）
-- **修复**：
-  - 修复暗色主题下主操作按钮（`.lv-btn.primary`）、激活筛选胶囊（`.lv-preset-tag.active`）、左侧栏主按钮与对话框确认按钮白字配浅蓝底（对比度仅 `1.86:1`）的问题，新增 `--lv-on-accent` / `--lv-on-data` 令牌使暗色对比度提升至 `9.8:1`；
-  - 修复车辆卡片点击「记加油 / 记充电」只打开详情抽屉而未弹出录入表单的问题（将 `registerVehicleAction` 移至节点挂载入 `body` 树之后执行）；
-  - 修复囤货（`stock`）、药箱（`medicine`）、购物（`shopping`）主表未优先展示 `qty` / `stock_qty` 列导致行内 `+/-` 数量步进器不可见的问题；
-  - 补齐「🛡 只读访客模式」在总览、提醒中枢、家庭台账、快速记录与行内编辑的完整白名单过滤与写操作拦截闭环；
-  - 通过 `MutationObserver` 自动为抽屉异步挂载的子区块按钮补齐 `type="button"`，并将次级筛选胶囊、展开摘要、排序表头与活动流热区高度统一提升至 `≥24px`。
+### v0.5.188（2026-10-31 · 当前版本）
+- **修复（思源原生文档落地、列序与跨屏联动闭环）**：
+  - 修复建库时文档内 `<div data-type="NodeAttributeView">` 的 `data-av-id` 与块 ID（`dbRefs.avId`）不一致导致在思源笔记树中点开台账文档时显示空表的问题（插入时附带 Kramdown IAL `{: id="${avIdSeed}"}` 强制两 ID 严格一致）；
+  - 修复建库补列时 `addAttributeViewColumn` 固定传入 `previousKeyID: ""` 导致思源原生表格列顺序完全倒置（`主键` 被挤到最后一列）的问题，改为按 Schema 顺序链式追加在 `主键` 之后；
+  - 修复提醒卡片「定位」、日历事项点击与详情抽屉「在文档中打开」将 detached 行 `itemID` 当作文档块 ID 传给 `openTab` 导致无法打开台账文档的问题，改为优先打开所属台账文档并在真实绑定块存在时聚焦高亮；
+  - 补齐总览 Bento「今日焦点」卡片点击下钻联动筛选、快速记录「记待买 / 随手便签」保存后即时刷新后台台账列表、详情抽屉全量编辑无改动保存回执提示，以及宽屏下成员表单底部按钮右对齐。
 
 <details>
-<summary><b>展开查看历史版本更新记录（v0.5.186 及更早版本）</b></summary>
+<summary><b>展开查看历史版本更新记录（v0.5.187 及更早版本）</b></summary>
+
+- **v0.5.187（2026-10-31）**：修复暗色模式主按钮与选中胶囊对比度（1.86 ➔ 9.8）、车辆卡片「记加油/记充电」弹窗时序、囤货/药箱/购物表格 `+/-` 数量步进列展示、访客只读模式跨屏敏感模块隐藏与写拦截。
 
 - **v0.5.186（2026-10-31）**：新增独立隔离工作区真实 Chrome 自测套件 `scripts/e2e-isolated.mjs`，修复 Terser `booleans_as_integers` 致 Go 内核拒绝建库、Go 空单元格 `-62135596800000` 幽灵逾期、切空台账 `$effect` 崩溃、向导成员缺 `avItemId`、新建证件漏专属字段等 8 项生产级缺陷。
 

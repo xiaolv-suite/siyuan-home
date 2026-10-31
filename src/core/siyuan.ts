@@ -138,12 +138,14 @@ export interface AvColumnSpec {
     type: string;
     /** relation 列目标库 avID（R2 定案：写入接受，读取 API 不回显——schema 层自行记忆） */
     relationTargetAvID?: string;
+    /** 前一列 keyID：用于将新增列按 schema 顺序排在主键/前一列之后，避免空串插到第 0 列导致思源原生表格列序倒置 */
+    previousKeyID?: string;
 }
 
 export async function addAttributeViewColumn(avID: string, col: AvColumnSpec, options?: RequestOptions): Promise<string> {
     const keyID = col.keyID ?? newSiYuanId();
     const payload: Record<string, unknown> = {
-        avID, keyID, keyIcon: "", keyName: col.name, keyType: col.type, previousKeyID: "",
+        avID, keyID, keyIcon: "", keyName: col.name, keyType: col.type, previousKeyID: col.previousKeyID ?? "",
     };
     if (col.type === "relation" && col.relationTargetAvID) {
         payload.relation = { avID: col.relationTargetAvID, isTwoWay: false, backKeyID: "" };
@@ -154,9 +156,11 @@ export async function addAttributeViewColumn(avID: string, col: AvColumnSpec, op
 
 /** 在文档内插入 av 容器 div 并触发内核建库，返回真实 avID（= av 块 ID）。
  * 优先同步取 insertBlock 响应里的新块 ID（E9）；SQL 索引异步重建仅作回退（轮询 ~3s——
- * 182 波活体套件首跑实证：忙实例上 400ms 固定等待会落空）。 */
+ * 182 波活体套件首跑实证：忙实例上 400ms 固定等待会落空）。
+ * 关键：附带 Kramdown IAL `{: id="${avIdSeed}"}` 让思源块的 data-node-id 与 data-av-id 严格一致，
+ * 确保用户在思源笔记树中点开台账文档时原生表格直接显示已落盘的全部列与行！ */
 export async function createAttributeView(docId: string, avIdSeed: string, options?: RequestOptions): Promise<string> {
-    const div = `<div data-type="NodeAttributeView" data-av-id="${avIdSeed}" data-av-type="table"></div>`;
+    const div = `<div data-type="NodeAttributeView" data-av-id="${avIdSeed}" data-av-type="table"></div>\n{: id="${avIdSeed}"}`;
     const readOptions: RequestOptions = { timeoutMs: options?.timeoutMs, signal: options?.signal, retries: 1 };
     const findBySeed = async () => {
         try {

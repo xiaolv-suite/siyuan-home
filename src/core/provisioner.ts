@@ -349,19 +349,33 @@ export async function ensureColumns(
         return { columns, error: `column preflight: ${errText(e)}` };
     }
     const knownIds = new Set(knownColumns.map((c: any) => c?.id));
+    let lastKeyID = String(
+        knownColumns.find((c: any) => c?.type === "block")?.id
+        ?? knownColumns[knownColumns.length - 1]?.id
+        ?? "",
+    );
     for (const col of schema.columns) {
         const columnName = opts.resolveName?.(col.key) ?? col.key;
         const colAliases = new Set([columnName, col.key, ...(COMMON_COLUMN_ALIASES[col.key] ?? [])]);
         if (columns[col.key]) {
-            if (!opts.reconcileGhostColumns || knownIds.has(columns[col.key]) || knownColumns.length === 0) continue;
+            if (!opts.reconcileGhostColumns || knownIds.has(columns[col.key]) || knownColumns.length === 0) {
+                lastKeyID = columns[col.key];
+                continue;
+            }
             const match = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName));
-            if (match?.id) { columns[col.key] = String(match.id); continue; }
+            if (match?.id) {
+                columns[col.key] = String(match.id);
+                lastKeyID = columns[col.key];
+                continue;
+            }
             delete columns[col.key];
         }
         const keyID = newSiYuanId();
-        const currentMatches = knownColumns.filter((c: any) => c?.id === keyID || colAliases.has(c?.name) || colAliases.has(c?.keyName));
+        const usedColIds = new Set(Object.values(columns).filter(Boolean));
+        const currentMatches = knownColumns.filter((c: any) => !usedColIds.has(String(c?.id)) && (c?.id === keyID || colAliases.has(c?.name) || colAliases.has(c?.keyName)));
         if (currentMatches.length >= 1 && currentMatches[0]?.id) {
             columns[col.key] = String(currentMatches[0].id);
+            lastKeyID = columns[col.key];
             continue;
         }
         if (col.type === "relation" && !memberAvId) {
@@ -374,8 +388,10 @@ export async function ensureColumns(
                 name: columnName,
                 type: col.type,
                 relationTargetAvID: col.type === "relation" ? memberAvId : undefined,
+                previousKeyID: lastKeyID,
             }, { idempotencyKey: `pcol:${avId}:${col.key}:${Date.now().toString(36)}`, retries: 0 });
             columns[col.key] = keyID;
+            lastKeyID = keyID;
             knownColumns.push({ id: keyID, name: columnName });
             knownIds.add(keyID);
         } catch (e) {

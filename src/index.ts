@@ -24,7 +24,7 @@ import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.187";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.188";
 
 /**
  * 小驴管家（Lv Home）
@@ -475,18 +475,32 @@ export default class LvHomePlugin extends Plugin {
         this.panelScreenSwitch?.(moduleId);
     }
 
-    /** 打开台账文档或定位具体块（R5 降级定位） */
+    /** 打开台账文档或定位具体块（B4e/R5 定案：detached 行 itemID 不在 blocks 表，必须优先打开台账文档 docId；若 blockId 实为真实绑定文档块则再聚焦高亮） */
     showTabDocs(docId?: string, blockId?: string) {
-        const targetId = blockId ?? docId ?? this.settings.dbRefs[this.activeLedger]?.docId;
-        if (!targetId) return;
+        const resolvedDocId = docId ?? this.settings.dbRefs[this.activeLedger]?.docId;
+        const primaryTarget = resolvedDocId ?? blockId;
+        if (!primaryTarget) return;
         openTab({
             app: this.app,
             doc: {
-                id: targetId,
-                action: blockId ? ["cb-get-focus", "cb-get-hl"] : ["cb-get-focus"],
+                id: primaryTarget,
+                action: primaryTarget === blockId && blockId ? ["cb-get-focus", "cb-get-hl"] : ["cb-get-focus"],
             },
             keepCursor: false,
         });
+        if (blockId && resolvedDocId && blockId !== resolvedDocId) {
+            import("@/core/siyuan").then(({ sql }) =>
+                sql<{ id: string }>(`SELECT id FROM blocks WHERE id='${blockId.replace(/'/g, "''")}' LIMIT 1`)
+            ).then((rows) => {
+                if (rows && rows.length > 0) {
+                    openTab({
+                        app: this.app,
+                        doc: { id: blockId, action: ["cb-get-focus", "cb-get-hl"] },
+                        keepCursor: false,
+                    });
+                }
+            }).catch(() => undefined);
+        }
     }
 
     activeLedger = "certs";

@@ -329,8 +329,8 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                 if (changed > 0) {
                     await onReload();
                     try { await plugin.refreshHub?.([active]); } catch { /* soft */ }
-                    showMessageFn(t("ledger.editSaved"), 2500, "info");
                 }
+                showMessageFn(t("ledger.editSaved"), 2500, "info");
             } catch (err) {
                 showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
                 save.disabled = false;
@@ -415,6 +415,10 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
     const dupBtn = dlg.element.querySelector("#lv-detail-duplicate") as HTMLButtonElement | null;
     if (dupBtn) {
         dupBtn.onclick = () => {
+            if (plugin.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             const rowName = (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || "";
             const cloneName = rowName ? `${rowName} (副本)` : "";
             const copiedValues: Record<string, any> = { name: cloneName };

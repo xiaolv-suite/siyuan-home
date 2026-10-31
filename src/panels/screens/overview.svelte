@@ -401,6 +401,13 @@
     {t}
     {onGoto}
     onOpenLedger={openLedgerFor}
+    onFocusToday={() => {
+        plugin.runtime.hubFilter = overdueCount > 0 && soon7Count === 0 ? "overdue" : "all";
+        plugin.runtime.hubDueWithin = "7";
+        plugin.runtime.hubMemberId = memberFilter;
+        plugin.runtime.hubModuleId = undefined;
+        onGoto("reminders");
+    }}
 />
 
 <OverviewPulseStrip {weeklyPulse} {achievements} bind:pulseDateFilter {t} />

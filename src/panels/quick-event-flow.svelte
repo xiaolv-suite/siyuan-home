@@ -223,6 +223,7 @@
             if (shopRef.columns?.qty && quickShopQty) {
                 await setCell(shopRef.avId!, shopRef.columns.qty, rowId, { type: "number", number: { content: quickShopQty } });
             }
+            try { await plugin.refreshHub?.(["shopping"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickShopName = "";
             quickShopQty = 1;
@@ -252,6 +253,7 @@
             if (col) {
                 await setCell(snipRef.avId!, col, rowId, { type: "text", text: { content: text } });
             }
+            try { await plugin.refreshHub?.(["snippets"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickSnippetText = "";
             saving = false;

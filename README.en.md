@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.187** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.188** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.187-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.188-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
@@ -182,16 +182,17 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.187 (2026-10-31 · Current Version)
-- **Fixed**:
-  - Fixed Dark Mode contrast on primary buttons (`.lv-btn.primary`), active filter pills (`.lv-preset-tag.active`), rail brand/primary buttons, and dialog primary actions (`1.86:1` ➔ `9.8:1` via `--lv-on-accent` / `--lv-on-data`);
-  - Fixed Vehicle Card quick `Fuel` / `Charging` action buttons failing to open the entry form dialog due to `registerVehicleAction` running before DOM insertion;
-  - Prioritized `qty` and `stock_qty` in `computeTableKeys` so `stock`, `medicine`, and `shopping` tables display inline `+/-` quantity steppers;
-  - Wired end-to-end Guest Mode module/reminder filtering (`filterGuestVisibleModules`, `filterGuestReminders`) and write blocking across Overview, Reminders, Ledger, Quick Capture, and inline editors;
-  - Added `MutationObserver` button `type="button"` normalization in `bindDialogA11y` and raised secondary interactive control hit targets to `≥24px`.
+### v0.5.188 (2026-10-31 · Current Version)
+- **Fixed (Native SiYuan Document Materialization, Column Order & Cross-Panel Linkage)**:
+  - Aligned the `data-av-id` and `data-node-id` (`dbRefs.avId`) on `<div data-type="NodeAttributeView">` via Kramdown IAL `{: id="${avIdSeed}"}` in `createAttributeView`, ensuring native SiYuan ledger documents in the notebook tree render all columns and rows directly inside Protyle;
+  - Chained `previousKeyID` across `ensureColumns` and `addAttributeViewColumn` so columns in native SiYuan AttributeView tables appear in natural schema order after the `Primary Key` column instead of reversed;
+  - Fixed `showTabDocs(docId, blockId)` to open the ledger document `docId` when `blockId` is a detached AV item ID (`isDetached: true`), and focus/highlight `blockId` when it is a bound document block;
+  - Connected Overview Bento `Focus Today` card click to filter Reminders by 7-day/overdue scope, refreshed active ledgers upon Quick Capture shopping/snippet saves, added feedback toast on unchanged drawer saves, and right-aligned Member Editor action buttons on desktop.
 
 <details>
-<summary><b>View Historical Releases (v0.5.186 and earlier)</b></summary>
+<summary><b>View Historical Releases (v0.5.187 and earlier)</b></summary>
+
+- **v0.5.187 (2026-10-31)**: Fixed Dark Mode button/pill contrast (`1.86:1` ➔ `9.8:1`), Vehicle Card quick Fuel/Charging dialog timing, inline `+/-` quantity steppers on `stock`/`medicine`/`shopping`, and end-to-end Guest Mode filtering & write protection.
 
 - **v0.5.186 (2026-10-31)**: Added `scripts/e2e-isolated.mjs` cold-workspace Chrome e2e suite and fixed 8 production defects (Terser `booleans_as_integers`, Go empty-cell phantom overdue alerts, empty ledger `$effect` loop, onboarding member `avItemId` sync, certificate scalar fields, Quick Event Flow auto-close, Overview location search race, and Guest Mode reactivity).
 

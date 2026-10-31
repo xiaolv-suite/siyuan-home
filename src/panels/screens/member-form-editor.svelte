@@ -217,7 +217,7 @@
     .lv-member-field .b3-text-field, .lv-member-field .b3-select { width: 100%; min-width: 0; box-sizing: border-box; }
     .lv-member-field-wide { grid-column: 1 / -1; }
     .lv-member-check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding-bottom: 1px; color: var(--lv-tx-2); font-size: 12px; white-space: nowrap; cursor: pointer; }
-    .lv-member-editor-actions { display: flex; gap: 7px; align-items: center; min-height: 32px; }
+    .lv-member-editor-actions { grid-column: 1 / -1; justify-content: flex-end; display: flex; gap: 7px; align-items: center; min-height: 32px; }
 
     @container lv-home (max-width: 680px) {
         .lv-member-editor-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }

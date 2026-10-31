@@ -260,22 +260,16 @@ async function main() {
     if (SYNC_ONLY) {
         prepareIsolatedWorkspace(workspace, false);
         copyDistAndWritePetals(workspace);
+        stopPreviousIsolatedKernel(port);
+        await sleep(600);
+        const proc = spawnKernel(kernel, appDir, workspace, port, true);
+        const pid = proc.child.pid;
         let token = readWorkspaceToken(workspace);
         const api = await makeApi(base, () => token);
-        let running = false;
-        try {
-            const p = await api("/api/system/bootProgress");
-            running = p?.code === 0;
-        } catch {
-            running = false;
-        }
-        let pid;
-        if (!running) {
-            const proc = spawnKernel(kernel, appDir, workspace, port, true);
-            pid = proc.child.pid;
-            await waitKernelReady(base, api);
-            token = readWorkspaceToken(workspace);
-        }
+        await waitKernelReady(base, api);
+        token = readWorkspaceToken(workspace);
+        await api("/api/setting/setBazaar", { trust: true, petal: true });
+        copyDistAndWritePetals(workspace);
         fs.writeFileSync(
             path.join(workspace, MARKER_FILE),
             JSON.stringify({ createdBy: "siyuan-home-e2e-isolated", updatedAt: new Date().toISOString(), port, appUrl, base, workspace, token, pid }, null, 2) + "\n",

@@ -15,7 +15,7 @@
  */
 
 import assert from "node:assert/strict";
-import { execSync, spawn } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -27,12 +27,47 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(REPO, "dist");
 const PLUGIN_ID = "siyuan-home";
 const HOST = "127.0.0.1";
+const DEFAULT_PORT = 43919;
 const KEEP = process.argv.includes("--keep");
+const SYNC_ONLY = process.argv.includes("--sync-only");
 const HEADED = process.argv.includes("--headed");
 const MARKER_FILE = "siyuan-home-e2e-isolated.json";
 const SHOT_DIR = path.join(REPO, "tmp", "ui-shots", "e2e-isolated");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function resolveIsolatedRoot() {
+    if (process.env.TEST_ISOLATED_ROOT) return path.resolve(process.env.TEST_ISOLATED_ROOT);
+    const repoParent = path.resolve(REPO, "..");
+    if (process.platform === "win32" && fs.existsSync("D:\\")) {
+        return path.join(repoParent.startsWith("D:\\") ? repoParent : "D:\\思源插件", ".isolated-workspaces");
+    }
+    return os.tmpdir();
+}
+
+function resolveIsolatedWorkspace(persistent) {
+    if (process.env.TEST_ISOLATED_WORKSPACE) return path.resolve(process.env.TEST_ISOLATED_WORKSPACE);
+    const root = resolveIsolatedRoot();
+    fs.mkdirSync(root, { recursive: true });
+    return persistent
+        ? path.join(root, PLUGIN_ID)
+        : path.join(root, `${PLUGIN_ID}-run-${Date.now()}-${process.pid}`);
+}
+
+function stopPreviousIsolatedKernel(targetPort) {
+    if (process.platform !== "win32") return;
+    try {
+        const psScript = [
+            `Get-CimInstance Win32_Process -Filter "Name='SiYuan-Kernel.exe'" | ForEach-Object {`,
+            `  $cmd = [string]$_.CommandLine;`,
+            `  if (($cmd -match '--port\\s+${targetPort}(\\s|$)') -or ($cmd -match 'siyuan-home')) {`,
+            `    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue`,
+            `  }`,
+            `}`,
+        ].join(" ");
+        execFileSync("powershell.exe", ["-NoProfile", "-Command", psScript], { stdio: "ignore" });
+    } catch { /* ignore */ }
+}
 
 function resolveKernel() {
     const candidates = [
@@ -59,16 +94,22 @@ function checkPortFree(port) {
 }
 
 async function choosePort() {
-    const preferred = Number(process.env.TEST_ISOLATED_PORT);
-    if (preferred && preferred !== 6806 && preferred !== 14680) {
+    const preferred = Number(process.env.TEST_ISOLATED_PORT) || (KEEP || SYNC_ONLY ? DEFAULT_PORT : 0);
+    if (preferred && preferred !== 6806 && preferred !== 3727 && preferred !== 14680) {
+        if (!SYNC_ONLY) {
+            stopPreviousIsolatedKernel(preferred);
+            await sleep(500);
+        }
         try {
             await checkPortFree(preferred);
             return preferred;
-        } catch { /* fallback to random */ }
+        } catch {
+            if (SYNC_ONLY) return preferred;
+        }
     }
     for (let i = 0; i < 40; i++) {
         const port = 31000 + Math.floor(Math.random() * 20000);
-        if (port === 6806 || port === 14680) continue;
+        if (port === 6806 || port === 3727 || port === 14680) continue;
         try {
             await checkPortFree(port);
             return port;
@@ -77,15 +118,18 @@ async function choosePort() {
     throw new Error("未找到可用回环测试端口");
 }
 
-function prepareIsolatedWorkspace(workspace) {
+function prepareIsolatedWorkspace(workspace, resetExisting = false) {
     const resolved = path.resolve(workspace);
     const relRepo = path.relative(resolved, REPO);
     const outside = relRepo === ".." || relRepo.startsWith(`..${path.sep}`) || path.isAbsolute(relRepo);
     if (!outside) throw new Error(`拒绝使用仓库内目录作为隔离工作区: ${resolved}`);
+    if (resetExisting && fs.existsSync(resolved)) {
+        fs.rmSync(resolved, { recursive: true, force: true });
+    }
     fs.mkdirSync(path.join(resolved, "data", "storage", "petal"), { recursive: true });
     fs.writeFileSync(
         path.join(resolved, MARKER_FILE),
-        JSON.stringify({ createdBy: "siyuan-home-e2e-isolated", createdAt: new Date().toISOString() }, null, 2) + "\n",
+        JSON.stringify({ createdBy: "siyuan-home-e2e-isolated", createdAt: new Date().toISOString(), workspace: resolved }, null, 2) + "\n",
     );
 }
 
@@ -211,9 +255,39 @@ async function main() {
     const port = await choosePort();
     const base = `http://${HOST}:${port}`;
     const appUrl = `${base}/stage/build/desktop/`;
-    const workspace = path.join(os.tmpdir(), `siyuan-home-isolated-${Date.now()}-${process.pid}`);
+    const workspace = resolveIsolatedWorkspace(KEEP || SYNC_ONLY);
 
-    prepareIsolatedWorkspace(workspace);
+    if (SYNC_ONLY) {
+        prepareIsolatedWorkspace(workspace, false);
+        copyDistAndWritePetals(workspace);
+        let token = readWorkspaceToken(workspace);
+        const api = await makeApi(base, () => token);
+        let running = false;
+        try {
+            const p = await api("/api/system/bootProgress");
+            running = p?.code === 0;
+        } catch {
+            running = false;
+        }
+        let pid;
+        if (!running) {
+            const proc = spawnKernel(kernel, appDir, workspace, port, true);
+            pid = proc.child.pid;
+            await waitKernelReady(base, api);
+            token = readWorkspaceToken(workspace);
+        }
+        fs.writeFileSync(
+            path.join(workspace, MARKER_FILE),
+            JSON.stringify({ createdBy: "siyuan-home-e2e-isolated", updatedAt: new Date().toISOString(), port, appUrl, base, workspace, token, pid }, null, 2) + "\n",
+        );
+        console.log(`\n✅ [e2e-isolated] --sync-only 已将最新 dist/ 热更新至 D 盘隔离工作区（保留全部现有测试数据）：`);
+        console.log(`  浏览器直达: ${appUrl}`);
+        console.log(`  工作区目录: ${workspace}`);
+        console.log(`  API Token:  ${token}`);
+        return;
+    }
+
+    prepareIsolatedWorkspace(workspace, true);
     copyDistAndWritePetals(workspace);
 
     console.log(`[e2e-isolated] 创建全新隔离工作区: ${workspace}`);
@@ -899,6 +973,19 @@ async function main() {
         console.log(`\n🎉 [e2e-isolated] ${results.length}/${results.length} 真实浏览器全链路自用走查全部通过！（截图位于 ${SHOT_DIR}）`);
         if (KEEP) {
             proc.child.unref?.();
+            fs.writeFileSync(
+                path.join(workspace, MARKER_FILE),
+                JSON.stringify({
+                    createdBy: "siyuan-home-e2e-isolated",
+                    updatedAt: new Date().toISOString(),
+                    port,
+                    appUrl,
+                    base,
+                    workspace,
+                    token,
+                    pid: proc.child.pid,
+                }, null, 2) + "\n",
+            );
             console.log(`\n[e2e-isolated] --keep 已启用，隔离工作区与思源内核保持运行（随时可直接用浏览器打开体验）：`);
             console.log(`  浏览器直达: ${appUrl}`);
             console.log(`  内核地址:   ${base}`);

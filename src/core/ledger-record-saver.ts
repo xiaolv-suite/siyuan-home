@@ -16,9 +16,21 @@ export function convertFormCellValue(type: string, v: any, members?: any[]): unk
     switch (type) {
         case "select": return selectCellValue(v);
         case "relation": {
-            const relationID = typeof v === "string" ? v.trim() : "";
-            const linked = relationID && (members ?? []).some((m) => m.avItemId === relationID);
-            return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
+            const rawList: string[] = Array.isArray(v)
+                ? v.map(String)
+                : typeof v === "string" && v.includes(",")
+                    ? v.split(",")
+                    : typeof v === "string" && v.trim()
+                        ? [v.trim()]
+                        : [];
+            const linkedIds = rawList
+                .map((s) => s.trim())
+                .filter((id) => id && (members ?? []).some((m) => m.avItemId === id || m.id === id))
+                .map((id) => {
+                    const m = (members ?? []).find((mem) => mem.avItemId === id || mem.id === id);
+                    return m?.avItemId || id;
+                });
+            return linkedIds.length > 0 ? { type: "relation", relation: { blockIDs: linkedIds, contents: null } } : null;
         }
         case "date": return v === "" ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: new Date(`${v}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } };
         case "number": return v === "" || v === null ? { type: "number", number: { isNotEmpty: false } } : { type: "number", number: { content: Number(v), isNotEmpty: true } };

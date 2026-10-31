@@ -2197,11 +2197,25 @@
   .lv-keep-context-sub { opacity: 0.6; font-size: 10.5px; }
   .lv-discard-uncertain { font-size: 11.5px; color: var(--lv-danger); }
   .lv-segmented-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .lv-ui-icon {
+    display: inline-block;
+    vertical-align: -0.15em;
+    flex: none;
+    fill: none !important;
+    stroke: currentColor !important;
+    path {
+      fill: none !important;
+      stroke: currentColor !important;
+    }
+  }
+
   .lv-seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: var(--lv-r-2, 8px); border: 1px solid var(--lv-line, #e2e8f0); background: var(--lv-surface-2, #f8fafc); color: var(--lv-tx, #1e293b); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 130ms ease;
     &:hover { border-color: var(--lv-accent, #0d9488); background: var(--lv-surface, #ffffff); }
     &.active { background: var(--lv-accent, #0d9488); color: #ffffff; border-color: var(--lv-accent, #0d9488); box-shadow: 0 1px 3px rgba(13, 148, 136, 0.25); } }
   .lv-pill-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .lv-pill-chip { cursor: pointer; padding: 0 9px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; border-radius: 999px; user-select: none; }
+  .lv-member-chip-all { font-weight: 600; }
+  .lv-member-multichips { width: 100%; min-width: 0; }
   .lv-checkbox-label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; } }
   .lv-calc-tip { display: flex; align-items: center; gap: 6px; padding: 5px 8px; margin: 2px 0 8px; background: var(--lv-surface-2, #f8fafc); border-radius: var(--lv-r-2, 6px); font-size: 11px; color: var(--lv-tx-3, #64748b); }
   .lv-datetime-col { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
@@ -2239,6 +2253,49 @@
     .lv-member-editor-fields { grid-template-columns: 1fr; }
     .lv-member-editor-actions { grid-column: auto; }
     .lv-member-check { padding-top: 4px; padding-bottom: 4px; min-height: 28px; }
+  }
+
+  .lv-onboarding {
+    margin-bottom: 16px;
+    padding: clamp(16px, 3.5vw, 28px);
+    .lv-wiz { max-width: 680px; }
+    .lv-wiz__intro { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .lv-wiz__intro-main { min-width: 0; }
+    .lv-wiz__welcome { font-size: clamp(18px, 2.4vw, 21px); }
+    .lv-wiz__intro-main > .lv-sub { margin: 0; line-height: 1.5; }
+    .lv-wiz__progress { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+    .lv-wiz__step { padding: 4px 10px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-full); background: var(--lv-surface); color: var(--lv-tx-3); font-size: 11px; font-weight: 550; letter-spacing: 0; white-space: nowrap; }
+    .lv-wiz__progress-track { display: flex; gap: 3px; width: 58px; height: 4px; span { flex: 1; border-radius: 2px; background: var(--lv-line); &.active { background: var(--lv-data-accent); } } }
+    .lv-wiz__overview { margin-bottom: 18px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-inner); background: var(--lv-surface); box-shadow: var(--lv-shadow-1);
+      summary { min-height: 38px; padding: 9px 12px; color: var(--lv-tx-2); cursor: pointer; font-size: 12px; font-weight: 600; &::marker { color: var(--lv-accent); } } }
+    .lv-wiz__overview-body { padding: 0 12px 12px; > p { margin: 0 0 10px; color: var(--lv-tx-3); font-size: 12px; line-height: 1.55; } }
+    .lv-wiz__features { margin-bottom: 10px; }
+    .lv-wiz-flow { margin-bottom: 0; }
+    .lv-wiz__current { margin-bottom: 12px; }
+    .lv-wiz__title { margin: 0 0 5px; font-size: 17px; }
+    .lv-wiz__lead { margin: 0 0 4px; font-size: 12px; }
+    .lv-wiz__hint { margin: 0; line-height: 1.5; }
+    .lv-roles { gap: 7px; margin: 0 0 14px; }
+    .lv-rolechip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 7px 13px; font-size: 13px; }
+    .lv-wiz__children { display: flex; align-items: center; gap: 8px; margin: -2px 0 14px; > span { margin-right: 4px; } > b { min-width: 24px; text-align: center; } .b3-button { min-width: 34px; min-height: 34px; } }
+    .lv-wiz__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid var(--lv-line); }
+    .lv-wiz__actions--split { justify-content: space-between; }
+    .lv-wiz__actions .lv-btn { min-height: 38px; }
+    .lv-wiz__error { margin: 8px 0 0; color: var(--lv-danger); line-height: 1.5; overflow-wrap: anywhere; }
+    .lv-wiz__actions--split .lv-wiz__error { flex: 1; margin: 0; }
+    .lv-wiz__note { margin: 0 0 12px; color: var(--lv-accent); line-height: 1.5; }
+    @container lv-home (max-width: 480px) {
+      .lv-wiz__intro { grid-template-columns: 34px minmax(0, 1fr); align-items: start; gap: 8px 10px; margin-bottom: 12px; }
+      .lv-wiz__intro-icon { width: 32px; height: 32px; font-size: 18px; }
+      .lv-wiz__progress { grid-column: 2; flex-direction: row; align-items: center; gap: 8px; }
+      .lv-wiz__progress-track { width: 42px; }
+      .lv-wiz__overview { margin-bottom: 14px; }
+      .lv-wiz__features { grid-template-columns: 1fr; }
+      .lv-wiz-flow { display: grid; grid-template-columns: 1fr; gap: 8px; .lv-wiz-flow__arrow { display: none; } }
+      .lv-wiz__actions { justify-content: stretch; }
+      .lv-wiz__actions .lv-btn { justify-content: center; }
+      .lv-wiz__actions--split { flex-wrap: wrap; .lv-wiz__error { flex-basis: 100%; order: 3; } }
+    }
   }
 
   .lv-settings-member { padding: 14px; margin-top: 10px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); min-width: 0;
@@ -2337,6 +2394,10 @@
     output { margin-left: 5px; color: var(--lv-tx); font-variant-numeric: tabular-nums; }
     input { grid-column: 1 / -1; width: 100%; accent-color: var(--lv-accent); } }
   @media (max-width: 460px) { .lv-avatar-dialog { padding: 16px; } .lv-avatar-trigger { width: 30px; height: 30px; } }
+
+  .lv-alert-banner { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .lv-alert-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .lv-quick-expand-icon { font-size: 15px; font-weight: 600; }
 
   // ── 活动流（Activity Feed）全局样式 ──
   .lv-activity { display:flex; flex-direction:column; gap:10px; min-width:0; margin-block:14px; }

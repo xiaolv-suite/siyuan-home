@@ -6,7 +6,7 @@
 
 import type { ColumnDef } from "./schema";
 
-const fld = (key: string, type: any, extra?: any): ColumnDef => ({ key, type, labelKey: `field.${key}`, ...extra });
+const fld = (key: string, type: any, extra?: any): ColumnDef => (extra ? { key, type, labelKey: `field.${key}`, ...extra } : { key, type, labelKey: `field.${key}` });
 const txt = (k: string) => fld(k, "text");
 const dat = (k: string) => fld(k, "date");
 const ast = (k: string) => fld(k, "mAsset");

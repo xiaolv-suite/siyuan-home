@@ -17,6 +17,8 @@ const chk = (k: string) => fld(k, "checkbox");
 const num = (k: string, extra?: Partial<ColumnDef>) => fld(k, "number", extra);
 const sel = (k: string, options?: string[], def?: string) => fld(k, "select", options ? (def ? { options, default: def } : { options }) : (def ? { default: def } : undefined));
 const rem = (key: string, field: string, leadDays = 30, kind: "oneoff" | "recurring" | "anniversary" | "after" = "oneoff", extra?: Partial<ReminderRuleSpec>): ReminderRuleSpec => ({ key, field, kind, leadDays, ...extra });
+const rem60 = (k: string, f: string) => rem(k, f, 60);
+const remVeh = (k: string, f: string) => rem(k, f, 60, "oneoff", { leadStages: [60, 30, 7] });
 const act = (detailFields: string[], dateField = "date") => ({ dateField, detailFields });
 const REM_EXP_30 = rem("expiry", "expiry", 30);
 
@@ -24,7 +26,7 @@ const REM_EXP_30 = rem("expiry", "expiry", 30);
 
 const FIELD_DICT: Record<string, ColumnDef> = {
     name:          { key: "name", type: "text", required: true },
-    member:        { key: "member", type: "relation", labelKey: "field.member" }, // → members 库（Spike R2 定案）
+    member:        { key: "member", type: "relation", labelKey: "field.member" },
     category:      sel("category"),
     status:        sel("status"),
     date:          dat("date"),
@@ -35,7 +37,6 @@ const FIELD_DICT: Record<string, ColumnDef> = {
     location:      txt("location"),
     attachments:   ast("attachments"),
     url:           { key: "url", type: "url", labelKey: "field.url" },
-    /** EC13：外部联系人快照（人脉 docId），文本列存 `名称 [docId]`——快照可见可搜，不做跨插件 relation（v2 再议） */
     contact:       txt("contact"),
     tags:          { key: "tags", type: "mSelect", labelKey: "field.tags" },
     note:          txt("note"),
@@ -46,9 +47,10 @@ const d = (...keys: string[]): ColumnDef[] => keys.map((k) => FIELD_DICT[k]);
 const cat = (options: string[]): ColumnDef => ({ ...FIELD_DICT.category, options });
 const sta = (options: string[], def = options[0]): ColumnDef => ({ ...FIELD_DICT.status, options, default: def });
 const tbl = (key: string, extra?: Partial<ViewDef>): ViewDef => ({ key, type: "table", ...extra });
-/** 312 波：三个模块共用的视图声明收敛（expiring / by_member），避免重复对象字面量 */
-const VIEW_EXPIRING: ViewDef = tbl("expiring", { sortBy: { key: "expiry", asc: true } });
-const VIEW_BY_MEMBER: ViewDef = tbl("by_member", { groupBy: "member" });
+const grp = (key: string, groupBy: string): ViewDef => tbl(key, { groupBy });
+const srt = (key: string, keyCol: string): ViewDef => tbl(key, { sortBy: { key: keyCol, asc: true } });
+const VIEW_EXPIRING: ViewDef = srt("expiring", "expiry");
+const VIEW_BY_MEMBER: ViewDef = grp("by_member", "member");
 
 // ── certs 证件管理（02 §4.2①）──────────────────────────────
 
@@ -83,14 +85,14 @@ export const CERTS_SCHEMA: ModuleSchema = {
     reminders: [
         rem("expiry", "expiry", 90),
         // 签注/下次审验日（港澳台通行证签注另计）——due 列已在 columns 中（契约 33.2）
-        rem("endorsement", "due", 60),
-        rem("permit_endorsement", "x_cert_permit_endorsement_expiry", 60),
-        rem("hkmo_endorsement", "x_cert_hkmo_endorsement_expiry", 60),
-        rem("tw_endorsement", "x_cert_tw_endorsement_expiry", 60),
-        rem("driver_review", "x_cert_driver_review_due", 60),
-        rem("vocational_education", "x_cert_vocational_education_due", 60),
-        rem("professional_education", "x_cert_professional_education_due", 60),
-        rem("title_review", "x_cert_title_review_due", 60),
+        rem60("endorsement", "due"),
+        rem60("permit_endorsement", "x_cert_permit_endorsement_expiry"),
+        rem60("hkmo_endorsement", "x_cert_hkmo_endorsement_expiry"),
+        rem60("tw_endorsement", "x_cert_tw_endorsement_expiry"),
+        rem60("driver_review", "x_cert_driver_review_due"),
+        rem60("vocational_education", "x_cert_vocational_education_due"),
+        rem60("professional_education", "x_cert_professional_education_due"),
+        rem60("title_review", "x_cert_title_review_due"),
     ],
 };
 
@@ -118,7 +120,7 @@ export const MEMBERS_SCHEMA: ModuleSchema = {
         ...d("note"),
     ],
     capture: ["name", "role", "birthday", "lunar"],
-    views: [tbl("by_role", { groupBy: "role" })],
+    views: [grp("by_role", "role")],
     // 生日周年提醒由 members provider 声明（lunarField 指向 lunar 列）
     reminders: [
         rem("birthday", "birthday", 7, "anniversary", { lunarField: "lunar" }),
@@ -158,7 +160,7 @@ export const MEMBERSHIPS_SCHEMA: ModuleSchema = {
         { key: "cancel_guide", type: "url", labelKey: "field.cancel_guide" }, // 16 组：取消自动续费指引链接
     ],
     capture: ["name", "category", "amount", "cycle", "next_pay"],
-    views: [tbl("renewing", { sortBy: { key: "next_pay", asc: true } })],
+    views: [srt("renewing", "next_pay")],
     reminders: [
         rem("next_pay", "next_pay", 14, "recurring", { cycleField: "cycle", autoRenewField: "auto_renew" }),
         rem("trial_end", "trial_end", 3),
@@ -186,7 +188,7 @@ export const INSURANCE_SCHEMA: ModuleSchema = {
     ],
     capture: ["name", "category", "insurer", "premium", "next_pay"],
     activity: act(["claim_status", "claim_amount", "insurer"], "claim_date"),
-    views: [tbl("paying", { groupBy: "member" })],
+    views: [grp("paying", "member")],
     reminders: [
         rem("next_pay", "next_pay", 30, "recurring", { cycleField: "pay_cycle" }),
         REM_EXP_30,
@@ -207,7 +209,7 @@ export const ASSETS_REAL_SCHEMA: ModuleSchema = {
     ],
     capture: ["name", "category", "amount", "date", "attachments"],
     activity: act(["category", "amount", "location"]),
-    views: [tbl("by_location", { groupBy: "location" })],
+    views: [grp("by_location", "location")],
     reminders: [rem("warranty", "warranty_expiry", 30)],
 };
 
@@ -307,7 +309,7 @@ export const FAVORS_SCHEMA: ModuleSchema = {
     activity: act(["category", "direction", "person", "amount"]),
     // 16 组/190 波：回礼提醒——收礼（direction=in）30 天后一次性（leadDays 0=到期当天起提醒）；提醒卡带「回礼」标记（rule.reciprocate）
     reminders: [rem("reciprocate", "date", 0, "after", { offsetDays: 30, onlyIf: { field: "direction", equals: "in" } })],
-    views: [tbl("by_person", { groupBy: "person" })],
+    views: [grp("by_person", "person")],
 };
 
 export const STOCK_SCHEMA: ModuleSchema = {
@@ -321,7 +323,7 @@ export const STOCK_SCHEMA: ModuleSchema = {
     capture: ["name", "qty", "low_stock_at", "expiry"],
     // 品类分区（Apple Reminders Grocery 印证，26.6）：囤货按品类自动归组
     views: [
-        tbl("by_category", { groupBy: "category" }),
+        grp("by_category", "category"),
         VIEW_EXPIRING,
     ],
     templates: [{ key: "emergency_kit", nameKey: "tpl.emergencyKit", file: "stock/emergency-kit.tpl" }],
@@ -473,7 +475,7 @@ export const MEDIA_SCHEMA: ModuleSchema = {
     // 海报墙（seerr 印证，26.6）：画廊视图以封面卡片呈现；思源 gallery 视图类型原生支持
     views: [
         { key: "wall", type: "gallery" },
-        tbl("consuming", { groupBy: "status" }),
+        grp("consuming", "status"),
     ],
 };
 
@@ -524,9 +526,9 @@ export const VEHICLES_SCHEMA: ModuleSchema = {
     reminders: [
         REM_EXP_30,
         // 311 波（G2）：车检/保险/车船税等国家级年审事项设为 60/30/7 三段提醒
-        rem("inspection", "inspection_due", 60, "oneoff", { leadStages: [60, 30, 7] }),
-        rem("insurance", "insurance_due", 60, "oneoff", { leadStages: [60, 30, 7] }),
-        rem("vehicle_tax", "vehicle_tax_due", 60, "oneoff", { leadStages: [60, 30, 7] }),
+        remVeh("inspection", "inspection_due"),
+        remVeh("insurance", "insurance_due"),
+        remVeh("vehicle_tax", "vehicle_tax_due"),
         rem("battery", "battery_due", 30),
     ],
 };

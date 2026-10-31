@@ -12,24 +12,10 @@
 </script>
 
 <svg class={`lv-ui-icon ${className}`} width={size} height={size} viewBox="0 0 24 24"
-    style={`display:inline-block;vertical-align:-0.15em;flex:none;width:${size}px!important;height:${size}px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round`}
+    style={`width:${size}px!important;height:${size}px!important;`}
     fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden={label ? undefined : "true"} aria-label={label} role={label ? "img" : undefined} focusable="false">
     <path d={path}></path>
 </svg>
 
-<style>
-    :global(.lv-ui-icon) {
-        display: inline-block;
-        vertical-align: -0.15em;
-        flex: none;
-        fill: none !important;
-        stroke: currentColor !important;
-    }
-
-    :global(.lv-ui-icon path) {
-        fill: none !important;
-        stroke: currentColor !important;
-    }
-</style>
 

@@ -3,7 +3,7 @@
  * 解耦自 ledger.svelte，集中承载单元格格式化、访客脱敏、动态地点/字段建议、排序与多字段拼音搜索
  */
 
-import { optLabel, optLabelText } from "./format";
+import { optLabel, optLabelText, SENSITIVE_CREDENTIAL_KEYS } from "./format";
 import { maskCredentialNumber, maskIdNumber } from "./idcard";
 import { selectCellContent, selectCellValue, cellContentText } from "./avcell";
 import { localDateKey } from "./hub/rule";
@@ -32,7 +32,7 @@ export function formatLedgerCellText(
         case "text": {
             const content = v.text?.content ?? "—";
             if (!revealSensitive && colKey === "x_cert_id_number" && content !== "—") return maskIdNumber(content);
-            if (!revealSensitive && ["holder_no", "x_cert_birth_registration_no_last4", "x_cert_vocational_registration_last4", "x_cert_professional_registration_last4", "x_cert_graduation_no_last4", "x_cert_degree_no_last4"].includes(colKey ?? "") && content !== "—") return maskCredentialNumber(content);
+            if (!revealSensitive && SENSITIVE_CREDENTIAL_KEYS.has(colKey ?? "") && content !== "—") return maskCredentialNumber(content);
             return content;
         }
         case "date": {
@@ -55,7 +55,7 @@ export function formatLedgerCellText(
         case "url": return v.url?.content ?? "—";
         case "checkbox": return v.checkbox?.checked ? "是" : "—";
         case "block": return v.block?.content ?? "—";
-        case "relation": return (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").join(", ") || "—";
+        case "relation": return (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").filter(Boolean).join("、") || "—";
         case "mAsset": return (v.mAsset ?? []).map((asset: any) => asset?.name ?? asset?.content ?? "").filter(Boolean).join(", ") || "—";
         default: {
             const fallback = cellContentText(v);
@@ -224,9 +224,21 @@ export function buildLedgerCellPayload(type: string, v: any, members?: any[]): u
     switch (type) {
         case "select": return selectCellValue(v);
         case "relation": {
-            const relationID = typeof v === "string" ? v.trim() : "";
-            const linked = relationID && (members ?? []).some((m) => m.avItemId === relationID);
-            return linked ? { type: "relation", relation: { blockIDs: [relationID], contents: null } } : null;
+            const rawList: string[] = Array.isArray(v)
+                ? v.map(String)
+                : typeof v === "string" && v.includes(",")
+                    ? v.split(",")
+                    : typeof v === "string" && v.trim()
+                        ? [v.trim()]
+                        : [];
+            const linkedIds = rawList
+                .map((s) => s.trim())
+                .filter((id) => id && (members ?? []).some((m) => m.avItemId === id || m.id === id))
+                .map((id) => {
+                    const m = (members ?? []).find((mem) => mem.avItemId === id || mem.id === id);
+                    return m?.avItemId || id;
+                });
+            return linkedIds.length > 0 ? { type: "relation", relation: { blockIDs: linkedIds, contents: null } } : null;
         }
         case "date": return v === "" ? { type: "date", date: { isNotEmpty: false } } : { type: "date", date: { content: new Date(`${v}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } };
         case "number": return v === "" || v === null ? { type: "number", number: { isNotEmpty: false } } : { type: "number", number: { content: Number(v), isNotEmpty: true } };

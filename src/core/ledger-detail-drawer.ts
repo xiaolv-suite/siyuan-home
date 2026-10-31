@@ -8,7 +8,7 @@ import type { ActivityTarget } from "./activity";
 import { selectCellContent } from "./avcell";
 import { getCertificateProfile } from "./schema";
 import { maskCredentialNumber, maskIdNumber, parseIdNumber } from "./idcard";
-import { AMOUNT_KEYS, formatAmount } from "./format";
+import { AMOUNT_KEYS, formatAmount, SENSITIVE_ID_KEYS, SENSITIVE_CREDENTIAL_KEYS } from "./format";
 import { localDateKey } from "./hub/rule";
 import { blockDeepLink } from "./qr";
 import { openContactPicker } from "@/libs/contact-picker";
@@ -55,10 +55,11 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
 
     if (!ref?.columns) return;
     const detailTitle = (ref.columns.name && cellTextFn(row.cells?.[ref.columns.name], "name")) || t("ledger.detail");
+    const dBtn = (id: string, text: string, ic = "") => `<button class="b3-button b3-button--text" id="${id}">${ic ? ic + " " : ""}${text}</button>`;
     const dlg = new DialogCls({
         title: detailTitle,
         content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-detail-body"></div>
-<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error lv-detail-del-btn" id="lv-detail-del">${t("delete")}</button><button class="b3-button b3-button--text" id="lv-detail-duplicate">${uiIcon("copy", "", 13)} ${t("ledger.duplicateRow")}</button><button class="b3-button b3-button--text" id="lv-detail-open-direct">${uiIcon("folder", "", 13)} ${t("ledger.openDoc")}</button><span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu"><button class="b3-button b3-button--text" id="lv-detail-card-copy">${t("ledger.copyAsImage")}</button><button class="b3-button b3-button--text" id="lv-detail-card-png">${t("ledger.downloadPng")}</button><button class="b3-button b3-button--text" id="lv-detail-card-text">${t("ledger.copyAsText")}</button><button class="b3-button b3-button--text" id="lv-detail-card-masked-text">${t("ledger.copyAsMaskedText")}</button><button class="b3-button b3-button--text" id="lv-detail-copy-ref">${uiIcon("link", "", 13)} ${t("ledger.copyBlockRef")}</button><button class="b3-button b3-button--text" id="lv-detail-copy-embed">${uiIcon("paperclip", "", 13)} ${t("ledger.copyBlockEmbed")}</button><button class="b3-button b3-button--text" id="lv-detail-copy-task">${uiIcon("checkCircle", "", 13)} ${t("ledger.copyAsTaskBlock")}</button><button class="b3-button b3-button--text" id="lv-detail-push-glean">${uiIcon("note", "", 13)} ${t("ledger.pushToGlean")}</button><button class="b3-button b3-button--text" id="lv-detail-open">${t("ledger.openDoc")} ${uiIcon("forward", "", 12)}</button></div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button lv-btn primary" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
+<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error lv-detail-del-btn" id="lv-detail-del">${t("delete")}</button>${dBtn("lv-detail-duplicate", t("ledger.duplicateRow"), uiIcon("copy", "", 13))}${dBtn("lv-detail-open-direct", t("ledger.openDoc"), uiIcon("folder", "", 13))}<span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu">${dBtn("lv-detail-card-copy", t("ledger.copyAsImage"))}${dBtn("lv-detail-card-png", t("ledger.downloadPng"))}${dBtn("lv-detail-card-text", t("ledger.copyAsText"))}${dBtn("lv-detail-card-masked-text", t("ledger.copyAsMaskedText"))}${dBtn("lv-detail-copy-ref", t("ledger.copyBlockRef"), uiIcon("link", "", 13))}${dBtn("lv-detail-copy-embed", t("ledger.copyBlockEmbed"), uiIcon("paperclip", "", 13))}${dBtn("lv-detail-copy-task", t("ledger.copyAsTaskBlock"), uiIcon("checkCircle", "", 13))}${dBtn("lv-detail-push-glean", t("ledger.pushToGlean"), uiIcon("note", "", 13))}${dBtn("lv-detail-open", `${t("ledger.openDoc")} ${uiIcon("forward", "", 12)}`)}</div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button lv-btn primary" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
         width: "520px",
     });
 
@@ -211,7 +212,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             } else {
                 v.textContent = cellTextFn(cell, col.key);
             }
-            if (active === "certs" && ["x_cert_id_number", "holder_no", "x_cert_birth_registration_no_last4", "x_cert_vocational_registration_last4", "x_cert_professional_registration_last4", "x_cert_graduation_no_last4", "x_cert_degree_no_last4"].includes(col.key)) {
+            if (active === "certs" && (SENSITIVE_ID_KEYS.has(col.key) || SENSITIVE_CREDENTIAL_KEYS.has(col.key))) {
                 const full = String(rawFromValue("text", cell) ?? "").trim();
                 if (full) {
                     const mask = col.key === "x_cert_id_number" ? maskIdNumber(full) : maskCredentialNumber(full);

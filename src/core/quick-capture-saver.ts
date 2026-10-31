@@ -62,8 +62,11 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
     // 字段格式与必填校验
     for (const field of captureFields) {
         const issue = validateCaptureInput(field, values[field.key]);
-        const relationID = field.type === "relation" ? String(values[field.key] ?? "").trim() : "";
-        const staleRelation = relationID && !(plugin.settings?.members ?? []).some((m: any) => m.avItemId === relationID);
+        const rawRel = values[field.key];
+        const relationIDs: string[] = field.type === "relation"
+            ? (Array.isArray(rawRel) ? rawRel.map(String) : typeof rawRel === "string" && rawRel ? (rawRel.includes(",") ? rawRel.split(",") : [rawRel]) : [])
+            : [];
+        const staleRelation = relationIDs.some((id) => id.trim() && !(plugin.settings?.members ?? []).some((m: any) => m.avItemId === id.trim() || m.id === id.trim()));
         if (!issue && !staleRelation) continue;
         const message = staleRelation ? t("members.notLinked") : validationMessage(field, issue!, t, fieldLabel);
         return {
@@ -109,8 +112,10 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
     // 成员关联校验
     for (const f of captureFields as { key: string; type: string }[]) {
         if (f.type !== "relation") continue;
-        const relationID = String(values[f.key] ?? "").trim();
-        if (relationID && !(plugin.settings?.members ?? []).some((m: any) => m.avItemId === relationID)) {
+        const rawRel = values[f.key];
+        const relationIDs: string[] = Array.isArray(rawRel) ? rawRel.map(String) : typeof rawRel === "string" && rawRel ? (rawRel.includes(",") ? rawRel.split(",") : [rawRel]) : [];
+        const hasStale = relationIDs.some((id) => id.trim() && !(plugin.settings?.members ?? []).some((m: any) => m.avItemId === id.trim() || m.id === id.trim()));
+        if (hasStale) {
             const saveError = t("members.notLinked");
             return {
                 success: false,

@@ -542,20 +542,3 @@
 />
 {/if}
 
-<style>
-    .lv-alert-banner {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-    }
-    .lv-alert-text {
-        flex: 1;
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-    .lv-quick-expand-icon {
-        font-size: 15px;
-        font-weight: 600;
-    }
-</style>

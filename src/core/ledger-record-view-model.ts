@@ -139,8 +139,13 @@ export function validateFieldInput(
             .replace("${max}", String(field.max ?? ""));
     }
     if (field.type === "relation") {
-        const relationID = String(val ?? "").trim();
-        if (relationID && !(members ?? []).some((m) => m.avItemId === relationID)) {
+        const relationIDs: string[] = Array.isArray(val)
+            ? val.map(String)
+            : typeof val === "string" && val
+                ? (val.includes(",") ? val.split(",") : [val])
+                : [];
+        const hasStale = relationIDs.some((id) => id.trim() && !(members ?? []).some((m) => m.avItemId === id.trim() || m.id === id.trim()));
+        if (hasStale) {
             return t("members.notLinked");
         }
     }

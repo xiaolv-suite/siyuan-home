@@ -4,8 +4,8 @@
     import { getFieldPlaceholder } from "@/core/capture";
     import { smartExtractFieldsFromTitle } from "@/core/block-capture";
     import UiIcon from "@/ui/icon.svelte";
-
-    const COMMON_LOCATIONS = ["主卧抽屉", "客厅药箱", "玄关柜", "书房书架", "储藏室", "冰箱冷藏", "厨房吊柜"];
+    import { memberChips } from "@/core/members";
+    import { DEFAULT_LOCATIONS } from "@/core/ledger-view-model";
 
     let {
         moduleId,
@@ -136,22 +136,13 @@
                 {/each}
             </select>
         {:else if f.key !== "name" && f.type === "relation"}
-            <select id="lv-cap-{f.key}" class="b3-select" bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} onchange={() => onClearFieldError(f.key)}>
-                <option value="">{t("capture.selectOptional")}</option>
-                {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
-                    <option value={m.avItemId ?? ""} disabled={!m.avItemId}>
-                        {m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}
-                    </option>
-                {/each}
-            </select>
+            <div id="lv-cap-chips-{f.key}" use:memberChips={{ id: `lv-cap-${f.key}`, members: plugin.settings?.members, value: values[f.key], disabled: saving, useAvItemId: true, allText: t("members.allFamily"), onChange: (v) => { values[f.key] = v; onClearFieldError(f.key); } }}></div>
         {:else if f.key !== "name" && f.type === "date"}
             <input id="lv-cap-{f.key}" class="b3-text-field" type="date" bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => onClearFieldError(f.key)} />
             <div class="lv-preset-tags">
                 <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 0)}>{t("capture.presetToday")}</button>
                 <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 1)}>{t("capture.presetTomorrow")}</button>
                 <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 7)}>{t("capture.presetNextWeek")}</button>
-                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 30)}>{t("capture.presetNextMonth")}</button>
-                <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(f.key, 365)}>{t("capture.presetNextYear")}</button>
             </div>
         {:else if f.key !== "name" && f.type === "number"}
             <input id="lv-cap-{f.key}" class="b3-text-field" type="number" min={f.min} max={f.max} step={f.step ?? "any"} placeholder={fieldPlaceholder(f)} bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => onClearFieldError(f.key)} />
@@ -161,7 +152,7 @@
             <input id="lv-cap-{f.key}" class="b3-text-field" type={f.type === "url" ? "url" : "text"} placeholder={fieldPlaceholder(f)} bind:value={values[f.key]} disabled={saving} required={fieldRequired(f)} aria-invalid={fieldErrors[f.key] ? "true" : undefined} aria-describedby={fieldDescriptionIds(f)} oninput={() => onClearFieldError(f.key)} />
             {#if f.key === "location" || f.key === "store_place"}
                 <div class="lv-preset-tags">
-                    {#each COMMON_LOCATIONS as loc (loc)}
+                    {#each DEFAULT_LOCATIONS as loc (loc)}
                         <button type="button" class="lv-preset-tag" onclick={() => applyLocationPreset(f.key, loc)}>{loc}</button>
                     {/each}
                 </div>

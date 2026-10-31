@@ -29,6 +29,18 @@ export function exportSettingsJson(plugin: any, t: (k: string) => string): void 
     });
 }
 
+async function buildDiagnosticsPayload(plugin: any) {
+    const diag = plugin.getDiagnostics?.();
+    if (!diag) return null;
+    const { buildDiagnosticPackage } = await import("./diagnostics");
+    return buildDiagnosticPackage({
+        diag,
+        enabledModules: [...(plugin.settings.enabledModules ?? [])],
+        platform: typeof navigator !== "undefined" ? navigator.userAgent : "node",
+        generatedAt: new Date().toISOString(),
+    });
+}
+
 export async function openDiagnosticsPreviewDialog(
     plugin: any,
     t: (k: string) => string,
@@ -36,18 +48,11 @@ export async function openDiagnosticsPreviewDialog(
     showMessageFn: (msg: string, timeout?: number, type?: string) => void,
 ): Promise<void> {
     if (typeof document === "undefined") return;
-    const diag = plugin.getDiagnostics?.();
-    if (!diag) {
+    const payload = await buildDiagnosticsPayload(plugin);
+    if (!payload) {
         showMessageFn(t("settings.diagExportNone"), 3000, "error");
         return;
     }
-    const { buildDiagnosticPackage } = await import("./diagnostics");
-    const payload = buildDiagnosticPackage({
-        diag,
-        enabledModules: [...(plugin.settings.enabledModules ?? [])],
-        platform: typeof navigator !== "undefined" ? navigator.userAgent : "node",
-        generatedAt: new Date().toISOString(),
-    });
 
     const provisionedCount = payload.ledgers?.filter((l: any) => l.provisioned)?.length ?? 0;
     const totalCount = payload.ledgers?.length ?? 0;
@@ -120,13 +125,11 @@ export async function exportDiagnosticsPackage(
     }
     confirm(t("settings.diagExport"), t("settings.diagExportBody"), async () => {
         try {
-            const { buildDiagnosticPackage } = await import("./diagnostics");
-            const payload = buildDiagnosticPackage({
-                diag,
-                enabledModules: [...(plugin.settings.enabledModules ?? [])],
-                platform: typeof navigator !== "undefined" ? navigator.userAgent : "node",
-                generatedAt: new Date().toISOString(),
-            });
+            const payload = await buildDiagnosticsPayload(plugin);
+            if (!payload) {
+                showMessageFn(t("settings.diagExportNone"), 3000, "error");
+                return;
+            }
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);

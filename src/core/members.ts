@@ -538,3 +538,79 @@ export async function reassignMemberRows(
     });
 }
 
+export function parseMemberIdList(val: unknown): string[] {
+    if (Array.isArray(val)) return val.map(String).filter(Boolean);
+    if (typeof val === "string" && val) return val.includes(",") ? val.split(",").map((s) => s.trim()).filter(Boolean) : [val.trim()];
+    return [];
+}
+
+export interface MemberChipsOptions {
+    members?: Array<{ id: string; name: string; avItemId?: string }>;
+    value: unknown;
+    disabled?: boolean;
+    useAvItemId?: boolean;
+    allText?: string;
+    id?: string;
+    onChange: (val: string | string[]) => void;
+}
+
+export function memberChips(node: HTMLElement, options: MemberChipsOptions) {
+    let opts = options;
+    const render = () => {
+        node.replaceChildren();
+        node.className = "lv-pill-chips lv-member-multichips";
+        const members = (opts.members ?? []).filter((m) => Boolean(opts.useAvItemId ? m.avItemId : m.id));
+        const allIds = members.map((m) => (opts.useAvItemId ? m.avItemId! : m.id));
+        const selected = parseMemberIdList(opts.value);
+        const isAll = allIds.length > 0 && allIds.every((id) => selected.includes(id));
+
+        const btn = (text: string, active: boolean, onClick: () => void) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = `b3-chip lv-pill-chip ${active ? "b3-chip--primary" : "b3-chip--secondary"}`;
+            b.textContent = text;
+            b.disabled = Boolean(opts.disabled);
+            b.onclick = onClick;
+            node.appendChild(b);
+        };
+
+        btn(`👨‍👩‍👧‍👦 ${opts.allText || "一家人一起"}`, isAll, () => opts.onChange(isAll ? [] : allIds));
+        for (const m of members) {
+            const mid = opts.useAvItemId ? m.avItemId! : m.id;
+            const sel = selected.includes(mid);
+            btn(`${sel ? "✓ " : ""}${m.name}`, sel, () => {
+                const next = sel ? selected.filter((x) => x !== mid) : [...selected, mid];
+                opts.onChange(next.length > 1 ? next : (next[0] || ""));
+            });
+        }
+
+        if (opts.id) {
+            const selectEl = document.createElement("select");
+            selectEl.id = opts.id;
+            selectEl.className = "b3-select lv-mt-4";
+            selectEl.disabled = Boolean(opts.disabled);
+            const optNone = document.createElement("option");
+            optNone.value = "";
+            optNone.textContent = "全部";
+            selectEl.appendChild(optNone);
+            for (const m of members) {
+                const mid = opts.useAvItemId ? m.avItemId! : m.id;
+                const o = document.createElement("option");
+                o.value = mid;
+                o.textContent = m.name;
+                if (selected.includes(mid)) o.selected = true;
+                selectEl.appendChild(o);
+            }
+            selectEl.onchange = () => {
+                opts.onChange(selectEl.value);
+            };
+            node.appendChild(selectEl);
+        }
+    };
+    render();
+    return {
+        update(next: MemberChipsOptions) { opts = next; render(); },
+        destroy() { node.replaceChildren(); },
+    };
+}
+

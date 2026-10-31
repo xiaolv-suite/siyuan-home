@@ -11,6 +11,13 @@ import { pointsToSmoothBezierPath } from "./chart";
 import { uiIcon } from "@/ui/icons";
 import type { FamilyMember } from "@/types";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface GrowthChartDialogOptions {
     t: (k: string) => string;
     rows: any[];
@@ -233,42 +240,32 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             const report = calculateVaccineSchedule(child.birthday, givenRecords);
             if (!report) return;
 
-            const topBar = document.createElement("div");
-            topBar.className = "lv-domain-head";
+            const topBar = mk("div", "lv-domain-head");
             if (candidate.length > 1) {
-                const sel = document.createElement("select");
-                sel.className = "b3-select";
+                const sel = mk("select", "b3-select") as HTMLSelectElement;
                 for (const c of candidate) {
-                    const opt = document.createElement("option");
+                    const opt = mk("option", "", `${c.name} (${c.birthday})`) as HTMLOptionElement;
                     opt.value = c.id;
-                    opt.textContent = `${c.name} (${c.birthday})`;
                     if (c.id === selectedChildId) opt.selected = true;
                     sel.appendChild(opt);
                 }
                 sel.onchange = () => { selectedChildId = sel.value; render(); };
                 topBar.appendChild(sel);
             } else {
-                const nameSpan = document.createElement("b");
-                nameSpan.className = "lv-dialog-name";
-                nameSpan.textContent = `${child.name} · ${child.birthday}`;
-                topBar.appendChild(nameSpan);
+                topBar.appendChild(mk("b", "lv-dialog-name", `${child.name} · ${child.birthday}`));
             }
-            const rateSpan = document.createElement("span");
-            rateSpan.className = "lv-caption";
+            const rateSpan = mk("span", "lv-caption");
             rateSpan.innerHTML = `${t("ledger.vaccineCompletionRate")}: <b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:14px">${report.completionRate}%</b>`;
             topBar.appendChild(rateSpan);
             body.appendChild(topBar);
 
-            const progressTrack = document.createElement("div");
-            progressTrack.className = "lv-member-retire-bar lv-mb-10";
+            const progressTrack = mk("div", "lv-member-retire-bar lv-mb-10");
             progressTrack.innerHTML = `<div style="height:100%;background:var(--lv-data-accent);width:${report.completionRate}%;border-radius:3px"></div>`;
             body.appendChild(progressTrack);
 
-            const metrics = document.createElement("div");
-            metrics.className = "lv-metric-grid-4 lv-mb-10";
+            const metrics = mk("div", "lv-metric-grid-4 lv-mb-10");
             const metricBox = (label: string, count: number, color?: string) => {
-                const d = document.createElement("div");
-                d.className = "lv-metric-item lv-diag-stat-card fn__text-center";
+                const d = mk("div", "lv-metric-item lv-diag-stat-card fn__text-center");
                 d.innerHTML = `<span class="lv-caption">${label}</span><b class="lv-num lv-metric-val${color ? ` ${color}` : ""}">${count}</b>`;
                 return d;
             };
@@ -280,42 +277,30 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             );
             body.appendChild(metrics);
 
-            const list = document.createElement("div");
-            list.className = "lv-dialog-sec";
+            const list = mk("div", "lv-dialog-sec");
             for (const it of report.items) {
-                const itemEl = document.createElement("div");
-                itemEl.className = "lv-domain-item lv-dialog-row";
+                const itemEl = mk("div", "lv-domain-item lv-dialog-row");
 
-                const left = document.createElement("div");
-                left.className = "lv-dialog-col";
-                const titleLine = document.createElement("div");
-                titleLine.className = "lv-dialog-row__left";
-                const nameSpan = document.createElement("b");
-                nameSpan.className = "lv-dialog-name";
-                nameSpan.textContent = `${it.vaccine}（第 ${it.dose} 剂）`;
-                const monthBadge = document.createElement("span");
-                monthBadge.className = "lv-caption";
-                monthBadge.textContent = it.monthAge === 0 ? "出生时" : `${it.monthAge}月龄`;
-                titleLine.append(nameSpan, monthBadge);
+                const left = mk("div", "lv-dialog-col");
+                const titleLine = mk("div", "lv-dialog-row__left");
+                titleLine.append(
+                    mk("b", "lv-dialog-name", `${it.vaccine}（第 ${it.dose} 剂）`),
+                    mk("span", "lv-caption", it.monthAge === 0 ? "出生时" : `${it.monthAge}月龄`)
+                );
 
-                const metaSpan = document.createElement("span");
-                metaSpan.className = "lv-caption";
                 const metaParts = [`应种日: ${it.targetDate}`];
                 if (it.note) metaParts.push(it.note);
                 if (it.givenDate) metaParts.push(`实种日: ${it.givenDate}`);
                 if (it.batch) metaParts.push(`批号: ${it.batch}`);
-                metaSpan.textContent = metaParts.join(" · ");
-                left.append(titleLine, metaSpan);
+                left.append(titleLine, mk("span", "lv-caption", metaParts.join(" · ")));
 
-                const right = document.createElement("div");
-                right.className = "lv-dialog-row__right";
+                const right = mk("div", "lv-dialog-row__right");
                 right.style.display = "flex";
                 right.style.alignItems = "center";
                 right.style.gap = "6px";
-                const statusBadge = document.createElement("span");
-                statusBadge.className = `lv-badge ${it.status === "given" ? "green" : it.status === "overdue" ? "red" : it.status === "due_soon" ? "orange" : "gray"}`;
-                statusBadge.textContent = t(it.status === "given" ? "ledger.vaccineGiven" : it.status === "overdue" ? "ledger.vaccineOverdue" : it.status === "due_soon" ? "ledger.vaccineDueSoon" : "ledger.vaccineUpcoming");
-                right.appendChild(statusBadge);
+                const badgeCls = it.status === "given" ? "green" : it.status === "overdue" ? "red" : it.status === "due_soon" ? "orange" : "gray";
+                const badgeTxt = t(it.status === "given" ? "ledger.vaccineGiven" : it.status === "overdue" ? "ledger.vaccineOverdue" : it.status === "due_soon" ? "ledger.vaccineDueSoon" : "ledger.vaccineUpcoming");
+                right.appendChild(mk("span", `lv-badge ${badgeCls}`, badgeTxt));
 
                 if (it.status !== "given") {
                     const recordBtn = document.createElement("button");

@@ -3,13 +3,18 @@ export interface QuickDefaults {
     fuelKind?: "fuel" | "charging";
     fuelGrade?: string;
     fuelPrice?: number;
+    fuelAmount?: number;
+    fuelLiters?: number;
     fuelIsFull?: boolean;
     chargingMode?: string;
     chargePrice?: number;
+    chargeAmount?: number;
+    chargeLiters?: number;
     chargeIsFull?: boolean;
     vitalMemberId?: string;
     vitalMetricType?: "bp" | "glucose" | "weight" | "temp";
     choreMemberId?: string;
+    choreMemberIds?: string[];
     choreRowId?: string;
     shoppingCategory?: string;
     snippetTag?: string;

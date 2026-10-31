@@ -310,29 +310,31 @@ export function describeRowLogAsLifelog(
     } else if (kind === "vitals") {
         const vtype = String(entry.type ?? "bp");
         const owner = rowOwnerLink && !rawSubject.includes(linkOpts?.rowMemberName || "\u0000") ? rowOwnerLink : undefined;
+        let vText = "";
         if (vtype === "bg") {
             const timing = entry.val2 === 1 || entry.glucoseTiming === "postprandial" ? "餐后" : "空腹";
             lifelogType = "血糖监测";
-            detailText = parts(subject, owner, `${timing} ${entry.val1 ?? entry.glucose ?? "—"} mmol/L`, note);
+            vText = `${timing} ${entry.val1 ?? entry.glucose ?? "—"} mmol/L`;
             tags = ["#健康", "#血糖"];
         } else if (vtype === "hr") {
             lifelogType = "心率监测";
-            detailText = parts(subject, owner, `${entry.val1 ?? entry.pulse ?? "—"} bpm`, note);
+            vText = `${entry.val1 ?? entry.pulse ?? "—"} bpm`;
             tags = ["#健康", "#心率"];
         } else if (vtype === "weight") {
             lifelogType = "体重记录";
-            detailText = parts(subject, owner, `${entry.val1 ?? entry.weight ?? "—"} kg`, note);
+            vText = `${entry.val1 ?? entry.weight ?? "—"} kg`;
             tags = ["#健康", "#体重"];
         } else if (vtype === "temp") {
             lifelogType = "体温记录";
-            detailText = parts(subject, owner, `${entry.val1 ?? entry.temperature ?? "—"} ℃`, note);
+            vText = `${entry.val1 ?? entry.temperature ?? "—"} ℃`;
             tags = ["#健康", "#体温"];
         } else {
-            const pulse = entry.pulse !== undefined ? `心率 ${entry.pulse} bpm` : undefined;
+            const pulse = entry.pulse !== undefined ? `心率 ${entry.pulse} bpm` : "";
             lifelogType = "血压监测";
-            detailText = parts(subject, owner, `${entry.val1 ?? entry.systolic ?? "—"}/${entry.val2 ?? entry.diastolic ?? "—"} mmHg`, pulse, note);
+            vText = parts(`${entry.val1 ?? entry.systolic ?? "—"}/${entry.val2 ?? entry.diastolic ?? "—"} mmHg`, pulse);
             tags = ["#健康", "#血压"];
         }
+        detailText = parts(subject, owner, vText, note);
     } else if (kind === "chexecs") {
         const whoRaw = memberNameById(members, entry.memberId);
         const who = whoRaw ? formatBlockRef(linkOpts?.membersDocId, whoRaw) : rowOwnerLink;
@@ -837,10 +839,6 @@ export async function syncDailyJournalDoc(
         }
 
         // 兼容历史已存在于 shopping/snippets 台账但尚未写 quickflows 时间戳的条目
-        const extractFromSiYuanRowId = (itemId: string): { date: string; time: string } | undefined => {
-            const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})-/.exec(itemId);
-            return m ? { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` } : undefined;
-        };
         const readQuickFallback = async (ref: any, mid: string, ltype: string, tag: string, getDetail: (r: any) => string) => {
             if (!ref?.avId || !ref.columns?.name) return;
             try {
@@ -849,10 +847,9 @@ export async function syncDailyJournalDoc(
                     if (loggedQuickRowIds.has(r.itemID)) continue;
                     const name = rowTitleFromCells(r, ref.columns);
                     if (!name) continue;
-                    const parsedId = extractFromSiYuanRowId(r.itemID);
-                    const dateMs = ref.columns.date && r.cells?.[ref.columns.date]?.date?.isNotEmpty ? r.cells[ref.columns.date].date.content : undefined;
-                    const dateStr = typeof dateMs === "number" && dateMs > 0 ? new Date(dateMs).toISOString().slice(0, 10) : (parsedId?.date ?? normalizeValidDate(undefined));
-                    const timeStr = parsedId?.time ?? "09:00";
+                    const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(r.itemID);
+                    const dateStr = m ? `${m[1]}-${m[2]}-${m[3]}` : normalizeValidDate(undefined);
+                    const timeStr = m ? `${m[4]}:${m[5]}` : "09:00";
                     flowItems.push({
                         idKey: `${mid}:${r.itemID}`,
                         date: dateStr,

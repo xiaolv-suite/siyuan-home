@@ -91,7 +91,7 @@ export async function openVaccineScheduleModal(ctx: LedgerModalContext): Promise
             },
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -210,7 +210,7 @@ export async function openAssetValuationModal(ctx: LedgerModalContext): Promise<
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 

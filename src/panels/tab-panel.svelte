@@ -529,7 +529,7 @@
                 />
             {/if}
 
-            {#key screen}
+            {#key `${screen}:${version}`}
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
                     <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
                         {#if screenLoadError}

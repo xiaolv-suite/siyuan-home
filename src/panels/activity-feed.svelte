@@ -72,8 +72,11 @@
     const records = $derived.by(() => {
         void version;
         const source = snapshot?.records ?? [];
+        const isGuest = Boolean(plugin.runtime?.guestModeActive);
+        const guestAllowed = new Set(["medicine", "address", "food", "stock", "chores", "pets"]);
         const needle = query.trim().toLocaleLowerCase();
         return source.filter((record) => {
+            if (isGuest && record.moduleId && !guestAllowed.has(record.moduleId)) return false;
             if (memberId && record.memberId !== memberId) return false;
             if (moduleFilter !== "all" && record.moduleId !== moduleFilter) return false;
             if (!needle) return true;

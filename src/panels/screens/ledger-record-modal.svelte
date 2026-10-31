@@ -20,6 +20,7 @@
     import LedgerRecordMore from "./ledger-record-more.svelte";
     import LedgerRecordFoot from "./ledger-record-foot.svelte";
     import UiIcon from "@/ui/icon.svelte";
+    import { memberChips } from "@/core/members";
 
     let {
         plugin,
@@ -147,6 +148,13 @@
         if (!validationAttempted) return "";
         return validateFieldInput(field, form[field.key], plugin.settings.members, t);
     }
+
+    function applyDatePreset(key: string, daysAhead: number) {
+        const d = new Date();
+        if (daysAhead) d.setDate(d.getDate() + daysAhead);
+        form[key] = localDateKey(d);
+    }
+
     function focusCaptureField(key: string) {
         const control = document.getElementById(`lv-new-${key}`);
         const collapsed = control?.closest("details");
@@ -465,20 +473,13 @@
                                     {/each}
                                 </select>
                             {:else if e.type === "relation"}
-                                <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                    <option value="">{fieldLabel(e.key)}: {t("members.all")}</option>
-                                    {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
-                                        <option value={m.avItemId ?? ""} disabled={!m.avItemId}>{m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}</option>
-                                    {/each}
-                                </select>
+                                <div class="lv-record-relation-box" use:memberChips={{ id: `lv-new-${e.key}`, members: plugin.settings?.members, value: form[e.key], disabled: saving || identityPending, useAvItemId: true, allText: t("members.allFamily"), onChange: (v) => { form[e.key] = v; } }}></div>
                             {:else if e.type === "date"}
                                 <input id="lv-new-{e.key}" class="b3-text-field" type="date" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
                                 <div class="lv-preset-tags">
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); form[e.key] = localDateKey(d); }}>{t("capture.presetToday")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 1); form[e.key] = localDateKey(d); }}>{t("capture.presetTomorrow")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 7); form[e.key] = localDateKey(d); }}>{t("capture.presetNextWeek")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 30); form[e.key] = localDateKey(d); }}>{t("capture.presetNextMonth")}</button>
-                                    <button type="button" class="lv-preset-tag" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 365); form[e.key] = localDateKey(d); }}>{t("capture.presetNextYear")}</button>
+                                    <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(e.key, 0)}>{t("capture.presetToday")}</button>
+                                    <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(e.key, 1)}>{t("capture.presetTomorrow")}</button>
+                                    <button type="button" class="lv-preset-tag" onclick={() => applyDatePreset(e.key, 7)}>{t("capture.presetNextWeek")}</button>
                                 </div>
                             {:else if e.type === "number"}
                                 <input id="lv-new-{e.key}" class="b3-text-field" type="number" min={e.min} max={e.max} step={e.step ?? "any"} placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />

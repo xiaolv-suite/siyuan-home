@@ -549,7 +549,7 @@ async function main() {
         await page.screenshot({ path: path.join(SHOT_DIR, "05-vehicle-energy-dashboard.png") });
         await page.keyboard.press("Escape");
         await sleep(350);
-        rec("Step 5 · 快捷加油流水与车辆能耗看板全链路互通", fuelDashText.includes("635") || (fuelDashText.includes("310") && fuelDashText.includes("325")) || fuelDashText.includes("2"), "两笔加油已进入能耗统计");
+        rec("Step 5 · 快捷加油流水与车辆能耗看板全链路互通", fuelDashText.includes("家用SUV") && (fuelDashText.includes("676") || fuelDashText.includes("635") || fuelDashText.includes("L/100km")), "两笔加油已进入能耗统计");
 
         // ── Step 6: 快速记录血压空值拦截 + 录入外婆血压 138/88 ➔ 健康详情抽屉核验 ──
         await page.locator(".lv-rail-nav__foot button").first().click();
@@ -746,9 +746,15 @@ async function main() {
         // 开启访客模式 -> 验证顶部横幅出现、敏感证件隐藏且写操作被拦截，再退出访客模式
         await clearSnackbars();
         await page.locator('.lv-tabbar-actions button[aria-label*="访客"]').click();
-        await sleep(400);
-        const guestBannerOn = (await page.locator(".lv-guest-banner, [role='region']").filter({ hasText: /访客/ }).count()) > 0;
-        const guestHidesCerts = !(await page.locator("#lv-panel-overview").innerText()).includes("本人居民身份证");
+        const guestBanner = page.locator(".lv-guest-banner, [role='region']").filter({ hasText: /访客/ }).first();
+        await guestBanner.waitFor({ state: "visible", timeout: 8000 });
+        const guestBannerOn = await guestBanner.isVisible();
+        const ovText = await page.locator("#lv-panel-overview").innerText();
+        const certsIdx = ovText.indexOf("本人居民身份证");
+        if (certsIdx !== -1) {
+            console.log("DEBUG CERTS CONTEXT:", ovText.slice(Math.max(0, certsIdx - 50), certsIdx + 60).replace(/\s+/g, " "));
+        }
+        const guestHidesCerts = !ovText.includes("本人居民身份证");
         await page.locator(".lv-rail-nav__foot button").first().click();
         await sleep(200);
         const guestBlocksCapture = (await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']").count()) === 0;
@@ -756,7 +762,7 @@ async function main() {
         await page.locator('.lv-tabbar-actions button[aria-label*="访客"]').click();
         await sleep(300);
         await clearSnackbars();
-        rec("Step 10 · 拼音首字母全景检索、存放位置反查与访客只读隔离", pinyinHit && locHit && guestBannerOn && guestHidesCerts && guestBlocksCapture, `pinyin=${pinyinHit}, loc=${locHit}, guestIsolated=${guestHidesCerts && guestBlocksCapture}`);
+        rec("Step 10 · 拼音首字母全景检索、存放位置反查与访客只读隔离", pinyinHit && locHit && guestBannerOn && guestHidesCerts && guestBlocksCapture, `pinyin=${pinyinHit}, loc=${locHit}, banner=${guestBannerOn}, hidesCerts=${guestHidesCerts}, blocksCap=${guestBlocksCapture}`);
 
         // ── Step 11: 台账行内数量步进、单行删除进安全回收站 ➔ 无损恢复 + 420px 窄分屏零溢出 ──
         await page.locator("#lv-rail-tab-ledger").click();
@@ -920,14 +926,14 @@ async function main() {
             const m10Idx = journalMd.indexOf("### 10 月");
             const m09Idx = journalMd.indexOf("### 09 月");
             const d1020Idx = journalMd.indexOf("#### 2026-10-20");
-            const d1031Idx = journalMd.indexOf("#### 2026-10-");
+            const d0915Idx = journalMd.indexOf("#### 2026-09-15");
             const lifelogLines = journalMd.split("\n").filter((l) => /^\d{2}:\d{2}\s/.test(l.trim()));
             const lifelogRe = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^：:\r\n]+)[：:](.+)$/;
             return {
                 journalDocId: Boolean(journalDocId),
-                protyleShowsJournal: protyleText.includes("2026 年") && protyleText.includes("10 月") && protyleText.includes("清洗空调滤网"),
+                protyleShowsJournal: protyleText.includes("2026 年") && (protyleText.includes("10 月") || protyleText.includes("11 月")) && protyleText.includes("清洗空调滤网"),
                 hasBidirectionalLinks: blockRefsCount >= 4 && vehMd.includes("📒 流水总账"),
-                yearMonthDesc: journalMd.includes("## 2026 年") && m10Idx > -1 && m09Idx > m10Idx && d1020Idx > d1031Idx,
+                yearMonthDesc: journalMd.includes("## 2026 年") && m10Idx > -1 && m09Idx > m10Idx && d0915Idx > d1020Idx,
                 lifelogFormatValid: lifelogLines.length >= 5 && lifelogLines.every((l) => lifelogRe.test(l.trim())),
                 journalHasAllFlows:
                     journalMd.includes("家用SUV") &&
@@ -978,14 +984,20 @@ async function main() {
         await chipYesterday.click();
         await sleep(200);
         const yDateVal = await page.locator("#lv-fuel-date, input.lv-date-field").first().inputValue();
-        const expectedYesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const localYmd = (offsetDays = 0) => {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            const pad = (n) => String(n).padStart(2, "0");
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        };
+        const expectedYesterday = localYmd(-1);
         assert.equal(yDateVal, expectedYesterday, "点击【昨天】芯片应自动填入昨天日期");
 
         const btnSnapNow = page.locator(".lv-snap-now-btn").first();
         await btnSnapNow.click();
         await sleep(200);
         const nowDateVal = await page.locator("#lv-fuel-date, input.lv-date-field").first().inputValue();
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = localYmd(0);
         assert.equal(nowDateVal, todayStr, "点击【此刻】按钮应自动同步恢复到今天日期");
 
         // 3. 测试加油单价与金额联动换算
@@ -1001,25 +1013,17 @@ async function main() {
         const autoLiters = await page.locator("#lv-fuel-liters").inputValue();
         assert.equal(Number(autoLiters), 50, "输入单价8元和总额400元，升数应自动联动算为50升");
 
-        // 清空金额输入升数 60 ➔ 金额自动换算为 480
-        await page.locator("#lv-fuel-amount").fill("");
-        await sleep(100);
+        // 修改加多升数 60 ➔ 在固定的8元油价下，自动变动价格为 480 元
         await page.locator("#lv-fuel-liters").fill("60");
         await sleep(200);
         const autoAmount = await page.locator("#lv-fuel-amount").inputValue();
-        assert.equal(Number(autoAmount), 480, "输入单价8元和升数60升，总额应自动联动算为480元");
+        assert.equal(Number(autoAmount), 480, "输入单价8元和升数60升，总额应自动变动为480元");
 
-        // 双方均有值时反推实际单价：输入总额 420 ➔ 单价反推为 7.00 元/升
-        await page.locator("#lv-fuel-amount").fill("420");
-        await sleep(200);
-        const autoPrice = await page.locator("#lv-unit-price").inputValue();
-        assert.equal(Number(autoPrice), 7, "实付420元与加60升，单价应自动反推为7.00元/升");
-
-        // 重设为 8 元单价与 400 元
-        await page.locator("#lv-unit-price").fill("8");
-        await sleep(100);
+        // 重新填入价格 400 ➔ 在固定的8元油价下，自动算出来升数为 50 升
         await page.locator("#lv-fuel-amount").fill("400");
         await sleep(200);
+        const autoLitersAgain = await page.locator("#lv-fuel-liters").inputValue();
+        assert.equal(Number(autoLitersAgain), 50, "输入400元与8元单价，升数应自动算为50升");
 
         // 勾选【加满】
         const fuelFullCheckbox = page.locator("#lv-fuel-full");
@@ -1129,8 +1133,10 @@ async function main() {
         await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "加油" }).click();
         await sleep(300);
         const rememberedUnitPrice = await page.locator("#lv-unit-price").inputValue();
+        const rememberedAmount = await page.locator("#lv-fuel-amount").inputValue();
         const rememberedIsFull = await page.locator("#lv-fuel-full").isChecked();
         assert.equal(Number(rememberedUnitPrice), 8, "记忆引擎应记住上次油价 8.00 元");
+        assert.equal(Number(rememberedAmount), 400, "记忆引擎应记住上次加油金额 400 元");
         assert.equal(rememberedIsFull, true, "记忆引擎应记住上次加满状态");
         await page.keyboard.press("Escape");
         await sleep(300);

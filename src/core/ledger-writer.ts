@@ -45,8 +45,9 @@ export function toLedgerCell(type: string, raw: unknown, members?: readonly Writ
             return list.length ? { type: "mSelect", mSelect: list.map((content) => ({ content })) } : null;
         }
         case "relation": {
-            const id = resolveMemberItemId(raw, members);
-            return id ? { type: "relation", relation: { blockIDs: [id], contents: null } } : null;
+            const list = Array.isArray(raw) ? raw : (typeof raw === "string" && raw.includes(",") ? raw.split(",") : [raw]);
+            const ids = list.map((item) => resolveMemberItemId(item, members)).filter(Boolean) as string[];
+            return ids.length ? { type: "relation", relation: { blockIDs: ids, contents: null } } : null;
         }
         case "url":
             return typeof raw === "string" && raw ? { type: "url", url: { content: raw } } : null;

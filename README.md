@@ -1,5 +1,5 @@
 > **内测说明**：小驴管家（Lv Home）功能持续稳健迭代中。欢迎体验并通过交流 QQ 群 **871707735** 反馈建议与功能需求。
-> 当前版本 **v0.5.185** 已通过全仓 175 个测试套件、1,150 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
+> 当前版本 **v0.5.186** 已通过全仓 175 个测试套件、1,151 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.185-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1150%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.186-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ 下载安装](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 使用指南](./docs/FAQ.md) · [📖 术语表](./docs/glossary.md) · [🗺 演进路线图](./ROADMAP.md) · [🌐 English](./README.en.md)
@@ -182,19 +182,19 @@
 
 ## 📝 更新日志（Changelog）
 
-### v0.5.185（2026-10-31 · 当前版本）
-- **修复**：
-  - 建立唯一台账写入网关（`ledger-writer.ts`），修复家务积分结算、应急物资一键建档、疫苗接种登记、辅食过敏登记与购物转资产因绕开标准载荷导致数值/日期/分类/成员关联落盘为空的缺陷，且积分结算在金额未写入时保留积分不误销；
-  - 打通快速记录「加油/充电」「血压/血糖」与车辆能耗、健康体征抽屉的统一流水结构，补齐必填校验，并在读取 `rowlogs.json` 时自动无损升级历史流水；
-  - 消除急救卡、年度分享卡、个人资产时间轴、生活指数与位置速查跨库读取异常时的静默吞错，读取不全时在弹窗顶部显式告警，并转义动态弹窗标题与用户文本插值。
-- **新增与补齐**：
-  - 在快速记录「记日常流水」中正式挂载「🧹 家务打卡」页签，打卡后自动追加 `chexecs` 流水并同步更新台账 `last_done` 日期与顺延提醒。
-- **优化**：
-  - 界面外壳减法重构：移除重复三次指标的右侧上下文侧板，宽屏下侧栏与顶栏页签不双份并列，关键指标条仅保留在总览页，台账页合并固定模块条与筛选条，补齐「更多操作」外点/`Esc` 收起与方向键导航，消除窄分屏与 150% 缩放横向溢出；
-  - 抽取统一弹窗底座（`modal-shell.ts`），将 `src/core` 下全部业务弹窗 100% 接入焦点循环、`Esc` 恢复与按钮 `type="button"` 规范，移除无配置入口的预算限额空壳文本；用零依赖 ISO 18004 标准 QR 编码器替代 84KB `qrcode` 外部库，进一步缩减单文件产物体积。
+### v0.5.186（2026-10-31 · 当前版本）
+- **修复（经全新隔离工作区 Chrome 全链路实测检出并根治）**：
+  - 修复生产构建 Terser `booleans_as_integers: true` 将 `createIfNotExist`/`isDetached`/`isNotEmpty` 压缩为 `1/0` 导致思源 Go 内核拒收全新建库请求的致命缺陷，并在 `smoke-test` 增加静态守卫；
+  - 修复思源 Go 内核空单元格（`isNotEmpty: false` / `-62135596800000`）被误判为 `0001-01-01` 派生大批量幽灵逾期提醒的严重缺陷；
+  - 修复切换到空台账或新开启未建库模块时 `ledger.svelte` `$effect` 同步追踪 `rows` 引起 `effect_update_depth_exceeded` 崩溃的问题；
+  - 修复新手向导预置成员未写入 `members` 台账（`avItemId` 为空导致无法被选）、新建证件弹窗遗漏专属标量字段（身份证号/存放位置）、快速记录日常流水保存后因 `saving` 时序锁不自动关窗、总览「东西放哪了」跨屏 `setTimeout` 竞态丢点击，以及访客模式盾牌按钮未订阅响应式 `version` 的问题。
+- **新增**：
+  - 新增零污染独立工作区全真实浏览器自测脚本 `scripts/e2e-isolated.mjs`（支持 `--keep` 后台常驻与 `--headed` 可视 Chrome 窗口演示），覆盖从冷启动引导到 F5 重载的 13 步真实家庭使用闭环。
 
 <details>
-<summary><b>展开查看历史版本更新记录（v0.5.184 及更早版本）</b></summary>
+<summary><b>展开查看历史版本更新记录（v0.5.185 及更早版本）</b></summary>
+
+- **v0.5.185（2026-10-31）**：收口唯一台账写入网关（`ledger-writer.ts`）、打通快捷加油/血压/家务打卡与抽屉互通、精简界面冗余侧板与双份导航、统一 36 个业务弹窗焦点管理并以零依赖 QR 编码器瘦身。
 
 - **v0.5.184（2026-10-31）**：修复 Terser `pure_getters` 导致生产响应式冻结、回收站指纹持久化与快速备忘延后/忽略断路；补齐 Quick Add `*周期` / `*!完成顺延` 双基准循环与优先级/分类徽章闭环。
 

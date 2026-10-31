@@ -117,6 +117,7 @@
             fuelingAmount = undefined;
             fuelingLiters = undefined;
             fuelingMileage = undefined;
+            saving = false;
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
@@ -169,6 +170,7 @@
             vitalDia = undefined;
             vitalPulse = undefined;
             vitalGlucose = undefined;
+            saving = false;
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
@@ -197,6 +199,7 @@
             else showMessage(t("capture.savedEvent"), 2500, "info");
             chorePoints = undefined;
             choreNote = "";
+            saving = false;
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
@@ -223,6 +226,7 @@
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickShopName = "";
             quickShopQty = 1;
+            saving = false;
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
@@ -250,6 +254,7 @@
             }
             showMessage(t("capture.savedEvent"), 2500, "info");
             quickSnippetText = "";
+            saving = false;
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);

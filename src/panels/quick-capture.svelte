@@ -78,6 +78,7 @@
         if (open && !wasOpen) {
             wasOpen = true;
             document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
+            eventFlowRef?.reloadContext?.();
             const last = identityPending || pendingRowId ? pendingModuleId : plugin.runtime?.hubQuickModule;
             moduleId = last && (modules.includes(last) || ((identityPending || pendingRowId) && last === pendingModuleId))
                 ? last

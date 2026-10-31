@@ -1,3 +1,22 @@
+## v0.5.186 2026-10-31（本地就绪版）
+
+### 全新隔离工作区 Chrome 深度自用走查落地与 8 项真实生产级缺陷清零
+
+#### 🛠️ 修复（Fixed）
+- **[P0 级] 修复生产包 Terser `booleans_as_integers: true` 导致全新工作区建库 100% 失败**：关闭 `vite.config.ts` 中的 `booleans_as_integers`，根治 `{ createIfNotExist: true, isDetached: true, isNotEmpty: true }` 被压缩为 `1/0` 后触发思源 Go 内核 `json: cannot unmarshal number into Go value of type bool` 的致命事故，并在 `scripts/smoke-test.mjs` 新增产物布尔字段守卫；
+- **[P0 级] 修复思源 Go 内核空单元格哨兵引发幽灵逾期提醒**：在 `src/core/hub/providers.ts` 与 `src/core/avcell.ts` 严格过滤 `isNotEmpty === false` 及 Go 零值时间戳（`-62135596800000` / `0`），彻底杜绝新建记录未填可选日期/数字列时派生 `0001-01-01` 假逾期告警；
+- **[P0 级] 修复切换空台账或未建库模块时 `effect_update_depth_exceeded` 崩溃**：在 `src/panels/screens/ledger.svelte` 中使用 `untrack` 隔离 `load()` 内部状态读写，根治空表切换时 `rows = []` 引发的无限重算死循环；
+- **[P1 级] 修复首启向导预置成员缺 `avItemId` 悬空**：调整 `src/index.ts#finishOnboarding` 先完成 `ensureCoreLedgers()` 建库再通过 `addMember` 写入成员台账行，确保向导生成的家庭角色立即可在各录入表单中点选；
+- **[P1 级] 恢复新建证件弹窗专属标量字段渲染**：修复 `src/panels/screens/ledger-record-modal.svelte` 遗漏传入 `certificateScalarCols` 导致新建身份证/护照时无法录入证件号与存放位置的问题，并在 `location-dialog.ts` 补齐 `store_place` 索引；
+- **[P1 级] 修复快速记录日常流水保存后不自动关窗与上下文不刷新**：在 `quick-event-flow.svelte` 中先复位 `saving = false` 再触发 `onClose()`，并在重新打开快速记录弹层时调用 `reloadContext()` 实时同步新建车辆与家务；
+- **[P1 级] 修复总览「📍 东西放哪了」跨屏 `setTimeout` 竞态与访客模式按钮失灵**：`overview-modals.ts` 直接唤起存放位置检索弹窗而不再切去台账屏盲发事件；为 `tab-panel.svelte` 与 `ledger.svelte` 的 `isGuestMode` 补齐 `version` 响应式依赖。
+
+#### 🚀 新增（Added）
+- **独立隔离工作区真实浏览器全链路自测套件（`scripts/e2e-isolated.mjs`）**：自动在临时目录拉起独立 `SiYuan-Kernel.exe`（随机回环端口，绝不触碰 6806 主工作区），驱动真实 Chrome 走完从空白首启、成员、多模块录入、快捷流水、积分结算、疫苗/囤货、自然语言备忘、拼音检索、访客脱敏、回收站恢复到 `F5` 重载存活的 13 步闭环，支持 `--keep` 后台保留现场与 `--headed` 可视窗口演示。
+
+<details>
+<summary><b>查看历史版本更新记录（v0.5.185 及更早版本）</b></summary>
+
 ## v0.5.185 2026-10-31（本地就绪版）
 
 ### 唯一台账写入网关收口、界面外壳减法重构、命令式弹窗底座统一与零依赖 QR 瘦身
@@ -13,9 +32,6 @@
 #### 🔄 优化（Changed）
 - **界面外壳减法与首屏空间释放**：移除重复展示相同指标的右侧 `TabContextDock` 侧板；宽屏下左侧 Rail 导航与顶栏胶囊页签及工具按钮去重；`TabKpiBar` 仅在总览屏展示，为提醒、台账、成员三屏释放首屏纵向空间；合并台账常用模块条与成员/分类筛选条，补齐台账「更多操作」外部点击/`Escape` 收起与上下方向键导航，修复 420px 窄分屏与 150% 缩放下周律动条及日历事项行横向溢出；
 - **统一命令式弹窗底座（`src/core/modal-shell.ts`）与包体瘦身**：将 `src/core` 下全部 36 个业务弹窗 100% 纳入 `bindDialogA11y` / `openModalShell` 焦点循环、`Escape` 恢复与按钮 `type="button"` 保护并建立静态契约单测；隐藏未配置时的预算限额空壳文本；用 100% 位级对齐 ISO 18004 标准的零依赖 QR 编码器替换 84KB `qrcode` 库，单文件 `dist/index.js` gzip 净降至 **302.6 KiB**。
-
-<details>
-<summary><b>查看历史版本更新记录（v0.5.184 及更早版本）</b></summary>
 
 ## v0.5.184 2026-10-31（本地就绪版）
 

@@ -24,7 +24,7 @@ import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.185";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.186";
 
 /**
  * 小驴管家（Lv Home）
@@ -600,8 +600,11 @@ export default class LvHomePlugin extends Plugin {
     async finishOnboarding(household: { roles: string[]; children: number }, moduleIds: string[]) {
         this.settings.household = household as any;
         this.settings.enabledModules = Array.from(new Set([...this.settings.enabledModules, ...moduleIds]));
-        // 若当前未录入成员，根据向导勾选的角色自动初始化占位成员档案，消除向导后立刻提示“暂无成员”的断层体验
-        if (!this.settings.members || this.settings.members.length === 0) {
+        const shouldInitMembers = !this.settings.members || this.settings.members.length === 0;
+        // C7c：建库批处理进度提示（先完成 members 等台账建库，再创建初始成员行，确保 avItemId 真实写入不悬空）
+        showMessage(this.i18nText("wiz.provisioning").replace("${n}", String(moduleIds.length)), 4000, "info");
+        const provisioning = await this.ensureCoreLedgers();
+        if (shouldInitMembers) {
             const roleLabels: Record<string, string> = {
                 self: "我 (本人)",
                 spouse: "配偶",
@@ -623,11 +626,15 @@ export default class LvHomePlugin extends Plugin {
                     initMembers.push({ id: `mem-${Date.now()}-${initMembers.length + 1}`, name: roleLabels[r] || r, role: r });
                 }
             }
-            this.settings.members = initMembers;
+            if (this.settings.dbRefs?.members?.avId) {
+                const { addMember } = await import("@/core/members");
+                for (const m of initMembers) {
+                    await addMember(this, this.settings, m);
+                }
+            } else {
+                this.settings.members = initMembers;
+            }
         }
-        // C7c：建库批处理进度提示（31 模块串行需数秒；起止均有反馈，失败落 dbRefs.provisionError 诊断可见）
-        showMessage(this.i18nText("wiz.provisioning").replace("${n}", String(moduleIds.length)), 4000, "info");
-        const provisioning = await this.ensureCoreLedgers();
         this.settings.onboarded = true;
         await saveSettings(this, this.settings);
         // C7c 收尾：建库失败浮出（此前只进诊断区，向导完成后用户无感）

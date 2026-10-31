@@ -107,6 +107,11 @@ if (!/\.version/.test(bundledJs)) {
     errors.push("index.js missing `.version` prop getter access — Terser pure_getters:true may have stripped Svelte 5 reactive dependency tracking");
 }
 
+// 7. Go 内核布尔契约守卫：严禁 Terser 开启 booleans_as_integers:true 把 true/false 压成 1/0 导致 Go encoding/json 拒收
+if (/createIfNotExist\s*:\s*[01]\b|isDetached\s*:\s*[01]\b|isNotEmpty\s*:\s*[01]\b/.test(bundledJs)) {
+    errors.push("index.js encodes boolean API fields as 1/0 — Terser booleans_as_integers:true breaks SiYuan Go kernel JSON unmarshaling");
+}
+
 // 汇总
 if (warnings.length) console.log("warnings:\n" + warnings.map((w) => " ⚠ " + w).join("\n"));
 if (errors.length) {

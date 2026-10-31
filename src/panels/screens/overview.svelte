@@ -18,6 +18,7 @@
     import {
         openLifeIndexModal as showLifeIndex,
         openEmergencyCardModal as showEmergencyCard,
+        openLocationSearchModal as showLocationSearch,
         openYearlyShareCardModal as showShareCard,
     } from "@/core/overview-modals";
     import OverviewModuleGrid from "./overview-module-grid.svelte";
@@ -309,10 +310,7 @@
     const openShareCardModal = () => showShareCard({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 
     // 322波：总览主屏一键直达全模块「📍 东西放哪了」存放位置速查
-    function openLocationIndexModal() {
-        onGoto("ledger");
-        setTimeout(() => window.dispatchEvent(new CustomEvent("siyuan-home:open-location")), 60);
-    }
+    const openLocationIndexModal = () => showLocationSearch({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
 </script>
 
 {#if !onboarded}

@@ -310,8 +310,11 @@
         } catch { return undefined; }
     }
     let screen: ScreenId = $state(pendingScreen ?? historyScreen(history.state) ?? readLastScreen() ?? "overview");
-    // 297 波：家庭协作只读访客模式
-    const isGuestMode = $derived(!!plugin.runtime?.guestModeActive);
+    // 297 波：家庭协作只读访客模式（必须订阅 version，否则点击盾牌切换后横幅与高亮不即时响应）
+    const isGuestMode = $derived.by(() => {
+        void version;
+        return !!plugin.runtime?.guestModeActive;
+    });
     async function toggleGuestMode() {
         const next = !plugin.runtime?.guestModeActive;
         try {
@@ -319,6 +322,7 @@
             const { saveRuntime } = await import("@/core/hub/runtime");
             await saveRuntime(plugin, plugin.runtime);
             version += 1;
+            plugin.emitHubChanged?.();
             showMessage(t(next ? "guest.modeActive" : "guest.modeInactive"), 3000, "info");
         } catch {
             showMessage(t("ledger.saveFailed"), 4000, "error");

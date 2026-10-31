@@ -35,7 +35,7 @@
         buildLedgerCellPayload,
         type LedgerTone,
     } from "@/core/ledger-view-model";
-    import { onDestroy } from "svelte";
+    import { onDestroy, untrack } from "svelte";
     import { panelSession, type TableDensity } from "../panel-session";
     import { getGroupedModules } from "@/core/modules";
     import { getQuickTemplates } from "@/core/quick-templates";
@@ -326,9 +326,11 @@
         const controller = new AbortController();
         loadController = controller;
         loadError = "";
-        if (isModuleSwitch || rows.length === 0) {
+        if (isModuleSwitch) {
             rows = [];
             avCols = [];
+            loading = true;
+        } else if (rows.length === 0) {
             loading = true;
         }
         try {
@@ -378,10 +380,15 @@
     $effect(() => {
         void version;
         void plugin.scan?.scannedAt;
+        void ref?.avId;
         const currentActive = active;
         const isSwitch = currentActive !== lastLoadedActive;
         lastLoadedActive = currentActive;
-        load(isSwitch);
+        // 严禁在 $effect 同步帧内直接追踪 load() 内部的 rows/loading 读写，
+        // 否则切换到空台账或未建库模块时 rows=[] 写回会触发 effect_update_depth_exceeded 崩溃！
+        untrack(() => {
+            void load(isSwitch);
+        });
     });
     $effect(() => {
         const handler = () => void handleToolbarModal("location-index");
@@ -403,9 +410,14 @@
         recordModalRef?.openNewRecordModal(initialForm);
     }
 
+    const isGuestMode = $derived.by(() => {
+        void version;
+        return Boolean(plugin.runtime?.guestModeActive);
+    });
+
     /** Format a cell for both the table and the detail drawer. */
     function cellText(v: any, colKey?: string, revealSensitive = false): string {
-        return formatLedgerCellText(v, colKey, t, Boolean(plugin.runtime?.guestModeActive), revealSensitive);
+        return formatLedgerCellText(v, colKey, t, isGuestMode, revealSensitive);
     }
 
     // Warning thresholds follow each module's reminder lead time.

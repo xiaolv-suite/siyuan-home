@@ -520,7 +520,8 @@
 
             <LedgerRecordMore
                 bind:form
-                {additionalCols}
+                additionalCols={active === "certs" ? [...(certificateScalarCols as ColumnDef[]).filter((c) => !captureKeys.has(c.key)), ...additionalCols] : additionalCols}
+                defaultOpen={active === "certs" && certificateScalarCols.length > 0}
                 members={plugin.settings.members}
                 {columnSuggestions}
                 {saving}

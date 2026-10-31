@@ -42,12 +42,13 @@ export function cellContentText(cell: AvCellLike | undefined | null): string {
     if (cell.block?.content !== undefined && cell.block?.content !== null) return String(cell.block.content);
     const sel = selectCellContent(cell);
     if (sel) return sel;
-    if (cell.number?.content !== undefined && cell.number?.content !== null) return String(cell.number.content);
-    if (cell.date?.content !== undefined && cell.date?.content !== null) {
+    if (cell.number?.isNotEmpty !== false && cell.number?.content !== undefined && cell.number?.content !== null) return String(cell.number.content);
+    if (cell.date?.isNotEmpty !== false && cell.date?.content !== undefined && cell.date?.content !== null) {
         const raw = cell.date.content;
         const num = Number(raw);
+        if (!isNaN(num) && (num === 0 || num <= -60000000000000)) return "";
         const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
-        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        if (!isNaN(d.getTime()) && d.getFullYear() >= 1900) return d.toISOString().slice(0, 10);
         return String(raw);
     }
     if (cell.checkbox?.checked !== undefined) return cell.checkbox.checked ? "✓" : "";

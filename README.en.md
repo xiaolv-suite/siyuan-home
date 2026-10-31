@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.185** is protected by 175 test suites (1,150 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.186** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.185-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1150%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.186-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
@@ -182,19 +182,19 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.185 (2026-10-31 · Current Version)
-- **Fixed**:
-  - Unified cross-module ledger writes through `ledger-writer.ts`, fixing empty cell writes in chore reward settlement, emergency kit batch creation, vaccine logging, allergy logging, and shopping-to-asset conversion;
-  - Unified Quick Capture fuel/charging & blood pressure/glucose logs with vehicle energy and health vitals drawers, added required field validation, and added lossless in-memory upgrade for legacy `rowlogs.json` entries;
-  - Replaced silent `catch {}` failures in Emergency Card, Yearly Share Card, Member Timeline, Life Index, and Location Search with explicit partial-read warning banners and escaped HTML interpolations.
+### v0.5.186 (2026-10-31 · Current Version)
+- **Fixed (Uncovered & verified via cold-start isolated Chrome dogfooding)**:
+  - Disabled Terser `booleans_as_integers: true` which turned `createIfNotExist`/`isDetached`/`isNotEmpty` into `1/0` and caused SiYuan's Go `encoding/json` kernel to reject fresh database provisioning; added a static guard in `smoke-test.mjs`;
+  - Guarded against SiYuan Go kernel empty `date`/`number` cells (`isNotEmpty: false` / `-62135596800000`) generating phantom `0001-01-01` overdue reminders;
+  - Fixed `effect_update_depth_exceeded` crash in `ledger.svelte` when switching to empty or unprovisioned ledgers by wrapping `load()` in `untrack`;
+  - Synced Onboarding-created members to the `members` AttributeView (`avItemId`), restored certificate profile scalar fields (`x_cert_id_number`, `location`, etc.) in `LedgerRecordModal`, fixed Quick Event Flow modal auto-close timing, eliminated the Overview Location Search cross-tab `setTimeout` race, and wired reactive `version` tracking on the Guest Mode toggle.
 - **Added**:
-  - Wired the Quick Capture `🧹 Chore Check-in` sub-tab to append `chexecs` logs and update `last_done` dates in the `chores` ledger.
-- **Improved**:
-  - Streamlined the UI shell: removed the redundant right Context Dock, deduplicated wide-screen rail/top tabs, scoped the KPI strip to Overview only, merged Ledger pinned & filter bars, added outside-click/`Esc`/arrow-key support to Ledger More Actions, and eliminated narrow/150%-zoom horizontal overflow;
-  - Consolidated `src/core` modal dialogs via `modal-shell.ts` with 100% `bindDialogA11y` focus/Escape coverage, hid unconfigured budget-limit empty text, and replaced the 84KB `qrcode` dependency with a zero-dependency ISO 18004 QR encoder verified bit-for-bit against the reference library.
+  - Added `scripts/e2e-isolated.mjs` (`--keep`, `--headed`) to boot an isolated SiYuan kernel on a random loopback port and run a 13-step real-browser household verification suite from cold start through `F5` reload.
 
 <details>
-<summary><b>View Historical Releases (v0.5.184 and earlier)</b></summary>
+<summary><b>View Historical Releases (v0.5.185 and earlier)</b></summary>
+
+- **v0.5.185 (2026-10-31)**: Unified cross-module ledger writes via `ledger-writer.ts`, aligned Quick Capture logs with drawers, streamlined UI shell, standardized 100% modal focus traps via `modal-shell.ts`, and inlined a zero-dependency ISO 18004 QR encoder.
 
 - **v0.5.184 (2026-10-31)**: Fixed Terser `pure_getters` production reactivity freeze, trash runtime fingerprint persistence, adhoc memo snooze/mute handling, and completed dual recurrence anchors + Quick Add `*cycle` / priority / tag loop.
 

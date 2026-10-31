@@ -250,4 +250,46 @@ describe("台账录入与数据呈现端到端 (E2E) 验证", () => {
         expect(isSubmitKey({ key: "Enter", metaKey: true })).toBe(true);
         expect(isSubmitKey({ key: "Enter" })).toBe(false);
     });
+
+    it("思源 Go 内核空单元格（isNotEmpty:false / -62135596800000 零值哨兵）绝不派生幽灵逾期或低库存提醒", async () => {
+        const { SchemaLedgerProvider } = await import("@/core/hub/providers");
+        const { cellContentText } = await import("@/core/avcell");
+        expect(cellContentText({ date: { content: -62135596800000, isNotEmpty: false } })).toBe("");
+        expect(cellContentText({ date: { content: 0, isNotEmpty: false } })).toBe("");
+        expect(cellContentText({ number: { content: 0, isNotEmpty: false } })).toBe("");
+
+        const schema: any = {
+            columns: [
+                { key: "name", type: "text" },
+                { key: "expiry", type: "date" },
+                { key: "qty", type: "number" },
+                { key: "low_stock_at", type: "number" },
+            ],
+            reminders: [{ key: "exp", field: "expiry", leadDays: 30, kind: "oneoff" }],
+            numericRules: [{ key: "low", field: "qty", thresholdField: "low_stock_at" }],
+        };
+        const p = new SchemaLedgerProvider("stock", schema, {
+            settings: { ...defaultSettings(), enabledModules: ["stock"] },
+            getDbRef: () => ({
+                avId: "av-stock",
+                columns: { name: "k-name", expiry: "k-exp", qty: "k-qty", low_stock_at: "k-low" },
+            }),
+        });
+        (p as any).readLedger = async () => ({
+            ref: { avId: "av-stock", columns: { name: "k-name", expiry: "k-exp", qty: "k-qty", low_stock_at: "k-low" } },
+            rows: [
+                {
+                    itemID: "row-empty-go",
+                    cells: {
+                        "k-name": { text: { content: "仅填名称的新行" } },
+                        "k-exp": { date: { content: -62135596800000, isNotEmpty: false } },
+                        "k-qty": { number: { content: 0, isNotEmpty: false } },
+                        "k-low": { number: { content: 0, isNotEmpty: false } },
+                    },
+                },
+            ],
+        });
+        const reminders = await p.collect(new Date(2026, 9, 31));
+        expect(reminders).toEqual([]);
+    });
 });

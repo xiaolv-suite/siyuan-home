@@ -379,9 +379,10 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                                     itemID: rowId,
                                     cells: {
                                         [columns.vaccine_name]: { type: "text", text: { content: it.vaccine } },
-                                        [columns.dose_no]: { type: "number", number: { content: it.dose } },
-                                        [columns.date]: { type: "date", date: { content: dateVal } },
-                                        [columns.category]: { type: "select", select: { content: "vaccine_p" } },
+                                        [columns.dose_no]: { type: "number", number: { content: it.dose, isNotEmpty: true } },
+                                        [columns.date]: { type: "date", date: { content: new Date(`${dateVal}T00:00:00`).getTime(), isNotEmpty: true } },
+                                        [columns.category]: { type: "select", select: { content: "vaccine_p" }, mSelect: [{ content: "vaccine_p" }] },
+                                        ...(columns.member && child.avItemId ? { [columns.member]: { type: "relation", relation: { blockIDs: [child.avItemId] } } } : {}),
                                     },
                                 } as AvRow);
                                 render();

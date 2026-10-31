@@ -39,8 +39,9 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
         const ref = plugin.settings.dbRefs[mod];
         if (!ref?.avId || !ref.columns?.name) continue;
         const locCol = ref.columns.location;
+        const storeCol = ref.columns.store_place;
         const copyCol = ref.columns.copy_location;
-        if (!locCol && !copyCol) continue;
+        if (!locCol && !storeCol && !copyCol) continue;
 
         try {
             const res = await renderLedgerAllFn(ref.avId);
@@ -57,6 +58,10 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
                 if (locCol) {
                     const loc = cellTextFn(r.cells[locCol]);
                     if (loc) inputs.push({ rowId: r.itemID, moduleId: mod, name, location: loc, source: "location", memberName, hint });
+                }
+                if (storeCol && storeCol !== locCol) {
+                    const storeLoc = cellTextFn(r.cells[storeCol]);
+                    if (storeLoc) inputs.push({ rowId: r.itemID, moduleId: mod, name, location: storeLoc, source: "location", memberName, hint });
                 }
                 if (copyCol) {
                     const copyLoc = cellTextFn(r.cells[copyCol]);

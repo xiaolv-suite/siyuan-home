@@ -4,6 +4,7 @@
     let {
         form = $bindable(),
         additionalCols,
+        defaultOpen = false,
         members,
         columnSuggestions,
         saving,
@@ -15,6 +16,7 @@
     }: {
         form: Record<string, any>;
         additionalCols: ColumnDef[];
+        defaultOpen?: boolean;
         members: any[];
         columnSuggestions: Record<string, string[]>;
         saving: boolean;
@@ -27,7 +29,7 @@
 </script>
 
 {#if additionalCols.length > 0}
-    <details class="lv-record-more">
+    <details class="lv-record-more" open={defaultOpen}>
         <summary>{t("ledger.additionalFields")} <span>{additionalCols.length}</span></summary>
         <section class="lv-record-section lv-record-section--nested">
             <div class="lv-record-grid">

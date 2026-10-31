@@ -21,6 +21,7 @@ export interface HomePluginLike extends Plugin {
     /** moduleId → schema 目录（UI 按需读取列定义/枚举） */
     schemaCatalog: Record<string, ModuleSchema>;
     hubListeners: Set<() => void>;
+    emitHubChanged?(): void;
     activeLedger: string;
     /** 状态栏/通知入口预选页签（消费后清空） */
     pendingScreen?: string;

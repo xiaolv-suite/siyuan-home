@@ -38,13 +38,17 @@ export function rowLeadDays(v: AvCellLike | null | undefined): number | undefine
     return n === undefined ? undefined : Math.min(3650, Math.max(0, n));
 }
 
-/** 从 av 行 value 提取日期（date 列 content 为 ms 时间戳，亦兼容字符串日期与时间戳） */
+/** 从 av 行 value 提取日期（date 列 content 为 ms 时间戳，亦兼容字符串日期与时间戳；严守思源 Go 内核空单元格 isNotEmpty:false 与零值哨兵） */
 function dateFromValue(v: AvCellLike | null | undefined): string | undefined {
     if (!v) return undefined;
+    if (v.date) {
+        if (v.date.isNotEmpty === false) return undefined;
+        if (typeof v.date.content === "number" && (v.date.content === 0 || v.date.content <= -60000000000000)) return undefined;
+    }
     const raw = v.date?.content ?? v.text?.content;
-    if (raw === undefined || raw === null || raw === "") return undefined;
+    if (raw === undefined || raw === null || raw === "" || raw === 0 || raw === "0") return undefined;
     const dt = parseDate(raw as any);
-    if (!dt || isNaN(dt.getTime())) return undefined;
+    if (!dt || isNaN(dt.getTime()) || dt.getFullYear() < 1900) return undefined;
     return localDateKey(dt);
 }
 
@@ -60,13 +64,16 @@ function selectFromValue(v: AvCellLike | null | undefined): string | undefined {
     return v?.select?.content ?? v?.mSelect?.[0]?.content ?? undefined;
 }
 
-/** number 列值（H15）：0 算有值；兼容字符串数值与缺省值 */
+/** number 列值（H15）：0 算有值，但思源 Go 内核未填写数字列为 { content: 0, isNotEmpty: false }，须严格区分 */
 function numberFromValue(v: AvCellLike | null | undefined): number | undefined {
     if (!v) return undefined;
-    if (typeof v.number?.content === "number" && !isNaN(v.number.content)) {
-        return v.number.content;
+    if (v.number) {
+        if (v.number.isNotEmpty === false) return undefined;
+        if (typeof v.number.content === "number" && !isNaN(v.number.content)) {
+            return v.number.content;
+        }
     }
-    if (v.text?.content !== undefined && v.text?.content !== null) {
+    if (v.text?.content !== undefined && v.text?.content !== null && String(v.text.content).trim() !== "") {
         const parsed = Number(v.text.content);
         if (!isNaN(parsed)) return parsed;
     }

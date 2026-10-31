@@ -1,6 +1,6 @@
 {
   "name": "siyuan-home",
-  "version": "0.5.185",
+  "version": "0.5.186",
   "type": "module",
   "description": "Lv Home - family & life butler plugin for Siyuan (https://b3log.org/siyuan)",
   "repository": "github:ai68298100/siyuan-home",
@@ -22,6 +22,7 @@
     "e2e:recovery": "node scripts/e2e-recovery.mjs",
     "e2e:value01": "node scripts/e2e-value01.mjs",
     "e2e:import": "node scripts/e2e-import.mjs",
+    "e2e:isolated": "node scripts/e2e-isolated.mjs",
     "dev:app": "cross-env NODE_ENV=development VITE_SOURCEMAP=inline VITE_BUILD_TARGET=app vite build --watch",
     "dev:kernel": "cross-env NODE_ENV=development VITE_SOURCEMAP=inline VITE_BUILD_TARGET=kernel vite build --watch",
     "check": "run-s check:types check:svelte check:i18n check:meta check:audit",

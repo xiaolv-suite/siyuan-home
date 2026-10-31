@@ -47,6 +47,26 @@ export async function openEmergencyCardModal(ctx: OverviewModalContext): Promise
     }
 }
 
+/** 322波：总览主屏一键直达全模块「📍 东西放哪了」存放位置速查（直接打开弹窗，无需切去台账屏竞态派发事件） */
+export async function openLocationSearchModal(ctx: OverviewModalContext): Promise<void> {
+    const { plugin, t, DialogCls, showMessageFn } = ctx;
+    try {
+        const { openLocationIndexDialog } = await import("./location-dialog");
+        const { renderLedgerAll } = await import("./siyuan");
+        const { cellContentText } = await import("./avcell");
+        await openLocationIndexDialog({
+            t,
+            plugin,
+            DialogCls,
+            showMessageFn,
+            renderLedgerAllFn: renderLedgerAll,
+            cellTextFn: cellContentText,
+        });
+    } catch (e) {
+        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+    }
+}
+
 /** 320波：家庭生活年度回顾长图与里程碑卡片 */
 export async function openYearlyShareCardModal(ctx: OverviewModalContext): Promise<void> {
     const { plugin, allReminders, t, DialogCls, showMessageFn } = ctx;

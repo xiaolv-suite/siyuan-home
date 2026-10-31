@@ -118,7 +118,10 @@ export default defineConfig(buildTarget === "kernel" ? {
                 reduce_funcs: true,
                 reduce_vars: true,
                 inline: 3,
-                booleans_as_integers: true,
+                // 严禁开启 booleans_as_integers: true！思源后端为 Go encoding/json 强类型反序列化，
+                // 将 { createIfNotExist: true, isDetached: true, isNotEmpty: true, checked: true } 压成 1/0
+                // 会直接触发 `json: cannot unmarshal number into Go value of type bool`，导致全新工作区建库与写格 100% 失败！
+                booleans_as_integers: false,
                 dead_code: true,
                 unused: true,
                 keep_fargs: false,

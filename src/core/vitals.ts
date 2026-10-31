@@ -4,7 +4,7 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
-export type VitalType = "bp" | "bg" | "hr";
+export type VitalType = "bp" | "bg" | "hr" | "weight" | "temp";
 
 export interface VitalReading {
     date: string;

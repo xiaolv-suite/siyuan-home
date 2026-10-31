@@ -8,6 +8,13 @@ import { groupShoppingByCategory, storeModeProgress, toggleStoreItem, formatStor
 import type { AvCellLike } from "./avcell";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface StoreModeDialogOptions {
     t: (k: string) => string;
     DialogCls: new (options: { title: string; content: string; width?: string }) => { element: HTMLElement; destroy: () => void };
@@ -69,30 +76,21 @@ export async function openStoreModeDialog(opts: StoreModeDialogOptions): Promise
         body.replaceChildren();
         for (const g of groups) {
             const gp = p.byGroup.find((x) => x.category === g.category);
-            const head = document.createElement("div");
-            head.className = "ft__on-surface lv-domain-title lv-mt-8";
-            head.textContent = `${catLabel(g.category)} (${gp?.checked ?? 0}/${gp?.total ?? 0})`;
-            body.appendChild(head);
+            body.appendChild(mk("div", "ft__on-surface lv-domain-title lv-mt-8", `${catLabel(g.category)} (${gp?.checked ?? 0}/${gp?.total ?? 0})`));
             for (const it of g.items) {
-                const label = document.createElement("label");
-                label.className = "lv-dialog-row";
+                const label = mk("label", "lv-dialog-row");
                 label.style.cursor = "pointer";
-                const box = document.createElement("input");
+                const isChk = checked.has(it.itemID);
+                const box = mk("input", "b3-checkbox") as HTMLInputElement;
                 box.type = "checkbox";
-                box.className = "b3-checkbox";
-                box.checked = checked.has(it.itemID);
+                box.checked = isChk;
                 box.setAttribute("aria-label", it.name);
                 box.onchange = () => { checked = toggleStoreItem(checked, it.itemID); render(); };
-                const name = document.createElement("span");
-                name.textContent = `${it.name}${it.qty !== undefined ? ` ×${it.qty}` : ""}`;
-                if (checked.has(it.itemID)) { name.style.textDecoration = "line-through"; name.style.opacity = "0.55"; }
+
+                const name = mk("span", "", `${it.name}${it.qty !== undefined ? ` ×${it.qty}` : ""}`);
+                if (isChk) { name.style.textDecoration = "line-through"; name.style.opacity = "0.55"; }
                 label.append(box, name);
-                if (it.note) {
-                    const note = document.createElement("span");
-                    note.className = "lv-caption";
-                    note.textContent = it.note;
-                    label.appendChild(note);
-                }
+                if (it.note) label.appendChild(mk("span", "lv-caption", it.note));
                 body.appendChild(label);
             }
         }

@@ -136,9 +136,11 @@ export default class LvHomePlugin extends Plugin {
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
 
         // schema 契约门禁（33.2；193 波收口 SCHEMA_CATALOG 单源）：开发期发现违规立即暴露
-        for (const [id, schema] of Object.entries(SCHEMA_CATALOG)) {
-            const errors = validateSchema(id, schema);
-            if (errors.length) console.error("[LvHome] schema contract violations:", errors);
+        if (process.env.DEV_MODE) {
+            for (const [id, schema] of Object.entries(SCHEMA_CATALOG)) {
+                const errors = validateSchema(id, schema);
+                if (errors.length) console.error("[LvHome] schema contract violations:", errors);
+            }
         }
 
         // 欢迎提示与初次引导优化：

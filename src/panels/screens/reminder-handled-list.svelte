@@ -85,14 +85,3 @@
         {/if}
     </div>
 {/if}
-
-<style>
-    .lv-mt-8 {
-        margin-top: 8px;
-    }
-    .lv-card-center-pad {
-        display: flex;
-        justify-content: center;
-        padding: 12px;
-    }
-</style>

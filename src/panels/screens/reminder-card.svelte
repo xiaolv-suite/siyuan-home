@@ -298,9 +298,3 @@
         </div>
     {/if}
 </div>
-
-<style>
-    .lv-batch-chk {
-        flex-shrink: 0;
-    }
-</style>

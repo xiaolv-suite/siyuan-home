@@ -423,12 +423,9 @@
 
     <div class="lv-quick-flow-grid" role="group" aria-label={t("capture.tabEvent")}>
         {#each DAILY_FLOWS as flow (flow.sub)}
-            <button type="button" class="lv-flow-btn {flow.tone}" onclick={() => openQuickEvent(flow.sub)}>
-                <span class="lv-flow-btn__ic" aria-hidden="true"><UiIcon name={flow.icon} size={18} /></span>
-                <span class="lv-flow-btn__copy">
-                    <b>{t(flow.label)}</b>
-                    <span>{t(flow.desc)}</span>
-                </span>
+            <button type="button" class="lv-flow-btn {flow.tone}" title={t(flow.desc)} onclick={() => openQuickEvent(flow.sub)}>
+                <span class="lv-flow-btn__ic" aria-hidden="true"><UiIcon name={flow.icon} size={15} /></span>
+                <b class="lv-flow-btn__title">{t(flow.label)}</b>
             </button>
         {/each}
     </div>

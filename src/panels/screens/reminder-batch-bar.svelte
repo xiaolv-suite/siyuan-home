@@ -198,28 +198,3 @@
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}><UiIcon name="mute" size={13} /> {t("act.mute")}</button>
     <button type="button" class="b3-button b3-button--outline" disabled={batchBusy} onclick={clearSelection}><UiIcon name="close" size={12} /> {t("cancel")}</button>
 </div>
-
-<style>
-    .lv-hub-batchbar {
-        padding: 8px 16px;
-        margin-bottom: 14px;
-        border: 1px solid var(--lv-accent);
-        border-radius: var(--lv-r-2);
-        background: var(--lv-surface);
-        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
-    }
-    .lv-hub-batchbar .lv-caption {
-        color: var(--lv-accent);
-        font-weight: 650;
-    }
-    .lv-hub-batchbar .b3-button--text {
-        color: var(--lv-tx-2);
-        font-size: 12.5px;
-        padding: 4px 8px;
-        border-radius: 6px;
-    }
-    .lv-hub-batchbar .b3-button--text:hover {
-        color: var(--lv-tx);
-        background: var(--lv-surface-2);
-    }
-</style>

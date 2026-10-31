@@ -231,38 +231,40 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
     }
 
     function renderEnergy() {
+        const mk = (tag: string, cls = "", text = "") => {
+            const el = document.createElement(tag);
+            if (cls) el.className = cls;
+            if (text) el.textContent = text;
+            return el;
+        };
+        const mkSvg = (tag: string, attrs: Record<string, string | number>) => {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+            return el;
+        };
+
         energyWrap.replaceChildren(hint);
-        const title = document.createElement("h3");
-        title.className = "lv-h3-title";
-        title.textContent = t("fuel.sectionTitle");
-        energyWrap.appendChild(title);
-        const hybridHint = document.createElement("div");
-        hybridHint.className = "lv-record-next lv-caption lv-mb-10";
-        hybridHint.textContent = t(isHybridVehicle ? "fuel.hybridHint" : "fuel.separateEnergyHint");
-        energyWrap.appendChild(hybridHint);
+        energyWrap.appendChild(mk("h3", "lv-h3-title", t("fuel.sectionTitle")));
+        energyWrap.appendChild(mk("div", "lv-record-next lv-caption lv-mb-10", t(isHybridVehicle ? "fuel.hybridHint" : "fuel.separateEnergyHint")));
 
         for (const kind of energyKinds) {
             const isFuel = kind === "fuel";
             const records = entriesFor(kind);
             const stats = calculateEnergyStats(records, kind);
-            const section = document.createElement("section");
-            section.className = "lv-card lv-dialog-card";
-            const head = document.createElement("div");
-            head.className = "lv-domain-head";
-            const heading = document.createElement("b"); heading.textContent = t(isFuel ? "fuel.fuelTitle" : "fuel.chargingTitle");
-            const add = document.createElement("button"); add.className = "b3-button b3-button--outline"; add.dataset.lvVehicleAction = kind;
-            add.textContent = `+ ${t(isFuel ? "fuel.addFuel" : "fuel.addCharging")}`;
+            const section = mk("section", "lv-card lv-dialog-card");
+            const head = mk("div", "lv-domain-head");
+            const heading = mk("b", "", t(isFuel ? "fuel.fuelTitle" : "fuel.chargingTitle"));
+            const add = mk("button", "b3-button b3-button--outline", `+ ${t(isFuel ? "fuel.addFuel" : "fuel.addCharging")}`) as HTMLButtonElement;
+            add.dataset.lvVehicleAction = kind;
             add.onclick = () => openEnergyForm(kind);
             head.append(heading, add);
             section.appendChild(head);
 
-            const statsGrid = document.createElement("div");
-            statsGrid.className = "lv-diag-grid";
+            const statsGrid = mk("div", "lv-diag-grid");
             const metric = (label: string, value: string) => {
-                const box = document.createElement("div"); box.className = "lv-diag-stat-card";
-                const cap = document.createElement("span"); cap.className = "ft__on-surface lv-caption"; cap.textContent = label;
-                const val = document.createElement("b"); val.className = "lv-metric-val"; val.textContent = value;
-                box.append(cap, val); statsGrid.appendChild(box);
+                const box = mk("div", "lv-diag-stat-card");
+                box.append(mk("span", "ft__on-surface lv-caption", label), mk("b", "lv-metric-val", value));
+                statsGrid.appendChild(box);
             };
             const unit = isFuel ? "L" : "kWh";
             const average = stats.consumptionPer100Km === undefined ? "—" : `${compactNumber(stats.consumptionPer100Km)} ${unit}/100km`;
@@ -273,17 +275,16 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             if (!isHybridVehicle) metric(t("fuel.totalDistance"), `${formatAmount(stats.totalDistance)} ${t("fuel.km")}`);
             section.appendChild(statsGrid);
             if (stats.warnings.includes("non_increasing_odometer")) {
-                const warning = document.createElement("div"); warning.className = "lv-record-error lv-record-warning lv-caption lv-mt-8"; warning.textContent = t("fuel.odometerWarning"); section.appendChild(warning);
+                section.appendChild(mk("div", "lv-record-error lv-record-warning lv-caption lv-mt-8", t("fuel.odometerWarning")));
             }
             if (stats.warnings.includes("incomplete_initial_interval") || stats.warnings.includes("incomplete_latest_interval")) {
-                const boundary = document.createElement("div"); boundary.className = "ft__on-surface lv-caption lv-mt-6"; boundary.textContent = t("fuel.boundaryWarning"); section.appendChild(boundary);
+                section.appendChild(mk("div", "ft__on-surface lv-caption lv-mt-6", t("fuel.boundaryWarning")));
             }
 
             const intervals = stats.intervals.slice(-8);
             if (!isHybridVehicle && intervals.length) {
-                const chartTitle = document.createElement("div"); chartTitle.className = "ft__on-surface lv-caption lv-mt-10"; chartTitle.textContent = t("fuel.trendTitle");
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.setAttribute("viewBox", "0 0 300 76"); svg.setAttribute("width", "100%"); svg.setAttribute("height", "76"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("fuel.trendTitle"));
+                const chartTitle = mk("div", "ft__on-surface lv-caption lv-mt-10", t("fuel.trendTitle"));
+                const svg = mkSvg("svg", { viewBox: "0 0 300 76", width: "100%", height: 76, role: "img", "aria-label": t("fuel.trendTitle") });
                 const values = intervals.map((item) => item.consumptionPer100Km);
                 const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
                 const pts = values.map((value, index) => ({
@@ -293,35 +294,26 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                 const bezierPath = pointsToSmoothBezierPath(pts);
                 const areaPath = pointsToAreaBezierPath(pts, 68);
 
-                const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-                defs.innerHTML = `<linearGradient id="lv-fuel-curve-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--lv-accent)" stop-opacity="0.25"/>
-                    <stop offset="100%" stop-color="var(--lv-accent)" stop-opacity="0.0"/>
-                </linearGradient>`;
+                const defs = mkSvg("defs", {});
+                defs.innerHTML = `<linearGradient id="lv-fuel-curve-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--lv-accent)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--lv-accent)" stop-opacity="0.0"/></linearGradient>`;
                 svg.appendChild(defs);
 
                 if (areaPath) {
-                    const area = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    area.setAttribute("d", areaPath);
-                    area.setAttribute("fill", "url(#lv-fuel-curve-grad)");
-                    svg.appendChild(area);
+                    svg.appendChild(mkSvg("path", { d: areaPath, fill: "url(#lv-fuel-curve-grad)" }));
                 }
 
-                const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                curve.setAttribute("d", bezierPath);
-                curve.setAttribute("fill", "none");
-                curve.setAttribute("stroke", "var(--lv-accent)");
-                curve.setAttribute("stroke-width", "2.5");
-                curve.setAttribute("stroke-linecap", "round");
-                curve.setAttribute("stroke-linejoin", "round");
-                svg.appendChild(curve);
+                svg.appendChild(mkSvg("path", { d: bezierPath, fill: "none", stroke: "var(--lv-accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" }));
                 for (const [index, interval] of intervals.entries()) {
-                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    dot.setAttribute("cx", String(12 + index * (276 / Math.max(1, intervals.length - 1))));
-                    dot.setAttribute("cy", String(62 - ((interval.consumptionPer100Km - min) / range) * 46));
-                    dot.setAttribute("r", "3.5"); dot.setAttribute("fill", "var(--lv-accent)");
-                    const tip = document.createElementNS("http://www.w3.org/2000/svg", "title"); tip.textContent = `${interval.toDate} · ${compactNumber(interval.consumptionPer100Km)} ${unit}/100km`;
-                    dot.appendChild(tip); svg.appendChild(dot);
+                    const dot = mkSvg("circle", {
+                        cx: 12 + index * (276 / Math.max(1, intervals.length - 1)),
+                        cy: 62 - ((interval.consumptionPer100Km - min) / range) * 46,
+                        r: 3.5,
+                        fill: "var(--lv-accent)",
+                    });
+                    const tip = mkSvg("title", {});
+                    tip.textContent = `${interval.toDate} · ${compactNumber(interval.consumptionPer100Km)} ${unit}/100km`;
+                    dot.appendChild(tip);
+                    svg.appendChild(dot);
                 }
                 section.append(chartTitle, svg);
             } else if (!isHybridVehicle) {
@@ -342,43 +334,44 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             }
             const monthRows = [...monthlyCosts.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-6);
             if (monthRows.length) {
-                const monthlyTitle = document.createElement("div"); monthlyTitle.className = "ft__on-surface lv-caption lv-mt-10"; monthlyTitle.textContent = t("fuel.monthlyCostTrend");
-                const monthly = document.createElement("div"); monthly.className = "lv-monthly-bar-chart";
+                const monthlyTitle = mk("div", "ft__on-surface lv-caption lv-mt-10", t("fuel.monthlyCostTrend"));
+                const monthly = mk("div", "lv-monthly-bar-chart");
                 const maxSpend = Math.max(...monthRows.map(([, v]) => v.amount), 1);
                 for (const [month, value] of monthRows) {
-                    const column = document.createElement("div"); column.className = "lv-monthly-col";
-                    const amount = document.createElement("span"); amount.className = "ft__on-surface lv-monthly-amount"; amount.textContent = formatAmount(value.amount); amount.title = `${month} · ${formatAmount(value.amount)} ${t("fuel.currency")} · ${value.count}`;
-                    const bar = document.createElement("i"); bar.className = "lv-monthly-bar"; bar.style.height = `${Math.max(4, (value.amount / maxSpend) * 52)}px`;
-                    const label = document.createElement("span"); label.className = "lv-monthly-label"; label.textContent = month.slice(5);
-                    column.append(amount, bar, label); monthly.appendChild(column);
+                    const column = mk("div", "lv-monthly-col");
+                    const amount = mk("span", "ft__on-surface lv-monthly-amount", formatAmount(value.amount));
+                    amount.title = `${month} · ${formatAmount(value.amount)} ${t("fuel.currency")} · ${value.count}`;
+                    const bar = mk("i", "lv-monthly-bar");
+                    bar.style.height = `${Math.max(4, (value.amount / maxSpend) * 52)}px`;
+                    column.append(amount, bar, mk("span", "lv-monthly-label", month.slice(5)));
+                    monthly.appendChild(column);
                 }
-                const monthlyHint = document.createElement("div"); monthlyHint.className = "ft__on-surface lv-caption lv-mt-3"; monthlyHint.textContent = t("fuel.monthlyCostHint");
-                section.append(monthlyTitle, monthly, monthlyHint);
+                section.append(monthlyTitle, monthly, mk("div", "ft__on-surface lv-caption lv-mt-3", t("fuel.monthlyCostHint")));
             }
 
-            const historyTitle = document.createElement("div"); historyTitle.className = "ft__on-surface lv-caption lv-mt-10"; historyTitle.textContent = `${t("fuel.historyTitle")} · ${records.length}`;
-            section.appendChild(historyTitle);
+            section.appendChild(mk("div", "ft__on-surface lv-caption lv-mt-10", `${t("fuel.historyTitle")} · ${records.length}`));
             const recent = [...records].reverse().slice(0, 5);
             if (activityTarget?.activityId) {
                 const targetEntry = records.find((entry) => rowLogActivityId(active, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>) === activityTarget.activityId);
                 if (targetEntry && !recent.includes(targetEntry)) recent.push(targetEntry);
             }
             if (!recent.length) {
-                const empty = document.createElement("div"); empty.className = "ft__on-surface"; empty.style.fontSize = "12px"; empty.textContent = t("fuel.noRecords"); section.appendChild(empty);
+                const empty = mk("div", "ft__on-surface", t("fuel.noRecords"));
+                empty.style.fontSize = "12px";
+                section.appendChild(empty);
             }
             for (const entry of recent) {
-                const line = document.createElement("div");
-                line.className = "lv-vehicle-log-row";
+                const line = mk("div", "lv-vehicle-log-row");
                 line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>);
                 if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
 
-                const desc = document.createElement("span"); desc.className = "lv-flex-wrap-anywhere";
                 const volume = `${compactNumber(entry.quantity)} ${unit}`;
                 const type = isFuel ? (entry.fuelGrade ? t(`fuel.option.${entry.fuelGrade}`) : "") : (entry.chargingMode ? t(`fuel.option.${entry.chargingMode}`) : "");
                 const price = typeof entry.totalCost === "number" ? `${formatAmount(entry.totalCost)} ${t("fuel.currency")}` : typeof entry.unitPrice === "number" ? `${compactNumber(entry.unitPrice)} ${t("fuel.unitPrice")}` : t("fuel.costUnknown");
-                desc.textContent = `${entry.date} · ${volume}${type ? ` · ${type}` : ""} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.full ? ` · ${t(isFuel ? "fuel.fullTankShort" : "fuel.fullChargeShort")}` : ""} · ${price}${entry.station ? ` · ${entry.station}` : ""}`;
-                const del = document.createElement("button"); del.className = "b3-button b3-button--text lv-btn-text-sm"; del.textContent = t("delete");
-                const edit = document.createElement("button"); edit.className = "b3-button b3-button--text lv-btn-text-sm"; edit.textContent = t("members.edit");
+                const descText = `${entry.date} · ${volume}${type ? ` · ${type}` : ""} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.full ? ` · ${t(isFuel ? "fuel.fullTankShort" : "fuel.fullChargeShort")}` : ""} · ${price}${entry.station ? ` · ${entry.station}` : ""}`;
+                const desc = mk("span", "lv-flex-wrap-anywhere", descText);
+                const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
+                const edit = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("members.edit")) as HTMLButtonElement;
                 edit.onclick = () => openEnergyForm(kind, entry);
                 del.onclick = () => confirm(t("fuel.deleteEntry"), t("fuel.deleteEntryConfirm"), async () => {
                     del.disabled = true;
@@ -391,7 +384,8 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                         showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
                     }
                 });
-                line.append(desc, edit, del); section.appendChild(line);
+                line.append(desc, edit, del);
+                section.appendChild(line);
             }
             energyWrap.appendChild(section);
             // 必须在 section 已挂入 energyWrap（处于 body 树内）之后再注册快捷动作，

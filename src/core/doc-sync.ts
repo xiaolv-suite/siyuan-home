@@ -278,9 +278,28 @@ export function describeRowLogAsLifelog(
         const qty = entry.quantity ?? entry.liters;
         const cost = entry.totalCost ?? entry.cost;
         const odo = entry.odometer ?? entry.mileage;
+        const unitP = entry.unitPrice !== undefined ? `¥${entry.unitPrice}/${isC ? "kWh" : "L"}` : undefined;
+        const CHARGE_LABELS: Record<string, string> = { ac: "慢充", home: "家充", dc: "快充" };
+        const gradeOrMode = isC
+            ? (CHARGE_LABELS[String(entry.chargingMode)] ?? (entry.chargingMode ? String(entry.chargingMode) : undefined))
+            : (entry.fuelGrade ? `${entry.fuelGrade}#` : undefined);
+        const fullStatus = entry.full !== undefined ? (entry.full ? (isC ? "已充满" : "已加满") : (isC ? "未充满" : "未加满")) : undefined;
+
         lifelogType = isC ? "车辆充电" : "车辆加油";
-        detailText = parts(subject, rowOwnerLink, qty !== undefined && `${qty} ${isC ? "kWh" : "L"}`, cost !== undefined && `¥${cost}`, odo !== undefined && `里程 ${odo} km`, typeof entry.station === "string" ? entry.station.trim() : "", note);
+        detailText = parts(
+            subject,
+            rowOwnerLink,
+            gradeOrMode,
+            qty !== undefined && `${qty} ${isC ? "kWh" : "L"}`,
+            cost !== undefined && `¥${cost}`,
+            unitP && `(${unitP})`,
+            fullStatus,
+            odo !== undefined && `里程 ${odo} km`,
+            typeof entry.station === "string" ? entry.station.trim() : "",
+            note,
+        );
         tags = ["#车辆", isC ? "#充电" : "#加油"];
+        if (entry.full === true) tags.push(isC ? "#充满" : "#加满");
     } else if (kind === "maintenance") {
         const cat = typeof entry.category === "string" && entry.category.trim() ? entry.category.trim() : "常规维保";
         const cost = entry.cost ?? entry.totalCost;
@@ -300,6 +319,14 @@ export function describeRowLogAsLifelog(
             lifelogType = "心率监测";
             detailText = parts(subject, owner, `${entry.val1 ?? entry.pulse ?? "—"} bpm`, note);
             tags = ["#健康", "#心率"];
+        } else if (vtype === "weight") {
+            lifelogType = "体重记录";
+            detailText = parts(subject, owner, `${entry.val1 ?? entry.weight ?? "—"} kg`, note);
+            tags = ["#健康", "#体重"];
+        } else if (vtype === "temp") {
+            lifelogType = "体温记录";
+            detailText = parts(subject, owner, `${entry.val1 ?? entry.temperature ?? "—"} ℃`, note);
+            tags = ["#健康", "#体温"];
         } else {
             const pulse = entry.pulse !== undefined ? `心率 ${entry.pulse} bpm` : undefined;
             lifelogType = "血压监测";

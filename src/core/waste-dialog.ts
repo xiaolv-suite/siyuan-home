@@ -47,38 +47,13 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
         byDate.set(p.date, list);
     }
 
-    for (const [date, items] of byDate) {
-        const row = document.createElement("div");
-        row.className = "lv-metric-item lv-favor-person-row";
-
-        const left = document.createElement("div");
-        left.className = "lv-broken-link-row__left";
-
+    listEl.innerHTML = [...byDate.entries()].map(([date, items]) => {
         const first = items[0];
-        const badge = document.createElement("span");
-        if (first.isToday) {
-            badge.className = "lv-badge red";
-            badge.textContent = t("ledger.wasteToday");
-        } else if (first.isTomorrow) {
-            badge.className = "lv-badge orange";
-            badge.textContent = t("ledger.wasteTomorrow");
-        } else {
-            badge.className = "lv-badge gray";
-            badge.textContent = `${first.daysLeft} ${t("days.unit")}`;
-        }
-
-        const dateSpan = document.createElement("b");
-        dateSpan.className = "lv-dialog-name";
-        dateSpan.textContent = date;
-
-        const typesSpan = document.createElement("span");
-        typesSpan.className = "lv-caption";
-        typesSpan.textContent = items.map((it) => it.label).join("、");
-
-        left.append(badge, dateSpan, typesSpan);
-        row.appendChild(left);
-        listEl.appendChild(row);
-    }
+        const badgeCls = first.isToday ? "red" : first.isTomorrow ? "orange" : "gray";
+        const badgeTxt = first.isToday ? t("ledger.wasteToday") : first.isTomorrow ? t("ledger.wasteTomorrow") : `${first.daysLeft} ${t("days.unit")}`;
+        const types = items.map((it) => it.label).join("、");
+        return `<div class="lv-metric-item lv-favor-person-row"><div class="lv-broken-link-row__left"><span class="lv-badge ${badgeCls}">${badgeTxt}</span><b class="lv-dialog-name">${date}</b><span class="lv-caption">${types}</span></div></div>`;
+    }).join("");
 
     const copyBtn = shell.button("copy");
     if (copyBtn) {

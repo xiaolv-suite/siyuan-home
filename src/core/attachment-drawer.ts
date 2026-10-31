@@ -8,6 +8,13 @@ import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, 
 import { confirm } from "@/libs/dialog";
 import { uiIcon } from "@/ui/icons";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface AttachmentDrawerSectionOptions {
     body: HTMLElement;
     assetCols: any[];
@@ -123,29 +130,19 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         const attKeyID = ref.columns[attCol.key];
         if (!attKeyID) continue;
 
-        const attHead = document.createElement("div");
-        attHead.className = active === "vehicles" ? "ft__on-surface lv-dialog-sec-head lv-detail-wide" : "ft__on-surface lv-dialog-sec-head";
-        attHead.textContent = colLabel(attCol);
-        body.appendChild(attHead);
+        const isVeh = active === "vehicles";
+        body.appendChild(mk("div", isVeh ? "ft__on-surface lv-dialog-sec-head lv-detail-wide" : "ft__on-surface lv-dialog-sec-head", colLabel(attCol)));
 
         const existing = (row.cells[attKeyID]?.mAsset ?? []) as { name?: string; content?: string }[];
         for (const f of existing) {
-            const line = document.createElement("div");
-            line.className = active === "vehicles" ? "lv-att-row lv-detail-wide" : "lv-att-row";
-
-            const name = document.createElement("span");
-            name.className = "lv-att-name";
-            name.innerHTML = uiIcon("paperclip", "", 13);
-            const nameText = document.createElement("span");
-            nameText.textContent = ` ${f.name ?? f.content ?? "?"}`;
-            name.appendChild(nameText);
+            const line = mk("div", isVeh ? "lv-att-row lv-detail-wide" : "lv-att-row");
+            const name = mk("span", "lv-att-name");
+            name.innerHTML = `${uiIcon("paperclip", "", 13)} <span> ${f.name ?? f.content ?? "?"}</span>`;
             line.appendChild(name);
 
             if (f.content) {
                 try {
-                    const preview = document.createElement("a");
-                    preview.className = "b3-button b3-button--text lv-att-btn";
-                    preview.textContent = t("ledger.previewAttachment");
+                    const preview = mk("a", "b3-button b3-button--text lv-att-btn", t("ledger.previewAttachment")) as HTMLAnchorElement;
                     preview.href = assetHref(f.content);
                     preview.target = "_blank";
                     preview.rel = "noopener noreferrer";
@@ -154,9 +151,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     /* safe */
                 }
 
-                const download = document.createElement("button");
-                download.className = "b3-button b3-button--text lv-att-btn";
-                download.textContent = t("ledger.downloadAttachment");
+                const download = mk("button", "b3-button b3-button--text lv-att-btn", t("ledger.downloadAttachment")) as HTMLButtonElement;
                 download.onclick = async () => {
                     download.disabled = true;
                     try {

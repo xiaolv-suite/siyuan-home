@@ -74,17 +74,10 @@ export function maskSensitiveFieldValue(key: string | undefined, value: string):
     if (trimmed.includes("*")) return trimmed;
 
     // 手机号脱敏（前 3 后 4，中间 4 位星号）
-    let masked = trimmed.replace(PHONE_REGEX, (phone) => {
-        const digits = phone.slice(-11);
-        const prefix = phone.slice(0, -11);
-        return `${prefix}${digits.slice(0, 3)}****${digits.slice(7)}`;
-    });
+    let masked = trimmed.replace(PHONE_REGEX, (p) => `${p.slice(0, -11)}${p.slice(-11, -8)}****${p.slice(-4)}`);
 
     // 邮箱脱敏（保留用户名首字符或前两位，其余替换为 ***）
-    masked = masked.replace(EMAIL_REGEX, (_match, user, domain) => {
-        const visible = user.length <= 2 ? user[0] : user.slice(0, 2);
-        return `${visible}***@${domain}`;
-    });
+    masked = masked.replace(EMAIL_REGEX, (_m, u, d) => `${u.slice(0, u.length <= 2 ? 1 : 2)}***@${d}`);
 
     return masked;
 }

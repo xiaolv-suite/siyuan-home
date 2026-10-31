@@ -9,17 +9,20 @@ import { CERTIFICATE_CATEGORY_OPTIONS, CERT_PROFILE_COLUMNS } from "./certificat
 
 // ── 字段定义与声明工厂函数 ────────────────────────────────────
 
-const txt = (key: string): ColumnDef => ({ key, type: "text", labelKey: `field.${key}` });
-const dat = (key: string): ColumnDef => ({ key, type: "date", labelKey: `field.${key}` });
-const ast = (key: string): ColumnDef => ({ key, type: "mAsset", labelKey: `field.${key}` });
-const num = (key: string, extra?: Partial<ColumnDef>): ColumnDef => ({ key, type: "number", labelKey: `field.${key}`, ...extra });
-const sel = (key: string, options?: string[], def?: string): ColumnDef => ({ key, type: "select", labelKey: `field.${key}`, ...(options ? { options } : {}), ...(def ? { default: def } : {}) });
-const chk = (key: string): ColumnDef => ({ key, type: "checkbox", labelKey: `field.${key}` });
+const fld = (key: string, type: any, extra?: any): ColumnDef => (extra ? { key, type, labelKey: `field.${key}`, ...extra } : { key, type, labelKey: `field.${key}` });
+const txt = (k: string) => fld(k, "text");
+const dat = (k: string) => fld(k, "date");
+const ast = (k: string) => fld(k, "mAsset");
+const chk = (k: string) => fld(k, "checkbox");
+const num = (k: string, extra?: Partial<ColumnDef>) => fld(k, "number", extra);
+const sel = (k: string, options?: string[], def?: string) => fld(k, "select", options ? (def ? { options, default: def } : { options }) : (def ? { default: def } : undefined));
 const rem = (key: string, field: string, leadDays = 30, kind: "oneoff" | "recurring" | "anniversary" | "after" = "oneoff", extra?: Partial<ReminderRuleSpec>): ReminderRuleSpec => ({ key, field, kind, leadDays, ...extra });
+const act = (detailFields: string[], dateField = "date") => ({ dateField, detailFields });
+const REM_EXP_30 = rem("expiry", "expiry", 30);
 
 // ── 字段字典（02 §2）────────────────────────────────────────
 
-export const FIELD_DICT: Record<string, ColumnDef> = {
+const FIELD_DICT: Record<string, ColumnDef> = {
     name:          { key: "name", type: "text", required: true },
     member:        { key: "member", type: "relation", labelKey: "field.member" }, // → members 库（Spike R2 定案）
     category:      sel("category"),
@@ -136,7 +139,7 @@ export const MEDICINE_SCHEMA: ModuleSchema = {
     ],
     capture: ["name", "category", "expiry", "stock_qty", "location"],
     views: [VIEW_EXPIRING],
-    reminders: [rem("expiry", "expiry", 30)],
+    reminders: [REM_EXP_30],
     // H15：低库存双规则之数值侧（效期侧由 expiry 规则承担；阈值逐行 low_stock_at）
     numericRules: [{ key: "low_stock", field: "stock_qty", thresholdField: "low_stock_at" }],
 };
@@ -182,11 +185,11 @@ export const INSURANCE_SCHEMA: ModuleSchema = {
         ...d("expiry", "attachments", "note"),
     ],
     capture: ["name", "category", "insurer", "premium", "next_pay"],
-    activity: { dateField: "claim_date", detailFields: ["claim_status", "claim_amount", "insurer"] },
+    activity: act(["claim_status", "claim_amount", "insurer"], "claim_date"),
     views: [tbl("paying", { groupBy: "member" })],
     reminders: [
         rem("next_pay", "next_pay", 30, "recurring", { cycleField: "pay_cycle" }),
-        rem("expiry", "expiry", 30),
+        REM_EXP_30,
     ],
 };
 
@@ -203,7 +206,7 @@ export const ASSETS_REAL_SCHEMA: ModuleSchema = {
         txt("channel"),
     ],
     capture: ["name", "category", "amount", "date", "attachments"],
-    activity: { dateField: "date", detailFields: ["category", "amount", "location"] },
+    activity: act(["category", "amount", "location"]),
     views: [tbl("by_location", { groupBy: "location" })],
     reminders: [rem("warranty", "warranty_expiry", 30)],
 };
@@ -220,7 +223,7 @@ export const HEALTH_SCHEMA: ModuleSchema = {
         dat("followup_date"),
     ],
     capture: ["name", "member", "category", "date", "attachments"],
-    activity: { dateField: "date", detailFields: ["category", "hospital", "department", "diagnosis"] },
+    activity: act(["category", "hospital", "department", "diagnosis"]),
     templates: [{ key: "checkup_plan", nameKey: "tpl.checkupPlan", file: "health/checkup-plan.tpl" }],
     views: [VIEW_BY_MEMBER],
     reminders: [rem("followup", "followup_date", 7)],
@@ -243,7 +246,7 @@ export const SHOPPING_SCHEMA: ModuleSchema = {
         num("refund_amount"),
     ],
     capture: ["name", "amount", "date", "channel"],
-    activity: { dateField: "date", detailFields: ["category", "amount", "channel", "qty"] },
+    activity: act(["category", "amount", "channel", "qty"]),
 };
 
 export const CONTRACTS_SCHEMA: ModuleSchema = {
@@ -260,7 +263,7 @@ export const CONTRACTS_SCHEMA: ModuleSchema = {
         dat("deposit_return_date"),
     ],
     capture: ["name", "category", "expiry", "attachments"],
-    activity: { dateField: "date", detailFields: ["category", "party", "deposit"] },
+    activity: act(["category", "party", "deposit"]),
     reminders: [rem("expiry", "expiry", 30, "oneoff", { autoRenewField: "auto_renew" })],
 };
 
@@ -275,7 +278,7 @@ export const EXAMS_SCHEMA: ModuleSchema = {
         dat("exam_date"),
     ],
     capture: ["name", "member", "exam_date", "expiry"],
-    activity: { dateField: "exam_date", detailFields: ["category", "status", "issuer"] },
+    activity: act(["category", "status", "issuer"], "exam_date"),
     reminders: [rem("expiry", "expiry", 60)],
 };
 
@@ -288,7 +291,7 @@ export const ALLOWANCE_SCHEMA: ModuleSchema = {
         txt("source"),
     ],
     capture: ["name", "category", "amount", "direction", "date"],
-    activity: { dateField: "date", detailFields: ["category", "direction", "amount", "source"] },
+    activity: act(["category", "direction", "amount", "source"]),
     views: [VIEW_BY_MEMBER],
 };
 
@@ -301,7 +304,7 @@ export const FAVORS_SCHEMA: ModuleSchema = {
         ...d("amount", "date", "note"),
     ],
     capture: ["name", "direction", "person", "amount", "date"],
-    activity: { dateField: "date", detailFields: ["category", "direction", "person", "amount"] },
+    activity: act(["category", "direction", "person", "amount"]),
     // 16 组/190 波：回礼提醒——收礼（direction=in）30 天后一次性（leadDays 0=到期当天起提醒）；提醒卡带「回礼」标记（rule.reciprocate）
     reminders: [rem("reciprocate", "date", 0, "after", { offsetDays: 30, onlyIf: { field: "direction", equals: "in" } })],
     views: [tbl("by_person", { groupBy: "person" })],
@@ -322,7 +325,7 @@ export const STOCK_SCHEMA: ModuleSchema = {
         VIEW_EXPIRING,
     ],
     templates: [{ key: "emergency_kit", nameKey: "tpl.emergencyKit", file: "stock/emergency-kit.tpl" }],
-    reminders: [rem("expiry", "expiry", 30)],
+    reminders: [REM_EXP_30],
     // H15：囤货低库存（阈值逐行 low_stock_at）
     numericRules: [{ key: "low_stock", field: "qty", thresholdField: "low_stock_at" }],
 };
@@ -335,7 +338,7 @@ export const CHORES_SCHEMA: ModuleSchema = {
         dat("last_done"),
     ],
     capture: ["name", "member", "cycle", "due"],
-    activity: { dateField: "last_done", detailFields: ["category"] },
+    activity: act(["category"], "last_done"),
     // v0.2：due 作为一次性提醒；周期写回（中枢重算）见 03 §5 recurring 完整版
     reminders: [rem("due", "due", 7)],
 };
@@ -365,7 +368,7 @@ export const FOOD_SCHEMA: ModuleSchema = {
         txt("ingredients"),
     ],
     capture: ["name", "category", "rating", "date"],
-    activity: { dateField: "date", detailFields: ["category", "rating"] },
+    activity: act(["category", "rating"]),
 };
 
 export const ADDRESS_SCHEMA: ModuleSchema = {
@@ -412,7 +415,7 @@ export const PARENTING_SCHEMA: ModuleSchema = {
         num("metric_value"),
     ],
     capture: ["name", "member", "category", "date"],
-    activity: { dateField: "date", detailFields: ["category", "vaccine_name", "dose_no", "metric_type", "metric_value"] },
+    activity: act(["category", "vaccine_name", "dose_no", "metric_type", "metric_value"]),
     reminders: [rem("next_visit", "due", 7)],
 };
 
@@ -430,7 +433,7 @@ export const SCHOOLING_SCHEMA: ModuleSchema = {
         dat("exam_date"), // 16 组：考试/重要日程（exams 模块管备考，这里管校内日程）
     ],
     capture: ["name", "school", "category", "amount", "due"],
-    activity: { dateField: "exam_date", detailFields: ["school", "category", "status"] },
+    activity: act(["school", "category", "status"], "exam_date"),
     templates: [{ key: "parent_meeting", nameKey: "tpl.parentMeeting", file: "schooling/parent-meeting.tpl" }],
     reminders: [
         rem("tuition", "due", 14),
@@ -517,9 +520,9 @@ export const VEHICLES_SCHEMA: ModuleSchema = {
     // Keep the quick form within the schema contract's five-field limit.
     // The vehicle attachment is surfaced by the dedicated photo control.
     capture: ["name", "plate", "brand_model", "energy_type", "mileage"],
-    activity: { dateField: "purchase_date", detailFields: ["plate", "brand_model", "energy_type", "mileage"] },
+    activity: act(["plate", "brand_model", "energy_type", "mileage"], "purchase_date"),
     reminders: [
-        rem("expiry", "expiry", 30),
+        REM_EXP_30,
         // 311 波（G2）：车检/保险/车船税等国家级年审事项设为 60/30/7 三段提醒
         rem("inspection", "inspection_due", 60, "oneoff", { leadStages: [60, 30, 7] }),
         rem("insurance", "insurance_due", 60, "oneoff", { leadStages: [60, 30, 7] }),
@@ -536,7 +539,7 @@ export const TRANSIT_SCHEMA: ModuleSchema = {
         txt("card_no"),
     ],
     capture: ["name", "category", "expiry"],
-    reminders: [rem("expiry", "expiry", 30)],
+    reminders: [REM_EXP_30],
 };
 
 export const TRAVEL_PLAN_SCHEMA: ModuleSchema = {
@@ -547,7 +550,7 @@ export const TRAVEL_PLAN_SCHEMA: ModuleSchema = {
         txt("destination"),
     ],
     capture: ["name", "destination", "date", "expiry"],
-    activity: { dateField: "date", detailFields: ["destination", "status"] },
+    activity: act(["destination", "status"]),
     reminders: [rem("date", "date", 7)],
 };
 
@@ -559,7 +562,7 @@ export const TRAVEL_BOOKING_SCHEMA: ModuleSchema = {
         txt("order_no"),
     ],
     capture: ["name", "category", "date", "order_no"],
-    activity: { dateField: "date", detailFields: ["category", "amount"] },
+    activity: act(["category", "amount"]),
 };
 
 export const TRAVEL_PACKING_SCHEMA: ModuleSchema = {
@@ -570,7 +573,7 @@ export const TRAVEL_PACKING_SCHEMA: ModuleSchema = {
         txt("checklist_doc"),
     ],
     capture: ["name", "date", "status"],
-    activity: { dateField: "date", detailFields: ["status"] },
+    activity: act(["status"]),
 };
 
 export const TRAVEL_LOG_SCHEMA: ModuleSchema = {
@@ -580,7 +583,7 @@ export const TRAVEL_LOG_SCHEMA: ModuleSchema = {
         txt("cities"),
     ],
     capture: ["name", "date", "amount"],
-    activity: { dateField: "date", detailFields: ["cities", "amount"] },
+    activity: act(["cities", "amount"]),
 };
 
 export const ASSETS_VIRTUAL_SCHEMA: ModuleSchema = {
@@ -594,7 +597,7 @@ export const ASSETS_VIRTUAL_SCHEMA: ModuleSchema = {
         txt("inherit_note"),
     ],
     capture: ["name", "category", "platform", "account_name", "cred_loc"],
-    reminders: [rem("expiry", "expiry", 30)],
+    reminders: [REM_EXP_30],
 };
 
 

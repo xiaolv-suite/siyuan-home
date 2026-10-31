@@ -460,14 +460,3 @@
 {/if}
 <input type="file" accept="image/*" class="fn__none" aria-label={t("avatar.photo")} bind:this={avatarInput} onchange={(e) => void onAvatarPicked(e)} />
 </div>
-
-<style>
-    .lv-members-screen {
-        --member-gap: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-
-    .lv-members-screen .lv-people { gap: var(--member-gap); }
-</style>

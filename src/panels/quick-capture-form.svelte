@@ -188,39 +188,3 @@
         <button type="button" class="b3-button b3-button--text lv-discard-uncertain" onclick={onDiscardUncertain}>{t("capture.discardUncertain")}</button>
     {/if}
 </div>
-
-<style>
-    .lv-keep-context-wrap {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 10px;
-        padding-top: 8px;
-        border-top: 1px dashed var(--lv-line);
-    }
-    .lv-keep-context-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        color: var(--lv-tx-2);
-        user-select: none;
-    }
-    .lv-keep-context-switch {
-        transform: scale(0.85);
-        transform-origin: left center;
-        flex-shrink: 0;
-    }
-    .lv-keep-context-text {
-        white-space: nowrap;
-    }
-    .lv-keep-context-sub {
-        opacity: 0.6;
-        font-size: 10.5px;
-    }
-    .lv-discard-uncertain {
-        font-size: 11.5px;
-        color: var(--lv-danger);
-    }
-</style>

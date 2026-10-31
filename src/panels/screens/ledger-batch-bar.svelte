@@ -224,18 +224,3 @@
         </button>
     </div>
 {/if}
-
-<style>
-    .lv-batch-selected-count {
-        font-weight: 600;
-        color: var(--lv-tx);
-    }
-    .lv-batch-btn {
-        font-size: 12px;
-        padding: 3px 10px;
-    }
-    .lv-batch-close {
-        padding: 3px 6px;
-        font-size: 12px;
-    }
-</style>

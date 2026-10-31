@@ -7,6 +7,13 @@ import * as rl from "./rowlog";
 import { nextAssignee, buildChoreHistory } from "./chores";
 import type { AvCellLike } from "./avcell";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface ChoreSectionOptions {
     t: (k: string) => string;
     plugin: { settings: { members?: Array<{ id: string; name: string }> }; saveData: (name: string, data: unknown) => Promise<unknown> };
@@ -22,51 +29,41 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
     const readCompletions = (logs: rl.RowLogs) =>
         rl.getEntries<Record<string, unknown>>(logs, avId, rowId, "chexecs");
 
-    const head = document.createElement("div");
-    head.className = "ft__on-surface lv-dialog-sec-head";
-    head.textContent = t("ledger.choreRotation");
-    body.appendChild(head);
+    body.appendChild(mk("div", "ft__on-surface lv-dialog-sec-head", t("ledger.choreRotation")));
 
-    const summary = document.createElement("div");
-    summary.className = "lv-dialog-summary-card";
+    const summary = mk("div", "lv-dialog-summary-card");
     body.appendChild(summary);
 
-    const list = document.createElement("div");
-    list.className = "lv-dialog-list";
+    const list = mk("div", "lv-dialog-list");
     list.style.maxHeight = "180px";
     body.appendChild(list);
 
-    const form = document.createElement("div");
-    form.className = "lv-dialog-form-row";
-    const whoSel = document.createElement("select");
-    whoSel.className = "b3-select lv-select-sm";
+    const form = mk("div", "lv-dialog-form-row");
+    const whoSel = mk("select", "b3-select lv-select-sm") as HTMLSelectElement;
     whoSel.style.width = "110px";
     for (const m of roster) {
-        const o = document.createElement("option");
+        const o = mk("option", "", m.name) as HTMLOptionElement;
         o.value = m.id;
-        o.textContent = m.name;
         whoSel.append(o);
     }
-    const dateInp = document.createElement("input");
+    const dateInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     dateInp.type = "date";
-    dateInp.className = "b3-text-field lv-select-sm";
     dateInp.style.width = "130px";
     dateInp.value = new Date().toISOString().slice(0, 10);
-    const noteInp = document.createElement("input");
-    noteInp.className = "b3-text-field lv-select-sm";
+
+    const noteInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     noteInp.placeholder = t("ledger.choreNote");
     noteInp.style.flex = "1";
     noteInp.style.minWidth = "90px";
-    const pointsInp = document.createElement("input");
+
+    const pointsInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     pointsInp.type = "number";
-    pointsInp.className = "b3-text-field lv-select-sm";
     pointsInp.placeholder = t("ledger.chorePoints");
     pointsInp.title = t("ledger.chorePointsTip");
     pointsInp.style.width = "60px";
     pointsInp.min = "0";
-    const addBtn = document.createElement("button");
-    addBtn.className = "b3-button b3-button--outline lv-select-sm";
-    addBtn.textContent = t("ledger.choreDone");
+
+    const addBtn = mk("button", "b3-button b3-button--outline lv-select-sm", t("ledger.choreDone")) as HTMLButtonElement;
     form.append(whoSel, dateInp, noteInp, pointsInp, addBtn);
     body.appendChild(form);
 
@@ -78,40 +75,31 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
         const history = buildChoreHistory(completions, roster);
 
         summary.replaceChildren();
-        const who = document.createElement("b");
-        who.className = "lv-tx-accent";
+        const whoText = assignee.member ? `${t("ledger.choreNext")}: ${assignee.member.name}` : t("ledger.choreNoRoster");
+        const who = mk("b", "lv-tx-accent", whoText);
         who.style.fontSize = "13px";
-        who.textContent = assignee.member
-            ? `${t("ledger.choreNext")}: ${assignee.member.name}`
-            : t("ledger.choreNoRoster");
-        const meta = document.createElement("span");
-        meta.className = "lv-caption";
-        meta.style.marginLeft = "8px";
-        meta.textContent = assignee.lastDone
+
+        const metaText = assignee.lastDone
             ? `${t("ledger.choreLast")} ${assignee.lastDone}${assignee.daysSince !== undefined ? ` · ${assignee.daysSince} ${t("days.unit")}` : ""} · ${t("ledger.choreTotal")} ${history.total}`
             : `${t("ledger.choreTotal")} ${history.total}`;
+        const meta = mk("span", "lv-caption", metaText);
+        meta.style.marginLeft = "8px";
         summary.append(who, meta);
 
         list.replaceChildren();
         if (history.entries.length === 0) {
-            const none = document.createElement("div");
-            none.className = "ft__on-surface lv-caption";
-            none.textContent = t("ledger.choreEmpty");
-            list.appendChild(none);
+            list.appendChild(mk("div", "ft__on-surface lv-caption", t("ledger.choreEmpty")));
             return;
         }
         for (const e of history.entries) {
-            const line = document.createElement("div");
-            line.className = "lv-dialog-row";
+            const line = mk("div", "lv-dialog-row");
             line.style.padding = "2px 0";
-            const txt = document.createElement("span");
             const ptsTag = e.points ? ` <span class="lv-badge green">+${e.points}分</span>` : "";
             const safeNote = e.note ? String(e.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
             const safeName = String(e.memberName || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const txt = mk("span");
             txt.innerHTML = `${e.date} · ${safeName}${ptsTag}${safeNote ? ` —— ${safeNote}` : ""}`;
-            const del = document.createElement("button");
-            del.className = "b3-button b3-button--text lv-btn-text-sm";
-            del.textContent = t("delete");
+            const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
             del.onclick = async () => {
                 del.disabled = true;
                 try {

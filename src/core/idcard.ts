@@ -6,15 +6,7 @@
 
 const WEIGHTS = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
 const CHECK_DIGITS = "10X98765432";
-/** 省级行政区划代码首位段（GB/T 2260 一级，命中 11–65 的省级前缀即认） */
-const PROVINCE_PREFIXES = new Set([
-    "11", "12", "13", "14", "15",
-    "21", "22", "23",
-    "31", "32", "33", "34", "35", "36", "37",
-    "41", "42", "43", "44", "45", "46",
-    "50", "51", "52", "53", "54",
-    "61", "62", "63", "64", "65",
-]);
+const PROVINCES = "11,12,13,14,15,21,22,23,31,32,33,34,35,36,37,41,42,43,44,45,46,50,51,52,53,54,61,62,63,64,65";
 
 export interface ParsedIdNumber {
     ok: boolean;
@@ -42,7 +34,7 @@ export function parseIdNumber(input: string): ParsedIdNumber {
     const id = String(input ?? "").trim().toUpperCase().replace(/\s+/g, "");
     if (!/^\d{17}[\dX]$/.test(id)) return { ok: false, reason: "format" };
     const region = id.slice(0, 2);
-    if (!PROVINCE_PREFIXES.has(region)) return { ok: false, reason: "region", number: id };
+    if (!PROVINCES.includes(region)) return { ok: false, reason: "region", number: id };
     const birth = `${id.slice(6, 10)}-${id.slice(10, 12)}-${id.slice(12, 14)}`;
     const bd = new Date(`${birth}T00:00:00`);
     if (Number.isNaN(bd.getTime()) || bd.getFullYear() !== Number(id.slice(6, 10)) || bd.getMonth() + 1 !== Number(id.slice(10, 12)) || bd.getDate() !== Number(id.slice(12, 14))) {

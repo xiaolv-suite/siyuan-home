@@ -7,6 +7,13 @@ import { formatAmount } from "./format";
 import type { AvRow } from "./siyuan";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface FavorsDialogOptions {
     ref: { avId?: string; columns?: Record<string, string> };
     t: (k: string) => string;
@@ -50,21 +57,16 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
         body.replaceChildren();
         const report = buildFavorsReport(all.rows, ref.columns!, selectedYear);
 
-        const toolbar = document.createElement("div");
-        toolbar.className = "lv-dialog-topbar";
-
-        const yearSelect = document.createElement("select");
-        yearSelect.className = "b3-select lv-select-sm";
-        const optAll = document.createElement("option");
+        const toolbar = mk("div", "lv-dialog-topbar");
+        const yearSelect = mk("select", "b3-select lv-select-sm") as HTMLSelectElement;
+        const optAll = mk("option", "", t("ledger.favorsYearAll")) as HTMLOptionElement;
         optAll.value = "all";
-        optAll.textContent = t("ledger.favorsYearAll");
         if (selectedYear === "all") optAll.selected = true;
         yearSelect.appendChild(optAll);
 
         for (const y of report.availableYears) {
-            const opt = document.createElement("option");
+            const opt = mk("option", "", `${y} 年`) as HTMLOptionElement;
             opt.value = String(y);
-            opt.textContent = `${y} 年`;
             if (selectedYear === y) opt.selected = true;
             yearSelect.appendChild(opt);
         }
@@ -73,54 +75,40 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
             render();
         };
 
-        const subSummary = document.createElement("span");
-        subSummary.className = "lv-caption";
-        subSummary.textContent = t("ledger.favorsCountRecords").replace("${n}", String(report.countIn + report.countOut));
+        const subSummary = mk("span", "lv-caption", t("ledger.favorsCountRecords").replace("${n}", String(report.countIn + report.countOut)));
         toolbar.append(yearSelect, subSummary);
         body.appendChild(toolbar);
 
         if (report.countIn === 0 && report.countOut === 0) {
-            const empty = document.createElement("div");
-            empty.className = "lv-caption fn__text-center";
-            empty.textContent = t("ledger.favorsEmpty");
-            body.appendChild(empty);
+            body.appendChild(mk("div", "lv-caption fn__text-center", t("ledger.favorsEmpty")));
             return;
         }
 
-        const metrics = document.createElement("div");
-        metrics.className = "lv-metric-grid-3";
-
-        const inCard = document.createElement("div");
-        inCard.className = "lv-metric-lg";
+        const metrics = mk("div", "lv-metric-grid-3");
+        const inCard = mk("div", "lv-metric-lg");
         inCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsInTotal")}</span><b class="lv-num lv-metric-val lv-tx-data-accent">¥${formatAmount(report.totalIn)}</b><span class="lv-caption">${report.countIn} 笔</span>`;
 
-        const outCard = document.createElement("div");
-        outCard.className = "lv-metric-lg";
+        const outCard = mk("div", "lv-metric-lg");
         outCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsOutTotal")}</span><b class="lv-num lv-metric-val lv-tx-warn">¥${formatAmount(report.totalOut)}</b><span class="lv-caption">${report.countOut} 笔</span>`;
 
-        const netCard = document.createElement("div");
+        const netCard = mk("div", "lv-metric-lg");
         const netColorClass = report.netAmount >= 0 ? "lv-tx-data-accent" : "lv-tx-danger";
         const netLabel = report.netAmount >= 0 ? t("ledger.favorsNetSurplus") : t("ledger.favorsNetDeficit");
-        netCard.className = "lv-metric-lg";
         netCard.innerHTML = `<span class="lv-caption">${t("ledger.favorsNetAmount")}</span><b class="lv-num lv-metric-val ${netColorClass}">${report.netAmount >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(report.netAmount))}</b><span class="lv-caption">${netLabel}</span>`;
 
         metrics.append(inCard, outCard, netCard);
         body.appendChild(metrics);
 
         if (report.topPersons.length > 0) {
-            const sec = document.createElement("div");
+            const sec = mk("div");
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.favorsTopPersons")}</div>`;
-            const list = document.createElement("div");
-            list.className = "fn__flex-column";
+            const list = mk("div", "fn__flex-column");
             for (const p of report.topPersons) {
-                const item = document.createElement("div");
-                item.className = "lv-favor-person-row";
-                const left = document.createElement("span");
-                left.textContent = p.person;
-                const right = document.createElement("span");
+                const item = mk("div", "lv-favor-person-row");
                 const pNetColor = p.net >= 0 ? "var(--lv-data-accent)" : "var(--lv-danger)";
+                const right = mk("span");
                 right.innerHTML = `收 ¥${formatAmount(p.inAmount)} · 送 ¥${formatAmount(p.outAmount)} · <b style="color:${pNetColor}">${p.net >= 0 ? "+" : "-"}¥${formatAmount(Math.abs(p.net))}</b>`;
-                item.append(left, right);
+                item.append(mk("span", "", p.person), right);
                 list.appendChild(item);
             }
             sec.appendChild(list);
@@ -128,19 +116,14 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
         }
 
         if (report.categoryBreakdown.length > 0) {
-            const sec = document.createElement("div");
+            const sec = mk("div");
             sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.favorsCategory")}</div>`;
-            const list = document.createElement("div");
-            list.className = "fn__flex-column";
+            const list = mk("div", "fn__flex-column");
             for (const c of report.categoryBreakdown) {
-                const item = document.createElement("div");
-                item.className = "lv-favor-person-row";
-                const left = document.createElement("span");
-                left.textContent = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
-                const right = document.createElement("span");
-                right.className = "lv-caption";
-                right.textContent = `收 ¥${formatAmount(c.inAmount)} · 送 ¥${formatAmount(c.outAmount)} (${c.count} 笔)`;
-                item.append(left, right);
+                const item = mk("div", "lv-favor-person-row");
+                const catName = t(`field.category.opt.${c.category}`) !== `field.category.opt.${c.category}` ? t(`field.category.opt.${c.category}`) : c.category;
+                const right = mk("span", "lv-caption", `收 ¥${formatAmount(c.inAmount)} · 送 ¥${formatAmount(c.outAmount)} (${c.count} 笔)`);
+                item.append(mk("span", "", catName), right);
                 list.appendChild(item);
             }
             sec.appendChild(list);

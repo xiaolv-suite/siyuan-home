@@ -64,39 +64,3 @@
         {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}
     </button>
 </div>
-
-<style>
-    .lv-members-hero {
-        margin-top: 10px;
-        margin-bottom: 0;
-        align-items: center;
-    }
-
-    .lv-members-tools-wrap {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-    .lv-members-hero-count {
-        display: flex;
-        align-items: baseline;
-        gap: 7px;
-        margin-left: auto;
-        color: var(--lv-tx-3);
-    }
-    .lv-members-hero-count.is-alert {
-        border-left: 1px solid var(--lv-line);
-        padding-left: 16px;
-    }
-
-    .lv-members-hero-count b { color: var(--lv-tx); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .lv-members-hero-count span { font-size: 12px; }
-
-    .lv-member-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin: 0 2px 14px; }
-    .lv-member-tools > button { min-height: 40px; }
-
-    @container lv-home (max-width: 420px) {
-        .lv-members-hero-count { display: none; }
-        .lv-member-tools > button { min-height: 44px; }
-    }
-</style>

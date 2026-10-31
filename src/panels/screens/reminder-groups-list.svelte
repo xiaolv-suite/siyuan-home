@@ -228,34 +228,3 @@
     {/if}
 {/if}
 
-<style>
-    .lv-skel--icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 11px;
-        flex: none;
-    }
-    .lv-skel-col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-        min-width: 0;
-    }
-    .lv-skel--w42 {
-        height: 13px;
-        width: 42%;
-    }
-    .lv-skel--w26 {
-        height: 11px;
-        width: 26%;
-    }
-    .lv-scan-hint {
-        margin: 8px 2px;
-    }
-    .lv-card-center-pad {
-        display: flex;
-        justify-content: center;
-        padding: 12px;
-    }
-</style>

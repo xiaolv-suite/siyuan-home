@@ -19,6 +19,13 @@ export interface QuickFuelingInput {
     quantity: number;
     /** 总费用（元），可省略 */
     amount?: number;
+    /** 单价（元/升或元/kWh） */
+    unitPrice?: number;
+    /** 是否加满/充满 */
+    full?: boolean;
+    fuelGrade?: string;
+    chargingMode?: string;
+    station?: string;
     note?: string;
 }
 
@@ -26,12 +33,14 @@ export interface QuickVitalInput {
     date: string; // YYYY-MM-DD
     /** 可选 HH:mm 本地时间（用于生成标准 LifeLog 时间戳） */
     time?: string;
-    metricType: "bp" | "glucose"; // 血压或血糖
+    metricType: "bp" | "glucose" | "weight" | "temp"; // 血压/血糖/体重/体温
     systolic?: number; // 收缩压
     diastolic?: number; // 舒张压
     glucose?: number; // 血糖值
     glucoseTiming?: "fasting" | "postprandial";
     pulse?: number; // 脉搏
+    weight?: number; // 体重 (kg)
+    temperature?: number; // 体温 (℃)
     note?: string;
 }
 
@@ -97,9 +106,11 @@ export function validateFuelingInput(input: Partial<QuickFuelingInput>): Array<"
     return missing;
 }
 
-/** 血压/血糖输入校验：返回缺失的字段 key，空数组表示可提交 */
-export function validateVitalInput(input: Partial<QuickVitalInput>): Array<"systolic" | "diastolic" | "glucose"> {
+/** 血压/血糖/体重/体温输入校验：返回缺失的字段 key，空数组表示可提交 */
+export function validateVitalInput(input: Partial<QuickVitalInput>): Array<"systolic" | "diastolic" | "glucose" | "weight" | "temperature"> {
     if (input.metricType === "glucose") return positive(input.glucose) ? [] : ["glucose"];
+    if (input.metricType === "weight") return positive(input.weight) ? [] : ["weight"];
+    if (input.metricType === "temp") return positive(input.temperature) ? [] : ["temperature"];
     const missing: Array<"systolic" | "diastolic"> = [];
     if (!positive(input.systolic)) missing.push("systolic");
     if (!positive(input.diastolic)) missing.push("diastolic");
@@ -119,6 +130,11 @@ export function buildFuelingLog(input: QuickFuelingInput): EnergyRecord {
     };
     if (input.time) record.time = normalizeLifelogTime(input.time, at);
     if (typeof input.amount === "number" && Number.isFinite(input.amount)) record.totalCost = input.amount;
+    if (typeof input.unitPrice === "number" && Number.isFinite(input.unitPrice)) record.unitPrice = input.unitPrice;
+    if (typeof input.full === "boolean") record.full = input.full;
+    if (input.fuelGrade) record.fuelGrade = input.fuelGrade;
+    if (input.chargingMode) record.chargingMode = input.chargingMode;
+    if (input.station?.trim()) record.station = input.station.trim();
     if (input.note?.trim()) record.note = input.note.trim();
     return record;
 }
@@ -129,10 +145,23 @@ export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
     const at = composeLifelogIsoAt(date, input.time);
     const time = input.time ? normalizeLifelogTime(input.time, at) : undefined;
     const note = input.note?.trim() || undefined;
-    const readings: Array<VitalReading & { time?: string; pulse?: number }> = [];
+    const extra = { at, ...(time ? { time } : {}), ...(note ? { note } : {}) };
+    const readings: Array<VitalReading & { time?: string; pulse?: number; weight?: number; temperature?: number }> = [];
     if (input.metricType === "glucose") {
         if (positive(input.glucose)) {
-            readings.push({ date, type: "bg", val1: input.glucose, val2: input.glucoseTiming === "postprandial" ? 1 : 0, at, ...(time ? { time } : {}), ...(note ? { note } : {}) });
+            readings.push({ date, type: "bg", val1: input.glucose, val2: input.glucoseTiming === "postprandial" ? 1 : 0, ...extra });
+        }
+        return readings;
+    }
+    if (input.metricType === "weight") {
+        if (positive(input.weight)) {
+            readings.push({ date, type: "weight", val1: input.weight, weight: input.weight, ...extra });
+        }
+        return readings;
+    }
+    if (input.metricType === "temp") {
+        if (positive(input.temperature)) {
+            readings.push({ date, type: "temp", val1: input.temperature, temperature: input.temperature, ...extra });
         }
         return readings;
     }
@@ -143,9 +172,7 @@ export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
             val1: input.systolic,
             ...(positive(input.diastolic) ? { val2: input.diastolic } : {}),
             ...(positive(input.pulse) ? { pulse: input.pulse } : {}),
-            at,
-            ...(time ? { time } : {}),
-            ...(note ? { note } : {}),
+            ...extra,
         });
     }
     if (positive(input.pulse)) readings.push({ date, type: "hr", val1: input.pulse, at, ...(time ? { time } : {}) });

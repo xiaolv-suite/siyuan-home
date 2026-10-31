@@ -21,6 +21,13 @@ import { formatAmount } from "./format";
 import { localDateKey } from "./hub/rule";
 import { confirm } from "@/libs/dialog";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface VehicleDetailDrawerOptions {
     body: HTMLElement;
     row: any;
@@ -110,28 +117,13 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             Number.isFinite(currentOdometer) ? currentOdometer : undefined
         );
 
-        const title = document.createElement("h3");
-        title.className = "lv-h3-title";
-        title.textContent = t("vehicle.summary.title");
-        wrap.appendChild(title);
+        wrap.appendChild(mk("h3", "lv-h3-title", t("vehicle.summary.title")));
+        wrap.appendChild(mk("div", "ft__on-surface lv-caption lv-mb-10", t("vehicle.summary.hint")));
 
-        const hint = document.createElement("div");
-        hint.className = "ft__on-surface lv-caption lv-mb-10";
-        hint.textContent = t("vehicle.summary.hint");
-        wrap.appendChild(hint);
-
-        const grid = document.createElement("div");
-        grid.className = "lv-diag-grid";
+        const grid = mk("div", "lv-diag-grid");
         const metric = (label: string, value: string) => {
-            const box = document.createElement("div");
-            box.className = "lv-diag-stat-card";
-            const cap = document.createElement("span");
-            cap.className = "ft__on-surface lv-caption";
-            cap.textContent = label;
-            const val = document.createElement("b");
-            val.className = "lv-metric-val";
-            val.textContent = value;
-            box.append(cap, val);
+            const box = mk("div", "lv-diag-stat-card");
+            box.append(mk("span", "ft__on-surface lv-caption", label), mk("b", "lv-metric-val", value));
             grid.appendChild(box);
         };
 
@@ -149,10 +141,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         wrap.appendChild(grid);
 
         if (summary.eventCount && !summary.costComplete) {
-            const incomplete = document.createElement("div");
-            incomplete.className = "ft__on-surface lv-caption lv-mt-6";
-            incomplete.textContent = t("vehicle.summary.incomplete");
-            wrap.appendChild(incomplete);
+            wrap.appendChild(mk("div", "ft__on-surface lv-caption lv-mt-6", t("vehicle.summary.incomplete")));
         }
 
         const reminders: string[] = [];
@@ -161,10 +150,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         if (summary.maintenance.overdueDate) reminders.push(`${t("vehicle.maintenance.overdueDate")} ${summary.maintenance.overdueDate}`);
         if (summary.maintenance.overdueOdometer !== undefined) reminders.push(`${t("vehicle.maintenance.overdueOdometer")} ${formatAmount(summary.maintenance.overdueOdometer)} ${t("fuel.km")}`);
         if (reminders.length) {
-            const reminder = document.createElement("div");
-            reminder.className = "lv-record-next lv-caption lv-mt-6";
-            reminder.textContent = `${t("vehicle.summary.nextAction")}：${reminders.join(" · ")}`;
-            wrap.appendChild(reminder);
+            wrap.appendChild(mk("div", "lv-record-next lv-caption lv-mt-6", `${t("vehicle.summary.nextAction")}：${reminders.join(" · ")}`));
         }
     }
 
@@ -307,14 +293,21 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
 
         const render = () => {
             wrap.replaceChildren();
-            const head = document.createElement("div"); head.className = "lv-domain-head";
-            const title = document.createElement("h3"); title.className = "lv-h3-title"; title.textContent = t("vehicle.maintenance.title");
-            const add = document.createElement("button"); add.className = "b3-button b3-button--outline"; add.dataset.lvVehicleAction = "maintenance"; add.textContent = `+ ${t("vehicle.maintenance.add")}`; add.onclick = () => openForm();
-            head.append(title, add); wrap.appendChild(head);
+            const head = mk("div", "lv-domain-head");
+            const title = mk("h3", "lv-h3-title", t("vehicle.maintenance.title"));
+            const add = mk("button", "b3-button b3-button--outline", `+ ${t("vehicle.maintenance.add")}`) as HTMLButtonElement;
+            add.dataset.lvVehicleAction = "maintenance";
+            add.onclick = () => openForm();
+            head.append(title, add);
+            wrap.appendChild(head);
             registerVehicleAction("maintenance", add);
             const stats = calculateMaintenanceStats(records, new Date().toISOString().slice(0, 10), Number.isFinite(currentOdometer) ? currentOdometer : undefined);
-            const summary = document.createElement("div"); summary.className = "lv-diag-grid lv-mb-10";
-            const metric = (label: string, value: string) => { const box = document.createElement("div"); box.className = "lv-diag-stat-card"; const cap = document.createElement("span"); cap.className = "ft__on-surface lv-caption"; cap.textContent = label; const val = document.createElement("b"); val.className = "lv-metric-val"; val.textContent = value; box.append(cap, val); summary.appendChild(box); };
+            const summary = mk("div", "lv-diag-grid lv-mb-10");
+            const metric = (label: string, value: string) => {
+                const box = mk("div", "lv-diag-stat-card");
+                box.append(mk("span", "ft__on-surface lv-caption", label), mk("b", "lv-metric-val", value));
+                summary.appendChild(box);
+            };
             metric(t("vehicle.maintenance.totalRecords"), String(stats.recordCount));
             metric(t("vehicle.maintenance.totalCost"), stats.costRecordCount ? formatMoney(stats.totalCost) : t("fuel.costUnknown"));
             metric(t("vehicle.maintenance.nextDate"), stats.nextDate ?? "—");
@@ -323,21 +316,41 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             if (stats.overdueOdometer !== undefined) metric(t("vehicle.maintenance.overdueOdometer"), `${formatAmount(stats.overdueOdometer)} ${t("fuel.km")}`);
             wrap.appendChild(summary);
             const byCategory = Object.entries(stats.byCategory);
-            if (byCategory.length) { const line = document.createElement("div"); line.className = "ft__on-surface lv-caption lv-mb-10"; line.textContent = `${t("vehicle.maintenance.byCategory")}：${byCategory.map(([key, value]) => `${categoryLabel(key)} ${value.count}${value.cost ? ` · ${formatMoney(value.cost)}` : ""}`).join(" · ")}`; wrap.appendChild(line); }
-            if (!records.length) { const empty = document.createElement("div"); empty.className = "ft__on-surface lv-caption"; empty.textContent = t("vehicle.maintenance.empty"); wrap.appendChild(empty); return; }
+            if (byCategory.length) {
+                wrap.appendChild(mk("div", "ft__on-surface lv-caption lv-mb-10", `${t("vehicle.maintenance.byCategory")}：${byCategory.map(([key, value]) => `${categoryLabel(key)} ${value.count}${value.cost ? ` · ${formatMoney(value.cost)}` : ""}`).join(" · ")}`));
+            }
+            if (!records.length) {
+                wrap.appendChild(mk("div", "ft__on-surface lv-caption", t("vehicle.maintenance.empty")));
+                return;
+            }
             const recentRecords = [...records].reverse().slice(0, 8);
             if (activityTarget?.activityId) {
                 const targetEntry = records.find((entry) => rowLogActivityId(active, row.itemID, "maintenance", entry as unknown as Record<string, unknown>) === activityTarget.activityId);
                 if (targetEntry && !recentRecords.includes(targetEntry)) recentRecords.push(targetEntry);
             }
             for (const entry of recentRecords) {
-                const line = document.createElement("div"); line.className = "lv-vehicle-log-row";
+                const line = mk("div", "lv-vehicle-log-row");
                 line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, "maintenance", entry as unknown as Record<string, unknown>);
                 if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
-                const desc = document.createElement("span"); desc.className = "lv-flex-wrap-anywhere"; desc.textContent = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
-                const edit = document.createElement("button"); edit.className = "b3-button b3-button--text lv-btn-text-sm"; edit.textContent = t("members.edit"); edit.onclick = () => openForm(entry);
-                const del = document.createElement("button"); del.className = "b3-button b3-button--text lv-btn-text-sm"; del.textContent = t("delete"); del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => { del.disabled = true; try { const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>)); records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance"); render(); if (onLogUpdated) await onLogUpdated(); } catch (error) { del.disabled = false; showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error"); } });
-                line.append(desc, edit, del); wrap.appendChild(line);
+                const descText = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
+                const desc = mk("span", "lv-flex-wrap-anywhere", descText);
+                const edit = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("members.edit")) as HTMLButtonElement;
+                edit.onclick = () => openForm(entry);
+                const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
+                del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => {
+                    del.disabled = true;
+                    try {
+                        const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>));
+                        records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance");
+                        render();
+                        if (onLogUpdated) await onLogUpdated();
+                    } catch (error) {
+                        del.disabled = false;
+                        showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
+                    }
+                });
+                line.append(desc, edit, del);
+                wrap.appendChild(line);
             }
         };
         render();

@@ -21,6 +21,19 @@ export interface LedgerModalContext {
     onReload?: () => Promise<void>;
 }
 
+const errFail = (showMessageFn: any, t: any, e: unknown) => {
+    showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+};
+
+async function loadAllRows(renderLedgerAllFn: any, avId: string, showMessageFn: any, t: any) {
+    const all = await renderLedgerAllFn(avId);
+    if (!all.complete) {
+        showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
+        return null;
+    }
+    return all.rows;
+}
+
 export async function openEnergyDashboardModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, active, t, plugin, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn, selectContentFn, onOpenNewRecord, onOpenDetail } = ctx;
     if (!ref?.avId || active !== "vehicles") return;
@@ -90,15 +103,12 @@ export async function openShoppingListModal(ctx: LedgerModalContext): Promise<vo
         return;
     }
     try {
-        const all = await renderLedgerAllFn(ref.avId);
-        if (!all.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
         const { openLowStockShoppingDialog } = await import("@/core/shopping");
         openLowStockShoppingDialog({
             ref: ref as any,
-            allRows: all.rows,
+            allRows: rows,
             t,
             plugin,
             DialogCls,
@@ -211,21 +221,18 @@ export async function openMediaReportModal(ctx: LedgerModalContext): Promise<voi
         return;
     }
     try {
-        const all = await renderLedgerAllFn(ref.avId);
-        if (!all.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
         const { openMediaReportDialog } = await import("@/core/media");
         openMediaReportDialog({
-            rows: all.rows,
+            rows,
             columns: ref.columns,
             t,
             DialogCls,
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -236,12 +243,9 @@ export async function openMealPlanModal(ctx: LedgerModalContext): Promise<void> 
         return;
     }
     try {
-        const allFood = await renderLedgerAllFn(ref.avId);
-        if (!allFood.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
-        if (allFood.rows.length === 0) {
+        const foodRows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!foodRows) return;
+        if (foodRows.length === 0) {
             showMessageFn(t("ledger.mealPlanEmptyFood"), 4000, "info");
             return;
         }
@@ -267,7 +271,7 @@ export async function openMealPlanModal(ctx: LedgerModalContext): Promise<void> 
 
         const { openMealPlanDialog } = await import("@/core/meal-plan");
         openMealPlanDialog({
-            allFoodRows: allFood.rows,
+            allFoodRows: foodRows,
             stockItems,
             ref,
             plugin,
@@ -280,7 +284,7 @@ export async function openMealPlanModal(ctx: LedgerModalContext): Promise<void> 
             cellValueFn: cellValueFn ?? (() => null),
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -291,18 +295,15 @@ export async function openMedicineSupplyModal(ctx: LedgerModalContext): Promise<
         return;
     }
     try {
-        const allMed = await renderLedgerAllFn(ref.avId);
-        if (!allMed.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
-        if (allMed.rows.length === 0) {
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
+        if (rows.length === 0) {
             showMessageFn(t("ledger.medicineSupplyEmpty"), 4000, "info");
             return;
         }
 
         const { evaluateMedicineSupplyReport, openMedicineSupplyDialog } = await import("@/core/medicine-dosing");
-        const report = evaluateMedicineSupplyReport(allMed.rows, ref.columns);
+        const report = evaluateMedicineSupplyReport(rows, ref.columns);
 
         openMedicineSupplyDialog({
             report,
@@ -311,7 +312,7 @@ export async function openMedicineSupplyModal(ctx: LedgerModalContext): Promise<
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -350,13 +351,10 @@ export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<vo
         return;
     }
     try {
-        const all = await renderLedgerAllFn(ref.avId);
-        if (!all.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
 
-        const entries = all.rows
+        const entries = rows
             .map((row) => ({
                 date: cellTextFn(row.cells?.[dateCol]),
                 amount: Number(cellTextFn(row.cells?.[amountCol]).replace(/[^\d.-]/g, "")),
@@ -378,7 +376,7 @@ export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<vo
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -386,12 +384,9 @@ export async function openUtilityTiersModal(ctx: LedgerModalContext): Promise<vo
     const { ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn } = ctx;
     if (!ref?.avId || !ref.columns?.name) return;
     try {
-        const allHouse = await renderLedgerAllFn(ref.avId);
-        if (!allHouse.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
-        if (allHouse.rows.length === 0) {
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
+        if (rows.length === 0) {
             showMessageFn(t("ledger.utilityEmptyReadings"), 4000, "info");
             return;
         }
@@ -401,7 +396,7 @@ export async function openUtilityTiersModal(ctx: LedgerModalContext): Promise<vo
 
         const { openUtilityTiersDialog } = await import("@/core/utility-tiers");
         openUtilityTiersDialog({
-            allHouseRows: allHouse.rows,
+            allHouseRows: rows,
             currentLogs,
             ref,
             t,
@@ -411,7 +406,7 @@ export async function openUtilityTiersModal(ctx: LedgerModalContext): Promise<vo
             getEntriesFn: getEntries,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -474,15 +469,12 @@ export async function openEmergencyKitModal(ctx: LedgerModalContext): Promise<vo
         return;
     }
     try {
-        const allStock = await renderLedgerAllFn(ref.avId);
-        if (!allStock.complete) {
-            showMessageFn(t("ledger.loadIncomplete"), 5000, "error");
-            return;
-        }
+        const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
+        if (!rows) return;
 
         const { openEmergencyKitDialog } = await import("@/core/emergency-kit");
         openEmergencyKitDialog({
-            stockRows: allStock.rows,
+            stockRows: rows,
             ref: ref as { avId: string; columns?: Record<string, string> },
             t,
             DialogCls,
@@ -497,7 +489,7 @@ export async function openEmergencyKitModal(ctx: LedgerModalContext): Promise<vo
             },
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 

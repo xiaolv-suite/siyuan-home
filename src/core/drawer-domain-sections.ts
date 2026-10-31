@@ -12,6 +12,13 @@
 import { uiIcon } from "@/ui/icons";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const mk = (tag: string, cls = "", text = "") => {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text) el.textContent = text;
+    return el;
+};
+
 export interface RenderHouseWarrantySectionOptions {
     body: HTMLElement;
     row: any;
@@ -31,26 +38,17 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
     const contractsRef = plugin.settings?.dbRefs?.contracts;
     if (!contractsRef?.avId || !contractsRef?.columns) return;
 
-    const houseWarrantySection = document.createElement("div");
-    houseWarrantySection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = t("ledger.houseContractsTitle");
-    head.append(title);
+    const houseWarrantySection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.houseContractsTitle")));
     if (contractsRef.docId) {
-        const openAll = document.createElement("button");
-        openAll.className = "b3-button b3-button--text lv-domain-link";
-        openAll.textContent = t("ledger.houseContractsOpenAll");
+        const openAll = mk("button", "b3-button b3-button--text lv-domain-link", t("ledger.houseContractsOpenAll"));
         openAll.onclick = () => plugin.showTabDocs?.(contractsRef.docId);
         head.append(openAll);
     }
     houseWarrantySection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-dialog-sec";
+    const contentWrap = mk("div", "lv-dialog-sec");
     contentWrap.innerHTML = `<span class="lv-caption">${t("ledger.loading")}</span>`;
     houseWarrantySection.append(contentWrap);
     body.appendChild(houseWarrantySection);
@@ -61,42 +59,23 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
         const matched = matchHouseContracts(row, ref.columns ?? {}, contractAll.rows, contractsRef.columns);
         contentWrap.replaceChildren();
         if (matched.length === 0) {
-            const empty = document.createElement("span");
-            empty.className = "lv-caption";
-            empty.textContent = t("ledger.houseContractsEmpty");
-            contentWrap.append(empty);
+            contentWrap.append(mk("span", "lv-caption", t("ledger.houseContractsEmpty")));
             return;
         }
         for (const m of matched) {
-            const line = document.createElement("div");
-            line.className = "lv-domain-item";
-            const nameSpan = document.createElement("b");
-            nameSpan.className = "lv-dialog-name";
-            nameSpan.textContent = m.title;
+            const line = mk("div", "lv-domain-item");
+            const badgeCls = m.warrantyStatus === "valid" ? "green" : m.warrantyStatus === "expiring" ? "orange" : "gray";
+            const badgeKey = m.warrantyStatus === "valid" ? "ledger.warrantyValid" : m.warrantyStatus === "expiring" ? "ledger.warrantyExpiring" : m.warrantyStatus === "expired" ? "ledger.warrantyExpired" : "ledger.warrantyUnknown";
 
-            const badge = document.createElement("span");
-            if (m.warrantyStatus === "valid") {
-                badge.className = "lv-badge green";
-                badge.textContent = t("ledger.warrantyValid");
-            } else if (m.warrantyStatus === "expiring") {
-                badge.className = "lv-badge orange";
-                badge.textContent = t("ledger.warrantyExpiring");
-            } else if (m.warrantyStatus === "expired") {
-                badge.className = "lv-badge gray";
-                badge.textContent = t("ledger.warrantyExpired");
-            } else {
-                badge.className = "lv-badge gray";
-                badge.textContent = t("ledger.warrantyUnknown");
-            }
-
-            const metaSpan = document.createElement("span");
-            metaSpan.className = "lv-caption lv-ml-auto";
             const parts: string[] = [];
             if (m.party || m.contact) parts.push(m.party || m.contact);
             if (m.expiry) parts.push(m.daysLeft !== undefined && m.daysLeft >= 0 ? `${m.expiry} (${m.daysLeft}d)` : m.expiry);
-            metaSpan.textContent = parts.join(" · ");
 
-            line.append(nameSpan, badge, metaSpan);
+            line.append(
+                mk("b", "lv-dialog-name", m.title),
+                mk("span", `lv-badge ${badgeCls}`, t(badgeKey)),
+                mk("span", "lv-caption lv-ml-auto", parts.join(" · ")),
+            );
             contentWrap.append(line);
         }
     } catch {
@@ -126,19 +105,12 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
     const ingredientsRaw = (ref.columns?.ingredients && cellTextFn(row.cells?.[ref.columns.ingredients])) || "";
     if (!foodName && (!ingredientsRaw || ingredientsRaw === "—")) return;
 
-    const foodDietarySection = document.createElement("div");
-    foodDietarySection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = t("ledger.foodDietaryTitle");
-    head.append(title);
+    const foodDietarySection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.foodDietaryTitle")));
     foodDietarySection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-dialog-sec";
+    const contentWrap = mk("div", "lv-dialog-sec");
     foodDietarySection.append(contentWrap);
     body.appendChild(foodDietarySection);
 
@@ -163,29 +135,25 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
         contentWrap.replaceChildren();
 
         if (check.isSafe) {
-            const safeBadge = document.createElement("div");
-            safeBadge.className = "lv-domain-safe-badge";
+            const safeBadge = mk("div", "lv-domain-safe-badge");
             safeBadge.innerHTML = `${uiIcon("checkCircle", "", 13)} <span>${t("ledger.foodDietarySafe")}</span>`;
             contentWrap.append(safeBadge);
         } else {
             for (const c of check.conflicts) {
-                const alertEl = document.createElement("div");
-                if (c.type === "allergy") {
-                    alertEl.className = "lv-domain-danger";
-                    alertEl.innerHTML = `<span>${uiIcon("alert", "", 13)} <b>${c.memberName}</b>：${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}</span>`;
-                } else {
-                    alertEl.className = "lv-domain-warn";
-                    alertEl.innerHTML = `<span>${uiIcon("info", "", 13)} <b>${c.memberName}</b>：${t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}</span>`;
-                }
+                const isAllergy = c.type === "allergy";
+                const alertEl = mk("div", isAllergy ? "lv-domain-danger" : "lv-domain-warn");
+                const ic = isAllergy ? "alert" : "info";
+                const msg = isAllergy
+                    ? `${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}`
+                    : t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem);
+                alertEl.innerHTML = `<span>${uiIcon(ic, "", 13)} <b>${c.memberName}</b>：${msg}</span>`;
                 contentWrap.append(alertEl);
             }
         }
 
         if (check.parsedIngredients.length > 0) {
-            const actionRow = document.createElement("div");
-            actionRow.className = "lv-domain-action-row";
-            const copyIngBtn = document.createElement("button");
-            copyIngBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
+            const actionRow = mk("div", "lv-domain-action-row");
+            const copyIngBtn = mk("button", "b3-button b3-button--outline lv-btn-text-sm") as HTMLButtonElement;
             copyIngBtn.innerHTML = `${uiIcon("add", "", 12)} <span>${t("ledger.foodCopyIngredients")}</span>`;
             copyIngBtn.onclick = async () => {
                 const text = formatShoppingIngredientsText(foodName, check.parsedIngredients);
@@ -226,19 +194,12 @@ export async function renderSchoolingStageSection(options: RenderSchoolingStageS
 
     if (!catVal || !Number.isFinite(enrollYear) || enrollYear < 1980) return;
 
-    const schoolStageSection = document.createElement("div");
-    schoolStageSection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = t("ledger.schoolingStageTitle");
-    head.append(title);
+    const schoolStageSection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.schoolingStageTitle")));
     schoolStageSection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-domain-box";
+    const contentWrap = mk("div", "lv-domain-box");
     schoolStageSection.append(contentWrap);
     body.appendChild(schoolStageSection);
 
@@ -296,19 +257,12 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
 
     const birthMatch = noteVal.match(/\b(20\d{2}-\d{2}-\d{2})\b/)?.[1];
 
-    const petCareSection = document.createElement("div");
-    petCareSection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = t("ledger.petCareTitle");
-    head.append(title);
+    const petCareSection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.petCareTitle")));
     petCareSection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-domain-box";
+    const contentWrap = mk("div", "lv-domain-box");
     petCareSection.append(contentWrap);
     body.appendChild(petCareSection);
 
@@ -324,27 +278,21 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
         contentWrap.replaceChildren();
 
         if (summary.ageInfo) {
-            const ageLine = document.createElement("div");
-            ageLine.className = "lv-dialog-row";
+            const ageLine = mk("div", "lv-dialog-row");
             ageLine.innerHTML = `
                 <span>${t("ledger.petAgeEquivalent")}: <b>${summary.ageInfo.humanEquivalentAge} 岁</b> (${summary.ageInfo.chronologicalYears} 岁 ${summary.ageInfo.chronologicalMonths} 个月)</span>
                 <span class="lv-badge purple">${summary.ageInfo.lifeStageLabel}</span>
             `;
-            const desc = document.createElement("div");
-            desc.className = "lv-caption";
+            const desc = mk("div", "lv-caption", summary.ageInfo.description);
             desc.style.fontSize = "11px";
             desc.style.lineHeight = "1.4";
-            desc.textContent = summary.ageInfo.description;
             contentWrap.append(ageLine, desc);
         }
 
-        const careGrid = document.createElement("div");
-        careGrid.className = "lv-grid-2 lv-mt-2";
-
+        const careGrid = mk("div", "lv-grid-2 lv-mt-2");
         const badgeCls = (u: string) => u === "overdue" ? "danger" : u === "soon" ? "orange" : u === "ok" ? "green" : "gray";
 
-        const vBox = document.createElement("div");
-        vBox.className = "lv-domain-subbox";
+        const vBox = mk("div", "lv-domain-subbox");
         vBox.innerHTML = `
             <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.vaccine_due")}</span>
@@ -353,8 +301,7 @@ export async function renderPetCareSection(options: RenderPetCareSectionOptions)
             <span class="lv-caption" style="font-size:11px">${summary.vaccine.dueDate ? summary.vaccine.dueDate : "未填写"}</span>
         `;
 
-        const dBox = document.createElement("div");
-        dBox.className = "lv-domain-subbox";
+        const dBox = mk("div", "lv-domain-subbox");
         dBox.innerHTML = `
             <div class="lv-row-split">
                 <span style="font-weight:500">${t("field.deworm_due")}</span>
@@ -396,19 +343,12 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
     const foodName = (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || "";
     const memberBlockId = ref.columns?.member ? row.cells?.[ref.columns.member]?.relation?.blockIDs?.[0] : undefined;
 
-    const feedingSection = document.createElement("div");
-    feedingSection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = t("ledger.feedingObserveTitle");
-    head.append(title);
+    const feedingSection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.feedingObserveTitle")));
     feedingSection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-dialog-sec";
+    const contentWrap = mk("div", "lv-dialog-sec");
     contentWrap.style.fontSize = "12.5px";
     feedingSection.append(contentWrap);
     body.appendChild(feedingSection);
@@ -527,19 +467,12 @@ export async function renderSocialRetirementSection(options: RenderSocialRetirem
     const member = memberBlockId ? (plugin.settings?.members ?? []).find((m: any) => m.avItemId === memberBlockId) : undefined;
     if (!member?.birthday) return;
 
-    const socialRetireSection = document.createElement("div");
-    socialRetireSection.className = "lv-detail-section lv-domain-sec";
-
-    const head = document.createElement("div");
-    head.className = "lv-domain-head";
-    const title = document.createElement("span");
-    title.className = "ft__on-surface lv-domain-title";
-    title.textContent = `${t("members.retirementTitle")} · ${member.name}`;
-    head.append(title);
+    const socialRetireSection = mk("div", "lv-detail-section lv-domain-sec");
+    const head = mk("div", "lv-domain-head");
+    head.append(mk("span", "ft__on-surface lv-domain-title", `${t("members.retirementTitle")} · ${member.name}`));
     socialRetireSection.append(head);
 
-    const contentWrap = document.createElement("div");
-    contentWrap.className = "lv-domain-box";
+    const contentWrap = mk("div", "lv-domain-box");
     socialRetireSection.append(contentWrap);
     body.appendChild(socialRetireSection);
 

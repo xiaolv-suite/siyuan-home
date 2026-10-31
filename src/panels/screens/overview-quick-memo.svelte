@@ -95,9 +95,3 @@
     <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
     <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim()} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
 </div>
-
-<style>
-    .lv-memo-input {
-        min-width: min(180px, 100%);
-    }
-</style>

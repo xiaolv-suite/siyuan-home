@@ -173,6 +173,7 @@ export default defineConfig(buildTarget === "kernel" ? {
                                     passes: 2,
                                     pure_getters: false,
                                     booleans_as_integers: false,
+                                    unsafe: true,
                                 },
                                 mangle: { toplevel: true },
                                 format: { comments: false },

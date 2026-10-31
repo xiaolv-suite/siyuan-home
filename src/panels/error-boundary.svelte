@@ -45,20 +45,3 @@
         </div>
     {/snippet}
 </svelte:boundary>
-
-<style>
-    .lv-error-boundary-card {
-        padding: 24px;
-        text-align: center;
-    }
-    .lv-error-boundary-icon {
-        font-size: 1.5rem;
-        margin-bottom: 8px;
-    }
-    .lv-error-boundary-msg {
-        margin: 8px 0;
-    }
-    .lv-mt-8 {
-        margin-top: 8px;
-    }
-</style>

@@ -258,6 +258,13 @@ export class SchemaLedgerProvider implements DataProvider {
  * 车辆专属提醒 provider：复用车辆主表扫描，同时读取 rowlogs maintenance，
  * 将按日期和按里程的下次保养提醒汇入全局提醒中心。
  */
+const MAINT_CAT_LABELS: Record<string, string> = {
+    routine: "保养", repair: "维修", tires: "轮胎", battery: "电池",
+    inspection: "年检", cleaning: "清洁", other: "其他",
+};
+const MAINT_DATE_RULE: ReminderRuleSpec = { key: "maintenance_date", field: "nextDate", kind: "oneoff", leadDays: 30 };
+const SKIP_STATUS_SET = new Set(["archived", "void", "expired", "renewed", "refunded", "discarded", "surrendered", "ins_expired", "med_expired", "m_expired"]);
+
 export class VehiclesProvider extends SchemaLedgerProvider {
     readonly moduleId = "vehicles";
 
@@ -278,15 +285,9 @@ export class VehiclesProvider extends SchemaLedgerProvider {
 
         const logs = await this.deps.loadRowLogs();
         const todayKey = localDateKey(today);
-        const categoryLabels: Record<string, string> = {
-            routine: "保养", repair: "维修", tires: "轮胎", battery: "电池",
-            inspection: "年检", cleaning: "清洁", other: "其他",
-        };
-        const dateRule: ReminderRuleSpec = { key: "maintenance_date", field: "nextDate", kind: "oneoff", leadDays: 30 };
-        const skip = new Set(["archived", "void", "expired", "renewed", "refunded", "discarded", "surrendered", "ins_expired", "med_expired", "m_expired"]);
         for (const row of loaded.rows) {
             const cell = (key: string) => row.cells[loaded.ref.columns![key]];
-            if (skip.has(selectFromValue(cell("status")) ?? "")) continue;
+            if (SKIP_STATUS_SET.has(selectFromValue(cell("status")) ?? "")) continue;
             const name = textFromValue(cell("name")) ?? "车辆";
             const relation: string[] | undefined = cell("member")?.relation?.blockIDs ?? undefined;
             const memberId = relation?.[0] ? members.find((m) => m.avItemId === relation[0])?.id : undefined;
@@ -294,7 +295,7 @@ export class VehiclesProvider extends SchemaLedgerProvider {
             const records = normalizeMaintenanceRecords(getEntries<MaintenanceRecord>(logs, loaded.ref.avId!, row.itemID, "maintenance"));
             for (const record of records) {
                 const category = this.deps.t?.(`vehicle.maintenance.category.${record.category}`)
-                    || categoryLabels[record.category]
+                    || MAINT_CAT_LABELS[record.category]
                     || record.category;
                 const titleTemplate = this.deps.t?.("vehicle.maintenance.reminderTitle");
                 const title = titleTemplate && titleTemplate !== "vehicle.maintenance.reminderTitle"
@@ -304,14 +305,14 @@ export class VehiclesProvider extends SchemaLedgerProvider {
                     .map((part) => String(part).replace(/[^a-zA-Z0-9._-]/g, "_"))
                     .join(".");
                 if (record.nextDate) {
-                    const reminder = await buildReminder(dateRule, this.moduleId, {
+                    const reminder = await buildReminder(MAINT_DATE_RULE, this.moduleId, {
                         rowId: row.itemID,
                         title,
                         memberId,
                         fieldValue: record.nextDate,
-                    }, { today, leadOverride: leadFor(this.deps.settings, this.moduleId, dateRule) });
+                    }, { today, leadOverride: leadFor(this.deps.settings, this.moduleId, MAINT_DATE_RULE) });
                     if (reminder) {
-                        out.push({ ...reminder, id: `${row.itemID}::vehicles.maintenance_date.${stableSuffix}`, ruleKey: dateRule.key });
+                        out.push({ ...reminder, id: `${row.itemID}::vehicles.maintenance_date.${stableSuffix}`, ruleKey: MAINT_DATE_RULE.key });
                     }
                 }
                 if (record.nextOdometer !== undefined && currentMileage !== undefined && currentMileage >= record.nextOdometer) {

@@ -3,9 +3,20 @@
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage } from "siyuan";
     import { renderLedgerAll } from "@/core/siyuan";
-    import { buildChoreLog, buildFuelingLog, buildVitalLog, composeLifelogIsoAt, currentLocalHHMM, validateFuelingInput, validateVitalInput } from "@/core/quick-actions";
+    import {
+        buildChoreLog,
+        buildFuelingLog,
+        buildVitalLog,
+        composeLifelogIsoAt,
+        currentLocalHHMM,
+        validateFuelingInput,
+        validateVitalInput,
+    } from "@/core/quick-actions";
     import type { EnergyKind } from "@/core/fuel";
     import { appendEntry, updateRowLogs } from "@/core/rowlog";
+    import { loadQuickDefaults, saveQuickDefaults } from "@/core/quick-defaults";
+    import { writeLedgerRow } from "@/core/ledger-writer";
+    import { syncModuleDocSection, syncDailyJournalDoc } from "@/core/doc-sync";
     import UiIcon from "@/ui/icon.svelte";
 
     let {
@@ -29,7 +40,11 @@
     type EventSubAction = "fuel" | "vital" | "chore" | "shopping" | "snippet";
     const subActions: EventSubAction[] = ["fuel", "vital", "chore", "shopping", "snippet"];
     const subActionLabel: Record<EventSubAction, string> = {
-        fuel: "capture.actFuel", vital: "capture.actVital", chore: "capture.actChore", shopping: "capture.actShopping", snippet: "capture.actSnippet",
+        fuel: "capture.actFuel",
+        vital: "capture.actVital",
+        chore: "capture.actChore",
+        shopping: "capture.actShopping",
+        snippet: "capture.actSnippet",
     };
     let eventSub = $state<EventSubAction>("fuel");
 
@@ -45,44 +60,113 @@
         });
     }
 
-    // 常用流水：统一 LifeLog 时间（HH:mm，每次打开刷新为当前时刻，可手改）
-    let eventTime = $state(currentLocalHHMM());
+    // 默认习惯与上次填写记忆
+    // svelte-ignore state_referenced_locally
+    const qDefs = loadQuickDefaults(plugin);
 
-    // 常用流水：车辆与加油
+    // 常用流水：统一 LifeLog 时间与日期
+    let eventTime = $state(currentLocalHHMM());
+    let eventDate = $state(localDateKey(new Date()));
+
+    // 常用流水：车辆与加油/充电
     let vehiclesList = $state<Array<{ itemID: string; name: string; plate: string; mileage?: number }>>([]);
-    let selectedVehicleId = $state("");
+    let selectedVehicleId = $state(qDefs.fuelVehicleId || "");
     let fuelingAmount = $state<number | undefined>();
     let fuelingLiters = $state<number | undefined>();
     let fuelingMileage = $state<number | undefined>();
-    let fuelingKind = $state<EnergyKind>("fuel");
-    let fuelingDate = $state(localDateKey(new Date()));
+    let fuelingKind = $state<EnergyKind>(qDefs.fuelKind || "fuel");
 
-    // 常用流水：生理指标（血压/血糖）
-    let vitalMemberId = $state("");
-    let vitalMetricType = $state<"bp" | "glucose">("bp");
-    let vitalDate = $state(localDateKey(new Date()));
+    // 补充：油价/电价、油品标号/充电模式、加满充满
+    let fuelGrade = $state(qDefs.fuelGrade || "95");
+    let fuelPrice = $state<number | undefined>(qDefs.fuelPrice ?? 8.25);
+    let chargingMode = $state(qDefs.chargingMode || "dc");
+    let chargePrice = $state<number | undefined>(qDefs.chargePrice ?? 1.20);
+    let isEnergyFull = $state(qDefs.fuelIsFull ?? true);
+
+    // 补能三数联动自动计算
+    const currentPrice = () => (fuelingKind === "charging" ? chargePrice : fuelPrice);
+    function onAmountInput(val: number | undefined) {
+        fuelingAmount = val;
+        if (typeof val === "number" && val > 0) {
+            if (typeof fuelingLiters === "number" && fuelingLiters > 0) {
+                const p = Number((val / fuelingLiters).toFixed(2));
+                if (fuelingKind === "charging") chargePrice = p;
+                else fuelPrice = p;
+            } else {
+                const p = currentPrice();
+                if (typeof p === "number" && p > 0) {
+                    fuelingLiters = Number((val / p).toFixed(2));
+                }
+            }
+        }
+    }
+    function onLitersInput(val: number | undefined) {
+        fuelingLiters = val;
+        if (typeof val === "number" && val > 0) {
+            if (typeof fuelingAmount === "number" && fuelingAmount > 0) {
+                const p = Number((fuelingAmount / val).toFixed(2));
+                if (fuelingKind === "charging") chargePrice = p;
+                else fuelPrice = p;
+            } else {
+                const p = currentPrice();
+                if (typeof p === "number" && p > 0) {
+                    fuelingAmount = Number((val * p).toFixed(2));
+                }
+            }
+        }
+    }
+    function onPriceInput(val: number | undefined) {
+        if (fuelingKind === "charging") chargePrice = val;
+        else fuelPrice = val;
+        if (typeof val === "number" && val > 0) {
+            if (typeof fuelingAmount === "number" && fuelingAmount > 0) {
+                fuelingLiters = Number((fuelingAmount / val).toFixed(2));
+            } else if (typeof fuelingLiters === "number" && fuelingLiters > 0) {
+                fuelingAmount = Number((fuelingLiters * val).toFixed(2));
+            }
+        }
+    }
+
+    // 常用流水：生理指标（血压/血糖/体重/体温）
+    let vitalMemberId = $state(qDefs.vitalMemberId || "");
+    let vitalMetricType = $state<"bp" | "glucose" | "weight" | "temp">(qDefs.vitalMetricType || "bp");
     let vitalSys = $state<number | undefined>();
     let vitalDia = $state<number | undefined>();
     let vitalPulse = $state<number | undefined>();
     let vitalGlucose = $state<number | undefined>();
     let vitalTiming = $state<"fasting" | "postprandial">("fasting");
+    let vitalWeight = $state<number | undefined>();
+    let vitalTemp = $state<number | undefined>();
 
     // 常用流水：家务打卡（写入家务行 chexecs，与家务轮换抽屉、积分结算同源）
     let choresList = $state<Array<{ itemID: string; name: string }>>([]);
-    let choreRowId = $state("");
-    let choreMemberId = $state("");
-    let choreDate = $state(localDateKey(new Date()));
+    let choreRowId = $state(qDefs.choreRowId || "");
+    let choreMemberId = $state(qDefs.choreMemberId || "");
     let chorePoints = $state<number | undefined>();
     let choreNote = $state("");
 
     // 常用流水：快捷待买
     let quickShopName = $state("");
     let quickShopQty = $state(1);
-    let quickShopDate = $state(localDateKey(new Date()));
+    let quickShopCategory = $state(qDefs.shoppingCategory || "daily");
+    let quickShopPrice = $state<number | undefined>();
 
     // 常用流水：随手便签
     let quickSnippetText = $state("");
-    let quickSnippetDate = $state(localDateKey(new Date()));
+    let quickSnippetTag = $state(qDefs.snippetTag || "#备忘");
+
+    const SNIPPET_TAG_SUGGESTIONS = ["#备忘", "#待办", "#灵感", "#记账", "#家庭", "#日常"];
+
+    const onEnter = (fn: () => void) => (e: KeyboardEvent) => {
+        if (e.key === "Enter" && !e.isComposing) void fn();
+    };
+
+    function appendSnippetTag(tag: string) {
+        quickSnippetTag = tag;
+        if (!quickSnippetText.includes(tag)) {
+            quickSnippetText = quickSnippetText.trim() ? `${quickSnippetText.trim()} ${tag}` : tag;
+        }
+    }
 
     async function ensureTargetRef(mod: string) {
         let r = plugin.settings.dbRefs?.[mod];
@@ -94,9 +178,20 @@
         return r;
     }
 
+    function dispatchBackgroundSync(mod: string, nextLogs: any) {
+        queueMicrotask(async () => {
+            try {
+                if (mod !== "shopping" && mod !== "snippets") {
+                    await syncModuleDocSection(plugin, mod, nextLogs);
+                }
+                await syncDailyJournalDoc(plugin, nextLogs);
+            } catch { /* soft */ }
+            try { await plugin.refreshHub?.([mod], true); } catch { /* soft */ }
+        });
+    }
+
     async function submitQuickFueling() {
         if (saving) return;
-        // 里程与升数/度数是油耗统计的必需项，缺任一项抽屉统计会丢弃该记录
         const missing = validateFuelingInput({ mileage: fuelingMileage, quantity: fuelingLiters, amount: fuelingAmount });
         if (!selectedVehicleId || missing.length > 0) {
             saveError = t("capture.fuelRequired");
@@ -105,18 +200,29 @@
         saving = true;
         saveError = "";
         try {
+            const isCharging = fuelingKind === "charging";
+            const unitPrice = isCharging ? chargePrice : fuelPrice;
+            const isFull = isEnergyFull;
+
             const log = buildFuelingLog({
-                date: fuelingDate,
+                date: eventDate,
                 time: eventTime,
                 kind: fuelingKind,
                 amount: fuelingAmount,
                 quantity: fuelingLiters!,
                 mileage: fuelingMileage!,
+                unitPrice,
+                full: isFull,
+                fuelGrade: !isCharging ? fuelGrade : undefined,
+                chargingMode: isCharging ? chargingMode : undefined,
             });
             const vRef = await ensureTargetRef("vehicles");
-            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingKind === "charging" ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
-            const summaryNote = `最近${fuelingKind === "charging" ? "充电" : "加油"}：${fuelingDate} · ${fuelingLiters}${fuelingKind === "charging" ? "kWh" : "L"}${fuelingAmount !== undefined ? ` · ¥${fuelingAmount}` : ""} · ${fuelingMileage}km`;
-            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            const nextLogs = await updateRowLogs(plugin as any, (cur) =>
+                appendEntry(cur, vRef.avId!, selectedVehicleId, isCharging ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
+
+            const fullText = isFull ? (isCharging ? "已充满" : "已加满") : "";
+            const summaryNote = `最近${isCharging ? "充电" : "加油"}：${eventDate} · ${fuelingLiters}${isCharging ? "kWh" : "L"}${fuelingAmount !== undefined ? ` · ¥${fuelingAmount}` : ""}${fullText ? ` · ${fullText}` : ""} · ${fuelingMileage}km`;
+
             await writeLedgerRow({
                 moduleId: "vehicles",
                 target: vRef,
@@ -127,21 +233,28 @@
                     note: summaryNote,
                 },
             });
-            try {
-                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncModuleDocSection(plugin, "vehicles", nextLogs);
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
-            showMessage(t("capture.savedEvent"), 2500, "info");
+
+            // 记忆用户本次填写习惯
+            saveQuickDefaults(plugin, {
+                fuelVehicleId: selectedVehicleId,
+                fuelKind: fuelingKind,
+                fuelGrade,
+                fuelPrice,
+                fuelIsFull: isEnergyFull,
+                chargingMode,
+                chargePrice,
+                chargeIsFull: isEnergyFull,
+            });
+
+            // 核心数据落盘即刻释放 UI（秒级响应）
+            saving = false;
+            showMessage(t("capture.savedEvent"), 2000, "info");
             fuelingAmount = undefined;
             fuelingLiters = undefined;
-            fuelingMileage = undefined;
-            saving = false;
             if (!keepContext) onClose?.();
+            dispatchBackgroundSync("vehicles", nextLogs);
         } catch (e) {
             saveError = String(e);
-        } finally {
             saving = false;
         }
     }
@@ -152,7 +265,15 @@
             saveError = t("members.reassignSelectTo");
             return;
         }
-        if (validateVitalInput({ metricType: vitalMetricType, systolic: vitalSys, diastolic: vitalDia, glucose: vitalGlucose }).length > 0) {
+        const missing = validateVitalInput({
+            metricType: vitalMetricType,
+            systolic: vitalSys,
+            diastolic: vitalDia,
+            glucose: vitalGlucose,
+            weight: vitalWeight,
+            temperature: vitalTemp,
+        });
+        if (missing.length > 0) {
             saveError = t("capture.vitalRequired");
             return;
         }
@@ -160,7 +281,7 @@
         saveError = "";
         try {
             const readings = buildVitalLog({
-                date: vitalDate,
+                date: eventDate,
                 time: eventTime,
                 metricType: vitalMetricType,
                 systolic: vitalSys,
@@ -168,6 +289,8 @@
                 pulse: vitalPulse,
                 glucose: vitalGlucose,
                 glucoseTiming: vitalTiming,
+                weight: vitalWeight,
+                temperature: vitalTemp,
             });
             const healthRef = await ensureTargetRef("health");
             const all = await renderLedgerAll(healthRef.avId!);
@@ -176,10 +299,18 @@
                 : (all.rows?.[0]);
             const targetMember = plugin.settings.members?.find((m: any) => m.avItemId === vitalMemberId || m.id === vitalMemberId);
             const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
-            const summaryDiag = vitalMetricType === "bp"
-                ? `血压 ${vitalSys}/${vitalDia} mmHg${vitalPulse ? ` · 心率 ${vitalPulse} bpm` : ""}`
-                : `${vitalTiming === "postprandial" ? "餐后" : "空腹"}血糖 ${vitalGlucose} mmol/L`;
-            const { writeLedgerRow } = await import("@/core/ledger-writer");
+
+            let summaryDiag = "";
+            if (vitalMetricType === "bp") {
+                summaryDiag = `血压 ${vitalSys}/${vitalDia} mmHg${vitalPulse ? ` · 心率 ${vitalPulse} bpm` : ""}`;
+            } else if (vitalMetricType === "glucose") {
+                summaryDiag = `${vitalTiming === "postprandial" ? "餐后" : "空腹"}血糖 ${vitalGlucose} mmol/L`;
+            } else if (vitalMetricType === "weight") {
+                summaryDiag = `体重 ${vitalWeight} kg`;
+            } else if (vitalMetricType === "temp") {
+                summaryDiag = `体温 ${vitalTemp} ℃`;
+            }
+
             if (!row) {
                 const { itemID } = await writeLedgerRow({
                     moduleId: "health",
@@ -191,9 +322,9 @@
                         member: vitalMemberId,
                         category: "checkup",
                         status: "following",
-                        date: vitalDate,
+                        date: eventDate,
                         diagnosis: summaryDiag,
-                        note: `${vitalDate} 录入：${summaryDiag}`,
+                        note: `${eventDate} 录入：${summaryDiag}`,
                     },
                 });
                 row = { itemID, cells: {} };
@@ -208,82 +339,86 @@
                         member: vitalMemberId,
                         category: "checkup",
                         status: "following",
-                        date: vitalDate,
+                        date: eventDate,
                         diagnosis: summaryDiag,
-                        note: `${vitalDate} 录入：${summaryDiag}`,
+                        note: `${eventDate} 录入：${summaryDiag}`,
                     },
                 });
             }
             const nextLogs = await updateRowLogs(plugin as any, (cur) => readings.reduce(
                 (acc, reading) => appendEntry(acc, healthRef.avId!, row!.itemID, "vitals", reading as unknown as Record<string, unknown>), cur));
-            try {
-                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncModuleDocSection(plugin, "health", nextLogs);
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
-            showMessage(t("capture.savedEvent"), 2500, "info");
+
+            // 记忆用户体征习惯
+            saveQuickDefaults(plugin, {
+                vitalMemberId,
+                vitalMetricType,
+            });
+
+            // 秒级响应
+            saving = false;
+            showMessage(t("capture.savedEvent"), 2000, "info");
             vitalSys = undefined;
             vitalDia = undefined;
             vitalPulse = undefined;
             vitalGlucose = undefined;
-            saving = false;
+            vitalWeight = undefined;
+            vitalTemp = undefined;
             if (!keepContext) onClose?.();
+            dispatchBackgroundSync("health", nextLogs);
         } catch (e) {
             saveError = String(e);
-        } finally {
             saving = false;
         }
     }
 
     async function submitQuickChore() {
         if (saving) return;
-        if (!choreRowId || !choreDate) {
+        if (!choreRowId) {
             saveError = t("capture.choreRequired");
             return;
         }
         saving = true;
         saveError = "";
         try {
-            const cRef = await ensureTargetRef("chores");
-            const log = buildChoreLog({ date: choreDate, time: eventTime, memberId: choreMemberId || undefined, points: chorePoints, note: choreNote });
-            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, cRef.avId!, choreRowId, "chexecs", log));
-            const whoMember = (plugin.settings.members ?? []).find((m: any) => m.id === choreMemberId || m.avItemId === choreMemberId);
-            const summaryParts = [
-                `最近打卡：${choreDate}`,
-                whoMember?.name ? `执行人 ${whoMember.name}` : "",
-                chorePoints ? `+${chorePoints}分` : "",
-                choreNote.trim(),
-            ].filter(Boolean);
-            // 同步“上次完成”列及备注摘要：活动流、周期提醒与思源原生表格均直接可见
-            const { writeLedgerRow } = await import("@/core/ledger-writer");
-            const { failed } = await writeLedgerRow({
+            const choreRef = await ensureTargetRef("chores");
+            const log = buildChoreLog({
+                date: eventDate,
+                time: eventTime,
+                memberId: choreMemberId || undefined,
+                points: chorePoints,
+                note: choreNote,
+            });
+            const nextLogs = await updateRowLogs(plugin as any, (cur) =>
+                appendEntry(cur, choreRef.avId!, choreRowId, "chexecs", log));
+
+            const whoName = plugin.settings.members?.find((m: any) => m.id === choreMemberId)?.name;
+            const summaryNote = `上次完成：${eventDate}${whoName ? ` · ${whoName}` : ""}${chorePoints ? ` · +${chorePoints}积分` : ""}${choreNote ? ` (${choreNote})` : ""}`;
+
+            await writeLedgerRow({
                 moduleId: "chores",
-                target: cRef,
+                target: choreRef,
                 itemId: choreRowId,
                 name: "",
-                members: plugin.settings.members,
                 fields: {
-                    last_done: choreDate,
-                    ...(whoMember?.avItemId ? { member: whoMember.avItemId } : {}),
-                    note: summaryParts.join(" · "),
+                    lastDone: eventDate,
+                    ...(choreMemberId ? { assignee: choreMemberId } : {}),
+                    note: summaryNote,
                 },
             });
-            try {
-                const { syncModuleDocSection, syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncModuleDocSection(plugin, "chores", nextLogs);
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.(["chores"], true); } catch { /* soft */ }
-            if (failed.length > 0) showMessage(t("ledger.writePartialFailed").replace("${fields}", t("field.last_done")), 5000, "error");
-            else showMessage(t("capture.savedEvent"), 2500, "info");
+
+            saveQuickDefaults(plugin, {
+                choreRowId,
+                choreMemberId,
+            });
+
+            saving = false;
+            showMessage(t("capture.savedEvent"), 2000, "info");
             chorePoints = undefined;
             choreNote = "";
-            saving = false;
             if (!keepContext) onClose?.();
+            dispatchBackgroundSync("chores", nextLogs);
         } catch (e) {
             saveError = String(e);
-        } finally {
             saving = false;
         }
     }
@@ -292,15 +427,14 @@
         if (saving) return;
         const name = quickShopName.trim();
         if (!name) {
-            saveError = t("ledger.nameRequired");
+            saveError = t("form.required");
             return;
         }
         saving = true;
         saveError = "";
         try {
             const shopRef = await ensureTargetRef("shopping");
-            const dateStr = quickShopDate || localDateKey(new Date());
-            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            const dateStr = eventDate;
             const { itemID } = await writeLedgerRow({
                 moduleId: "shopping",
                 target: shopRef,
@@ -309,7 +443,8 @@
                 fields: {
                     qty: quickShopQty || 1,
                     date: dateStr,
-                    category: "daily",
+                    category: quickShopCategory || "daily",
+                    ...(quickShopPrice ? { price: quickShopPrice } : {}),
                 },
             });
             const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, shopRef.avId!, itemID, "quickflows", {
@@ -318,21 +453,24 @@
                 time: eventTime,
                 title: name,
                 qty: quickShopQty || 1,
+                price: quickShopPrice,
+                category: quickShopCategory,
                 at: composeLifelogIsoAt(dateStr, eventTime),
             }));
-            try {
-                const { syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.(["shopping"], true); } catch { /* soft */ }
-            showMessage(t("capture.savedEvent"), 2500, "info");
+
+            saveQuickDefaults(plugin, {
+                shoppingCategory: quickShopCategory,
+            });
+
+            saving = false;
+            showMessage(t("capture.savedEvent"), 2000, "info");
             quickShopName = "";
             quickShopQty = 1;
-            saving = false;
+            quickShopPrice = undefined;
             if (!keepContext) onClose?.();
+            dispatchBackgroundSync("shopping", nextLogs);
         } catch (e) {
             saveError = String(e);
-        } finally {
             saving = false;
         }
     }
@@ -348,9 +486,8 @@
         saveError = "";
         try {
             const snipRef = await ensureTargetRef("snippets");
-            const dateStr = quickSnippetDate || localDateKey(new Date());
+            const dateStr = eventDate;
             const title = text.slice(0, 30);
-            const { writeLedgerRow } = await import("@/core/ledger-writer");
             const { itemID } = await writeLedgerRow({
                 moduleId: "snippets",
                 target: snipRef,
@@ -368,20 +505,21 @@
                 time: eventTime,
                 title,
                 detail: text,
+                tag: quickSnippetTag,
                 at: composeLifelogIsoAt(dateStr, eventTime),
             }));
-            try {
-                const { syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.(["snippets"], true); } catch { /* soft */ }
-            showMessage(t("capture.savedEvent"), 2500, "info");
-            quickSnippetText = "";
+
+            saveQuickDefaults(plugin, {
+                snippetTag: quickSnippetTag,
+            });
+
             saving = false;
+            showMessage(t("capture.savedEvent"), 2000, "info");
+            quickSnippetText = "";
             if (!keepContext) onClose?.();
+            dispatchBackgroundSync("snippets", nextLogs);
         } catch (e) {
             saveError = String(e);
-        } finally {
             saving = false;
         }
     }
@@ -397,9 +535,14 @@
                     const mileage = Number(r.cells?.[vRef.columns!.mileage ?? ""]?.number?.content);
                     return { itemID: r.itemID, name, plate, mileage: isNaN(mileage) ? undefined : mileage };
                 });
-                if (vehiclesList.length > 0 && !selectedVehicleId) {
-                    selectedVehicleId = vehiclesList[0].itemID;
-                    if (vehiclesList[0].mileage) fuelingMileage = vehiclesList[0].mileage;
+                if (vehiclesList.length > 0) {
+                    if (!selectedVehicleId || !vehiclesList.some((v) => v.itemID === selectedVehicleId)) {
+                        selectedVehicleId = vehiclesList[0].itemID;
+                    }
+                    const curVeh = vehiclesList.find((v) => v.itemID === selectedVehicleId);
+                    if (curVeh?.mileage && fuelingMileage === undefined) {
+                        fuelingMileage = curVeh.mileage;
+                    }
                 }
             } catch { /* soft */ }
         }
@@ -412,7 +555,11 @@
                     itemID: r.itemID,
                     name: String(r.cells?.[cRef.columns!.name]?.text?.content ?? r.cells?.[cRef.columns!.name]?.block?.content ?? "").trim() || t("ledger.unnamed"),
                 }));
-                if (choresList.length > 0 && !choreRowId) choreRowId = choresList[0].itemID;
+                if (choresList.length > 0) {
+                    if (!choreRowId || !choresList.some((c) => c.itemID === choreRowId)) {
+                        choreRowId = choresList[0].itemID;
+                    }
+                }
             } catch { /* soft */ }
         }
 
@@ -461,16 +608,6 @@
     });
 </script>
 
-{#snippet dtRow(idPrefix: string, val: string, onVal: (v: string) => void)}
-    <div class="lv-frow">
-        <label for={`lv-${idPrefix}-date`}>{t("field.date")}</label>
-        <div class="lv-datetime-pair">
-            <input id={`lv-${idPrefix}-date`} class="b3-text-field" type="date" value={val} oninput={(e) => onVal(e.currentTarget.value)} disabled={saving} />
-            <input id={`lv-${idPrefix}-time`} class="b3-text-field lv-time-field" type="time" aria-label={t("field.date")} bind:value={eventTime} disabled={saving} />
-        </div>
-    </div>
-{/snippet}
-
 <div class="lv-event-subnav" role="tablist" aria-label={t("capture.tabEvent")}>
     {#each subActions as s, i (s)}
         <button
@@ -507,60 +644,165 @@
                     {/each}
                 </select>
             </div>
+
             <div class="lv-frow">
                 <span class="lv-frow-label">{t("capture.energyKind")}</span>
-                <div class="lv-radio-group" role="radiogroup" aria-label={t("capture.energyKind")}>
-                    <label class="lv-radio-label"><input type="radio" name="fuelKind" value="fuel" bind:group={fuelingKind} disabled={saving} aria-label={t("fuel.fuelTitle")} /> {t("fuel.fuelTitle")}</label>
-                    <label class="lv-radio-label"><input type="radio" name="fuelKind" value="charging" bind:group={fuelingKind} disabled={saving} aria-label={t("fuel.chargingTitle")} /> {t("fuel.chargingTitle")}</label>
+                <div class="lv-segmented-group" role="radiogroup" aria-label={t("capture.energyKind")}>
+                    <button
+                        type="button"
+                        class="lv-seg-btn"
+                        class:active={fuelingKind === "fuel"}
+                        onclick={() => { fuelingKind = "fuel"; }}
+                        disabled={saving}
+                    >
+                        ⛽ {t("fuel.fuelTitle")}
+                    </button>
+                    <button
+                        type="button"
+                        class="lv-seg-btn"
+                        class:active={fuelingKind === "charging"}
+                        onclick={() => { fuelingKind = "charging"; }}
+                        disabled={saving}
+                    >
+                        ⚡ {t("fuel.chargingTitle")}
+                    </button>
                 </div>
             </div>
+
+            <div class="lv-frow">
+                <span class="lv-frow-label">{fuelingKind === "fuel" ? t("capture.fuelGrade") : t("capture.chargeMode")}</span>
+                <div class="lv-pill-chips">
+                    {#if fuelingKind === "fuel"}
+                        {#each [["92", "92#"], ["95", "95#"], ["98", "98#"], ["0", "0# 柴油"]] as [val, lbl]}
+                            <button type="button" class="b3-chip lv-pill-chip" class:b3-chip--primary={fuelGrade === val} class:b3-chip--secondary={fuelGrade !== val} onclick={() => { fuelGrade = val; }} disabled={saving}>{lbl}</button>
+                        {/each}
+                    {:else}
+                        {#each [["dc", `⚡ ${t("capture.fastDc")}`], ["ac", `🔌 ${t("capture.slowAc")}`], ["home", `🏠 ${t("capture.homeCharge")}`]] as [val, lbl]}
+                            <button type="button" class="b3-chip lv-pill-chip" class:b3-chip--primary={chargingMode === val} class:b3-chip--secondary={chargingMode !== val} onclick={() => { chargingMode = val; }} disabled={saving}>{lbl}</button>
+                        {/each}
+                    {/if}
+                </div>
+            </div>
+
+            <div class="lv-frow">
+                <label for="lv-unit-price">{fuelingKind === "fuel" ? t("capture.unitPrice") : t("capture.chargeUnitPrice")}</label>
+                <input
+                    id="lv-unit-price"
+                    class="b3-text-field"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder={fuelingKind === "fuel" ? t("capture.phUnitPrice") : t("capture.phChargeUnitPrice")}
+                    value={fuelingKind === "charging" ? chargePrice : fuelPrice}
+                    oninput={(e) => onPriceInput(Number(e.currentTarget.value) || undefined)}
+                    disabled={saving}
+                />
+            </div>
+
             <div class="lv-frow">
                 <label for="lv-fuel-amount">{t("capture.amountCny")}</label>
-                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder={t("capture.phAmount")} bind:value={fuelingAmount} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+                <input
+                    id="lv-fuel-amount"
+                    class="b3-text-field"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder={t("capture.phAmount")}
+                    value={fuelingAmount}
+                    oninput={(e) => onAmountInput(Number(e.currentTarget.value) || undefined)}
+                    disabled={saving}
+                    onkeydown={onEnter(submitQuickFueling)}
+                />
             </div>
-            <div class="lv-frow">
-                <label for="lv-fuel-mileage">{t("capture.currentMileage")} *</label>
-                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" required placeholder={t("capture.phMileage")} bind:value={fuelingMileage} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
-            </div>
+
             <div class="lv-frow">
                 <label for="lv-fuel-liters">{t("capture.fuelLiters")} *</label>
-                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" required placeholder={t("capture.phQuantity")} bind:value={fuelingLiters} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+                <input
+                    id="lv-fuel-liters"
+                    class="b3-text-field"
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    placeholder={t("capture.phQuantity")}
+                    value={fuelingLiters}
+                    oninput={(e) => onLitersInput(Number(e.currentTarget.value) || undefined)}
+                    disabled={saving}
+                    onkeydown={onEnter(submitQuickFueling)}
+                />
             </div>
-            {@render dtRow("fuel", fuelingDate, (v) => { fuelingDate = v; })}
+
+            <div class="lv-frow">
+                <span class="lv-frow-label">{fuelingKind === "charging" ? t("capture.isChargeFull") : t("capture.isFull")}</span>
+                <label class="lv-checkbox-label" for="lv-fuel-full">
+                    <input
+                        id="lv-fuel-full"
+                        type="checkbox"
+                        bind:checked={isEnergyFull}
+                        disabled={saving}
+                        aria-label={fuelingKind === "charging" ? t("capture.isChargeFull") : t("capture.isFull")}
+                    />
+                    <b>{fuelingKind === "charging" ? t("capture.isChargeFull") : t("capture.isFull")}</b>
+                    <span class="lv-caption">{fuelingKind === "charging" ? t("capture.chargeFullHint") : t("capture.fullHint")}</span>
+                </label>
+            </div>
+
+            <div class="lv-calc-tip">
+                <UiIcon name="info" size={13} />
+                <span>{t("capture.autoCalcHint")}</span>
+            </div>
+
+            <div class="lv-frow">
+                <label for="lv-fuel-mileage">{t("capture.currentMileage")} *</label>
+                <input
+                    id="lv-fuel-mileage"
+                    class="b3-text-field"
+                    type="number"
+                    min="0"
+                    required
+                    placeholder={t("capture.phMileage")}
+                    bind:value={fuelingMileage}
+                    disabled={saving}
+                    onkeydown={onEnter(submitQuickFueling)}
+                />
+            </div>
         {/if}
     {:else if eventSub === "vital"}
         <div class="lv-frow">
             <label for="lv-vital-mem">{t("field.member")}</label>
             <select id="lv-vital-mem" class="b3-select" bind:value={vitalMemberId} disabled={saving}>
                 {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
-                    <option value={m.avItemId ?? ""}>{m.name}</option>
+                    <option value={m.avItemId ?? m.id}>{m.name}</option>
                 {/each}
             </select>
         </div>
+
         <div class="lv-frow">
             <span class="lv-frow-label">{t("capture.metricType")}</span>
-            <div class="lv-radio-group" role="radiogroup" aria-label={t("capture.metricType")}>
-                <label class="lv-radio-label"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} aria-label={t("capture.metricBp")} /> {t("capture.metricBp")}</label>
-                <label class="lv-radio-label"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} aria-label={t("capture.metricGlucose")} /> {t("capture.metricGlucose")}</label>
+            <div class="lv-segmented-group" role="radiogroup" aria-label={t("capture.metricType")}>
+                {#each [["bp", "💓 " + t("capture.metricBp")], ["glucose", "🩸 " + t("capture.metricGlucose")], ["weight", "⚖️ " + t("capture.metricWeight")], ["temp", "🌡️ " + t("capture.metricTemp")]] as [vt, vl]}
+                    <button type="button" class="lv-seg-btn" class:active={vitalMetricType === vt} onclick={() => { vitalMetricType = vt as any; }} disabled={saving}>{vl}</button>
+                {/each}
             </div>
         </div>
+
         {#if vitalMetricType === "bp"}
             <div class="lv-frow">
                 <label for="lv-vital-sys">{t("capture.systolic")} *</label>
-                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-dia">{t("capture.diastolic")} *</label>
-                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-pulse">{t("capture.pulse")}</label>
-                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder={t("capture.phPulse")} bind:value={vitalPulse} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder={t("capture.phPulse")} bind:value={vitalPulse} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
-        {:else}
+        {:else if vitalMetricType === "glucose"}
             <div class="lv-frow">
                 <label for="lv-vital-glu">{t("capture.glucoseVal")} *</label>
-                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder={t("capture.phGlucose")} bind:value={vitalGlucose} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder={t("capture.phGlucose")} bind:value={vitalGlucose} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-tim">{t("capture.measureTiming")}</label>
@@ -569,8 +811,17 @@
                     <option value="postprandial">{t("capture.postprandial")}</option>
                 </select>
             </div>
+        {:else if vitalMetricType === "weight"}
+            <div class="lv-frow">
+                <label for="lv-vital-weight">{t("capture.weightVal")} *</label>
+                <input id="lv-vital-weight" class="b3-text-field" type="number" min="1" max="500" step="0.1" placeholder={t("capture.phWeight")} bind:value={vitalWeight} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+            </div>
+        {:else if vitalMetricType === "temp"}
+            <div class="lv-frow">
+                <label for="lv-vital-temp">{t("capture.tempVal")} *</label>
+                <input id="lv-vital-temp" class="b3-text-field" type="number" min="30" max="45" step="0.1" placeholder={t("capture.phTemp")} bind:value={vitalTemp} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+            </div>
         {/if}
-        {@render dtRow("vital", vitalDate, (v) => { vitalDate = v; })}
     {:else if eventSub === "chore"}
         {#if choresList.length === 0}
             <div class="lv-capture-empty">
@@ -595,39 +846,132 @@
                     {/each}
                 </select>
             </div>
-            {@render dtRow("chore", choreDate, (v) => { choreDate = v; })}
             <div class="lv-frow">
                 <label for="lv-chore-points">{t("ledger.chorePoints")}</label>
                 <input id="lv-chore-points" class="b3-text-field" type="number" min="0" step="1" placeholder={t("ledger.chorePointsTip")} bind:value={chorePoints} disabled={saving} />
             </div>
             <div class="lv-frow">
                 <label for="lv-chore-note">{t("field.note")}</label>
-                <input id="lv-chore-note" class="b3-text-field" type="text" placeholder={t("ledger.choreNote")} bind:value={choreNote} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickChore(); }} />
+                <input id="lv-chore-note" class="b3-text-field" type="text" placeholder={t("ledger.choreNote")} bind:value={choreNote} disabled={saving} onkeydown={onEnter(submitQuickChore)} />
             </div>
         {/if}
     {:else if eventSub === "shopping"}
         <div class="lv-frow">
             <label for="lv-shop-name">{t("field.name")} *</label>
-            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder={t("capture.phShopName")} bind:value={quickShopName} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
+            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder={t("capture.phShopName")} bind:value={quickShopName} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
         </div>
         <div class="lv-frow">
             <label for="lv-shop-qty">{t("field.qty")}</label>
-            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder={t("capture.phShopQty")} bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
+            <div class="lv-stepper-row">
+                <button type="button" class="b3-button b3-button--outline lv-step-btn" onclick={() => { if (quickShopQty > 1) quickShopQty--; }} disabled={saving || quickShopQty <= 1}>-</button>
+                <input id="lv-shop-qty" class="b3-text-field lv-stepper-input" type="number" min="1" bind:value={quickShopQty} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
+                <button type="button" class="b3-button b3-button--outline lv-step-btn" onclick={() => { quickShopQty++; }} disabled={saving}>+</button>
+            </div>
         </div>
-        {@render dtRow("shop", quickShopDate, (v) => { quickShopDate = v; })}
+        <div class="lv-frow">
+            <label for="lv-shop-price">{t("capture.shopPrice")}</label>
+            <input id="lv-shop-price" class="b3-text-field" type="number" min="0" step="0.1" placeholder="¥ (可选)" bind:value={quickShopPrice} disabled={saving} />
+        </div>
+        <div class="lv-frow">
+            <label for="lv-shop-cat">{t("capture.shopCat")}</label>
+            <select id="lv-shop-cat" class="b3-select" bind:value={quickShopCategory} disabled={saving}>
+                <option value="daily">日用百货</option>
+                <option value="food">生鲜食品</option>
+                <option value="baby">母婴儿童</option>
+                <option value="health">医药健康</option>
+                <option value="digital">数码办公</option>
+                <option value="other">其他采购</option>
+            </select>
+        </div>
     {:else if eventSub === "snippet"}
         <div class="lv-frow lv-col-stretch">
-            <label for="lv-snip-text">{t("capture.actSnippet")}</label>
+            <label for="lv-snip-text">{t("capture.actSnippet")} *</label>
             <textarea id="lv-snip-text" class="b3-text-field" rows="3" placeholder={t("capture.phSnippet")} bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
         </div>
-        {@render dtRow("snip", quickSnippetDate, (v) => { quickSnippetDate = v; })}
+        <div class="lv-frow">
+            <span class="lv-frow-label">{t("capture.snippetTag")}</span>
+            <div class="lv-pill-chips">
+                {#each SNIPPET_TAG_SUGGESTIONS as tag}
+                    <button
+                        type="button"
+                        class="b3-chip lv-pill-chip"
+                        class:b3-chip--primary={quickSnippetTag === tag}
+                        class:b3-chip--secondary={quickSnippetTag !== tag}
+                        onclick={() => appendSnippetTag(tag)}
+                        disabled={saving}
+                    >
+                        {tag}
+                    </button>
+                {/each}
+            </div>
+        </div>
     {/if}
+
+    <div class="lv-frow">
+        <label for={`lv-${eventSub}-date`}>{t("field.date")}</label>
+        <div class="lv-datetime-col">
+            <div class="lv-datetime-pair">
+                <input
+                    id={`lv-${eventSub}-date`}
+                    class="b3-text-field lv-date-field"
+                    type="date"
+                    bind:value={eventDate}
+                    disabled={saving}
+                />
+                <input
+                    id={`lv-${eventSub}-time`}
+                    class="b3-text-field lv-time-field"
+                    type="time"
+                    aria-label={t("field.date")}
+                    bind:value={eventTime}
+                    disabled={saving}
+                />
+                <button
+                    type="button"
+                    class="b3-button b3-button--outline lv-snap-now-btn"
+                    title={t("capture.snapNow")}
+                    onclick={() => {
+                        eventDate = localDateKey(new Date());
+                        eventTime = currentLocalHHMM();
+                    }}
+                    disabled={saving}
+                >
+                    <UiIcon name="clock" size={12} />
+                    <span>{t("capture.snapNow")}</span>
+                </button>
+            </div>
+            <div class="lv-dt-quick-bar">
+                <button
+                    type="button"
+                    class="b3-chip lv-dt-chip"
+                    class:b3-chip--primary={eventDate === localDateKey(new Date())}
+                    class:b3-chip--secondary={eventDate !== localDateKey(new Date())}
+                    onclick={() => { eventDate = localDateKey(new Date()); }}
+                    disabled={saving}
+                >
+                    {t("capture.today")}
+                </button>
+                <button
+                    type="button"
+                    class="b3-chip lv-dt-chip"
+                    class:b3-chip--primary={eventDate === localDateKey(new Date(Date.now() - 86400000))}
+                    class:b3-chip--secondary={eventDate !== localDateKey(new Date(Date.now() - 86400000))}
+                    onclick={() => { eventDate = localDateKey(new Date(Date.now() - 86400000)); }}
+                    disabled={saving}
+                >
+                    {t("capture.yesterday")}
+                </button>
+            </div>
+        </div>
+    </div>
+
     {#if saveError}
         <div class="lv-caption lv-event-flow-error">
             <span aria-hidden="true"><UiIcon name="alert" size={13} /></span>
             <span>{saveError}</span>
         </div>
     {/if}
+
     <div class="lv-event-doc-bar">
         <span class="lv-caption"><UiIcon name="note" size={12} /> {t("capture.docSyncHint")}</span>
         <button type="button" class="b3-button b3-button--text lv-event-doc-btn" onclick={() => void openCurrentTargetDoc()} disabled={saving}>
@@ -635,32 +979,3 @@
         </button>
     </div>
 </div>
-
-<style>
-    .lv-radio-group {
-        display: flex;
-        gap: 8px;
-    }
-    .lv-radio-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
-    }
-    .lv-col-stretch {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .lv-event-flow-error {
-        margin-top: 8px;
-        padding: 6px 12px;
-        background: var(--lv-surface-2);
-        border-radius: var(--lv-r-control);
-        border: 1px solid var(--lv-danger);
-        color: var(--lv-danger);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-</style>

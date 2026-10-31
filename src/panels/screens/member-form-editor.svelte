@@ -205,28 +205,3 @@
     </div>
 </div>
 
-<style>
-    .lv-member-editor { padding: 16px; margin-bottom: 12px; }
-    .lv-member-editor[hidden] { display: none !important; }
-    .lv-member-editor-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-    .lv-member-editor-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
-    .lv-member-editor-head p { margin: 3px 0 0; color: var(--lv-tx-3); font-size: 11.5px; line-height: 1.45; }
-    .lv-member-editor-fields { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(120px, .9fr) minmax(135px, 1fr) auto auto; align-items: end; gap: 10px; }
-    .lv-member-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-    .lv-member-field > label { color: var(--lv-tx-3); font-size: 11.5px; }
-    .lv-member-field .b3-text-field, .lv-member-field .b3-select { width: 100%; min-width: 0; box-sizing: border-box; }
-    .lv-member-field-wide { grid-column: 1 / -1; }
-    .lv-member-check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding-bottom: 1px; color: var(--lv-tx-2); font-size: 12px; white-space: nowrap; cursor: pointer; }
-    .lv-member-editor-actions { grid-column: 1 / -1; justify-content: flex-end; display: flex; gap: 7px; align-items: center; min-height: 32px; }
-
-    @container lv-home (max-width: 680px) {
-        .lv-member-editor-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .lv-member-editor-actions { grid-column: 1 / -1; }
-    }
-
-    @container lv-home (max-width: 420px) {
-        .lv-member-editor-fields { grid-template-columns: 1fr; }
-        .lv-member-editor-actions { grid-column: auto; }
-        .lv-member-check { padding-top: 4px; padding-bottom: 4px; min-height: 28px; }
-    }
-</style>

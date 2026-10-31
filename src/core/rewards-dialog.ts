@@ -119,36 +119,12 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
     bindDialogA11y({ dlg });
 
     if (report.members.length === 0 || report.totalPointsAll === 0) {
-        const empty = document.createElement("div");
-        empty.className = "ft__on-surface fn__text-center";
-        empty.textContent = t("ledger.rewardsEmpty");
-        listEl.appendChild(empty);
+        listEl.innerHTML = `<div class="ft__on-surface fn__text-center">${t("ledger.rewardsEmpty")}</div>`;
     } else {
-        for (const m of report.members) {
-            const row = document.createElement("div");
-            row.className = "lv-metric-item lv-favor-person-row";
-
-            const left = document.createElement("div");
-            left.className = "lv-broken-link-row__left";
-
-            const title = document.createElement("b");
-            title.textContent = memberNameOf(m.memberId);
-
-            const sub = document.createElement("span");
-            sub.className = "lv-caption";
-            sub.textContent = m.unsettledChores.length > 0
-                ? `${t("ledger.rewardsChoresPending")}: ${m.unsettledChores.join("、")}`
-                : t("ledger.rewardsAllSettled");
-
-            left.append(title, sub);
-
-            const right = document.createElement("div");
-            right.className = "lv-dialog-row__right";
-            right.innerHTML = `<b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:16px">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div>`;
-
-            row.append(left, right);
-            listEl.appendChild(row);
-        }
+        listEl.innerHTML = report.members.map((m) => {
+            const choresText = m.unsettledChores.length > 0 ? `${t("ledger.rewardsChoresPending")}: ${m.unsettledChores.join("、")}` : t("ledger.rewardsAllSettled");
+            return `<div class="lv-metric-item lv-favor-person-row"><div class="lv-broken-link-row__left"><b>${memberNameOf(m.memberId)}</b><span class="lv-caption">${choresText}</span></div><div class="lv-dialog-row__right"><b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:16px">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div></div></div>`;
+        }).join("");
     }
 
     (dlg.element.querySelector("#lv-rewards-copy") as HTMLButtonElement).onclick = async () => {

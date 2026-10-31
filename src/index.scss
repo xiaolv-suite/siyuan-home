@@ -660,6 +660,13 @@
     min-width: 0;
 }
 
+// 确保通知消息、临时消息与全局提示框永远在最上层，绝不被模态窗或全屏抽屉遮挡
+#message,
+#tempMessage,
+.b3-snackbar {
+    z-index: 99999 !important;
+}
+
 // 嵌套/子级弹窗与确认框：后插入的弹窗层级永远层叠在前置弹窗之上，彻底消除遮挡
 .b3-dialog ~ .b3-dialog {
     z-index: 1050 !important;
@@ -667,8 +674,10 @@
 .b3-dialog ~ .b3-dialog ~ .b3-dialog {
     z-index: 1100 !important;
 }
+.b3-dialog:has(.b3-dialog__action button.b3-button--cancel),
+.b3-dialog--confirm,
 .b3-dialog.lv-top-confirm {
-    z-index: 2000 !important;
+    z-index: 99999 !important;
     .b3-dialog__container {
         border-radius: 14px;
         box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);

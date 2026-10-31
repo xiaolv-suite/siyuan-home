@@ -7,6 +7,13 @@ import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -279,14 +286,12 @@ export function formatMealPlanShoppingText(
         includeSufficient?: boolean;
     },
 ): string {
-    const title = options?.planTitle || "【家庭周餐单食材采购清单】";
-    const lines: string[] = [title];
-
-    lines.push(`📊 规划：${result.totalRecipesCount} 道菜谱 | 共需 ${result.totalIngredientsCount} 种食材`);
-    lines.push(`🛒 需采购：${result.deficitsOnly.length} 项（${result.missingCount} 项无库存，${result.deficitCount} 项库存不足）`);
-    if (result.sufficientCount > 0) {
-        lines.push(`✅ 已充足：${result.sufficientCount} 项已有囤货`);
-    }
+    const lines: string[] = [
+        options?.planTitle || "【家庭周餐单食材采购清单】",
+        `📊 规划：${result.totalRecipesCount} 道菜谱 | 共需 ${result.totalIngredientsCount} 种食材`,
+        `🛒 需采购：${result.deficitsOnly.length} 项（${result.missingCount} 缺，${result.deficitCount} 不足）`,
+    ];
+    if (result.sufficientCount > 0) lines.push(`✅ 已充足：${result.sufficientCount} 项已有囤货`);
     lines.push("──────────────────");
 
     if (result.deficitsOnly.length === 0) {
@@ -295,17 +300,15 @@ export function formatMealPlanShoppingText(
         lines.push("【待采购食材缺口】");
         for (const item of result.deficitsOnly) {
             const prefix = item.status === "missing" ? "❌ 缺" : "⚠️ 补";
-            const stockInfo = item.stockQty > 0 ? `（库存仅 ${item.stockQty}${item.unit}，缺 ${item.deficitQty}${item.unit}）` : `（需 ${item.deficitQty}${item.unit}）`;
+            const stockInfo = item.stockQty > 0 ? `（库存 ${item.stockQty}${item.unit}，缺 ${item.deficitQty}${item.unit}）` : `（需 ${item.deficitQty}${item.unit}）`;
             const recipeInfo = item.recipes.length > 0 ? ` ← 用于：${item.recipes.join("、")}` : "";
             lines.push(`${prefix} ${item.name} ×${item.deficitQty}${item.unit} ${stockInfo}${recipeInfo}`);
         }
     }
 
     if (options?.includeSufficient && result.sufficientCount > 0) {
-        lines.push("");
-        lines.push("【库存充裕食材（无需采购）】");
-        const sufficientItems = result.items.filter((i) => i.status === "sufficient");
-        for (const item of sufficientItems) {
+        lines.push("", "【库存充裕食材】");
+        for (const item of result.items.filter((i) => i.status === "sufficient")) {
             lines.push(`✔ ${item.name}（需 ${item.requiredQty}${item.unit} / 现有 ${item.stockQty}${item.unit}）`);
         }
     }
@@ -380,67 +383,42 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
     const render = () => {
         body.replaceChildren();
 
-        const topBar = document.createElement("div");
-        topBar.className = "lv-dialog-topbar";
-        const hint = document.createElement("span");
-        hint.className = "lv-caption";
-        hint.textContent = t("ledger.mealPlanSelectHint");
-
-        const btnGroup = document.createElement("div");
-        btnGroup.className = "lv-dialog-row__left";
-        const selectAllBtn = document.createElement("button");
-        selectAllBtn.className = "b3-button b3-button--text lv-btn-text-sm";
-        selectAllBtn.textContent = "全选";
+        const topBar = mk("div", "lv-dialog-topbar");
+        const btnGroup = mk("div", "lv-dialog-row__left");
+        const selectAllBtn = mk("button", "b3-button b3-button--text lv-btn-text-sm", "全选") as HTMLButtonElement;
         selectAllBtn.onclick = () => { for (const c of candidates) c.selected = true; render(); };
-        const selectNoneBtn = document.createElement("button");
-        selectNoneBtn.className = "b3-button b3-button--text lv-btn-text-sm";
-        selectNoneBtn.textContent = "清空";
+        const selectNoneBtn = mk("button", "b3-button b3-button--text lv-btn-text-sm", "清空") as HTMLButtonElement;
         selectNoneBtn.onclick = () => { for (const c of candidates) c.selected = false; render(); };
         btnGroup.append(selectAllBtn, selectNoneBtn);
-        topBar.append(hint, btnGroup);
+        topBar.append(mk("span", "lv-caption", t("ledger.mealPlanSelectHint")), btnGroup);
         body.appendChild(topBar);
 
-        const recipeBox = document.createElement("div");
-        recipeBox.className = "lv-recipe-box";
+        const recipeBox = mk("div", "lv-recipe-box");
 
         for (const c of candidates) {
-            const rowEl = document.createElement("div");
-            rowEl.className = "lv-dialog-row";
-
-            const left = document.createElement("label");
-            left.className = "lv-dialog-row__left";
+            const rowEl = mk("div", "lv-dialog-row");
+            const left = mk("label", "lv-dialog-row__left");
             left.style.cursor = "pointer";
-            const chk = document.createElement("input");
+            const chk = mk("input") as HTMLInputElement;
             chk.type = "checkbox";
             chk.checked = c.selected;
             chk.onchange = () => { c.selected = chk.checked; render(); };
-            const nameSpan = document.createElement("span");
-            nameSpan.className = "lv-dialog-name";
-            nameSpan.textContent = c.name;
-            const ingSpan = document.createElement("span");
-            ingSpan.className = "lv-caption lv-dialog-ellipsis-sm";
-            ingSpan.textContent = c.ingredientsRaw || "（未录食材）";
-            left.append(chk, nameSpan, ingSpan);
+            left.append(chk, mk("b", "lv-dialog-name", c.name), mk("span", "lv-caption lv-dialog-ellipsis-sm", c.ingredientsRaw || "（未录食材）"));
 
-            const right = document.createElement("div");
-            right.className = "lv-dialog-row__right";
+            const right = mk("div", "lv-dialog-row__right");
             right.style.display = "flex";
             right.style.alignItems = "center";
             right.style.gap = "4px";
-            const servLabel = document.createElement("span");
-            servLabel.className = "lv-caption";
-            servLabel.textContent = "份数:";
-            const servInput = document.createElement("input");
+            const servInput = mk("input", "b3-text-field lv-servings-input") as HTMLInputElement;
             servInput.type = "number";
             servInput.min = "1";
             servInput.max = "10";
             servInput.value = String(c.servings);
-            servInput.className = "b3-text-field lv-servings-input";
             servInput.onchange = () => {
                 c.servings = Math.max(1, parseInt(servInput.value, 10) || 1);
                 render();
             };
-            right.append(servLabel, servInput);
+            right.append(mk("span", "lv-caption", "份数:"), servInput);
             rowEl.append(left, right);
             recipeBox.appendChild(rowEl);
         }
@@ -448,10 +426,8 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
 
         const selectedList = candidates.filter((c) => c.selected);
         if (selectedList.length === 0) {
-            const emptyHint = document.createElement("div");
-            emptyHint.className = "lv-caption lv-dialog-empty";
+            const emptyHint = mk("div", "lv-caption lv-dialog-empty", t("ledger.mealPlanNoSelected"));
             emptyHint.style.padding = "16px 0";
-            emptyHint.textContent = t("ledger.mealPlanNoSelected");
             body.appendChild(emptyHint);
             copyBtn.disabled = true;
             addBtn.disabled = true;
@@ -470,11 +446,9 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
 
         const result = calculateMealPlanDeficits(dayItems, stockItems);
 
-        const metrics = document.createElement("div");
-        metrics.className = "lv-metric-grid-4";
+        const metrics = mk("div", "lv-metric-grid-4");
         const makeBox = (cap: string, v: string | number, sub?: string, colorClass?: string) => {
-            const d = document.createElement("div");
-            d.className = "lv-metric-item";
+            const d = mk("div", "lv-metric-item");
             d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
             return d;
         };
@@ -487,33 +461,23 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         );
         body.appendChild(metrics);
 
-        const listSec = document.createElement("div");
-        listSec.className = "lv-dialog-list";
+        const listSec = mk("div", "lv-dialog-list");
         listSec.style.maxHeight = "220px";
 
         for (const item of result.items) {
-            const row = document.createElement("div");
-            row.className = "lv-metric-item lv-dialog-row";
+            const row = mk("div", "lv-metric-item lv-dialog-row");
+            const left = mk("div", "lv-dialog-row__left");
 
-            const left = document.createElement("div");
-            left.className = "lv-dialog-row__left";
+            const badgeCls = item.status === "missing" ? "lv-badge red" : item.status === "deficit" ? "lv-badge yellow" : "lv-badge green";
+            const badgeText = item.status === "missing" ? t("ledger.mealPlanStatusMissing") : item.status === "deficit" ? t("ledger.mealPlanStatusDeficit") : t("ledger.mealPlanStatusSufficient");
 
-            const badge = document.createElement("span");
-            badge.className = item.status === "missing" ? "lv-badge red" : item.status === "deficit" ? "lv-badge yellow" : "lv-badge green";
-            badge.textContent = item.status === "missing" ? t("ledger.mealPlanStatusMissing") : item.status === "deficit" ? t("ledger.mealPlanStatusDeficit") : t("ledger.mealPlanStatusSufficient");
+            left.append(
+                mk("span", badgeCls, badgeText),
+                mk("b", "lv-dialog-name", item.name),
+                mk("span", "lv-caption lv-dialog-ellipsis-sm", t("ledger.mealPlanFromRecipes").replace("${recipes}", item.recipes.join("、"))),
+            );
 
-            const nameSpan = document.createElement("b");
-            nameSpan.className = "lv-dialog-name";
-            nameSpan.textContent = item.name;
-
-            const recipeSpan = document.createElement("span");
-            recipeSpan.className = "lv-caption lv-dialog-ellipsis-sm";
-            recipeSpan.textContent = t("ledger.mealPlanFromRecipes").replace("${recipes}", item.recipes.join("、"));
-
-            left.append(badge, nameSpan, recipeSpan);
-
-            const right = document.createElement("div");
-            right.className = "lv-dialog-row__right";
+            const right = mk("div", "lv-dialog-row__right");
             const deficitInfo = item.deficitQty > 0 ? `<b class="lv-tx-warn">缺 ${item.deficitQty}${item.unit}</b> · ` : "";
             right.innerHTML = `<span class="lv-caption">${deficitInfo}需 ${item.requiredQty}${item.unit} / 存 ${item.stockQty}${item.unit}</span>`;
 

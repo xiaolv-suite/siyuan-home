@@ -6,16 +6,11 @@
 
 import type { ColumnDef } from "./schema";
 
-const txt = (key: string): ColumnDef => ({ key, type: "text", labelKey: `field.${key}` });
-const dat = (key: string): ColumnDef => ({ key, type: "date", labelKey: `field.${key}` });
-const ast = (key: string): ColumnDef => ({ key, type: "mAsset", labelKey: `field.${key}` });
-const sel = (key: string, options?: string[], def?: string): ColumnDef => ({
-    key,
-    type: "select",
-    labelKey: `field.${key}`,
-    ...(options ? { options } : {}),
-    ...(def ? { default: def } : {}),
-});
+const fld = (key: string, type: any, extra?: any): ColumnDef => ({ key, type, labelKey: `field.${key}`, ...extra });
+const txt = (k: string) => fld(k, "text");
+const dat = (k: string) => fld(k, "date");
+const ast = (k: string) => fld(k, "mAsset");
+const sel = (k: string, options?: string[], def?: string) => fld(k, "select", { ...(options ? { options } : {}), ...(def ? { default: def } : {}) });
 
 export const CERTIFICATE_CATEGORY_OPTIONS = [
     "id", "hukou", "passport", "visa", "permit", "hkmo_permit", "tw_permit",
@@ -34,7 +29,7 @@ export interface CertificateProfile {
     columns: readonly ColumnDef[];
 }
 
-export const CERTIFICATE_PROFILE_COLUMNS: Record<CertificateCategory, readonly ColumnDef[]> = {
+const CERTIFICATE_PROFILE_COLUMNS: Record<CertificateCategory, readonly ColumnDef[]> = {
     id: [
         txt("x_cert_id_number"),
         txt("x_cert_id_address"),

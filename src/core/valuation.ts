@@ -9,6 +9,13 @@ import { getValuations } from "@/core/rowlog";
 import { calculateAssetDepreciation } from "./depreciation";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const mk = (t: string, c = "", s = "") => {
+    const el = document.createElement(t);
+    if (c) el.className = c;
+    if (s) el.textContent = s;
+    return el;
+};
+
 export interface AssetItemValuation {
     id: string;
     name: string;
@@ -298,69 +305,47 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
     bindDialogA11y({ dlg });
 
     if (report.activeItems === 0) {
-        const empty = document.createElement("div");
-        empty.className = "lv-caption fn__text-center";
-        empty.textContent = t("ledger.assetValuationEmpty");
-        body.appendChild(empty);
+        body.appendChild(mk("div", "lv-caption fn__text-center", t("ledger.assetValuationEmpty")));
         if (copyBtn) copyBtn.disabled = true;
         return;
     }
 
     const formatAmountStr = (n: number) => n.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    const metrics = document.createElement("div");
-    metrics.className = "lv-metric-grid-3";
-
-    const initCard = document.createElement("div");
-    initCard.className = "lv-metric-lg";
+    const metrics = mk("div", "lv-metric-grid-3");
+    const initCard = mk("div", "lv-metric-lg");
     initCard.innerHTML = `<span class="lv-caption">${t("ledger.assetInitialCost")}</span><b class="lv-num lv-metric-val">¥${formatAmountStr(report.totalInitialCost)}</b><span class="lv-caption">${report.activeItems} 件在役</span>`;
 
-    const valCard = document.createElement("div");
-    valCard.className = "lv-metric-lg";
+    const valCard = mk("div", "lv-metric-lg");
     valCard.innerHTML = `<span class="lv-caption">${t("ledger.assetCurrentValuation")}</span><b class="lv-num lv-metric-val lv-tx-data-accent">¥${formatAmountStr(report.totalCurrentValuation)}</b><span class="lv-caption">最新总估值</span>`;
 
-    const deltaCard = document.createElement("div");
+    const deltaCard = mk("div", "lv-metric-lg");
     const deltaColorClass = report.netValuationChange >= 0 ? "lv-tx-data-accent" : "lv-tx-warn";
-    deltaCard.className = "lv-metric-lg";
     deltaCard.innerHTML = `<span class="lv-caption">${t("ledger.assetNetChange")}</span><b class="lv-num lv-metric-val ${deltaColorClass}">${report.netValuationChange >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(report.netValuationChange))}</b><span class="lv-caption">${report.overallChangeRate >= 0 ? "+" : ""}${report.overallChangeRate}%</span>`;
 
     metrics.append(initCard, valCard, deltaCard);
     body.appendChild(metrics);
 
     if (report.depreciationEligibleCount > 0) {
-        const depBanner = document.createElement("div");
-        depBanner.className = "lv-notice-card lv-row-split";
-        depBanner.innerHTML = `
-            <span>📉 <b>财务直线折旧测算 (${report.depreciationEligibleCount} 件)</b></span>
-            <span>折后净残值: <b class="lv-tx-data-accent">¥${formatAmountStr(report.totalDepreciationNetValue)}</b> · 累计折旧: <b class="lv-tx-danger">¥${formatAmountStr(report.totalDepreciationAccumulated)}</b></span>
-        `;
+        const depBanner = mk("div", "lv-notice-card lv-row-split");
+        depBanner.innerHTML = `<span>📉 <b>财务直线折旧测算 (${report.depreciationEligibleCount} 件)</b></span><span>折后净残值: <b class="lv-tx-data-accent">¥${formatAmountStr(report.totalDepreciationNetValue)}</b> · 累计折旧: <b class="lv-tx-danger">¥${formatAmountStr(report.totalDepreciationAccumulated)}</b></span>`;
         body.appendChild(depBanner);
     }
 
     if (report.topValuedItems.length > 0) {
-        const sec = document.createElement("div");
+        const sec = mk("div");
         sec.innerHTML = `<div class="ft__on-surface lv-section-title">${t("ledger.assetTopValued")}</div>`;
-        const list = document.createElement("div");
-        list.className = "fn__flex-column";
+        const list = mk("div", "fn__flex-column");
 
         for (const it of report.topValuedItems) {
-            const rowEl = document.createElement("div");
-            rowEl.className = "lv-broken-link-row";
+            const rowEl = mk("div", "lv-broken-link-row");
+            const left = mk("div", "lv-broken-link-row__left");
+            left.append(
+                mk("b", "", it.name),
+                mk("span", "lv-caption", `原价: ¥${formatAmountStr(it.purchaseAmount)}${it.location ? ` · 位置: ${it.location}` : ""}${it.hasValuationLog ? ` · 估值日: ${it.latestValuationDate}` : ""}`)
+            );
 
-            const left = document.createElement("div");
-            left.className = "lv-broken-link-row__left";
-
-            const nameSpan = document.createElement("b");
-            nameSpan.textContent = it.name;
-
-            const metaSpan = document.createElement("span");
-            metaSpan.className = "lv-caption";
-            metaSpan.textContent = `原价: ¥${formatAmountStr(it.purchaseAmount)}${it.location ? ` · 位置: ${it.location}` : ""}${it.hasValuationLog ? ` · 估值日: ${it.latestValuationDate}` : ""}`;
-
-            left.append(nameSpan, metaSpan);
-
-            const right = document.createElement("div");
-            right.className = "lv-broken-link-row__right fn__text-right";
+            const right = mk("div", "lv-broken-link-row__right fn__text-right");
             const chgColor = it.valueDelta >= 0 ? "var(--lv-data-accent)" : "var(--lv-warn)";
             right.innerHTML = `<div><b class="lv-num lv-tx-data-accent">¥${formatAmountStr(it.currentValue)}</b></div><div class="lv-caption" style="color:${chgColor}">${it.valueDelta >= 0 ? "+" : "-"}¥${formatAmountStr(Math.abs(it.valueDelta))} (${it.valueChangeRate >= 0 ? "+" : ""}${it.valueChangeRate}%)</div>`;
 

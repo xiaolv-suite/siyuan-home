@@ -1142,6 +1142,246 @@ async function main() {
             `三数联动与记忆正常，通知置顶z=${zIndexCheck}，保存耗时${saveDuration}ms`,
         );
 
+        // ── Step 16: 全景生活台账全量扩充（宠物/会员/保单/房产/教育/药箱/人情/食品/维保/纯电双车）──
+        const seededStats = await page.evaluate(async () => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            const newSiYuanId = () => {
+                const now = new Date();
+                const pad = (n, len = 2) => String(n).padStart(len, "0");
+                const ymd = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                const rand = Math.random().toString(36).slice(2, 9);
+                return `${ymd}-${rand}`;
+            };
+            const post = async (url, data) => {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                });
+                return res.json();
+            };
+            const addRow = async (avId, title) => {
+                const desiredItemID = newSiYuanId();
+                await post("/api/av/addAttributeViewBlocks", {
+                    avID: avId,
+                    blockID: "",
+                    srcs: [{ blockID: "", content: title, isDetached: true, itemID: desiredItemID, id: desiredItemID }],
+                });
+                return desiredItemID;
+            };
+            const setCol = async (avId, colId, itemId, payload) => {
+                if (!avId || !colId || !itemId) return;
+                await post("/api/av/setAttributeViewBlockAttr", {
+                    avID: avId,
+                    keyID: colId,
+                    itemID: itemId,
+                    value: payload,
+                });
+            };
+
+            const targetModules = [
+                "pets", "memberships", "insurance", "assets-real",
+                "schooling", "medicine", "favors", "food", "house", "snippets", "contracts"
+            ];
+            for (const m of targetModules) {
+                if (!p.settings.enabledModules.includes(m)) {
+                    p.settings.enabledModules.push(m);
+                }
+                if (!p.settings.dbRefs?.[m]?.avId) {
+                    await p.repairModule(m);
+                }
+            }
+
+            const dAhead = (n) => {
+                const d = new Date(Date.now() + n * 86400000);
+                return {
+                    str: d.toISOString().slice(0, 10),
+                    ts: d.getTime(),
+                };
+            };
+
+            // 1. 添加纯电汽车与流水
+            const vRef = p.settings.dbRefs?.vehicles;
+            let evId = "";
+            if (vRef?.avId && vRef.columns) {
+                evId = await addRow(vRef.avId, "纯电轿车 Model Y");
+                if (evId) {
+                    if (vRef.columns.name) await setCol(vRef.avId, vRef.columns.name, evId, { type: "text", text: { content: "纯电轿车 Model Y" } });
+                    if (vRef.columns.plate) await setCol(vRef.avId, vRef.columns.plate, evId, { type: "text", text: { content: "京AD12345" } });
+                    if (vRef.columns.mileage) await setCol(vRef.avId, vRef.columns.mileage, evId, { type: "number", number: { content: 8500, isNotEmpty: true } });
+                    if (vRef.columns.note) await setCol(vRef.avId, vRef.columns.note, evId, { type: "text", text: { content: "最近充电：2026-10-25 · 45kWh · ¥27 · 已充满 · 8500km" } });
+                }
+            }
+
+            // 2. 批量写入各模块生活实体台账
+            const sampleLedgers = [
+                {
+                    mod: "pets",
+                    name: "金毛犬 · 豆豆",
+                    fields: {
+                        name: "金毛犬 · 豆豆",
+                        category: "dog",
+                        date: dAhead(-520).str,
+                        expiry: dAhead(45).str,
+                        location: "芯片号 984000123456789 / 牵引绳挂玄关",
+                        note: "每年12月接种狂犬疫苗与八联疫苗，每月体内外驱虫",
+                    },
+                },
+                {
+                    mod: "memberships",
+                    name: "iCloud+ 2TB 家庭云空间",
+                    fields: {
+                        name: "iCloud+ 2TB 家庭云空间",
+                        category: "digital",
+                        amount: 816,
+                        cycle: "year",
+                        expiry: dAhead(28).str,
+                        note: "6人家庭共享空间，自动按年续费扣款",
+                    },
+                },
+                {
+                    mod: "insurance",
+                    name: "尊享e生百万医疗险（小宝）",
+                    fields: {
+                        name: "尊享e生百万医疗险（小宝）",
+                        category: "medical",
+                        amount: 1280,
+                        cycle: "year",
+                        expiry: dAhead(35).str,
+                        note: "保额 300 万，众安在线承保，含特药直付与门诊绿通",
+                    },
+                },
+                {
+                    mod: "assets-real",
+                    name: "阳光花园三期 8-2-1201",
+                    fields: {
+                        name: "阳光花园三期 8-2-1201",
+                        category: "house",
+                        amount: 3680000,
+                        location: "不动产权证书 2021098877",
+                        note: "建筑面积 126.8㎡，契税与维修基金已缴清",
+                    },
+                },
+                {
+                    mod: "schooling",
+                    name: "小宝少儿英语启蒙周课",
+                    fields: {
+                        name: "小宝少儿英语启蒙周课",
+                        category: "language",
+                        amount: 4800,
+                        cycle: "quarter",
+                        expiry: dAhead(60).str,
+                        note: "每周六上午 10:00-11:30，剩余 16 课时",
+                    },
+                },
+                {
+                    mod: "medicine",
+                    name: "美林 布洛芬混悬液 100ml",
+                    fields: {
+                        name: "美林 布洛芬混悬液 100ml",
+                        category: "fever",
+                        location: "客厅电视柜应急小药箱",
+                        expiry: dAhead(90).str,
+                        note: "开封后常温阴凉存放，儿童对症退热，38.5℃以上酌情服用",
+                    },
+                },
+                {
+                    mod: "favors",
+                    name: "表姐婚礼礼金",
+                    fields: {
+                        name: "表姐婚礼礼金",
+                        category: "wedding",
+                        amount: 2000,
+                        date: dAhead(-25).str,
+                        note: "微信转账礼金，回礼喜糖礼盒已收",
+                    },
+                },
+                {
+                    mod: "food",
+                    name: "澳洲安格斯西冷牛排 (4片装)",
+                    fields: {
+                        name: "澳洲安格斯西冷牛排 (4片装)",
+                        category: "frozen",
+                        location: "厨房冰箱负18度冷冻室二层",
+                        expiry: dAhead(60).str,
+                        note: "已解冻2片，剩余2片密封存放",
+                    },
+                },
+                {
+                    mod: "house",
+                    name: "中央空调滤网清洗与管道杀菌",
+                    fields: {
+                        name: "中央空调滤网清洗与管道杀菌",
+                        category: "maintenance_h",
+                        pay_day: dAhead(20).str,
+                        cycle: "year",
+                        note: "大金官方售后上门服务，保修单在主卧保险箱",
+                    },
+                },
+                {
+                    mod: "snippets",
+                    name: "智能门锁与入户总水阀指引",
+                    fields: {
+                        name: "智能门锁与入户总水阀指引",
+                        category: "other_sn",
+                        content: "管理员密码已存主卧保险箱，入户总水阀在厨房水槽下方左侧阀门",
+                    },
+                },
+                {
+                    mod: "contracts",
+                    name: "房屋租赁与车位服务协议",
+                    fields: {
+                        name: "房屋租赁与车位服务协议",
+                        category: "service",
+                        amount: 3600,
+                        expiry: dAhead(40).str,
+                        note: "地下B2-088号车位长租合同，一年一签",
+                    },
+                },
+            ];
+
+            let rowCount = 0;
+            for (const item of sampleLedgers) {
+                const ref = p.settings.dbRefs?.[item.mod];
+                if (!ref?.avId || !ref.columns) continue;
+                const itemId = await addRow(ref.avId, item.name);
+                if (!itemId) continue;
+                rowCount++;
+                for (const [k, v] of Object.entries(item.fields)) {
+                    const colId = ref.columns[k];
+                    if (!colId) continue;
+                    if (typeof v === "number") {
+                        await setCol(ref.avId, colId, itemId, { type: "number", number: { content: v, isNotEmpty: true } });
+                    } else if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        await setCol(ref.avId, colId, itemId, { type: "date", date: { content: new Date(v).getTime(), isNotEmpty: true, isNotTime: true } });
+                    } else if (typeof v === "string") {
+                        await setCol(ref.avId, colId, itemId, { type: "text", text: { content: v } });
+                    }
+                }
+            }
+
+            await p.saveData?.("settings.json", p.settings);
+            await p.refreshHub?.(undefined, true);
+            await p.syncJournalSafely?.();
+
+            return {
+                enabledCount: p.settings.enabledModules?.length || 0,
+                addedRows: rowCount,
+                hasEv: Boolean(evId),
+                remindersCount: p.scan?.reminders?.length || 0,
+            };
+        });
+
+        // 切回总览首页检视全景家庭卡片与丰富提醒
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(1200);
+        await page.screenshot({ path: path.join(SHOT_DIR, "16-rich-family-dashboard.png") });
+        rec(
+            "Step 16 · 全景生活台账全量扩充（宠物/会员/保单/房产/教育/药箱/人情/食品/维保/纯电双车）",
+            seededStats.enabledCount >= 18 && seededStats.addedRows >= 10,
+            `开启模块=${seededStats.enabledCount}个, 新增台账=${seededStats.addedRows}行, 提醒项=${seededStats.remindersCount}个`,
+        );
+
         await browser.close();
         browser = undefined;
 

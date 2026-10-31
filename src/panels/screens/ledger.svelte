@@ -38,6 +38,7 @@
     import { onDestroy, untrack } from "svelte";
     import { panelSession, type TableDensity } from "../panel-session";
     import { getGroupedModules } from "@/core/modules";
+    import { createDefaultGuestConfig, filterGuestVisibleModules } from "@/core/guest-mode";
     import { getQuickTemplates } from "@/core/quick-templates";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
@@ -47,9 +48,11 @@
     // 已挂载台账页的下拉不出现新模块；version 驱动重算修复
     const ledgers = $derived.by(() => {
         void version;
-        return plugin.settings.enabledModules
-            .filter((id: string) => id !== "members")
-            .map((id: string) => ({ id, ref: plugin.settings.dbRefs[id] }));
+        const raw = (plugin.settings.enabledModules ?? []).filter((id: string) => id !== "members");
+        const visible = plugin.runtime?.guestModeActive
+            ? filterGuestVisibleModules(raw, createDefaultGuestConfig(true))
+            : raw;
+        return visible.map((id: string) => ({ id, ref: plugin.settings.dbRefs[id] }));
     });
     // 初始快照为设计意图（activeLedger 由模块卡/快速记录预选）
     // svelte-ignore state_referenced_locally

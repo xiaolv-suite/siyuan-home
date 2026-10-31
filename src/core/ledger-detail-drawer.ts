@@ -117,6 +117,10 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     }
 
     function beginInlineEdit(col: any, keyID: string, line: HTMLElement, valueEl: HTMLElement) {
+        if (plugin.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         import("./inline-edit").then(({ beginInlineEdit: runInlineEdit }) => {
             runInlineEdit({
                 col,
@@ -448,6 +452,10 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     }
 
     function buildEdit() {
+        if (plugin.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         import("./drawer-actions").then(({ renderDrawerEditMode }) => {
             renderDrawerEditMode({
                 body,

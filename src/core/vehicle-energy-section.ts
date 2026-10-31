@@ -255,7 +255,6 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             add.onclick = () => openEnergyForm(kind);
             head.append(heading, add);
             section.appendChild(head);
-            registerVehicleAction(kind, add);
 
             const statsGrid = document.createElement("div");
             statsGrid.className = "lv-diag-grid";
@@ -395,6 +394,9 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                 line.append(desc, edit, del); section.appendChild(line);
             }
             energyWrap.appendChild(section);
+            // 必须在 section 已挂入 energyWrap（处于 body 树内）之后再注册快捷动作，
+            // 否则从车辆卡片点击“记加油/记充电”进入抽屉时 body.contains(add) 为 false 会直接丢弃请求！
+            registerVehicleAction(kind, add);
         }
     }
     renderEnergy();

@@ -24,6 +24,10 @@
 
     async function addMemo() {
         if (savingMemo) return;
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (!memoTitle.trim()) {
             memoInput?.focus();
             showMessage(t("memo.titleRequired"), 4000, "info");

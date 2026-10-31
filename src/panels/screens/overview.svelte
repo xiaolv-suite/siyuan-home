@@ -11,6 +11,7 @@
     import ActivityFeed from "../activity-feed.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { getWeeklyPulse, getFamilyAchievements } from "@/core/pulse-and-achievements";
+    import { createDefaultGuestConfig, filterGuestReminders, filterGuestVisibleModules } from "@/core/guest-mode";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import OverviewPulseStrip from "../overview-pulse-strip.svelte";
     import OverviewStartGuide from "./overview-start-guide.svelte";
@@ -53,7 +54,8 @@
     // version（H02）：hubListeners 触发时递增，驱动以下 $derived 重算（plugin.* 为普通对象引用，本身不追踪）
     const allReminders = $derived.by(() => {
         void version;
-        return plugin.scan?.reminders ?? [];
+        const list = plugin.scan?.reminders ?? [];
+        return plugin.runtime?.guestModeActive ? filterGuestReminders(list, createDefaultGuestConfig(true)) : list;
     });
     const weeklyPulse = $derived.by(() => {
         void version;
@@ -119,9 +121,12 @@
     const quickModuleIds = ["vehicles", "certs", "medicine", "memberships", "favors", "media", "health", "insurance", "stock", "parenting", "members"];
     const quickModules = $derived.by(() => {
         void version;
-        const enabled = new Set(plugin.settings.enabledModules);
+        const rawEnabled = plugin.runtime?.guestModeActive
+            ? filterGuestVisibleModules(plugin.settings.enabledModules ?? [], createDefaultGuestConfig(true))
+            : (plugin.settings.enabledModules ?? []);
+        const enabled = new Set(rawEnabled);
         const prioritized = quickModuleIds.filter((id) => enabled.has(id));
-        const additional = plugin.settings.enabledModules.filter((id) => enabled.has(id) && !quickModuleIds.includes(id) && id !== "adhoc");
+        const additional = rawEnabled.filter((id) => enabled.has(id) && !quickModuleIds.includes(id) && id !== "adhoc");
         return [...prioritized, ...additional].filter((id) => id === "members" || !!plugin.schemaCatalog?.[id]?.capture?.length);
     });
     let quickExpanded = $state(false);

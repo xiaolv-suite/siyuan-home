@@ -1,5 +1,5 @@
 > **内测说明**：小驴管家（Lv Home）功能持续稳健迭代中。欢迎体验并通过交流 QQ 群 **871707735** 反馈建议与功能需求。
-> 当前版本 **v0.5.186** 已通过全仓 175 个测试套件、1,151 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
+> 当前版本 **v0.5.187** 已通过全仓 175 个测试套件、1,151 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.186-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.187-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
@@ -182,17 +182,18 @@
 
 ## 📝 更新日志（Changelog）
 
-### v0.5.186（2026-10-31 · 当前版本）
-- **修复（经全新隔离工作区 Chrome 全链路实测检出并根治）**：
-  - 修复生产构建 Terser `booleans_as_integers: true` 将 `createIfNotExist`/`isDetached`/`isNotEmpty` 压缩为 `1/0` 导致思源 Go 内核拒收全新建库请求的致命缺陷，并在 `smoke-test` 增加静态守卫；
-  - 修复思源 Go 内核空单元格（`isNotEmpty: false` / `-62135596800000`）被误判为 `0001-01-01` 派生大批量幽灵逾期提醒的严重缺陷；
-  - 修复切换到空台账或新开启未建库模块时 `ledger.svelte` `$effect` 同步追踪 `rows` 引起 `effect_update_depth_exceeded` 崩溃的问题；
-  - 修复新手向导预置成员未写入 `members` 台账（`avItemId` 为空导致无法被选）、新建证件弹窗遗漏专属标量字段（身份证号/存放位置）、快速记录日常流水保存后因 `saving` 时序锁不自动关窗、总览「东西放哪了」跨屏 `setTimeout` 竞态丢点击，以及访客模式盾牌按钮未订阅响应式 `version` 的问题。
-- **新增**：
-  - 新增零污染独立工作区全真实浏览器自测脚本 `scripts/e2e-isolated.mjs`（支持 `--keep` 后台常驻与 `--headed` 可视 Chrome 窗口演示），覆盖从冷启动引导到 F5 重载的 13 步真实家庭使用闭环。
+### v0.5.187（2026-10-31 · 当前版本）
+- **修复**：
+  - 修复暗色主题下主操作按钮（`.lv-btn.primary`）、激活筛选胶囊（`.lv-preset-tag.active`）、左侧栏主按钮与对话框确认按钮白字配浅蓝底（对比度仅 `1.86:1`）的问题，新增 `--lv-on-accent` / `--lv-on-data` 令牌使暗色对比度提升至 `9.8:1`；
+  - 修复车辆卡片点击「记加油 / 记充电」只打开详情抽屉而未弹出录入表单的问题（将 `registerVehicleAction` 移至节点挂载入 `body` 树之后执行）；
+  - 修复囤货（`stock`）、药箱（`medicine`）、购物（`shopping`）主表未优先展示 `qty` / `stock_qty` 列导致行内 `+/-` 数量步进器不可见的问题；
+  - 补齐「🛡 只读访客模式」在总览、提醒中枢、家庭台账、快速记录与行内编辑的完整白名单过滤与写操作拦截闭环；
+  - 通过 `MutationObserver` 自动为抽屉异步挂载的子区块按钮补齐 `type="button"`，并将次级筛选胶囊、展开摘要、排序表头与活动流热区高度统一提升至 `≥24px`。
 
 <details>
-<summary><b>展开查看历史版本更新记录（v0.5.185 及更早版本）</b></summary>
+<summary><b>展开查看历史版本更新记录（v0.5.186 及更早版本）</b></summary>
+
+- **v0.5.186（2026-10-31）**：新增独立隔离工作区真实 Chrome 自测套件 `scripts/e2e-isolated.mjs`，修复 Terser `booleans_as_integers` 致 Go 内核拒绝建库、Go 空单元格 `-62135596800000` 幽灵逾期、切空台账 `$effect` 崩溃、向导成员缺 `avItemId`、新建证件漏专属字段等 8 项生产级缺陷。
 
 - **v0.5.185（2026-10-31）**：收口唯一台账写入网关（`ledger-writer.ts`）、打通快捷加油/血压/家务打卡与抽屉互通、精简界面冗余侧板与双份导航、统一 36 个业务弹窗焦点管理并以零依赖 QR 编码器瘦身。
 

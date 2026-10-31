@@ -1,6 +1,7 @@
 <script lang="ts">
     import UiIcon from "@/ui/icon.svelte";
     import { MODULE_GROUPS, getModule } from "@/core/modules";
+    import { createDefaultGuestConfig, filterGuestVisibleModules } from "@/core/guest-mode";
     import { formatLocalDate } from "@/core/date-display";
     import type { ModuleGroupId } from "@/types";
 
@@ -38,7 +39,8 @@
 
     const moduleCards = $derived.by(() => {
         void version;
-        return (plugin.settings.enabledModules ?? []).filter((id: string) => id !== "members");
+        const base = (plugin.settings.enabledModules ?? []).filter((id: string) => id !== "members");
+        return plugin.runtime?.guestModeActive ? filterGuestVisibleModules(base, createDefaultGuestConfig(true)) : base;
     });
 
     let moduleGroupFilter = $state<ModuleGroupId | "all">("all");

@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.186** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.187** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.186-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.187-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
@@ -182,17 +182,18 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.186 (2026-10-31 · Current Version)
-- **Fixed (Uncovered & verified via cold-start isolated Chrome dogfooding)**:
-  - Disabled Terser `booleans_as_integers: true` which turned `createIfNotExist`/`isDetached`/`isNotEmpty` into `1/0` and caused SiYuan's Go `encoding/json` kernel to reject fresh database provisioning; added a static guard in `smoke-test.mjs`;
-  - Guarded against SiYuan Go kernel empty `date`/`number` cells (`isNotEmpty: false` / `-62135596800000`) generating phantom `0001-01-01` overdue reminders;
-  - Fixed `effect_update_depth_exceeded` crash in `ledger.svelte` when switching to empty or unprovisioned ledgers by wrapping `load()` in `untrack`;
-  - Synced Onboarding-created members to the `members` AttributeView (`avItemId`), restored certificate profile scalar fields (`x_cert_id_number`, `location`, etc.) in `LedgerRecordModal`, fixed Quick Event Flow modal auto-close timing, eliminated the Overview Location Search cross-tab `setTimeout` race, and wired reactive `version` tracking on the Guest Mode toggle.
-- **Added**:
-  - Added `scripts/e2e-isolated.mjs` (`--keep`, `--headed`) to boot an isolated SiYuan kernel on a random loopback port and run a 13-step real-browser household verification suite from cold start through `F5` reload.
+### v0.5.187 (2026-10-31 · Current Version)
+- **Fixed**:
+  - Fixed Dark Mode contrast on primary buttons (`.lv-btn.primary`), active filter pills (`.lv-preset-tag.active`), rail brand/primary buttons, and dialog primary actions (`1.86:1` ➔ `9.8:1` via `--lv-on-accent` / `--lv-on-data`);
+  - Fixed Vehicle Card quick `Fuel` / `Charging` action buttons failing to open the entry form dialog due to `registerVehicleAction` running before DOM insertion;
+  - Prioritized `qty` and `stock_qty` in `computeTableKeys` so `stock`, `medicine`, and `shopping` tables display inline `+/-` quantity steppers;
+  - Wired end-to-end Guest Mode module/reminder filtering (`filterGuestVisibleModules`, `filterGuestReminders`) and write blocking across Overview, Reminders, Ledger, Quick Capture, and inline editors;
+  - Added `MutationObserver` button `type="button"` normalization in `bindDialogA11y` and raised secondary interactive control hit targets to `≥24px`.
 
 <details>
-<summary><b>View Historical Releases (v0.5.185 and earlier)</b></summary>
+<summary><b>View Historical Releases (v0.5.186 and earlier)</b></summary>
+
+- **v0.5.186 (2026-10-31)**: Added `scripts/e2e-isolated.mjs` cold-workspace Chrome e2e suite and fixed 8 production defects (Terser `booleans_as_integers`, Go empty-cell phantom overdue alerts, empty ledger `$effect` loop, onboarding member `avItemId` sync, certificate scalar fields, Quick Event Flow auto-close, Overview location search race, and Guest Mode reactivity).
 
 - **v0.5.185 (2026-10-31)**: Unified cross-module ledger writes via `ledger-writer.ts`, aligned Quick Capture logs with drawers, streamlined UI shell, standardized 100% modal focus traps via `modal-shell.ts`, and inlined a zero-dependency ISO 18004 QR encoder.
 

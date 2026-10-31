@@ -281,7 +281,8 @@
         margin: 0;
     }
     .lv-th-sort-btn {
-        padding: 0 2px;
+        min-height: 24px;
+        padding: 2px 4px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;

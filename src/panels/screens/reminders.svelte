@@ -9,6 +9,7 @@
     import { localDateKey } from "@/core/hub/rule";
     import { toggleReminderPin } from "@/core/hub/actions";
     import { isReminderPinned } from "@/core/hub/runtime";
+    import { createDefaultGuestConfig, filterGuestReminders } from "@/core/guest-mode";
     import Calendar from "@/panels/screens/calendar.svelte";
     import ReminderHeroBar from "@/panels/screens/reminder-hero-bar.svelte";
     import ReminderGroupsList from "@/panels/screens/reminder-groups-list.svelte";
@@ -55,7 +56,8 @@
     // version（H02）：hub 变更时递增，驱动派生重算（plugin.* 为普通对象引用）
     const all = $derived.by(() => {
         void version;
-        return plugin.scan?.reminders ?? [];
+        const list = plugin.scan?.reminders ?? [];
+        return plugin.runtime?.guestModeActive ? filterGuestReminders(list, createDefaultGuestConfig(true)) : list;
     });
     const overdueCount = $derived(all.filter((r: Reminder) => r.level === "overdue").length);
     const permissionDenied = $derived((plugin.scan?.errors ?? []).some((error) => error.moduleId === "permission"));
@@ -202,6 +204,10 @@
 
     let reminderBusy = $state<Set<string>>(new Set());
     async function runReminderAction(action: () => Promise<void>, key = "global") {
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (reminderBusy.has(key)) return;
         reminderBusy = new Set([...reminderBusy, key]);
         try { await action(); }

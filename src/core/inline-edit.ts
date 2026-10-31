@@ -183,6 +183,11 @@ const adjustingRowKeys = new Set<string>();
 /** 台账列表数量/库存快速 +1 / -1 增量微调 */
 export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Promise<number | undefined> {
     const { row, fieldKey, delta, ref, active, plugin, showMessageFn } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        const msg = plugin?.i18n?.["guest.writeBlocked"] ? String(plugin.i18n["guest.writeBlocked"]) : "访客只读模式运行中，已拦截写入操作";
+        showMessageFn(msg, 3500, "info");
+        return undefined;
+    }
     if (!ref?.avId || !ref.columns?.[fieldKey]) return undefined;
     const lockKey = `${row.itemID}:${fieldKey}`;
     if (adjustingRowKeys.has(lockKey)) return undefined;

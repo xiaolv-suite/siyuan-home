@@ -260,7 +260,7 @@
     .lv-member-sync-error { color: var(--lv-danger); }
     .lv-member-birthday { color: var(--lv-accent); background: var(--lv-accent-soft); }
     .lv-drag-over { outline: 2px dashed var(--lv-accent); outline-offset: -2px; }
-    .lv-person-alert { background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-align: left; display: inline-flex; align-items: center; gap: 6px; }
+    .lv-person-alert { background: none; border: none; min-height: 24px; padding: 2px 0; cursor: pointer; font: inherit; text-align: left; display: inline-flex; align-items: center; gap: 6px; }
     .lv-person-alert-arrow { color: var(--lv-warn); font-size: 11px; }
     .lv-person-expanded { border-top: 1px solid var(--lv-line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
     .lv-person-actions-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }

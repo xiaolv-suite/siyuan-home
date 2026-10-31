@@ -43,12 +43,14 @@
   // 2. 两色分工：主操作色 (深海蓝，负责按钮/选中/导航)
   --lv-accent: #315372;
   --lv-accent-2: #213c54;
+  --lv-on-accent: #ffffff;
   --lv-accent-soft: rgba(49, 83, 114, .10);
   --lv-accent-glow: rgba(49, 83, 114, .18);
   --lv-accent-line: rgba(49, 83, 114, .26);
   // 2. 两色分工：数据语义色 (从 208° 偏移 26° 至 182° 湖翠青，专职成绩/连续/热力等正向数据)
   --lv-data-accent: #0d9488;
   --lv-data-2: #0f766e;
+  --lv-on-data: #ffffff;
   --lv-data-soft: rgba(13, 148, 136, .10);
   --lv-data-glow: rgba(13, 148, 136, .18);
   --lv-data-line: rgba(13, 148, 136, .26);
@@ -103,11 +105,13 @@
   --lv-shadow-pop: 0 8px 24px -2px rgba(0, 0, 0, 0.5);
   --lv-accent: #9bc2ea;
   --lv-accent-2: #7fa8d4;
+  --lv-on-accent: #0b1524;
   --lv-accent-soft: rgba(155, 194, 234, .16);
   --lv-accent-glow: rgba(155, 194, 234, .24);
   --lv-accent-line: rgba(155, 194, 234, .35);
   --lv-data-accent: #5eead4;
   --lv-data-2: #2dd4bf;
+  --lv-on-data: #042f2e;
   --lv-data-soft: rgba(94, 234, 212, .16);
   --lv-data-glow: rgba(94, 234, 212, .24);
   --lv-data-line: rgba(94, 234, 212, .35);
@@ -278,7 +282,7 @@
       display: grid;
       place-items: center;
       background: var(--lv-accent);
-      color: #fff;
+      color: var(--lv-on-accent);
       margin-bottom: 16px;
       box-shadow: var(--lv-shadow-pop);
       cursor: pointer;
@@ -357,7 +361,7 @@
         cursor: pointer;
         transition: all var(--lv-t-fast) var(--lv-ease);
         &:hover { background: var(--lv-surface-2); color: var(--lv-tx); }
-        &.is-primary { background: var(--lv-accent); color: #fff; box-shadow: var(--lv-shadow-pop); }
+        &.is-primary { background: var(--lv-accent); color: var(--lv-on-accent); box-shadow: var(--lv-shadow-pop); }
       }
     }
   }
@@ -446,7 +450,7 @@
   .lv-avatar-wrap { display: inline-flex; align-items: center; justify-content: center; height: 36px; }
   // R54：品牌标记保留单一实体色，把渐变和阴影留给真正的浮层，顶栏因此更安静。
   .lv-logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px;
-    background: var(--lv-accent); color: #fff;
+    background: var(--lv-accent); color: var(--lv-on-accent);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28); }
   .lv-logo-mark { display: block; transform: translateY(-1px); font-size: 20px; line-height: 1; font-weight: 500; }
   .lv-appbrand-t { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.18;
@@ -691,7 +695,7 @@
       box-shadow: 0 2px 8px -2px var(--lv-data-glow);
       .lv-pulse-weekday { color: var(--lv-data-accent); font-weight: 600; }
       .lv-pulse-day { color: var(--lv-data-accent); }
-      .lv-pulse-status { background: var(--lv-data-accent); color: #ffffff; }
+      .lv-pulse-status { background: var(--lv-data-accent); color: var(--lv-on-data); }
     }
   }
   .lv-pulse-weekday { font-size: 11px; color: var(--lv-tx-3); font-weight: 500; }
@@ -780,9 +784,9 @@
     border-radius: var(--lv-r-2);
   }
   .lv-hero-open { min-height: 34px; height: 34px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
-    border-radius: var(--lv-r-2); background: var(--lv-accent); border: 1px solid transparent; color: #ffffff; font-weight: 600; box-shadow: 0 2px 6px var(--lv-accent-glow);
+    border-radius: var(--lv-r-2); background: var(--lv-accent); border: 1px solid transparent; color: var(--lv-on-accent); font-weight: 600; box-shadow: 0 2px 6px var(--lv-accent-glow);
     cursor: pointer; user-select: none; transition: all var(--lv-t-fast) var(--lv-ease);
-    &:hover { background: var(--lv-accent); color: #ffffff; border-color: transparent; filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 12px var(--lv-accent-glow); }
+    &:hover { background: var(--lv-accent); color: var(--lv-on-accent); border-color: transparent; filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 12px var(--lv-accent-glow); }
     &:active { transform: translateY(0) scale(.98); }
     &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; } }
   .lv-hero-capture { min-height: 34px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;
@@ -834,9 +838,9 @@
     &[aria-busy="true"], &.is-loading { opacity: .75; cursor: wait; pointer-events: none; }
     
     // 一级主操作 (Primary)
-    &.primary { background: var(--lv-accent); border-color: transparent; color: #ffffff;
+    &.primary { background: var(--lv-accent); border-color: transparent; color: var(--lv-on-accent);
       font-weight: 600; box-shadow: 0 2px 6px var(--lv-accent-glow);
-      &:hover { background: var(--lv-accent); color: #ffffff; border-color: transparent; filter: brightness(1.08); box-shadow: 0 4px 12px var(--lv-accent-glow); transform: translateY(-1px); }
+      &:hover { background: var(--lv-accent); color: var(--lv-on-accent); border-color: transparent; filter: brightness(1.08); box-shadow: 0 4px 12px var(--lv-accent-glow); transform: translateY(-1px); }
       &:active { transform: translateY(0) scale(.98); box-shadow: 0 1px 3px var(--lv-accent-glow); }
       &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; } }
     // 三级幽灵操作 (Ghost)
@@ -969,7 +973,7 @@
     .lv-rem-expand-btn {
       display: inline-flex; align-items: center; justify-content: center;
       border: 1px solid transparent; background: transparent; color: var(--lv-tx-3); cursor: pointer;
-      width: 20px; height: 20px; padding: 0; margin-left: 6px; font-size: 10px; line-height: 1;
+      width: 24px; height: 24px; padding: 0; margin-left: 6px; font-size: 10px; line-height: 1;
       border-radius: 6px; vertical-align: middle;
       transition: all var(--lv-t-fast) var(--lv-ease);
       &:hover { background: var(--lv-surface); border-color: var(--lv-line); color: var(--lv-tx); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
@@ -983,7 +987,7 @@
         background: var(--lv-accent-soft); color: var(--lv-accent); border-color: var(--lv-accent); font-weight: 600;
       }
       &.is-pinned {
-        background: var(--lv-accent); color: #ffffff; border-color: transparent; font-weight: 600;
+        background: var(--lv-accent); color: var(--lv-on-accent); border-color: transparent; font-weight: 600;
       }
       &.is-snooze-heavy {
         background: var(--lv-warn-soft); color: var(--lv-warn); border-color: var(--lv-warn); font-weight: 500; margin-right: 4px;
@@ -1009,8 +1013,9 @@
       &:hover { filter: brightness(1.06); }
     }
     .lv-plan-tag-add {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px;
       cursor: pointer; border: none; background: none; font-size: 11px; color: var(--lv-tx-3);
-      padding: 0 3px; margin-left: 3px; opacity: 0.65;
+      padding: 0 4px; margin-left: 3px; opacity: 0.65;
       transition: opacity var(--lv-t-fast) var(--lv-ease);
       &:hover { opacity: 1; }
     }
@@ -1355,7 +1360,7 @@
     border: 1px solid var(--lv-line); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
     user-select: none; line-height: 1.25;
     &:hover { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); }
-    &.active { background: var(--lv-accent); color: #fff; border-color: var(--lv-accent); font-weight: 500; }
+    &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 500; }
   }
   .lv-form-group {
     display: flex;
@@ -1858,12 +1863,13 @@
   }
   .lv-preset-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .lv-preset-tag {
-    font-size: 11.5px; padding: 2px 8px; border-radius: var(--lv-r-1, 6px);
+    display: inline-flex; align-items: center; min-height: 24px;
+    font-size: 11.5px; padding: 3px 9px; border-radius: var(--lv-r-1, 6px);
     background: var(--lv-surface); color: var(--lv-tx-2); border: 1px solid var(--lv-line);
     cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease); user-select: none; line-height: 1.25;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     &:hover { background: var(--lv-surface-2); border-color: var(--lv-accent); color: var(--lv-accent); transform: translateY(-1px); }
-    &.active { background: var(--lv-accent); color: #fff; border-color: var(--lv-accent); font-weight: 550; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25); }
+    &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 550; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25); }
   }
   .lv-batch-bar {
     position: sticky; bottom: 16px; margin: 16px auto 0;
@@ -1898,7 +1904,7 @@
     border-radius: var(--lv-r-full, 999px); background: var(--lv-surface-2); color: var(--lv-tx-2);
     border: 1px solid var(--lv-line); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); }
-    &.active { background: var(--lv-accent); color: #fff; border-color: var(--lv-accent); font-weight: 500; }
+    &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 500; }
   }
   .lv-event-card {
     padding: 14px 16px; border: 1px solid var(--lv-line); border-radius: var(--lv-r-2);
@@ -2541,7 +2547,7 @@
         &.out { opacity: .4; }
         &.sel { border-color: var(--lv-accent); background: var(--lv-accent-soft); box-shadow: 0 0 0 1px var(--lv-accent-line); }
         .d { font-size: 12px; font-weight: 600; min-width: 22px; height: 22px; border-radius: 11px; display: inline-grid; place-items: center; padding: 0 2px; }
-        .d.today { background: var(--lv-accent); color: var(--b3-theme-on-primary, #ffffff); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28); }
+        .d.today { background: var(--lv-accent); color: var(--lv-on-accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28); }
         .d.has-overdue:not(.today) { box-shadow: 0 0 0 1.5px var(--lv-danger); color: var(--lv-danger); font-weight: 700; }
         .dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px;
             // 251 波：事件点带同色柔光晕（对齐原型 .sev 的 halo 语言），暗色下不再难以辨认
@@ -2655,7 +2661,7 @@
 .lv-start-guide__step b { font-size: 12.5px; font-weight: 600; }
 .lv-start-guide__step div span { margin-top: 3px; color: var(--lv-tx-3); font-size: 11.5px; line-height: 1.45; }
 .lv-start-guide__step button { grid-column: 2; justify-self: start; margin-top: 5px; padding: 5px 9px; font-size: 11.5px; }
-.lv-start-guide__num { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--lv-accent); color: #ffffff; font-size: 12px; font-weight: 700; }
+.lv-start-guide__num { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--lv-accent); color: var(--lv-on-accent); font-size: 12px; font-weight: 700; }
 @container lv-home (max-width: 760px) {
   .lv-start-guide { padding: 0; }
   .lv-start-guide__summary { padding: 10px 12px; }

@@ -1,3 +1,17 @@
+## v0.5.187 2026-10-31（本地就绪版）
+
+### 隔离环境全界面 DOM/按钮/暗色/访客模式二轮深挖与 6 类交互及功能缺陷清零
+
+#### 🛠️ 修复（Fixed）
+- **[P0 级] 暗色模式主按钮与激活胶囊对比度修复（`1.86:1` ➔ `9.8:1`）**：在 `src/styles/design-system.scss` 与 `src/index.scss` 引入 `--lv-on-accent`（亮色 `#ffffff` / 暗色 `#0b1524`）与 `--lv-on-data`，彻底解决暗色模式下浅蓝主色（`#9bc2ea`）叠加白字难以辨认的视觉缺陷；
+- **[P0 级] 车辆卡片「记加油 / 记充电」快捷按钮断链修复**：修复 `src/core/vehicle-energy-section.ts` 在 `section` 尚未挂入 `energyWrap` 前过早调用 `registerVehicleAction(kind, add)` 导致 `body.contains(add)` 为 `false` 丢弃点击的问题；
+- **[P1 级] 囤货/药箱/购物主表 `qty` 与 `stock_qty` 行内步进列恢复展示**：在 `src/core/ledger-view-model.ts#computeTableKeys` 的高优展示序列中补入 `"qty"` 与 `"stock_qty"`，恢复表格行内 `+/-` 快速数量微调按钮；
+- **[P1 级] 访客只读模式（Guest Mode）全链路隔离与写拦截闭环**：在 `overview.svelte`、`overview-module-grid.svelte`、`reminders.svelte`、`ledger.svelte` 接入 `filterGuestVisibleModules` 与 `filterGuestReminders` 白名单过滤，并在 `tab-panel.svelte`、`overview-quick-memo.svelte`、`reminders.svelte`、`inline-edit.ts`、`ledger-detail-drawer.ts` 补齐只读写保护拦截；
+- **[P2 级] 弹窗异步子节点按钮 `type="button"` 守护与热区加权**：在 `src/core/dialog-a11y.ts` 增加 `MutationObserver` 自动为详情抽屉异步加载区块的按钮赋予 `type="button"`，并将 `.lv-preset-tag`、`.lv-rem-expand-btn`、`.lv-plan-tag-add`、`.lv-th-sort-btn`、`.lv-activity-open`、`.lv-person-alert` 最小高度统一提升至 `≥24px`。
+
+<details>
+<summary><b>查看历史版本更新记录（v0.5.186 及更早版本）</b></summary>
+
 ## v0.5.186 2026-10-31（本地就绪版）
 
 ### 全新隔离工作区 Chrome 深度自用走查落地与 8 项真实生产级缺陷清零
@@ -13,9 +27,6 @@
 
 #### 🚀 新增（Added）
 - **独立隔离工作区真实浏览器全链路自测套件（`scripts/e2e-isolated.mjs`）**：自动在临时目录拉起独立 `SiYuan-Kernel.exe`（随机回环端口，绝不触碰 6806 主工作区），驱动真实 Chrome 走完从空白首启、成员、多模块录入、快捷流水、积分结算、疫苗/囤货、自然语言备忘、拼音检索、访客脱敏、回收站恢复到 `F5` 重载存活的 13 步闭环，支持 `--keep` 后台保留现场与 `--headed` 可视窗口演示。
-
-<details>
-<summary><b>查看历史版本更新记录（v0.5.185 及更早版本）</b></summary>
 
 ## v0.5.185 2026-10-31（本地就绪版）
 

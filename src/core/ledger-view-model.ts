@@ -191,7 +191,7 @@ export function computeMissingSchemaColumns(
 export function computeTableKeys(
     schemaKeys: string[],
     schemaColumns?: any[],
-    preferred = ["name", "category", "status", "date", "expiry", "due", "amount", "brand_model", "plate", "energy_type", "mileage", "note"],
+    preferred = ["name", "category", "status", "qty", "stock_qty", "date", "expiry", "due", "amount", "brand_model", "plate", "energy_type", "mileage", "note"],
 ): string[] {
     const keys = preferred.filter((key) => schemaKeys.includes(key));
     const columns = schemaColumns ?? [];

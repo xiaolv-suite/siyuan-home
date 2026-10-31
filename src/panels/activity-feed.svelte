@@ -392,7 +392,7 @@
     .lv-activity-row:last-of-type { border-bottom:0; }
     .lv-activity-mark { display:grid; place-items:center; width:32px; height:32px; border-radius:var(--lv-r-inner); color:var(--lv-accent); background:var(--lv-accent-soft); border:1px solid var(--lv-accent-line); }
     .lv-activity-main { display:flex; flex-direction:column; gap:5px; min-width:0; }
-    .lv-activity-open { display:flex; align-items:baseline; gap:8px; min-width:0; width:fit-content; max-width:100%; padding:0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; font:inherit; }
+    .lv-activity-open { display:flex; align-items:center; min-height:24px; gap:8px; min-width:0; width:fit-content; max-width:100%; padding:2px 0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; font:inherit; }
     .lv-activity-open b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
     .lv-activity-open:hover b { color:var(--lv-accent); }
     .lv-activity-open:focus-visible { outline:2px solid var(--lv-accent); outline-offset:3px; border-radius:3px; }

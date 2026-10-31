@@ -431,6 +431,17 @@ async function main() {
         await page.locator(".lv-record-modal.open .lv-sheet-foot .lv-btn.primary").last().click();
         await sleep(2500);
 
+        // 验证车辆卡片直接点击「记加油」可同步打开抽屉并立即唤起加油录入表单（vehicleActionQueue 时序回归守卫）
+        await clearSnackbars();
+        await page.locator(".lv-vehicle-card button").filter({ hasText: "记加油" }).first().click();
+        await sleep(900);
+        const vehQuickFormOpen = (await page.locator("#lv-energy-form-body").count()) === 1;
+        assert.equal(vehQuickFormOpen, true, "车辆卡片点击记加油必须直接弹出加油表单");
+        while ((await page.locator(".b3-dialog").count()) > 0) {
+            await page.keyboard.press("Escape");
+            await sleep(250);
+        }
+
         // 按快捷键 N 打开快速记录 -> 记两笔加油
         await page.locator(".lv-rail-nav__foot button").first().click();
         await sleep(600);
@@ -657,22 +668,28 @@ async function main() {
         await page.keyboard.press("Escape");
         await sleep(350);
 
-        // 开启访客模式 -> 验证顶部横幅出现，再退出访客模式
+        // 开启访客模式 -> 验证顶部横幅出现、敏感证件隐藏且写操作被拦截，再退出访客模式
         await clearSnackbars();
         await page.locator('.lv-tabbar-actions button[aria-label*="访客"]').click();
         await sleep(400);
         const guestBannerOn = (await page.locator(".lv-guest-banner, [role='region']").filter({ hasText: /访客/ }).count()) > 0;
+        const guestHidesCerts = !(await page.locator("#lv-panel-overview").innerText()).includes("本人居民身份证");
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(200);
+        const guestBlocksCapture = (await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']").count()) === 0;
         await clearSnackbars();
         await page.locator('.lv-tabbar-actions button[aria-label*="访客"]').click();
         await sleep(300);
         await clearSnackbars();
-        rec("Step 10 · 拼音首字母全景检索、存放位置反查与访客模式", pinyinHit && locHit && guestBannerOn, `pinyin=${pinyinHit}, loc=${locHit}, guest=${guestBannerOn}`);
+        rec("Step 10 · 拼音首字母全景检索、存放位置反查与访客只读隔离", pinyinHit && locHit && guestBannerOn && guestHidesCerts && guestBlocksCapture, `pinyin=${pinyinHit}, loc=${locHit}, guestIsolated=${guestHidesCerts && guestBlocksCapture}`);
 
-        // ── Step 11: 台账单行删除进安全回收站 ➔ 无损恢复 + 420px 窄分屏零溢出 ──
+        // ── Step 11: 台账行内数量步进、单行删除进安全回收站 ➔ 无损恢复 + 420px 窄分屏零溢出 ──
         await page.locator("#lv-rail-tab-ledger").click();
         await sleep(900);
         await ledgerSel.selectOption("stock");
         await sleep(900);
+        const stepperCount = await page.locator(".lv-qty-stepper .lv-qty-btn").count();
+        assert.equal(stepperCount >= 10, true, "囤货台账必须展示数量列与行内 +/- 步进按钮");
         const beforeDelCount = await page.locator("tr.lv-row-link").count();
         await page.locator("button.lv-table-open").first().click();
         await sleep(700);

@@ -215,6 +215,10 @@
     let captureInvoker: HTMLElement | undefined;
     let captureWasOpen = false;
     function openCapture(moduleId?: string, event?: MouseEvent) {
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         captureInvoker = event?.currentTarget instanceof HTMLElement
             ? event.currentTarget
             : document.activeElement instanceof HTMLElement ? document.activeElement : undefined;

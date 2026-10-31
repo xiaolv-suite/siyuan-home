@@ -68,6 +68,13 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
     };
     normalizeButtons();
 
+    const observer = typeof MutationObserver !== "undefined" && dlg.element instanceof Node
+        ? new MutationObserver(() => normalizeButtons())
+        : null;
+    try {
+        observer?.observe(dlg.element, { childList: true, subtree: true });
+    } catch { /* soft */ }
+
     scheduleFocus(() => {
         try {
             normalizeButtons();
@@ -89,6 +96,7 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
     dlg.destroy = () => {
         if (destroyed) return;
         destroyed = true;
+        observer?.disconnect();
         dlg.element?.removeEventListener?.("keydown", handleKeydown);
         originalDestroy();
         onClose?.();

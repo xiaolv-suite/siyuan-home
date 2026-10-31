@@ -41,6 +41,7 @@
     import type { Reminder } from "@/types";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
+    const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     // 就地展开摘要（§17）：不打开抽屉直接查看派生规则、所属模块与责任成员
     let expandedReminders = $state(new Set<string>());
@@ -149,7 +150,7 @@
         try {
             await saveRuntime(plugin, plugin.runtime);
         } catch (e) {
-            showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("hub.filterSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         }
     }
     const filtered = $derived(filterReminders(all, filter, filterMember, filterModule, dueWithin));
@@ -212,7 +213,7 @@
         reminderBusy = new Set([...reminderBusy, key]);
         try { await action(); }
         catch (e) {
-            showMessage(t("hub.actionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("hub.actionFailed").replace("${msg}", errText(e)), 5000, "error");
         }
         finally {
             const next = new Set(reminderBusy);
@@ -241,7 +242,7 @@
         if (viewMode === "calendar") clearSelection();
         if (plugin.runtime.hubViewMode !== viewMode) {
             plugin.runtime.hubViewMode = viewMode;
-            saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"));
+            saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", errText(e)), 5000, "error"));
         }
     });
     let selected = $state<Set<string>>(new Set());
@@ -309,7 +310,7 @@
         try {
             await plugin.refreshHub(undefined, true);
         } catch (e) {
-            showMessage(t("hub.rescanFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("hub.rescanFailed").replace("${msg}", errText(e)), 5000, "error");
         } finally {
             rescanning = false;
         }
@@ -414,7 +415,7 @@
 {:else if viewMode === "calendar" && filter !== "handled"}
     <!-- 日历在空筛选结果时仍提供日期浏览与新增备忘入口。 -->
     <Calendar items={filtered} {t} {version} initialMode={plugin.runtime.hubCalMode}
-        onModeChange={(m: "month" | "week") => { plugin.runtime.hubCalMode = m; saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error")); }}
+        onModeChange={(m: "month" | "week") => { plugin.runtime.hubCalMode = m; saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", errText(e)), 5000, "error")); }}
         onComplete={(r: Reminder) => runReminderAction(() => plugin.complete(r), `calendar:${r.id}`)}
         onTogglePin={(r: Reminder) => runReminderAction(async () => { await toggleReminderPin(plugin, r.id); await plugin.refreshHub(); }, `calendar:pin:${r.id}`)}
         isPinnedFn={(r: Reminder) => isPinned(r)}

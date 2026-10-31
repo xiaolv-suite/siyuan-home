@@ -70,6 +70,19 @@ describe("doc-sync (LifeLog 标准语法、年/月/日倒序可折叠大纲与�
         expect(chore).toContain("小宝");
         expect(chore).toContain("+30 积分");
         expect(chore).toContain("主动收拾绘本");
+
+        const multiChore = formatRowLogEntryLine("chexecs", {
+            date: "2026-10-31",
+            time: "17:00",
+            memberId: "m-dad,m-mom",
+            points: 50,
+            note: "一家人一起大扫除",
+        }, [
+            { id: "m-dad", avItemId: "20261031000000-dad0001", name: "爸爸", role: "self" as const },
+            { id: "m-mom", avItemId: "20261031000000-mom0001", name: "妈妈", role: "spouse" as const },
+        ], "全屋深度清洁");
+        expect(multiChore).toContain("执行人 爸爸、妈妈");
+        expect(multiChore).toContain("一家人一起大扫除");
     });
 
     it("formatModuleRowLogsMarkdown 按日期倒序输出标准 LifeLog 段落并合并同时刻血压与心率", () => {

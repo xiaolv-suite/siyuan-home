@@ -20,6 +20,7 @@ export function formatLedgerCellText(
     t: (k: string) => string,
     guestModeActive = false,
     revealSensitive = false,
+    members?: any[],
 ): string {
     if (!v) return "—";
     if (guestModeActive) {
@@ -55,7 +56,17 @@ export function formatLedgerCellText(
         case "url": return v.url?.content ?? "—";
         case "checkbox": return v.checkbox?.checked ? "是" : "—";
         case "block": return v.block?.content ?? "—";
-        case "relation": return (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").filter(Boolean).join("、") || "—";
+        case "relation": {
+            const fromContents = (v.relation?.contents ?? []).map((c: any) => c.block?.content ?? "").filter(Boolean);
+            if (fromContents.length > 0) return fromContents.join("、");
+            if (v.relation?.blockIDs?.length && members?.length) {
+                const fromIds = (v.relation.blockIDs as string[])
+                    .map((id) => members.find((m: any) => m.avItemId === id || m.id === id)?.name)
+                    .filter(Boolean);
+                if (fromIds.length > 0) return fromIds.join("、");
+            }
+            return "—";
+        }
         case "mAsset": return (v.mAsset ?? []).map((asset: any) => asset?.name ?? asset?.content ?? "").filter(Boolean).join(", ") || "—";
         default: {
             const fallback = cellContentText(v);

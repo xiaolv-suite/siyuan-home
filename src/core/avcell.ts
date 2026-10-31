@@ -48,7 +48,10 @@ export function cellContentText(cell: AvCellLike | undefined | null): string {
         const num = Number(raw);
         if (!isNaN(num) && (num === 0 || num <= -60000000000000)) return "";
         const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
-        if (!isNaN(d.getTime()) && d.getFullYear() >= 1900) return d.toISOString().slice(0, 10);
+        if (!isNaN(d.getTime()) && d.getFullYear() >= 1900) {
+            const pad = (n: number) => String(n).padStart(2, "0");
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
         return String(raw);
     }
     if (cell.checkbox?.checked !== undefined) return cell.checkbox.checked ? "✓" : "";

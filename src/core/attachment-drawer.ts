@@ -14,6 +14,7 @@ const mk = (t: string, c = "", s = "") => {
     if (s) el.textContent = s;
     return el;
 };
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export interface AttachmentDrawerSectionOptions {
     body: HTMLElement;
@@ -105,7 +106,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
             }
         } catch (error) {
             if (isKernelError(error)) showOCRGuide();
-            else showMessageFn(t("ledger.ocrConfigFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
+            else showMessageFn(t("ledger.ocrConfigFailed").replace("${msg}", errMsg(error)), 7000, "error");
         } finally {
             button.disabled = false;
             button.textContent = previousLabel;
@@ -118,7 +119,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 const result = await recognizeAsset(path);
                 showOCRText(fileName, result.text, () => { void recognizeImage(path, fileName, button); });
             } catch (error) {
-                showMessageFn(t("ledger.ocrFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
+                showMessageFn(t("ledger.ocrFailed").replace("${msg}", errMsg(error)), 7000, "error");
             } finally {
                 button.disabled = false;
                 button.textContent = previousLabel;
@@ -157,7 +158,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     try {
                         await downloadAsset(f);
                     } catch (e) {
-                        showMessageFn(t("ledger.downloadFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        showMessageFn(t("ledger.downloadFailed").replace("${msg}", errMsg(e)), 6000, "error");
                     } finally {
                         download.disabled = false;
                     }
@@ -182,7 +183,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                             else await recognizeImage(f.content!, f.name ?? f.content!, ocr);
                         } catch (error) {
                             if (isKernelError(error)) showOCRGuide();
-                            else showMessageFn(t("ledger.ocrConfigFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 7000, "error");
+                            else showMessageFn(t("ledger.ocrConfigFailed").replace("${msg}", errMsg(error)), 7000, "error");
                         } finally {
                             ocr.disabled = false;
                         }
@@ -233,7 +234,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                         });
                         appended.push({ name, content: path });
                     } catch (e) {
-                        failed.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
+                        failed.push(`${f.name}: ${errMsg(e)}`);
                     }
                 }
                 if (appended.length !== existing.length) {
@@ -246,7 +247,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                         showMessageFn(msg, 5000, failed.length ? "error" : "info");
                         if (onUploadSuccess) await onUploadSuccess();
                     } catch (e) {
-                        showMessageFn(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");
                     }
                 }
             } finally {

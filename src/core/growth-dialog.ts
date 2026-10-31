@@ -63,10 +63,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
     const sel = document.createElement("select");
     sel.className = "b3-select";
     for (const [v, key] of [["auto", "ledger.growthWhoAuto"], ["male", "members.sex.male"], ["female", "members.sex.female"], ["off", "ledger.growthWhoOff"]] as const) {
-        const o = document.createElement("option");
-        o.value = v;
-        o.textContent = t(key);
-        sel.appendChild(o);
+        sel.add(new Option(t(key), v));
     }
     sel.addEventListener("change", () => { bandMode = sel.value as typeof bandMode; renderPanels(); });
     controls.append(ctlLabel, sel);
@@ -243,12 +240,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             const topBar = mk("div", "lv-domain-head");
             if (candidate.length > 1) {
                 const sel = mk("select", "b3-select") as HTMLSelectElement;
-                for (const c of candidate) {
-                    const opt = mk("option", "", `${c.name} (${c.birthday})`) as HTMLOptionElement;
-                    opt.value = c.id;
-                    if (c.id === selectedChildId) opt.selected = true;
-                    sel.appendChild(opt);
-                }
+                for (const c of candidate) sel.add(new Option(`${c.name} (${c.birthday})`, c.id, false, c.id === selectedChildId));
                 sel.onchange = () => { selectedChildId = sel.value; render(); };
                 topBar.appendChild(sel);
             } else {

@@ -264,18 +264,15 @@
             plugin.setActiveLedger?.("stock");
             gotoScreen("ledger");
         };
-        window.addEventListener("siyuan-home:open-capture", captureHandler);
-        window.addEventListener("siyuan-home:open-spotlight", spotlightHandler);
-        window.addEventListener("siyuan-home:open-emergency", emergencyHandler);
-        window.addEventListener("siyuan-home:open-life-index", lifeIndexHandler);
-        window.addEventListener("siyuan-home:open-store", storeHandler);
-        return () => {
-            window.removeEventListener("siyuan-home:open-capture", captureHandler);
-            window.removeEventListener("siyuan-home:open-spotlight", spotlightHandler);
-            window.removeEventListener("siyuan-home:open-emergency", emergencyHandler);
-            window.removeEventListener("siyuan-home:open-life-index", lifeIndexHandler);
-            window.removeEventListener("siyuan-home:open-store", storeHandler);
-        };
+        const events = [
+            ["siyuan-home:open-capture", captureHandler],
+            ["siyuan-home:open-spotlight", spotlightHandler],
+            ["siyuan-home:open-emergency", emergencyHandler],
+            ["siyuan-home:open-life-index", lifeIndexHandler],
+            ["siyuan-home:open-store", storeHandler],
+        ] as const;
+        for (const [e, fn] of events) window.addEventListener(e, fn as any);
+        return () => { for (const [e, fn] of events) window.removeEventListener(e, fn as any); };
     });
     // 268 波（Linear 式键盘优先）：N 键呼出快速记录、Ctrl+K 呼出全景生活检索（仅焦点在管家内有效，防抢编辑器超链接）
     $effect(() => {

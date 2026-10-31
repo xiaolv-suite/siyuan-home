@@ -12,6 +12,8 @@ import type { LogKind } from "./rowlog";
 import { markActivityLine, rowLogActivityId, type ActivityTarget } from "./activity";
 import { uiIcon } from "@/ui/icons";
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 export * from "./drawer-conversions";
 
 export interface RenewChainSectionOptions {
@@ -71,7 +73,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
                         showMessageFn(t("ledger.linked").replace("${name}", String(cellTextFn(r.cells[ref.columns!.name]))), 2500, "info");
                         if (onChainUpdated) await onChainUpdated(row.itemID);
                     } catch (e) {
-                        showMessageFn(t("ledger.renewLinkFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        showMessageFn(t("ledger.renewLinkFailed").replace("${msg}", errMsg(e)), 6000, "error");
                         b.disabled = false;
                     }
                 };
@@ -173,7 +175,7 @@ export function renderFavorsSyncSection(options: FavorsSyncSectionOptions): void
             showMessageFn(t("ec15.done").replace("${n}", person.name).replace("${r}", String(result.recorded)), 3000, "info");
             btn.disabled = false;
         } catch (e) {
-            showMessageFn(t("ec15.failed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            showMessageFn(t("ec15.failed").replace("${msg}", errMsg(e)), 6000, "error");
             btn.disabled = false;
         }
     };
@@ -235,7 +237,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
                 try {
                     await remove(e);
                 } catch (err) {
-                    showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                    showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", errMsg(err)), 5000, "error");
                     del.disabled = false;
                     return;
                 }
@@ -248,7 +250,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
                 } catch (err) {
                     loadFailed = true;
                     render();
-                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", errMsg(err)), 5000, "error");
                 }
             };
             line.append(text, del);
@@ -311,12 +313,12 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
                     loaded = await load();
                 } catch (err) {
                     loadFailed = true;
-                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+                    showMessageFn(t("ledger.logReadFailed").replace("${msg}", errMsg(err)), 5000, "error");
                 }
                 render();
             }
         } catch (err) {
-            showMessageFn(t("ledger.logSaveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+            showMessageFn(t("ledger.logSaveFailed").replace("${msg}", errMsg(err)), 5000, "error");
         } finally {
             addBtn.disabled = false;
         }
@@ -327,7 +329,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         loaded = await load();
     } catch (err) {
         loadFailed = true;
-        showMessageFn(t("ledger.logReadFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
+        showMessageFn(t("ledger.logReadFailed").replace("${msg}", errMsg(err)), 5000, "error");
     }
     render();
 }

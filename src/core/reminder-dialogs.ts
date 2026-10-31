@@ -18,6 +18,8 @@ import {
 } from "./hub/runtime";
 import { confirm } from "@/libs/dialog";
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 export interface OpenReminderPlanDialogOptions {
     r: Reminder;
     plugin: any;
@@ -93,7 +95,7 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
                 if (onPlanUpdated) await onPlanUpdated();
                 await plugin.refreshHub?.(undefined, true);
             } catch (e) {
-                showMessageFn(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+                showMessageFn(t("hub.filterSaveFailed").replace("${msg}", errMsg(e)), 5000, "error");
             }
         };
     }
@@ -114,7 +116,7 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
             if (onPlanUpdated) await onPlanUpdated();
             await plugin.refreshHub?.(undefined, true);
         } catch (e) {
-            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", errMsg(e)), 5000, "error");
         }
     };
 }
@@ -177,7 +179,7 @@ export function openNamedViewSaveDialog(options: OpenNamedViewSaveDialogOptions)
             showMessageFn(t("hub.namedViewSaved"), 2500, "info");
             if (onViewSaved) await onViewSaved(saved.id);
         } catch (e) {
-            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", errMsg(e)), 5000, "error");
         }
     };
 }
@@ -200,7 +202,7 @@ export function openNamedViewDeleteConfirm(options: OpenNamedViewDeleteConfirmOp
             showMessageFn(t("hub.namedViewDeleted"), 2500, "info");
             if (onViewDeleted) await onViewDeleted(v.id);
         } catch (e) {
-            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessageFn(t("hub.filterSaveFailed").replace("${msg}", errMsg(e)), 5000, "error");
         }
     });
 }
@@ -245,7 +247,7 @@ export function openReminderRenewDialog(options: OpenReminderRenewDialogOptions)
             dlg.destroy();
             if (onRenewSuccess) await onRenewSuccess();
         } catch (e) {
-            err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
+            err.textContent = t("ledger.saveFailed").replace("${msg}", errMsg(e));
             err.style.display = "block";
             okBtn.disabled = false;
         }
@@ -302,7 +304,7 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
             dlg.destroy();
             if (onMemoUpdated) await onMemoUpdated();
         } catch (e) {
-            err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
+            err.textContent = t("ledger.saveFailed").replace("${msg}", errMsg(e));
             save.disabled = false;
             saving = false;
         }

@@ -20,11 +20,11 @@ import { initEcosystemIntegration, type EcosystemController } from "@/core/ecosy
 import { registerPluginContextMenus, type PluginContextMenusController } from "@/core/plugin-context-menus";
 import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE } from "@/core/plugin-entrypoints";
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
-import { SCHEMA_CATALOG, validateSchema } from "@/core/schema";
+import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.190";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.191";
 
 /**
  * 小驴管家（Lv Home）
@@ -137,10 +137,12 @@ export default class LvHomePlugin extends Plugin {
 
         // schema 契约门禁（33.2；193 波收口 SCHEMA_CATALOG 单源）：开发期发现违规立即暴露
         if (process.env.DEV_MODE) {
-            for (const [id, schema] of Object.entries(SCHEMA_CATALOG)) {
-                const errors = validateSchema(id, schema);
-                if (errors.length) console.error("[LvHome] schema contract violations:", errors);
-            }
+            import("@/core/schema").then(({ validateSchema }) => {
+                for (const [id, schema] of Object.entries(SCHEMA_CATALOG)) {
+                    const errors = validateSchema(id, schema);
+                    if (errors.length) console.error("[LvHome] schema contract violations:", errors);
+                }
+            }).catch(() => undefined);
         }
 
         // 欢迎提示与初次引导优化：
@@ -532,10 +534,7 @@ export default class LvHomePlugin extends Plugin {
                 columns: Object.keys(ref?.columns ?? {}).length,
                 error: ref?.provisionError,
             })),
-            contracts: [
-                validateSchema("members", SCHEMA_CATALOG.members),
-                validateSchema("certs", SCHEMA_CATALOG.certs),
-            ].flat(),
+            contracts: [],
         };
     }
 

@@ -10,6 +10,8 @@ import { confirm } from "@/libs/dialog";
 import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 export interface RxToMedicineButtonOptions {
     body: HTMLElement;
     row: any;
@@ -68,7 +70,7 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
                 pendingMedicineID = null;
                 medicineOperationKey = null;
             } catch (e) {
-                showMessageFn(t("ledger.rxToMedicineFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                showMessageFn(t("ledger.rxToMedicineFailed").replace("${msg}", errMsg(e)), 6000, "error");
                 btn.disabled = false;
             }
         });
@@ -186,7 +188,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                         } catch { /* soft */ }
                         showMessageFn(t("ledger.stockInDone"), 3000, "info");
                     } catch (e) {
-                        showMessageFn(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        showMessageFn(t("ledger.stockInFailed").replace("${msg}", errMsg(e)), 6000, "error");
                         ok.disabled = false;
                         if (cancel) cancel.disabled = false;
                     } finally {
@@ -196,7 +198,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                 };
             }
         } catch (e) {
-            showMessageFn(t("ledger.stockInFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            showMessageFn(t("ledger.stockInFailed").replace("${msg}", errMsg(e)), 6000, "error");
             stockInBusy = false;
             btn.disabled = false;
         }
@@ -322,14 +324,14 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                         btn.innerHTML = `${uiIcon("check", "", 13)} ${t("ledger.shoppingToAssetDoneShort")}`;
                         btn.disabled = true;
                     } catch (err) {
-                        showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
+                        showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
                         busy = false;
                         btn.disabled = false;
                     }
                 };
             }
         } catch (e) {
-            showMessageFn(t("ledger.logReadFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            showMessageFn(t("ledger.logReadFailed").replace("${msg}", errMsg(e)), 6000, "error");
             busy = false;
             btn.disabled = false;
         }

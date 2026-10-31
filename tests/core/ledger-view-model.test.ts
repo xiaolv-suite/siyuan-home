@@ -169,10 +169,29 @@ describe("ledger-view-model (台账视图数据模型与单元格渲染辅助引
         });
 
         // relation with valid member
-        const members = [{ avItemId: "item_m1", name: "张三" }];
+        const members = [{ avItemId: "item_m1", name: "张三" }, { avItemId: "item_m2", name: "李四" }];
         expect(buildLedgerCellPayload("relation", "item_m1", members)).toEqual({
             type: "relation",
             relation: { blockIDs: ["item_m1"], contents: null },
         });
+
+        // relation with multiple members
+        expect(buildLedgerCellPayload("relation", ["item_m1", "item_m2"], members)).toEqual({
+            type: "relation",
+            relation: { blockIDs: ["item_m1", "item_m2"], contents: null },
+        });
+
+        // formatLedgerCellText relation from contents or fallback blockIDs
+        const relCellWithContents = {
+            type: "relation",
+            relation: { contents: [{ block: { content: "张三" } }, { block: { content: "李四" } }] },
+        };
+        expect(formatLedgerCellText(relCellWithContents, "member", t, false, false, members)).toBe("张三、李四");
+
+        const relCellFromIds = {
+            type: "relation",
+            relation: { blockIDs: ["item_m1", "item_m2"], contents: null },
+        };
+        expect(formatLedgerCellText(relCellFromIds, "member", t, false, false, members)).toBe("张三、李四");
     });
 });

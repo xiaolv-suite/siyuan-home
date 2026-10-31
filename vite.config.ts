@@ -170,10 +170,12 @@ export default defineConfig(buildTarget === "kernel" ? {
                             const res = await terser.minify(chunk.code, {
                                 ecma: 2022,
                                 compress: {
-                                    passes: 2,
+                                    passes: 3,
+                                    toplevel: true,
                                     pure_getters: false,
                                     booleans_as_integers: false,
                                     unsafe: true,
+                                    unsafe_arrows: true,
                                 },
                                 mangle: { toplevel: true },
                                 format: { comments: false },

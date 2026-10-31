@@ -14,6 +14,7 @@
     import UiIcon from "@/ui/icon.svelte";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
+    const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     let orderVersion = $state(0);
     // version（H02）：hub 变更时递增，驱动派生重算（plugin.* 为普通对象引用）
@@ -102,7 +103,7 @@
             avatars = { ...avatars, [m.id]: path };
             showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
         } catch (e) {
-            showMessage(t("members.avatarFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("members.avatarFailed").replace("${msg}", errText(e)), 5000, "error");
         } finally {
             const next = new Set(avatarBusy);
             next.delete(m.id);
@@ -149,7 +150,7 @@
         if (memberActionBusy.has(key)) return;
         memberActionBusy = new Set([...memberActionBusy, key]);
         try { await action(); }
-        catch (e) { showMessage(t("hub.actionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"); }
+        catch (e) { showMessage(t("hub.actionFailed").replace("${msg}", errText(e)), 5000, "error"); }
         finally {
             const next = new Set(memberActionBusy);
             next.delete(key);
@@ -179,7 +180,7 @@
         } catch (e) {
             plugin.settings.members = previous;
             orderVersion += 1;
-            showMessage(t("members.reorderFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("members.reorderFailed").replace("${msg}", errText(e)), 5000, "error");
         } finally {
             reorderBusy = false;
         }
@@ -239,7 +240,7 @@
                 await removeMember(plugin, plugin.settings, m.id);
                 removed = true;
             } catch (e) {
-                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+                showMessage(t("ledger.saveFailed").replace("${msg}", errText(e)), 5000, "error");
                 return;
             }
             let followupError: unknown;
@@ -254,7 +255,7 @@
             } catch (e) {
                 followupError = e;
             }
-            if (removed && followupError) showMessage(t("members.deleteFollowupFailed").replace("${msg}", followupError instanceof Error ? followupError.message : String(followupError)), 6000, "error");
+            if (removed && followupError) showMessage(t("members.deleteFollowupFailed").replace("${msg}", errText(followupError)), 6000, "error");
         });
     }
 
@@ -307,7 +308,7 @@
             showMessage(t(snapshot ? "members.contactLinked" : "members.contactUnlinked"), 2500, "info");
         } catch (e) {
             target.contactSnapshot = previous;
-            showMessage(t("members.contactSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("members.contactSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         } finally {
             const next = { ...contactBusy };
             delete next[m.id];
@@ -337,7 +338,7 @@
             const { openMemberTimelineFlow } = await import("@/core/member-timeline");
             await openMemberTimelineFlow(m, plugin, t, Dialog, showMessage);
         } catch (e) {
-            showMessage(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+            showMessage(t("ledger.logReadFailed") + " (" + errText(e) + ")", 5000, "error");
         }
     }
 

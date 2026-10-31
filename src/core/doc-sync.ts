@@ -221,9 +221,16 @@ export async function replaceJournalDocPreservingFolds(
 }
 
 function memberNameById(members: FamilyMember[] | undefined, idOrAvId: unknown): string {
-    if (!idOrAvId || typeof idOrAvId !== "string") return "";
-    const hit = (members ?? []).find((m) => m.id === idOrAvId || m.avItemId === idOrAvId);
-    return hit?.name ?? "";
+    if (!idOrAvId) return "";
+    const ids = Array.isArray(idOrAvId)
+        ? idOrAvId.map(String)
+        : typeof idOrAvId === "string"
+            ? (idOrAvId.includes(",") ? idOrAvId.split(",").map((s) => s.trim()) : [idOrAvId.trim()])
+            : [];
+    const names = ids
+        .map((id) => (members ?? []).find((m) => m.id === id || m.avItemId === id)?.name)
+        .filter(Boolean);
+    return names.join("、");
 }
 
 function rowTitleFromCells(row: AvRow | undefined, columns: Record<string, string> | undefined): string {

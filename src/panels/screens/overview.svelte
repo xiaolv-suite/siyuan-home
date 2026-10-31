@@ -241,6 +241,8 @@
         onGoto("ledger");
     }
 
+    const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
     // 261 波：「查看全部」= 新意图——清掉上次会话遗留的筛选（逾期/某成员/某模块）再进入；
     // 与模块卡下钻（预筛该模块）语义相反，各自成立
     async function viewAllReminders() {
@@ -252,7 +254,7 @@
         try {
             await saveRuntime(plugin, plugin.runtime);
         } catch (e) {
-            showMessage(t("dash.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("dash.preferenceSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         }
     }
 
@@ -262,7 +264,7 @@
         try {
             await saveRuntime(plugin, plugin.runtime);
         } catch (e) {
-            showMessage(t("dash.preferenceSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("dash.preferenceSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         }
     }
 
@@ -274,7 +276,7 @@
             if (onRetryScan) await onRetryScan();
             else await plugin.refreshHub(undefined, true);
         } catch (e) {
-            showMessage(t("hub.rescanFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("hub.rescanFailed").replace("${msg}", errText(e)), 5000, "error");
         } finally {
             retryingScan = false;
         }
@@ -286,7 +288,7 @@
         if (overviewBusy.has(key)) return;
         overviewBusy = new Set([...overviewBusy, key]);
         try { await action(); }
-        catch (e) { showMessage(t("hub.actionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error"); }
+        catch (e) { showMessage(t("hub.actionFailed").replace("${msg}", errText(e)), 5000, "error"); }
         finally {
             const next = new Set(overviewBusy);
             next.delete(key);
@@ -308,7 +310,7 @@
                 lastPostponedOverdueMap = prev ?? {};
                 showMessage(t("dash.overduePostponed").replace("${n}", String(overdueIds.length)), 3500, "info");
             } catch (e) {
-                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+                showMessage(t("ledger.saveFailed").replace("${msg}", errText(e)), 5000, "error");
             }
         });
     }
@@ -322,7 +324,7 @@
                 lastPostponedOverdueMap = null;
                 showMessage(t("dash.undoSuccess"), 2500, "info");
             } catch (e) {
-                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+                showMessage(t("ledger.saveFailed").replace("${msg}", errText(e)), 5000, "error");
             }
         });
     }

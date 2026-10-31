@@ -10,6 +10,8 @@ import { localDateKey, parseDate } from "./hub/rule";
 import { saveSettings } from "./settings";
 import { saveRuntime } from "./hub/runtime";
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 export interface BindDrawerMoreActionsOptions {
     dlg: any;
     row: any;
@@ -52,7 +54,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                     showMessageFn(t("ledger.copyAsImageFail"), 4000, "info");
                 }
             } catch (e) {
-                showMessageFn(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
+                showMessageFn(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${errMsg(e)})`, 5000, "error");
             } finally {
                 this.disabled = false;
             }
@@ -69,7 +71,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                 const blob = await buildCard();
                 downloadPng(blob, `${cardTitle.slice(0, 20) || "lvhome"}.png`);
             } catch (e) {
-                showMessageFn(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
+                showMessageFn(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${errMsg(e)})`, 5000, "error");
             } finally {
                 this.disabled = false;
             }
@@ -86,7 +88,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                 await navigator.clipboard.writeText(`${cardTitle}\n${text}`);
                 showMessageFn(t("ledger.copyAsTextOk"), 2500, "info");
             } catch (e) {
-                showMessageFn(t("ledger.copyAsImageFail") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
+                showMessageFn(t("ledger.copyAsImageFail") + ` (${errMsg(e)})`, 5000, "error");
             }
         };
     }
@@ -102,7 +104,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                 await navigator.clipboard.writeText(text);
                 showMessageFn(t("ledger.copyAsMaskedTextOk"), 2500, "info");
             } catch (e) {
-                showMessageFn(t("ledger.copyAsImageFail") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
+                showMessageFn(t("ledger.copyAsImageFail") + ` (${errMsg(e)})`, 5000, "error");
             }
         };
     }
@@ -279,7 +281,7 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                         changed++;
                         if (personKeyID && e.keyID === personKeyID) personChanged = true;
                     } catch (err) {
-                        const msg = err instanceof Error ? err.message : String(err);
+                        const msg = errMsg(err);
                         if (msg.includes("key not found")) {
                             try {
                                 const { healColumnMapping } = await import("./provisioner");
@@ -309,7 +311,7 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                         await saveRuntime(plugin, plugin.runtime);
                     } catch (err) {
                         plugin.runtime.favorSyncs = { ...(plugin.runtime.favorSyncs ?? {}), [row.itemID]: previousFavorSync };
-                        showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
+                        showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
                     }
                 }
 
@@ -332,7 +334,7 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                 }
                 showMessageFn(t("ledger.editSaved"), 2500, "info");
             } catch (err) {
-                showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
+                showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
                 save.disabled = false;
                 if (cancel) cancel.disabled = false;
             }
@@ -382,11 +384,11 @@ export function renderDrawerDocTemplates(options: RenderDrawerDocTemplatesOption
                         dlg.destroy();
                         plugin.showTabDocs?.(docId);
                     } catch (e) {
-                        showMessageFn(t("ledger.genDocFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                        showMessageFn(t("ledger.genDocFailed").replace("${msg}", errMsg(e)), 6000, "error");
                     }
                 });
             } catch (e) {
-                showMessageFn(t("ledger.genDocFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                showMessageFn(t("ledger.genDocFailed").replace("${msg}", errMsg(e)), 6000, "error");
             }
         };
         body.appendChild(btn);
@@ -479,7 +481,7 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
                         retries: 1,
                     });
                 } catch (e) {
-                    showMessageFn(t("ledger.delFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                    showMessageFn(t("ledger.delFailed").replace("${msg}", errMsg(e)), 6000, "error");
                     return;
                 }
                 showMessageFn(t("ledger.delDone"), 2500, "info");
@@ -499,26 +501,26 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
                         }
                     }
                 } catch (e) {
-                    followupErrors.push(`${t("ledger.memberLinkCleanupFailed")} (${e instanceof Error ? e.message : String(e)})`);
+                    followupErrors.push(`${t("ledger.memberLinkCleanupFailed")} (${errMsg(e)})`);
                 }
                 try {
                     const { cleanupRowRuntimeData } = await import("./hub/runtime");
                     cleanupRowRuntimeData(plugin.runtime, row.itemID);
                     await saveRuntime(plugin, plugin.runtime);
                 } catch (e) {
-                    followupErrors.push(e instanceof Error ? e.message : String(e));
+                    followupErrors.push(errMsg(e));
                 }
                 try {
                     const { updateRowLogs, removeRowLog } = await import("./rowlog");
                     await updateRowLogs(plugin, (current) => removeRowLog(current, ref.avId!, row.itemID));
                 } catch (e) {
-                    followupErrors.push(e instanceof Error ? e.message : String(e));
+                    followupErrors.push(errMsg(e));
                 }
                 try {
                     await onReload();
                     await plugin.refreshHub?.([active]);
                 } catch (e) {
-                    followupErrors.push(e instanceof Error ? e.message : String(e));
+                    followupErrors.push(errMsg(e));
                 }
                 if (followupErrors.length) showMessageFn(t("ledger.delFollowupFailed").replace("${msg}", followupErrors.join("; ")), 6000, "error");
             });

@@ -1439,6 +1439,81 @@ async function main() {
             `已巡检${inspectMods.length}个模块台账，幽灵空日期彻底绝迹，控制台0异常，窄屏溢出=${filledNarrowOverflow}px`,
         );
 
+        // ── Step 18: 一家人共同参与多选交互、能源动态快捷面额与全域多成员台账联动深度实测 ──
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(600);
+        await clearSnackbars();
+
+        // 1. 打开快速记录弹窗并切换至加油
+        await page.locator(".lv-rail-nav__foot button").first().click();
+        await sleep(500);
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "加油" }).click();
+        await sleep(300);
+
+        // 验证加油面额为 [¥200, ¥300, ¥500]
+        const fuelAmtChips = await page.locator(".lv-dt-quick-bar .lv-dt-chip").allTextContents();
+        assert.equal(fuelAmtChips.includes("¥200") && fuelAmtChips.includes("¥300") && fuelAmtChips.includes("¥500"), true, "加油时应呈现 ¥200/¥300/¥500 快捷面额");
+
+        // 切换到充电，验证面额动态切换为 [¥30, ¥50, ¥100]
+        await page.locator(".lv-segmented-group .lv-seg-btn").filter({ hasText: "充电" }).click();
+        await sleep(300);
+        const chargeAmtChips = await page.locator(".lv-dt-quick-bar .lv-dt-chip").allTextContents();
+        assert.equal(chargeAmtChips.includes("¥30") && chargeAmtChips.includes("¥50") && chargeAmtChips.includes("¥100"), true, "充电时应呈现 ¥30/¥50/¥100 契合日常的快捷面额");
+
+        // 点击 ¥50 快捷面额 ➔ 在电价0.6元/度下，自动算出度数为 83.33 度
+        await page.locator("#lv-unit-price").fill("0.6");
+        await sleep(100);
+        const chip50 = page.locator(".lv-dt-quick-bar .lv-dt-chip").filter({ hasText: "¥50" }).first();
+        await chip50.click();
+        await sleep(200);
+        const calcChargeLiters = await page.locator("#lv-fuel-liters").inputValue();
+        assert.equal(Number(calcChargeLiters), 83.33, "点击¥50面额，按0.6元电价应自动算出 83.33 度电");
+
+        // 2. 切换至家务打卡，测试「👨‍👩‍👧‍👦 一家人一起」一键全选多成员
+        await page.locator(".lv-modal.open .lv-event-subbtn").filter({ hasText: "家务" }).click();
+        await sleep(400);
+
+        const allFamilyChip = page.locator("#lv-chore-mem-chips button").filter({ hasText: "一家人一起" }).first();
+        assert.equal(await allFamilyChip.isVisible(), true, "应呈现「👨‍👩‍👧‍👦 一家人一起」一键全选胶囊");
+
+        // 点击「一家人一起」
+        await allFamilyChip.click();
+        await sleep(200);
+        const memberChipPrimaryCount = await page.locator("#lv-chore-mem-chips button.b3-chip--primary").count();
+        assert.equal(memberChipPrimaryCount >= 2, true, "点击「一家人一起」后所有家庭成员胶囊应全数激活");
+
+        // 填入积分与说明并提交
+        await page.locator("#lv-chore-points").fill("50");
+        await page.locator("#lv-chore-note").fill("周末全家大扫除");
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
+        await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']").waitFor({ state: "detached", timeout: 2500 });
+        await sleep(800);
+
+        // 3. 验证台账模态框也具备成员多选胶囊与「一家人一起」
+        await page.locator("#lv-rail-tab-ledger").click();
+        await sleep(800);
+        await page.locator(".lv-ledger-toolbar select.b3-select").first().selectOption("chores");
+        await sleep(600);
+        await page.locator(".lv-ledger-toolbar button.lv-btn.primary, button.lv-btn.primary").filter({ hasText: /新建|记一笔|新增/ }).first().click();
+        await sleep(600);
+        const recordModal = page.locator(".lv-record-modal.open");
+        assert.equal(await recordModal.isVisible(), true, "新建台账模态框应正常展开");
+        const modalFamilyChip = page.locator(".lv-record-modal.open button").filter({ hasText: "一家人一起" }).first();
+        assert.equal(await modalFamilyChip.isVisible(), true, "新建台账模态框中应具备「👨‍👩‍👧‍👦 一家人一起」多成员胶囊");
+        await page.keyboard.press("Escape");
+        await sleep(300);
+
+        // 4. 切回总览，验证控制台持续 0 异常
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(500);
+        assert.equal(pageErrors.length, 0, `Step 18 深度实测中不得发生任何未捕获异常: ${pageErrors.join("; ")}`);
+        await page.screenshot({ path: path.join(SHOT_DIR, "18-family-multimember-and-dynamic-chips.png") });
+        rec(
+            "Step 18 · 一家人共同参与多选交互、能源动态快捷面额与全域多成员台账联动深度实测",
+            true,
+            `一家人一起一键全选正常，充放电快捷面额动态切换自适应，全域多选台账模态联动正常`,
+        );
+
         await browser.close();
         browser = undefined;
 

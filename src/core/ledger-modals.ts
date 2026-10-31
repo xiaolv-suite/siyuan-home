@@ -21,8 +21,9 @@ export interface LedgerModalContext {
     onReload?: () => Promise<void>;
 }
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const errFail = (showMessageFn: any, t: any, e: unknown) => {
-    showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
+    showMessageFn(t("ledger.logReadFailed") + " (" + errMsg(e) + ")", 5000, "error");
 };
 
 async function loadAllRows(renderLedgerAllFn: any, avId: string, showMessageFn: any, t: any) {
@@ -52,7 +53,7 @@ export async function openEnergyDashboardModal(ctx: LedgerModalContext): Promise
             onOpenVehicleDetail: onOpenDetail,
         });
     } catch (error) {
-        showMessageFn(t("ledger.readFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
+        showMessageFn(t("ledger.readFailed").replace("${msg}", errMsg(error)), 5000, "error");
     }
 }
 
@@ -69,7 +70,7 @@ export async function openGrowthChartModal(ctx: LedgerModalContext): Promise<voi
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.growthFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+        showMessageFn(t("ledger.growthFailed").replace("${msg}", errMsg(e)), 6000, "error");
     }
 }
 
@@ -115,7 +116,7 @@ export async function openShoppingListModal(ctx: LedgerModalContext): Promise<vo
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.shoppingFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+        showMessageFn(t("ledger.shoppingFailed").replace("${msg}", errMsg(e)), 6000, "error");
     }
 }
 
@@ -154,7 +155,7 @@ export async function openBookmarksCheckModal(ctx: LedgerModalContext): Promise<
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 
@@ -180,7 +181,7 @@ export async function openSubscriptionStatsModal(ctx: LedgerModalContext): Promi
             showMessageFn,
         });
     } catch (e) {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 6000, "error");
+        errFail(showMessageFn, t, e);
     }
 }
 

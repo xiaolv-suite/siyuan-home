@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { ColumnDef } from "@/core/schema";
+    import { memberChips } from "@/core/members";
 
     let {
         form = $bindable(),
@@ -44,12 +45,7 @@
                                 {/each}
                             </select>
                         {:else if e.type === "relation"}
-                            <select id="lv-new-{e.key}" class="b3-select" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}>
-                                <option value="">{fieldLabel(e.key)}: {t("members.all")}</option>
-                                {#each members ?? [] as m (m.avItemId ?? m.id)}
-                                    <option value={m.avItemId ?? ""} disabled={!m.avItemId}>{m.name}{m.avItemId ? "" : ` · ${t("members.notLinked")}`}</option>
-                                {/each}
-                            </select>
+                            <div class="lv-record-relation-box" use:memberChips={{ id: `lv-new-${e.key}`, members, value: form[e.key], disabled: saving || identityPending, useAvItemId: true, allText: t("members.allFamily"), onChange: (v) => { form[e.key] = v; } }}></div>
                         {:else if e.type === "date"}
                             <input id="lv-new-{e.key}" class="b3-text-field" type="date" bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />
                         {:else if e.type === "number"}

@@ -4,19 +4,20 @@
     import { showMessage } from "siyuan";
     import { renderLedgerAll } from "@/core/siyuan";
     import {
-        buildChoreLog,
-        buildFuelingLog,
-        buildVitalLog,
-        composeLifelogIsoAt,
         currentLocalHHMM,
         validateFuelingInput,
         validateVitalInput,
     } from "@/core/quick-actions";
     import type { EnergyKind } from "@/core/fuel";
-    import { appendEntry, updateRowLogs } from "@/core/rowlog";
-    import { loadQuickDefaults, saveQuickDefaults } from "@/core/quick-defaults";
-    import { writeLedgerRow } from "@/core/ledger-writer";
-    import { syncModuleDocSection, syncDailyJournalDoc } from "@/core/doc-sync";
+    import { loadQuickDefaults } from "@/core/quick-defaults";
+    import {
+        dispatchBackgroundSync,
+        saveQuickFuelingRecord,
+        saveQuickVitalRecord,
+        saveQuickChoreRecord,
+        saveQuickShoppingRecord,
+        saveQuickSnippetRecord,
+    } from "@/core/quick-event-saver";
     import UiIcon from "@/ui/icon.svelte";
     import { memberChips } from "@/core/members";
 
@@ -46,6 +47,13 @@
         chore: "capture.actChore",
         shopping: "capture.actShopping",
         snippet: "capture.actSnippet",
+    };
+    const subTargetModule: Record<EventSubAction, string> = {
+        fuel: "vehicles",
+        vital: "health",
+        chore: "chores",
+        shopping: "shopping",
+        snippet: "snippets",
     };
     let eventSub = $state<EventSubAction>("fuel");
 
@@ -91,36 +99,23 @@
     // 补能三数联动自动计算（图1需求：油价相对固定，填价格自动算升数；修改升数按固定油价变动价格；修改油价变动价格）
     const currentPrice = () => (fuelingKind === "charging" ? chargePrice : fuelPrice);
 
-    function onAmountInput(val: number | undefined) {
+    function onAmountInput(val?: number) {
         fuelingAmount = val;
         const p = currentPrice();
-        if (typeof val === "number" && val > 0 && typeof p === "number" && p > 0) {
-            fuelingLiters = Number((val / p).toFixed(2));
-        } else if (val === undefined || val === null || isNaN(val as number)) {
-            fuelingLiters = undefined;
-        }
+        fuelingLiters = val && p ? Number((val / p).toFixed(2)) : undefined;
     }
 
-    function onLitersInput(val: number | undefined) {
+    function onLitersInput(val?: number) {
         fuelingLiters = val;
         const p = currentPrice();
-        if (typeof val === "number" && val > 0 && typeof p === "number" && p > 0) {
-            fuelingAmount = Number((val * p).toFixed(2));
-        } else if (val === undefined || val === null || isNaN(val as number)) {
-            fuelingAmount = undefined;
-        }
+        fuelingAmount = val && p ? Number((val * p).toFixed(2)) : undefined;
     }
 
-    function onPriceInput(val: number | undefined) {
+    function onPriceInput(val?: number) {
         if (fuelingKind === "charging") chargePrice = val;
         else fuelPrice = val;
-        if (typeof val === "number" && val > 0) {
-            if (typeof fuelingLiters === "number" && fuelingLiters > 0) {
-                fuelingAmount = Number((fuelingLiters * val).toFixed(2));
-            } else if (typeof fuelingAmount === "number" && fuelingAmount > 0) {
-                fuelingLiters = Number((fuelingAmount / val).toFixed(2));
-            }
-        }
+        if (val && fuelingLiters) fuelingAmount = Number((fuelingLiters * val).toFixed(2));
+        else if (val && fuelingAmount) fuelingLiters = Number((fuelingAmount / val).toFixed(2));
     }
 
     // 常用流水：生理指标（血压/血糖/体重/体温）
@@ -140,7 +135,6 @@
     let choreMemberIds = $state<string[]>(
         qDefs.choreMemberIds?.length ? qDefs.choreMemberIds : (qDefs.choreMemberId ? [qDefs.choreMemberId] : [])
     );
-    let choreMemberId = $state(qDefs.choreMemberId || "");
     let chorePoints = $state<number | undefined>();
     let choreNote = $state("");
 
@@ -167,35 +161,13 @@
         }
     }
 
-    async function ensureTargetRef(mod: string) {
-        let r = plugin.settings.dbRefs?.[mod];
-        if (!r?.avId) {
-            await plugin.repairModule?.(mod);
-            r = plugin.settings.dbRefs?.[mod];
-        }
-        if (!r?.avId) throw new Error(t("triage.noTarget"));
-        return r;
-    }
-
-    function dispatchBackgroundSync(mod: string, nextLogs: any) {
-        queueMicrotask(async () => {
-            try {
-                if (mod !== "shopping" && mod !== "snippets") {
-                    await syncModuleDocSection(plugin, mod, nextLogs);
-                }
-                await syncDailyJournalDoc(plugin, nextLogs);
-            } catch { /* soft */ }
-            try { await plugin.refreshHub?.([mod], true); } catch { /* soft */ }
-        });
-    }
-
     const onSaveErr = (e: unknown) => { saveError = String(e); saving = false; };
     function onEventSaved(mod: string, nextLogs: any, clearFn: () => void) {
         saving = false;
         showMessage(t("capture.savedEvent"), 2000, "info");
         clearFn();
         if (!keepContext) onClose?.();
-        dispatchBackgroundSync(mod, nextLogs);
+        dispatchBackgroundSync(plugin, mod, nextLogs);
     }
 
     async function submitQuickFueling() {
@@ -210,55 +182,20 @@
         try {
             const isCharging = fuelingKind === "charging";
             const unitPrice = isCharging ? chargePrice : fuelPrice;
-            const isFull = isEnergyFull;
-
-            const log = buildFuelingLog({
+            const nextLogs = await saveQuickFuelingRecord({
+                plugin,
                 date: eventDate,
                 time: eventTime,
+                vehicleId: selectedVehicleId,
                 kind: fuelingKind,
                 amount: fuelingAmount,
-                quantity: fuelingLiters!,
+                liters: fuelingLiters!,
                 mileage: fuelingMileage!,
                 unitPrice,
-                full: isFull,
+                isFull: isEnergyFull,
                 fuelGrade: !isCharging ? fuelGrade : undefined,
                 chargingMode: isCharging ? chargingMode : undefined,
             });
-            const vRef = await ensureTargetRef("vehicles");
-            const nextLogs = await updateRowLogs(plugin as any, (cur) =>
-                appendEntry(cur, vRef.avId!, selectedVehicleId, isCharging ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
-
-            const fullText = isFull ? (isCharging ? "已充满" : "已加满") : "";
-            const summaryNote = `最近${isCharging ? "充电" : "加油"}：${eventDate} · ${fuelingLiters}${isCharging ? "kWh" : "L"}${fuelingAmount !== undefined ? ` · ¥${fuelingAmount}` : ""}${fullText ? ` · ${fullText}` : ""} · ${fuelingMileage}km`;
-
-            await writeLedgerRow({
-                moduleId: "vehicles",
-                target: vRef,
-                itemId: selectedVehicleId,
-                name: "",
-                fields: {
-                    ...(fuelingMileage ? { mileage: fuelingMileage } : {}),
-                    note: summaryNote,
-                },
-            });
-
-            // 记忆用户本次填写习惯（包含金额与升数）
-            saveQuickDefaults(plugin, {
-                fuelVehicleId: selectedVehicleId,
-                fuelKind: fuelingKind,
-                fuelGrade: fuelingKind === "fuel" ? fuelGrade : undefined,
-                fuelPrice: fuelingKind === "fuel" ? fuelPrice : undefined,
-                fuelAmount: fuelingKind === "fuel" ? fuelingAmount : undefined,
-                fuelLiters: fuelingKind === "fuel" ? fuelingLiters : undefined,
-                fuelIsFull: fuelingKind === "fuel" ? isEnergyFull : undefined,
-                chargingMode: fuelingKind === "charging" ? chargingMode : undefined,
-                chargePrice: fuelingKind === "charging" ? chargePrice : undefined,
-                chargeAmount: fuelingKind === "charging" ? fuelingAmount : undefined,
-                chargeLiters: fuelingKind === "charging" ? fuelingLiters : undefined,
-                chargeIsFull: fuelingKind === "charging" ? isEnergyFull : undefined,
-            });
-
-            // 核心数据落盘即刻释放 UI（秒级响应）
             onEventSaved("vehicles", nextLogs, () => {
                 fuelingAmount = undefined;
                 fuelingLiters = undefined;
@@ -289,75 +226,20 @@
         saving = true;
         saveError = "";
         try {
-            const readings = buildVitalLog({
+            const nextLogs = await saveQuickVitalRecord({
+                plugin,
                 date: eventDate,
                 time: eventTime,
+                memberId: vitalMemberId,
                 metricType: vitalMetricType,
-                systolic: vitalSys,
-                diastolic: vitalDia,
+                sys: vitalSys,
+                dia: vitalDia,
                 pulse: vitalPulse,
                 glucose: vitalGlucose,
-                glucoseTiming: vitalTiming,
+                timing: vitalTiming,
                 weight: vitalWeight,
-                temperature: vitalTemp,
+                temp: vitalTemp,
             });
-            const healthRef = await ensureTargetRef("health");
-            const all = await renderLedgerAll(healthRef.avId!);
-            let row = vitalMemberId
-                ? (all.rows ?? []).find((r) => r.cells?.[healthRef.columns?.member ?? ""]?.relation?.blockIDs?.includes(vitalMemberId))
-                : (all.rows?.[0]);
-            const targetMember = plugin.settings.members?.find((m: any) => m.avItemId === vitalMemberId || m.id === vitalMemberId);
-            const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
-
-            let summaryDiag = "";
-            if (vitalMetricType === "bp") {
-                summaryDiag = `血压 ${vitalSys}/${vitalDia} mmHg${vitalPulse ? ` · 心率 ${vitalPulse} bpm` : ""}`;
-            } else if (vitalMetricType === "glucose") {
-                summaryDiag = `${vitalTiming === "postprandial" ? "餐后" : "空腹"}血糖 ${vitalGlucose} mmol/L`;
-            } else if (vitalMetricType === "weight") {
-                summaryDiag = `体重 ${vitalWeight} kg`;
-            } else if (vitalMetricType === "temp") {
-                summaryDiag = `体温 ${vitalTemp} ℃`;
-            }
-
-            const vitalFields = {
-                member: vitalMemberId,
-                category: "checkup",
-                status: "following",
-                date: eventDate,
-                diagnosis: summaryDiag,
-                note: `${eventDate} 录入：${summaryDiag}`,
-            };
-            if (!row) {
-                const { itemID } = await writeLedgerRow({
-                    moduleId: "health",
-                    target: healthRef,
-                    name: memberName,
-                    members: plugin.settings.members,
-                    operationKey: `vital:init:${vitalMemberId || "default"}:${Date.now()}`,
-                    fields: vitalFields,
-                });
-                row = { itemID, cells: {} };
-            } else {
-                await writeLedgerRow({
-                    moduleId: "health",
-                    target: healthRef,
-                    itemId: row.itemID,
-                    name: "",
-                    members: plugin.settings.members,
-                    fields: vitalFields,
-                });
-            }
-            const nextLogs = await updateRowLogs(plugin as any, (cur) => readings.reduce(
-                (acc, reading) => appendEntry(acc, healthRef.avId!, row!.itemID, "vitals", reading as unknown as Record<string, unknown>), cur));
-
-            // 记忆用户体征习惯
-            saveQuickDefaults(plugin, {
-                vitalMemberId,
-                vitalMetricType,
-            });
-
-            // 秒级响应
             onEventSaved("health", nextLogs, () => {
                 vitalSys = vitalDia = vitalPulse = vitalGlucose = vitalWeight = vitalTemp = undefined;
             });
@@ -375,41 +257,15 @@
         saving = true;
         saveError = "";
         try {
-            const choreRef = await ensureTargetRef("chores");
-            const log = buildChoreLog({
+            const nextLogs = await saveQuickChoreRecord({
+                plugin,
                 date: eventDate,
                 time: eventTime,
-                memberId: choreMemberId || undefined,
+                choreRowId,
+                memberIds: choreMemberIds,
                 points: chorePoints,
                 note: choreNote,
             });
-            const nextLogs = await updateRowLogs(plugin as any, (cur) =>
-                appendEntry(cur, choreRef.avId!, choreRowId, "chexecs", log));
-
-            const whoNames = (plugin.settings.members ?? [])
-                .filter((m: any) => choreMemberIds.includes(m.id))
-                .map((m: any) => m.name);
-            const whoSummary = whoNames.length > 0 ? whoNames.join("、") : "";
-            const summaryNote = `上次完成：${eventDate}${whoSummary ? ` · ${whoSummary}` : ""}${chorePoints ? ` · +${chorePoints}积分` : ""}${choreNote ? ` (${choreNote})` : ""}`;
-
-            await writeLedgerRow({
-                moduleId: "chores",
-                target: choreRef,
-                itemId: choreRowId,
-                name: "",
-                fields: {
-                    lastDone: eventDate,
-                    ...(choreMemberIds.length > 0 ? { assignee: choreMemberIds.join(",") } : {}),
-                    note: summaryNote,
-                },
-            });
-
-            saveQuickDefaults(plugin, {
-                choreRowId,
-                choreMemberId: choreMemberIds[0],
-                choreMemberIds,
-            });
-
             onEventSaved("chores", nextLogs, () => {
                 chorePoints = undefined;
                 choreNote = "";
@@ -429,35 +285,15 @@
         saving = true;
         saveError = "";
         try {
-            const shopRef = await ensureTargetRef("shopping");
-            const dateStr = eventDate;
-            const { itemID } = await writeLedgerRow({
-                moduleId: "shopping",
-                target: shopRef,
-                name,
-                operationKey: `quick:shop:${Date.now()}`,
-                fields: {
-                    qty: quickShopQty || 1,
-                    date: dateStr,
-                    category: quickShopCategory || "daily",
-                    ...(quickShopPrice ? { price: quickShopPrice } : {}),
-                },
-            });
-            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, shopRef.avId!, itemID, "quickflows", {
-                kind: "shopping",
-                date: dateStr,
+            const nextLogs = await saveQuickShoppingRecord({
+                plugin,
+                date: eventDate,
                 time: eventTime,
-                title: name,
+                name,
                 qty: quickShopQty || 1,
                 price: quickShopPrice,
-                category: quickShopCategory,
-                at: composeLifelogIsoAt(dateStr, eventTime),
-            }));
-
-            saveQuickDefaults(plugin, {
-                shoppingCategory: quickShopCategory,
+                category: quickShopCategory || "daily",
             });
-
             onEventSaved("shopping", nextLogs, () => {
                 quickShopName = "";
                 quickShopQty = 1;
@@ -478,34 +314,13 @@
         saving = true;
         saveError = "";
         try {
-            const snipRef = await ensureTargetRef("snippets");
-            const dateStr = eventDate;
-            const title = text.slice(0, 30);
-            const { itemID } = await writeLedgerRow({
-                moduleId: "snippets",
-                target: snipRef,
-                name: title,
-                operationKey: `quick:snip:${Date.now()}`,
-                fields: {
-                    content: text,
-                    category: "other_sn",
-                    note: text,
-                },
-            });
-            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, snipRef.avId!, itemID, "quickflows", {
-                kind: "snippet",
-                date: dateStr,
+            const nextLogs = await saveQuickSnippetRecord({
+                plugin,
+                date: eventDate,
                 time: eventTime,
-                title,
-                detail: text,
+                text,
                 tag: quickSnippetTag,
-                at: composeLifelogIsoAt(dateStr, eventTime),
-            }));
-
-            saveQuickDefaults(plugin, {
-                snippetTag: quickSnippetTag,
             });
-
             onEventSaved("snippets", nextLogs, () => {
                 quickSnippetText = "";
             });
@@ -569,18 +384,10 @@
     }
 
     export function selectSubAction(sub: string) {
-        if ((subActions as string[]).includes(sub)) {
+        if ((subActions as readonly string[]).includes(sub)) {
             eventSub = sub as EventSubAction;
         }
     }
-
-    const subTargetModule: Record<EventSubAction, string> = {
-        fuel: "vehicles",
-        vital: "health",
-        chore: "chores",
-        shopping: "shopping",
-        snippet: "snippets",
-    };
 
     export async function openCurrentTargetDoc() {
         const { openModuleOrJournalDoc } = await import("@/core/doc-sync");
@@ -591,19 +398,16 @@
     export function reloadContext() {
         eventTime = currentLocalHHMM();
         const defs = loadQuickDefaults(plugin);
-        if (defs.fuelPrice !== undefined) fuelPrice = defs.fuelPrice;
-        if (defs.chargePrice !== undefined) chargePrice = defs.chargePrice;
-        if (defs.fuelGrade !== undefined) fuelGrade = defs.fuelGrade;
-        if (defs.fuelIsFull !== undefined) isEnergyFull = defs.fuelIsFull;
-        if (defs.chargingMode !== undefined) chargingMode = defs.chargingMode;
-        if (defs.fuelAmount !== undefined && fuelingKind === "fuel") fuelingAmount = defs.fuelAmount;
-        if (defs.fuelLiters !== undefined && fuelingKind === "fuel") fuelingLiters = defs.fuelLiters;
-        if (defs.chargeAmount !== undefined && fuelingKind === "charging") fuelingAmount = defs.chargeAmount;
-        if (defs.chargeLiters !== undefined && fuelingKind === "charging") fuelingLiters = defs.chargeLiters;
-        if (defs.choreMemberIds?.length) choreMemberIds = defs.choreMemberIds;
-        else if (defs.choreMemberId) choreMemberIds = [defs.choreMemberId];
-        if (defs.vitalMetricType) vitalMetricType = defs.vitalMetricType;
-        if (defs.shoppingCategory) quickShopCategory = defs.shoppingCategory;
+        fuelPrice = defs.fuelPrice ?? fuelPrice;
+        chargePrice = defs.chargePrice ?? chargePrice;
+        fuelGrade = defs.fuelGrade ?? fuelGrade;
+        isEnergyFull = defs.fuelIsFull ?? isEnergyFull;
+        chargingMode = defs.chargingMode ?? chargingMode;
+        fuelingAmount = (fuelingKind === "charging" ? defs.chargeAmount : defs.fuelAmount) ?? fuelingAmount;
+        fuelingLiters = (fuelingKind === "charging" ? defs.chargeLiters : defs.fuelLiters) ?? fuelingLiters;
+        choreMemberIds = defs.choreMemberIds?.length ? defs.choreMemberIds : (defs.choreMemberId ? [defs.choreMemberId] : choreMemberIds);
+        vitalMetricType = defs.vitalMetricType ?? vitalMetricType;
+        quickShopCategory = defs.shoppingCategory ?? quickShopCategory;
         void loadQuickEventContext();
     }
 
@@ -656,7 +460,15 @@
                         type="button"
                         class="lv-seg-btn"
                         class:active={fuelingKind === "fuel"}
-                        onclick={() => { fuelingKind = "fuel"; }}
+                        onclick={() => {
+                            if (fuelingKind !== "fuel") {
+                                fuelingKind = "fuel";
+                                if (qDefs.fuelAmount !== undefined) onAmountInput(qDefs.fuelAmount);
+                                else if (qDefs.fuelLiters !== undefined) onLitersInput(qDefs.fuelLiters);
+                                else onAmountInput(fuelingAmount);
+                                if (qDefs.fuelIsFull !== undefined) isEnergyFull = qDefs.fuelIsFull;
+                            }
+                        }}
                         disabled={saving}
                     >
                         ⛽ {t("fuel.fuelTitle")}
@@ -665,7 +477,15 @@
                         type="button"
                         class="lv-seg-btn"
                         class:active={fuelingKind === "charging"}
-                        onclick={() => { fuelingKind = "charging"; }}
+                        onclick={() => {
+                            if (fuelingKind !== "charging") {
+                                fuelingKind = "charging";
+                                if (qDefs.chargeAmount !== undefined) onAmountInput(qDefs.chargeAmount);
+                                else if (qDefs.chargeLiters !== undefined) onLitersInput(qDefs.chargeLiters);
+                                else onAmountInput(fuelingAmount);
+                                if (qDefs.chargeIsFull !== undefined) isEnergyFull = qDefs.chargeIsFull;
+                            }
+                        }}
                         disabled={saving}
                     >
                         ⚡ {t("fuel.chargingTitle")}
@@ -719,9 +539,9 @@
                         onkeydown={onEnter(submitQuickFueling)}
                     />
                     <div class="lv-dt-quick-bar" style="margin-top: 5px;">
-                        <button type="button" class="b3-chip lv-dt-chip" class:b3-chip--primary={fuelingAmount === 200} onclick={() => onAmountInput(200)} disabled={saving}>¥200</button>
-                        <button type="button" class="b3-chip lv-dt-chip" class:b3-chip--primary={fuelingAmount === 300} onclick={() => onAmountInput(300)} disabled={saving}>¥300</button>
-                        <button type="button" class="b3-chip lv-dt-chip" class:b3-chip--primary={fuelingAmount === 500} onclick={() => onAmountInput(500)} disabled={saving}>¥500</button>
+                        {#each (fuelingKind === "charging" ? [30, 50, 100] : [200, 300, 500]) as amt}
+                            <button type="button" class="b3-chip lv-dt-chip" class:b3-chip--primary={fuelingAmount === amt} onclick={() => onAmountInput(amt)} disabled={saving}>¥{amt}</button>
+                        {/each}
                     </div>
                 </div>
             </div>
@@ -850,7 +670,7 @@
             </div>
             <div class="lv-frow">
                 <span class="lv-frow-label">{t("field.member")} · {t("members.multipleSelectHint")}</span>
-                <div id="lv-chore-mem-chips" use:memberChips={{ id: "lv-chore-mem", members: plugin.settings?.members, value: choreMemberIds, disabled: saving, useAvItemId: false, allText: t("members.allFamily"), onChange: (v) => { choreMemberIds = Array.isArray(v) ? v : (v ? [v] : []); choreMemberId = choreMemberIds[0] || ""; } }}></div>
+                <div id="lv-chore-mem-chips" use:memberChips={{ id: "lv-chore-mem", members: plugin.settings?.members, value: choreMemberIds, disabled: saving, useAvItemId: false, allText: t("members.allFamily"), onChange: (v) => { choreMemberIds = Array.isArray(v) ? v : (v ? [v] : []); } }}></div>
             </div>
             <div class="lv-frow">
                 <label for="lv-chore-points">{t("ledger.chorePoints")}</label>

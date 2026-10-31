@@ -18,8 +18,6 @@ import {
     renderSocialRetirementSection,
 } from "./drawer-domain-sections";
 
-export * from "./drawer-domain-sections";
-
 export interface RenderModuleSpecificSectionsOptions {
     body: HTMLElement;
     active: string;

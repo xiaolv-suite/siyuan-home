@@ -589,21 +589,12 @@ export function memberChips(node: HTMLElement, options: MemberChipsOptions) {
             selectEl.id = opts.id;
             selectEl.className = "b3-select lv-mt-4";
             selectEl.disabled = Boolean(opts.disabled);
-            const optNone = document.createElement("option");
-            optNone.value = "";
-            optNone.textContent = "全部";
-            selectEl.appendChild(optNone);
+            selectEl.add(new Option("全部", ""));
             for (const m of members) {
                 const mid = opts.useAvItemId ? m.avItemId! : m.id;
-                const o = document.createElement("option");
-                o.value = mid;
-                o.textContent = m.name;
-                if (selected.includes(mid)) o.selected = true;
-                selectEl.appendChild(o);
+                selectEl.add(new Option(m.name, mid, false, selected.includes(mid)));
             }
-            selectEl.onchange = () => {
-                opts.onChange(selectEl.value);
-            };
+            selectEl.onchange = () => opts.onChange(selectEl.value);
             node.appendChild(selectEl);
         }
     };

@@ -42,6 +42,7 @@
     import { getQuickTemplates } from "@/core/quick-templates";
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
+    const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     // Ledger module selector includes provisioned and enabled-but-unprovisioned modules.
     // 263 波（262 波同款缺陷类）：enabledModules 无响应性——设置保存新启用模块后，
@@ -137,7 +138,7 @@
             sortAsc = previousAsc;
             plugin.runtime.ledgerSortKey = previousKey;
             plugin.runtime.ledgerSortAsc = previousAsc;
-            showMessage(t("ledger.sortSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            showMessage(t("ledger.sortSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         }
     }
     const ref = $derived(ledgers.find((entry) => entry.id === active)?.ref);
@@ -316,7 +317,7 @@
             await load(); // 立即重新拉取当前模块的数据
             showMessage(t("ledger.rebuildDone"), 3000, "info");
         } catch (e) {
-            showMessage(t("ledger.rebuildFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            showMessage(t("ledger.rebuildFailed").replace("${msg}", errText(e)), 6000, "error");
         } finally {
             rebuilding = false;
         }
@@ -366,10 +367,10 @@
         } catch (e) {
             if (controller.signal.aborted || (e instanceof Error && (e.name === "RequestSupersededError" || e.name === "RequestAbortedError"))) return;
             if (request === loadRequest && avID === ref?.avId) {
-                loadError = t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
+                loadError = t("ledger.readFailed").replace("${msg}", errText(e));
                 if (plugin.pendingActivityTarget?.moduleId === active) {
                     plugin.pendingActivityTarget = undefined;
-                    showMessage(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+                    showMessage(t("ledger.readFailed").replace("${msg}", errText(e)), 6000, "error");
                 }
             }
         } finally {
@@ -420,7 +421,7 @@
 
     /** Format a cell for both the table and the detail drawer. */
     function cellText(v: any, colKey?: string, revealSensitive = false): string {
-        return formatLedgerCellText(v, colKey, t, isGuestMode, revealSensitive);
+        return formatLedgerCellText(v, colKey, t, isGuestMode, revealSensitive, plugin.settings.members);
     }
 
     // Warning thresholds follow each module's reminder lead time.

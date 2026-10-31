@@ -8,6 +8,9 @@ import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
 
+const errStr = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const errParen = (e: unknown) => (e ? ` (${errStr(e)})` : "");
+
 export function settingHintText(t: (k: string) => string, zh: string, en: string): string {
     return /[\u3400-\u9fff]/.test(t("settings.importDone")) ? zh : en;
 }
@@ -139,7 +142,7 @@ export async function exportDiagnosticsPackage(
             showMessageFn(t("settings.diagExportDone"), 3000, "info");
         } catch (error) {
             showMessageFn(
-                `${settingHintText(t, "诊断包导出失败", "Diagnostics export failed")}${error instanceof Error ? ` (${error.message})` : ""}`,
+                `${settingHintText(t, "诊断包导出失败", "Diagnostics export failed")}${errParen(error)}`,
                 5000,
                 "error",
             );
@@ -211,14 +214,14 @@ export async function openAmbiguityDialog(
                 try {
                     await plugin.refreshHub?.(undefined, true);
                 } catch (error) {
-                    showMessageFn(`${t("diag.ambigDone").replace("${n}", String(applied))} (${settingHintText(t, "刷新失败", "refresh failed")}: ${error instanceof Error ? error.message : String(error)})`, 6000, "error");
+                    showMessageFn(`${t("diag.ambigDone").replace("${n}", String(applied))} (${settingHintText(t, "刷新失败", "refresh failed")}: ${errStr(error)})`, 6000, "error");
                     return;
                 }
             }
             showMessageFn(t("diag.ambigDone").replace("${n}", String(applied)), 3000, "info");
         } catch (error) {
             plugin.settings = previous;
-            showMessageFn(`${t("settings.saveFailed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+            showMessageFn(`${t("settings.saveFailed")}${errParen(error)}`, 6000, "error");
             dlg.destroy();
         } finally {
             applyingAmbiguity = false;
@@ -244,7 +247,7 @@ export async function executeBackfillMemberLinks(
             try {
                 await plugin.refreshHub?.(undefined, true);
             } catch (refreshError) {
-                showMessageFn(`${settingHintText(t, "关联已保存，但提醒刷新失败", "Links saved, but reminder refresh failed")}${refreshError instanceof Error ? ` (${refreshError.message})` : ""}`, 6000, "error");
+                showMessageFn(`${settingHintText(t, "关联已保存，但提醒刷新失败", "Links saved, but reminder refresh failed")}${errParen(refreshError)}`, 6000, "error");
             }
         }
         if (res.ambiguous.length > 0) {
@@ -252,7 +255,7 @@ export async function executeBackfillMemberLinks(
         }
     } catch (error) {
         plugin.settings = previous;
-        showMessageFn(`${settingHintText(t, "成员关联回填失败", "Member link backfill failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+        showMessageFn(`${settingHintText(t, "成员关联回填失败", "Member link backfill failed")}${errParen(error)}`, 6000, "error");
     }
 }
 
@@ -266,7 +269,7 @@ export async function executeDuplicateLedgerCheck(
         const dups = await findDuplicateLedgers(plugin.settings);
         showMessageFn(dups.length === 0 ? t("diag.dupNone") : t("diag.dupFound").replace("${n}", String(dups.length)) + ": " + dups.map((d: any) => d.hpath).join(", "), 6000, dups.length ? "error" : "info");
     } catch (error) {
-        showMessageFn(`${settingHintText(t, "重复台账检测失败", "Duplicate ledger check failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+        showMessageFn(`${settingHintText(t, "重复台账检测失败", "Duplicate ledger check failed")}${errParen(error)}`, 6000, "error");
     }
 }
 
@@ -286,7 +289,7 @@ export async function executeDeepHealthCheck(
                 : t("diag.healthSummary").replace("${total}", String(report.modules.length))),
             7000, bad.length ? "error" : "info");
     } catch (error) {
-        showMessageFn(`${settingHintText(t, "健康检查失败", "Health check failed")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+        showMessageFn(`${settingHintText(t, "健康检查失败", "Health check failed")}${errParen(error)}`, 6000, "error");
     }
 }
 
@@ -295,14 +298,13 @@ export async function executeRebuildAllLedgers(
     t: (k: string) => string,
     showMessageFn: (msg: string, timeout?: number, type?: string) => void,
 ): Promise<void> {
-    const errText = (e: unknown) => e instanceof Error ? e.message : String(e);
     try {
         await plugin.adoptHistoryLedgers?.();
         const report = await plugin.ensureCoreLedgers();
         try {
             await plugin.refreshHub?.(undefined, true);
         } catch (error) {
-            showMessageFn(`${t("ledger.rebuildRefreshFailed").replace("${msg}", errText(error))}`, 6000, "error");
+            showMessageFn(`${t("ledger.rebuildRefreshFailed").replace("${msg}", errStr(error))}`, 6000, "error");
             return;
         }
         if (report?.issues?.length > 0) {
@@ -312,7 +314,7 @@ export async function executeRebuildAllLedgers(
             showMessageFn(t("diag.rebuildAllDone"), 3000, "info");
         }
     } catch (error) {
-        showMessageFn(`${t("ledger.rebuildFailed").replace("${msg}", errText(error))}`, 6000, "error");
+        showMessageFn(`${t("ledger.rebuildFailed").replace("${msg}", errStr(error))}`, 6000, "error");
     }
 }
 
@@ -321,7 +323,6 @@ export async function executeAdoptHistoryLedgers(
     t: (k: string) => string,
     showMessageFn: (msg: string, timeout?: number, type?: string) => void,
 ): Promise<void> {
-    const errText = (e: unknown) => e instanceof Error ? e.message : String(e);
     try {
         const report = await plugin.adoptHistoryLedgers?.();
         try {
@@ -333,7 +334,7 @@ export async function executeAdoptHistoryLedgers(
             showMessageFn(t("diag.adoptHistoryNone"), 4000, "info");
         }
     } catch (e) {
-        showMessageFn(errText(e), 5000, "error");
+        showMessageFn(errStr(e), 5000, "error");
     }
 }
 
@@ -368,7 +369,7 @@ export async function executeRestorePreImport(
         } catch (e) {
             const prefix = (e as Error & { settingsPersistFailed?: boolean }).settingsPersistFailed
                 ? t("settings.saveFailed") : settingHintText(t, "恢复失败", "Restore failed");
-            showMessageFn(`${prefix}${e instanceof Error ? ` (${e.message})` : ""}`, 5000, "error");
+            showMessageFn(`${prefix}${errParen(e)}`, 5000, "error");
         }
     });
 }
@@ -409,11 +410,11 @@ export async function executeImportSettings(
             } catch (err) {
                 const prefix = (err as Error & { settingsPersistFailed?: boolean }).settingsPersistFailed
                     ? t("settings.saveFailed") : t("settings.importBad");
-                showMessageFn(`${prefix}${err instanceof Error ? ` (${err.message})` : ""}`, 6000, "error");
+                showMessageFn(`${prefix}${errParen(err)}`, 6000, "error");
             }
         });
     } catch (err) {
-        showMessageFn(`${t("settings.importBad")}${err instanceof Error ? ` (${err.message})` : ""}`, 5000, "error");
+        showMessageFn(`${t("settings.importBad")}${errParen(err)}`, 5000, "error");
     }
 }
 
@@ -430,13 +431,13 @@ export async function executeRerunOnboarding(
         try {
             await plugin.refreshHub?.(undefined, true);
         } catch (error) {
-            showMessageFn(`${settingHintText(t, "引导已重置，但提醒刷新失败", "Onboarding reset, but reminder refresh failed")} (${error instanceof Error ? error.message : String(error)})`, 6000, "error");
+            showMessageFn(`${settingHintText(t, "引导已重置，但提醒刷新失败", "Onboarding reset, but reminder refresh failed")} (${errStr(error)})`, 6000, "error");
             return;
         }
         showMessageFn(t("wiz.rerunHint"), 3000, "info");
     } catch (error) {
         plugin.settings = previous;
-        showMessageFn(`${settingHintText(t, "重置引导失败", "Unable to reset onboarding")}${error instanceof Error ? ` (${error.message})` : ""}`, 6000, "error");
+        showMessageFn(`${settingHintText(t, "重置引导失败", "Unable to reset onboarding")}${errParen(error)}`, 6000, "error");
     }
 }
 
@@ -456,14 +457,14 @@ export async function executeGenerateDemo(
         try { await plugin.refreshHub?.(undefined, true); }
         catch (e) { refreshError = e; }
         const details = [...res.errors.slice(0, 3)];
-        if (refreshError) details.push(`${settingHintText(t, "提醒刷新失败", "reminder refresh failed")}: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
+        if (refreshError) details.push(`${settingHintText(t, "提醒刷新失败", "reminder refresh failed")}: ${errStr(refreshError)}`);
         const partial = res.errors.length > 0 || !!refreshError;
         const summary = res.errors.length
             ? t("settings.demoPartial").replace("${n}", String(res.errors.length))
             : t("settings.demoDone").replace("${n}", String(res.created));
         showMessageFn(details.length ? `${summary}: ${details.join("; ")}` : summary, partial ? 7000 : 5000, partial ? "error" : "info");
     } catch (e) {
-        showMessageFn(t("settings.demoActionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+        showMessageFn(t("settings.demoActionFailed").replace("${msg}", errStr(e)), 6000, "error");
     }
 }
 
@@ -480,14 +481,14 @@ export function executeClearDemo(
             try { await plugin.refreshHub?.(undefined, true); }
             catch (e) { refreshError = e; }
             const details = [...res.errors.slice(0, 3)];
-            if (refreshError) details.push(`${settingHintText(t, "提醒刷新失败", "reminder refresh failed")}: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
+            if (refreshError) details.push(`${settingHintText(t, "提醒刷新失败", "reminder refresh failed")}: ${errStr(refreshError)}`);
             const partial = res.errors.length > 0 || !!refreshError;
             const summary = res.errors.length
                 ? t("settings.demoClearPartial").replace("${n}", String(res.cleared)).replace("${m}", String(res.errors.length))
                 : t("settings.demoClearDone").replace("${n}", String(res.cleared));
             showMessageFn(details.length ? `${summary}: ${details.join("; ")}` : summary, partial ? 7000 : 6000, partial ? "error" : "info");
         } catch (e) {
-            showMessageFn(t("settings.demoActionFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
+            showMessageFn(t("settings.demoActionFailed").replace("${msg}", errStr(e)), 6000, "error");
         }
     });
 }

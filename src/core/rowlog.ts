@@ -49,11 +49,13 @@ export interface RowLog {
     chexecs?: Record<string, unknown>[];
     /** 生理指标流水（314 波，G5）：血压/血糖/心率读数时间序列 */
     vitals?: Record<string, unknown>[];
+    /** 快捷待买与随手便签的时间戳留痕（用于生成带精确 HH:mm 的标准 LifeLog 记录） */
+    quickflows?: Record<string, unknown>[];
 }
 
 export type RowLogs = Record<string, RowLog>;
 
-export type LogKind = "valuations" | "moves" | "prices" | "transfers" | "meters" | "checks" | "loans" | "deposits" | "fuelings" | "chargings" | "maintenance" | "chexecs" | "vitals";
+export type LogKind = "valuations" | "moves" | "prices" | "transfers" | "meters" | "checks" | "loans" | "deposits" | "fuelings" | "chargings" | "maintenance" | "chexecs" | "vitals" | "quickflows";
 
 export interface MeterEntry {
     date: string;

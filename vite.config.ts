@@ -5,6 +5,7 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import zipPack from "vite-plugin-zip-pack";
 import fg from "fast-glob";
+import * as terser from "terser";
 
 import vitePluginYamlI18n from "./yaml-plugin.js";
 import { useLiveReload } from "./scripts/siyuan_live_reload.js";
@@ -127,6 +128,13 @@ export default defineConfig(buildTarget === "kernel" ? {
                 keep_fargs: false,
                 sequences: true,
                 hoist_funs: true,
+                collapse_vars: true,
+                join_vars: true,
+                loops: true,
+                side_effects: true,
+                evaluate: true,
+                conditionals: true,
+                comparisons: true,
             },
             mangle: {
                 toplevel: true,
@@ -153,7 +161,27 @@ export default defineConfig(buildTarget === "kernel" ? {
                     "./docs/*.md",
                     "./plugin.json"
                 ])
-            ] : [],
+            ] : [
+                {
+                    name: "final-bundle-compress",
+                    async generateBundle(_options, bundle) {
+                        const chunk = bundle["index.js"];
+                        if (chunk && chunk.type === "chunk") {
+                            const res = await terser.minify(chunk.code, {
+                                ecma: 2022,
+                                compress: {
+                                    passes: 2,
+                                    pure_getters: false,
+                                    booleans_as_integers: false,
+                                },
+                                mangle: { toplevel: true },
+                                format: { comments: false },
+                            });
+                            if (res.code) chunk.code = res.code;
+                        }
+                    },
+                },
+            ],
 
             external: ["siyuan", "process"],
 

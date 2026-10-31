@@ -465,8 +465,8 @@ async function main() {
             await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title'] .lv-sheet-foot .lv-btn.primary").click();
             await sleep(1600);
         };
-        await logFuelOnce(310, 15000, 40, "2026-10-01");
-        // 重新唤出记第二笔加油以形成油耗区间
+        await logFuelOnce(310, 15000, 40, "2026-09-15");
+        // 重新唤出记第二笔加油以形成跨月油耗区间
         await page.locator(".lv-rail-nav__foot button").first().click();
         await sleep(500);
         await logFuelOnce(325, 15500, 42, "2026-10-20");
@@ -701,8 +701,10 @@ async function main() {
         await page.locator("button.lv-table-open").first().click();
         await sleep(700);
         await page.locator("#lv-detail-del").click();
-        await sleep(350);
-        await page.locator(".lv-top-confirm .b3-button:not(.b3-button--cancel), .b3-dialog .b3-button--remove, .b3-dialog .b3-button:not(.b3-button--cancel)").last().click();
+        await sleep(500);
+        const confirmBtn = page.locator(".b3-dialog").last().locator(".b3-dialog__action button:not(.b3-button--cancel)");
+        await confirmBtn.waitFor({ state: "visible", timeout: 5000 });
+        await confirmBtn.click();
         await sleep(1800);
         const afterDelCount = await page.locator("tr.lv-row-link").count();
         assert.equal(afterDelCount, beforeDelCount - 1, "删除后囤货台账行数应减 1");
@@ -846,9 +848,19 @@ async function main() {
             const healthMd = await exportMd(p.settings.dbRefs?.health?.docId);
             const choresMd = await exportMd(p.settings.dbRefs?.chores?.docId);
             const protyleText = document.querySelector(".protyle-wysiwyg")?.innerText || "";
+            const blockRefsCount = document.querySelectorAll('.protyle-wysiwyg span[data-type="block-ref"]').length;
+            const m10Idx = journalMd.indexOf("### 10 月");
+            const m09Idx = journalMd.indexOf("### 09 月");
+            const d1020Idx = journalMd.indexOf("#### 2026-10-20");
+            const d1031Idx = journalMd.indexOf("#### 2026-10-");
+            const lifelogLines = journalMd.split("\n").filter((l) => /^\d{2}:\d{2}\s/.test(l.trim()));
+            const lifelogRe = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^：:\r\n]+)[：:](.+)$/;
             return {
                 journalDocId: Boolean(journalDocId),
-                protyleShowsJournal: protyleText.includes("日常流水记录") && protyleText.includes("清洗空调滤网"),
+                protyleShowsJournal: protyleText.includes("2026 年") && protyleText.includes("10 月") && protyleText.includes("清洗空调滤网"),
+                hasBidirectionalLinks: blockRefsCount >= 4 && vehMd.includes("📒 流水总账"),
+                yearMonthDesc: journalMd.includes("## 2026 年") && m10Idx > -1 && m09Idx > m10Idx && d1020Idx > d1031Idx,
+                lifelogFormatValid: lifelogLines.length >= 5 && lifelogLines.every((l) => lifelogRe.test(l.trim())),
                 journalHasAllFlows:
                     journalMd.includes("家用SUV") &&
                     journalMd.includes("138/88 mmHg") &&
@@ -867,14 +879,17 @@ async function main() {
         });
         await sleep(500);
         rec(
-            "Step 14 · 总览精简、快速日常流水优先直达及全量流水/备忘同步思源原生文档",
+            "Step 14 · LifeLog 标准语法、年/月/日倒序可折叠大纲与双向双链思源文档落地",
             docSyncVerification.journalDocId &&
                 docSyncVerification.protyleShowsJournal &&
+                docSyncVerification.hasBidirectionalLinks &&
+                docSyncVerification.yearMonthDesc &&
+                docSyncVerification.lifelogFormatValid &&
                 docSyncVerification.journalHasAllFlows &&
                 docSyncVerification.vehDocHasFuelLog &&
                 docSyncVerification.healthDocHasVitalLog &&
                 docSyncVerification.choresDocHasCheckinLog,
-            `journal=${docSyncVerification.journalHasAllFlows}, vehDoc=${docSyncVerification.vehDocHasFuelLog}, healthDoc=${docSyncVerification.healthDocHasVitalLog}, choresDoc=${docSyncVerification.choresDocHasCheckinLog}`,
+            `lifelog=${docSyncVerification.lifelogFormatValid}, ymDesc=${docSyncVerification.yearMonthDesc}, biLinks=${docSyncVerification.hasBidirectionalLinks}`,
         );
 
         await browser.close();

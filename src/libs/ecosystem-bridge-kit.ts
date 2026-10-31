@@ -45,37 +45,7 @@ export interface EcosystemEventEnvelope<T = Record<string, unknown>> {
     idempotencyKey: string;
 }
 
-export const ECOSYSTEM_EVENTS = Object.freeze({
-    // 打卡
-    CHECKIN_RECORDED: "checkin:event-recorded",
-    CHECKIN_DELETED: "checkin:event-deleted",
-    // 人脉
-    CONTACTS_INTERACTION: "lv-contacts:interaction-logged",
-    CONTACTS_PERSON_CREATED: "lv-contacts:person-created",
-    CONTACTS_DATA_CHANGED: "lv-contacts:data-changed",
-    // 管家
-    HOME_DATA_CHANGED: "lv-home:data-changed",
-    // 雷切
-    RAIKIRI_NAVIGATED: "lv-raikiri:navigated",
-    // 拾遗
-    GLEAN_DATA_CHANGED: "lv-glean:data-changed",
-    GLEAN_STATUS_CHANGED: "lv-glean:clip-status-changed",
-    // 考试
-    EXAM_SESSION_ENDED: "lv-exam:session-ended",
-    EXAM_WRONGBOOK_CHANGED: "lv-exam:wrongbook-changed",
-    EXAM_STATS: "lv-exam:stats",
-    // 闪卡
-    CARDS_REVIEWED: "lv-cards:reviewed",
-    // 常用
-    COMMON_CREATED: "xiaolv:common:item-created",
-    COMMON_UPDATED: "xiaolv:common:item-updated",
-    COMMON_DELETED: "xiaolv:common:item-deleted",
-    // 快门
-    QUICKGATE_COMMAND_EXECUTED: "lv-quickgate:command-executed",
-    QUICKGATE_DATA_CHANGED: "lv-quickgate:data-changed",
-    // 联盟伙伴：Task Horizon (任务视界)
-    TASK_COMPLETED: "tm:task-completed",
-} as const);
+export const ECOSYSTEM_EVENTS = Object.freeze({});
 
 /* ========================================================================= */
 /* 3. 各插件公开桥类型定义 (Public Bridge Interfaces)                        */
@@ -490,54 +460,6 @@ export function registerRaikiriModuleSafely(options: RaikiriHomeModuleOptions): 
         console.warn("[小驴生态联邦] 注册雷切小组件失败:", e);
     }
     return () => {};
-}
-
-/**
- * 订阅生态广播事件（返回自动退订函数，卸载时调用）
- */
-export function subscribeEcosystemEvent<T = Record<string, unknown>>(
-    eventName: string,
-    handler: (detail: EcosystemEventEnvelope<T>) => void
-): () => void {
-    if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
-        return () => {};
-    }
-    const listener = (evt: Event) => {
-        try {
-            const custom = evt as CustomEvent<EcosystemEventEnvelope<T>>;
-            if (custom.detail) handler(custom.detail);
-        } catch (e) {
-            console.error(`[小驴生态联邦] 处理事件 ${eventName} 异常:`, e);
-        }
-    };
-    window.addEventListener(eventName, listener);
-    return () => {
-        window.removeEventListener(eventName, listener);
-    };
-}
-
-/**
- * 监听 Task Horizon 任务完成事件 (tm:task-completed)
- * 返回注销清理函数
- */
-export function onTaskHorizonCompleted(
-    listener: (detail: TaskHorizonCompletedEventDetail) => void
-): () => void {
-    if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
-        return () => {};
-    }
-    const handler = (evt: Event) => {
-        try {
-            const custom = evt as CustomEvent<TaskHorizonCompletedEventDetail>;
-            if (custom.detail) listener(custom.detail);
-        } catch (e) {
-            console.error("[小驴生态联邦] 处理 Task Horizon 完成事件异常:", e);
-        }
-    };
-    window.addEventListener("tm:task-completed", handler);
-    return () => {
-        window.removeEventListener("tm:task-completed", handler);
-    };
 }
 
 /**

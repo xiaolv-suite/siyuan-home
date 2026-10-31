@@ -109,21 +109,7 @@ export function setBlockAttrs(id: string, attrs: Record<string, string>, options
  * - detached 行不在 blocks 表：SQL 不可查、不可块定位 → 行定位降级为打开台账文档（B4e 定案）
  */
 
-/** 插入 markdown 块，返回新块 ID（E9/182 波：insertBlock 响应 doOperations[].data 带 data-node-id，可同步提取；取不到回空串由调用方兜底） */
-export async function insertBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
-    const d = await post<any>("/api/block/insertBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
-    const ops: any[] = Array.isArray(d) ? (d[0]?.doOperations ?? []) : (d?.doOperations ?? d?.data?.doOperations ?? []);
-    for (const op of ops) {
-        const m = String(op?.data ?? "").match(/data-node-id="(\d{14}-[a-z0-9]+)"/);
-        if (m) return m[1];
-    }
-    const inserted = String(d?.id ?? d?.blockID ?? d?.data?.id ?? "");
-    return inserted;
-}
-
-/** 在文档末尾追加 markdown 块，返回新块 ID */
-export async function appendBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
-    const d = await post<any>("/api/block/appendBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
+function extractBlockOpId(d: any): string {
     const ops: any[] = Array.isArray(d) ? (d[0]?.doOperations ?? []) : (d?.doOperations ?? d?.data?.doOperations ?? []);
     for (const op of ops) {
         if (typeof op?.id === "string" && op.id) return op.id;
@@ -133,9 +119,26 @@ export async function appendBlock(parentID: string, markdown: string, options?: 
     return String(d?.id ?? d?.blockID ?? d?.data?.id ?? "");
 }
 
+/** 插入 markdown 块，返回新块 ID（E9/182 波：insertBlock 响应 doOperations[].data 带 data-node-id，可同步提取；取不到回空串由调用方兜底） */
+export async function insertBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
+    const d = await post<any>("/api/block/insertBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
+    return extractBlockOpId(d);
+}
+
+/** 在文档末尾追加 markdown 块，返回新块 ID */
+export async function appendBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
+    const d = await post<any>("/api/block/appendBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
+    return extractBlockOpId(d);
+}
+
 /** 原地更新指定块 ID 的 markdown 内容 */
 export async function updateBlock(id: string, markdown: string, options?: RequestOptions): Promise<void> {
     await post("/api/block/updateBlock", { dataType: "markdown", id, data: markdown }, options);
+}
+
+/** 折叠指定标题或容器块（思源原生标题折叠，大纲与编辑器同步生效） */
+export async function foldBlock(id: string, options?: RequestOptions): Promise<void> {
+    await post("/api/block/foldBlock", { id }, options);
 }
 
 /** 新思源 ID（yyyyMMddHHmmss-xxxxxxx 形态；内核对 keyID/avIdSeed 接受自造值）。crypto 随机，非加密用途但避可预测值 */

@@ -10,6 +10,8 @@ import type { VitalReading } from "./vitals";
 
 export interface QuickFuelingInput {
     date: string; // YYYY-MM-DD
+    /** 可选 HH:mm 本地时间（用于生成标准 LifeLog 时间戳） */
+    time?: string;
     kind: EnergyKind;
     /** 当前总里程（公里），油耗/电耗统计必需 */
     mileage: number;
@@ -22,6 +24,8 @@ export interface QuickFuelingInput {
 
 export interface QuickVitalInput {
     date: string; // YYYY-MM-DD
+    /** 可选 HH:mm 本地时间（用于生成标准 LifeLog 时间戳） */
+    time?: string;
     metricType: "bp" | "glucose"; // 血压或血糖
     systolic?: number; // 收缩压
     diastolic?: number; // 舒张压
@@ -33,10 +37,53 @@ export interface QuickVitalInput {
 
 export interface QuickChoreInput {
     date: string;
+    /** 可选 HH:mm 本地时间（用于生成标准 LifeLog 时间戳） */
+    time?: string;
     /** settings 成员 id（与家务抽屉、积分结算同一 ID 空间） */
     memberId?: string;
     points?: number;
     note?: string;
+}
+
+/** 获取当前本地时间的 HH:mm 字符串（LifeLog 标准 24 小时制行首格式） */
+export function currentLocalHHMM(now = new Date()): string {
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+/** 归一化 HH:mm 时间；若未传则从 ISO 时间戳提取本地 HH:mm，再兜底当前时刻 */
+export function normalizeLifelogTime(time?: unknown, fallbackIso?: unknown): string {
+    if (typeof time === "string") {
+        const m = time.trim().match(/^(\d{1,2}):(\d{2})/);
+        if (m) {
+            const hh = Number(m[1]);
+            const mm = Number(m[2]);
+            if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+                return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+            }
+        }
+    }
+    if (typeof fallbackIso === "string" && fallbackIso.trim()) {
+        const d = new Date(fallbackIso);
+        if (!Number.isNaN(d.getTime())) {
+            return currentLocalHHMM(d);
+        }
+    }
+    return "09:00";
+}
+
+/** 将 YYYY-MM-DD 与可选 HH:mm 合成为带准确本地时刻的 ISO 字符串 */
+export function composeLifelogIsoAt(dateStr: string, timeStr?: string, now = new Date()): string {
+    const m = typeof timeStr === "string" ? timeStr.trim().match(/^(\d{1,2}):(\d{2})$/) : null;
+    if (m && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const hh = Number(m[1]);
+        const mm = Number(m[2]);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+            const sec = String(now.getSeconds()).padStart(2, "0");
+            const composed = new Date(`${dateStr}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${sec}`);
+            if (!Number.isNaN(composed.getTime())) return composed.toISOString();
+        }
+    }
+    return now.toISOString();
 }
 
 const positive = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
@@ -61,13 +108,16 @@ export function validateVitalInput(input: Partial<QuickVitalInput>): Array<"syst
 
 /** 构建加油/充电流水（EnergyRecord，与车辆抽屉录入同结构） */
 export function buildFuelingLog(input: QuickFuelingInput): EnergyRecord {
-    const record: EnergyRecord = {
+    const date = input.date || new Date().toISOString().slice(0, 10);
+    const at = composeLifelogIsoAt(date, input.time);
+    const record: EnergyRecord & { time?: string } = {
         kind: input.kind,
-        date: input.date || new Date().toISOString().slice(0, 10),
-        at: new Date().toISOString(),
+        date,
+        at,
         odometer: input.mileage,
         quantity: input.quantity,
     };
+    if (input.time) record.time = normalizeLifelogTime(input.time, at);
     if (typeof input.amount === "number" && Number.isFinite(input.amount)) record.totalCost = input.amount;
     if (input.note?.trim()) record.note = input.note.trim();
     return record;
@@ -76,28 +126,41 @@ export function buildFuelingLog(input: QuickFuelingInput): EnergyRecord {
 /** 构建生理指标读数（VitalReading[]，与健康抽屉录入同结构；血压附带脉搏时额外记一条心率） */
 export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
     const date = input.date || new Date().toISOString().slice(0, 10);
-    const at = new Date().toISOString();
+    const at = composeLifelogIsoAt(date, input.time);
+    const time = input.time ? normalizeLifelogTime(input.time, at) : undefined;
     const note = input.note?.trim() || undefined;
-    const readings: VitalReading[] = [];
+    const readings: Array<VitalReading & { time?: string; pulse?: number }> = [];
     if (input.metricType === "glucose") {
         if (positive(input.glucose)) {
-            readings.push({ date, type: "bg", val1: input.glucose, val2: input.glucoseTiming === "postprandial" ? 1 : 0, at, ...(note ? { note } : {}) });
+            readings.push({ date, type: "bg", val1: input.glucose, val2: input.glucoseTiming === "postprandial" ? 1 : 0, at, ...(time ? { time } : {}), ...(note ? { note } : {}) });
         }
         return readings;
     }
     if (positive(input.systolic)) {
-        readings.push({ date, type: "bp", val1: input.systolic, ...(positive(input.diastolic) ? { val2: input.diastolic } : {}), at, ...(note ? { note } : {}) });
+        readings.push({
+            date,
+            type: "bp",
+            val1: input.systolic,
+            ...(positive(input.diastolic) ? { val2: input.diastolic } : {}),
+            ...(positive(input.pulse) ? { pulse: input.pulse } : {}),
+            at,
+            ...(time ? { time } : {}),
+            ...(note ? { note } : {}),
+        });
     }
-    if (positive(input.pulse)) readings.push({ date, type: "hr", val1: input.pulse, at });
+    if (positive(input.pulse)) readings.push({ date, type: "hr", val1: input.pulse, at, ...(time ? { time } : {}) });
     return readings;
 }
 
 /** 构建家务打卡记录（chexecs，与家务轮换抽屉同结构；积分结算按 points 汇总） */
 export function buildChoreLog(input: QuickChoreInput): Record<string, unknown> {
+    const date = input.date || new Date().toISOString().slice(0, 10);
+    const at = composeLifelogIsoAt(date, input.time);
     const record: Record<string, unknown> = {
-        date: input.date || new Date().toISOString().slice(0, 10),
-        at: new Date().toISOString(),
+        date,
+        at,
     };
+    if (input.time) record.time = normalizeLifelogTime(input.time, at);
     if (input.memberId) record.memberId = input.memberId;
     if (input.note?.trim()) record.note = input.note.trim();
     if (positive(input.points)) record.points = input.points;

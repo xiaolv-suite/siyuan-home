@@ -1,18 +1,19 @@
 /**
- * 思源笔记文档双向落地与同步引擎（doc-sync.ts）
+ * 思源笔记文档双向落地与 LifeLog 标准时间线同步引擎（doc-sync.ts）
  *
- * 核心职责：
- * 1. 确保所有【快速记录 · 日常流水】（加油/充电、血压/血糖/心率、家务打卡、快捷待买、随手便签）、
- *    【临时备忘（runtime.memos）】以及【各模块行级子记录（rowlogs / 续期历史）】全部以原生 Markdown
- *    超级块（SuperBlock）形式幂等落盘到思源笔记文档中；
- * 2. 维护专用汇总文档 `/📒 日常流水与备忘`（登记于 `settings.dbRefs.adhoc`），并在各模块
- *    `/台账 · XXX` 文档底部同步维护 `## 📋 日常流水与附属记录` 区块，实现插件面板与思源原生文档
- *    100% 双向可查、可跳、可见。
+ * 核心契约：
+ * 1. 所有带时间的记录统一输出为思源生态标准 LifeLog 段落语法（`HH:mm 类型：内容 #标签`）：
+ *    - 必须为独立原生段落块（NodeParagraph，块间空行分隔，无 `- ` 列表前缀，行首时间不加粗 `**`）；
+ *    - 类型名称绝不含冒号（防解析器截断），正文单行化（换行符转空格），附带稳定块 ID（防外部插件重复记账），
+ *      可直接被叶归 LifeLog、小驴打卡 LifeLog 适配器等识别 LifeLog 的插件无缝解析。
+ * 2. `/📒 日常流水与备忘` 采用原生顶级标题构建 **【年（H2）➔ 月（H3）➔ 日（H4）】** 三级可折叠大纲，
+ *    年、月、日及当日时刻全部严格按**倒序**排列；同步更新时自动检测并保留用户已折叠的年/月/日标题折叠态。
  */
 
 import {
     appendBlock,
     createDocWithMd,
+    foldBlock,
     getBlockKramdown,
     getHPathByID,
     renderLedgerAll,
@@ -20,6 +21,7 @@ import {
     type AvRow,
 } from "./siyuan";
 import { ensureNotebook, findLedgerDoc, isDocMissingError, stableAvSeed } from "./provisioner";
+import { normalizeLifelogTime } from "./quick-actions";
 import { loadRowLogs, type LogKind, type RowLog, type RowLogs } from "./rowlog";
 import { saveSettings } from "./settings";
 import type { FamilyMember } from "@/types";
@@ -27,12 +29,16 @@ import type { FamilyMember } from "@/types";
 export const DAILY_JOURNAL_TITLE = "日常流水与备忘";
 export const DAILY_JOURNAL_HPATH = "/📒 日常流水与备忘";
 
+/** 思源生态通用 LifeLog 段落识别正则（行首无样式 HH:mm + 空格 + 类型 + 冒号 + 内容） */
+export const LIFELOG_MARKER_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^：:\r\n]+)[：:](.+)$/;
+
 const ALL_LOG_KINDS: readonly LogKind[] = [
     "fuelings",
     "chargings",
     "maintenance",
     "vitals",
     "chexecs",
+    "quickflows",
     "valuations",
     "moves",
     "prices",
@@ -43,6 +49,8 @@ const ALL_LOG_KINDS: readonly LogKind[] = [
     "deposits",
 ];
 
+const WEEKDAY_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] as const;
+
 const knownSectionIds = new Set<string>();
 const sectionWriteChains = new Map<string, Promise<unknown>>();
 
@@ -50,18 +58,51 @@ export function sectionBlockId(docId: string, sectionKey: string): string {
     return stableAvSeed(`sec:${sectionKey}`, docId);
 }
 
-function enqueueSectionWrite<T>(secId: string, task: () => Promise<T>): Promise<T> {
-    const prev = sectionWriteChains.get(secId) ?? Promise.resolve();
+function enqueueSectionWrite<T>(key: string, task: () => Promise<T>): Promise<T> {
+    const prev = sectionWriteChains.get(key) ?? Promise.resolve();
     const next = prev.then(task);
     sectionWriteChains.set(
-        secId,
+        key,
         next.catch(() => undefined),
     );
     return next;
 }
 
+export const cleanLifelogType = (raw: string): string =>
+    String(raw || "日常记录").replace(/[\r\n\s]+/g, " ").replace(/[：:]/g, "-").trim() || "日常记录";
+
+export const cleanLifelogBody = (raw: string): string =>
+    String(raw || "").replace(/[\r\n\s]+/g, " ").trim() || "已记录";
+
 /**
- * 在指定思源文档中幂等插入或原地更新一个带固定 ID 的超级块分区
+ * 构建单行标准 LifeLog 段落文本：`HH:mm 类型：内容`
+ * 严格满足：无列表符号 `- `、行首时间纯文本无粗体、类型不含冒号、正文无换行
+ */
+export function buildLifelogLine(time: string, type: string, body: string): string {
+    const hhmm = normalizeLifelogTime(time);
+    return `${hhmm} ${cleanLifelogType(type)}：${cleanLifelogBody(body)}`;
+}
+
+export function weekdayOfDate(dateStr: string): string {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (!m) return "";
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return Number.isNaN(d.getTime()) ? "" : WEEKDAY_CN[d.getDay()];
+}
+
+function normalizeValidDate(raw: unknown, fallbackAt?: unknown): string {
+    for (const candidate of [raw, fallbackAt]) {
+        if (typeof candidate === "string") {
+            const slice = candidate.trim().slice(0, 10);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(slice)) return slice;
+        }
+    }
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * 在指定台账文档底部幂等插入或原地更新附属记录超级块（保护上方 AttributeView 数据库块不受影响）
  */
 export async function upsertDocSection(
     docId: string,
@@ -96,6 +137,89 @@ export async function upsertDocSection(
     });
 }
 
+/**
+ * 从文档既有 Kramdown 中提取用户手动折叠的块 ID（含 `fold="1"` 的标题）
+ */
+export function extractFoldedBlockIds(kramdown: string): Set<string> {
+    const folded = new Set<string>();
+    if (!kramdown) return folded;
+    const ialRe = /\{:\s*([^}]+)\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = ialRe.exec(kramdown)) !== null) {
+        const attrs = match[1];
+        if (!/\bfold="1"/.test(attrs)) continue;
+        const idMatch = /\bid="([0-9a-zA-Z-]+)"/.exec(attrs);
+        if (idMatch) folded.add(idMatch[1]);
+    }
+    return folded;
+}
+
+export function formatBlockRef(targetId: string | undefined, anchorText: string): string {
+    const cleanText = String(anchorText ?? "").trim();
+    if (!cleanText) return "";
+    if (!targetId || cleanText.includes("((")) return cleanText;
+    return `((${targetId} "${cleanText.replace(/"/g, "'")}"))`;
+}
+
+/**
+ * 从文档既有 Kramdown 中提取非本插件托管（无 `custom-lvhome="1"`）的用户手写段落或双链块，重同步时原样保留
+ */
+export function extractUserCustomBlocks(kramdown: string, docId: string): string[] {
+    if (!kramdown) return [];
+    const preserved: string[] = [];
+    // 按顶层块切分（以块末尾 `{: ...}` 为界）
+    const chunks = kramdown.split(/\n\n+/);
+    for (const raw of chunks) {
+        const chunk = raw.trim();
+        if (!chunk) continue;
+        // 忽略文档根属性行 `{: id="${docId}" ... type="doc" ...}`
+        if (chunk.startsWith("{:") && (chunk.includes('type="doc"') || chunk.includes(`id="${docId}"`))) continue;
+        // 忽略本插件托管生成的块及旧版初始化头部/超级块
+        if (chunk.includes('custom-lvhome="1"') || chunk.includes("custom-lvhome-sec=")) continue;
+        if (chunk.includes("小驴管家 · 日常流水") || chunk.startsWith("# 📒")) continue;
+        preserved.push(chunk);
+    }
+    return preserved;
+}
+
+/**
+ * 原地更新专用汇总文档 `/📒 日常流水与备忘` 的顶级大纲与段落，保留用户手写双链块并恢复已折叠的年/月/日标题
+ */
+export async function replaceJournalDocPreservingFolds(
+    docId: string,
+    markdown: string,
+): Promise<void> {
+    await enqueueSectionWrite(`doc:${docId}`, async () => {
+        let foldedIds = new Set<string>();
+        let userBlocks: string[] = [];
+        try {
+            const prev = await getBlockKramdown(docId, { retries: 0 });
+            const prevKd = prev?.kramdown ?? "";
+            foldedIds = extractFoldedBlockIds(prevKd);
+            userBlocks = extractUserCustomBlocks(prevKd, docId);
+        } catch {
+            /* 文档初次写入或读取不可用时无需恢复折叠 */
+        }
+
+        const finalMd = userBlocks.length > 0
+            ? `${markdown.trim()}\n\n${userBlocks.join("\n\n")}`
+            : markdown.trim();
+
+        await updateBlock(docId, finalMd, { retries: 0 });
+
+        if (foldedIds.size > 0) {
+            for (const blockId of foldedIds) {
+                if (!finalMd.includes(`id="${blockId}"`)) continue;
+                try {
+                    await foldBlock(blockId, { retries: 0 });
+                } catch {
+                    /* ignore single fold failure */
+                }
+            }
+        }
+    });
+}
+
 function memberNameById(members: FamilyMember[] | undefined, idOrAvId: unknown): string {
     if (!idOrAvId || typeof idOrAvId !== "string") return "";
     const hit = (members ?? []).find((m) => m.id === idOrAvId || m.avItemId === idOrAvId);
@@ -108,76 +232,168 @@ function rowTitleFromCells(row: AvRow | undefined, columns: Record<string, strin
     return String(cell?.text?.content ?? cell?.block?.content ?? "").trim();
 }
 
+export interface ParsedLifelogSpec {
+    date: string;
+    time: string;
+    sortKey: string;
+    lifelogType: string;
+    detailText: string;
+    tags: string[];
+}
+
+export interface LifelogLinkOptions {
+    /** 关联主体所属的台账文档 ID（如车辆/健康/家务文档 ID），传入后主体名称自动转为思源双链 `((docId "主体名"))` */
+    subjectDocId?: string;
+    /** 家庭成员台账文档 ID，传入后成员姓名自动转为思源双链 `((membersDocId "成员名"))` */
+    membersDocId?: string;
+    /** 该台账行绑定的所属成员名（可选，当流水自身无 memberId 时补充关联成员双链） */
+    rowMemberName?: string;
+}
+
 /**
- * 将单条 rowlog 子记录格式化为易读的 Markdown 列表项文本
+ * 将单条 rowlog 子记录解析为结构化 LifeLog 要素（支持自动生成与保留思源 `((id "锚文本"))` 双链）
+ */
+export function describeRowLogAsLifelog(
+    kind: LogKind,
+    entry: Record<string, unknown>,
+    members?: FamilyMember[],
+    subjectTitle?: string,
+    linkOpts?: LifelogLinkOptions,
+): ParsedLifelogSpec {
+    const date = normalizeValidDate(entry.date, entry.at);
+    const time = normalizeLifelogTime(entry.time, entry.at);
+    const sortKey = `${date}T${time}:${String(entry.at ?? "")}`;
+    const note = typeof entry.note === "string" && entry.note.trim() ? entry.note.trim() : "";
+    const rawSubject = subjectTitle?.trim() || "";
+    const subject = rawSubject ? formatBlockRef(linkOpts?.subjectDocId, rawSubject) : "";
+    const rowOwnerLink = linkOpts?.rowMemberName ? formatBlockRef(linkOpts?.membersDocId, linkOpts.rowMemberName) : undefined;
+    const parts = (...items: unknown[]) => items.filter((p): p is string => typeof p === "string" && p.trim().length > 0).join(" · ");
+
+    let lifelogType = "日常记录";
+    let detailText = parts(subject, note || "记录更新");
+    let tags = ["#日常"];
+
+    if (kind === "fuelings" || kind === "chargings") {
+        const isC = kind === "chargings";
+        const qty = entry.quantity ?? entry.liters;
+        const cost = entry.totalCost ?? entry.cost;
+        const odo = entry.odometer ?? entry.mileage;
+        lifelogType = isC ? "车辆充电" : "车辆加油";
+        detailText = parts(subject, rowOwnerLink, qty !== undefined && `${qty} ${isC ? "kWh" : "L"}`, cost !== undefined && `¥${cost}`, odo !== undefined && `里程 ${odo} km`, typeof entry.station === "string" ? entry.station.trim() : "", note);
+        tags = ["#车辆", isC ? "#充电" : "#加油"];
+    } else if (kind === "maintenance") {
+        const cat = typeof entry.category === "string" && entry.category.trim() ? entry.category.trim() : "常规维保";
+        const cost = entry.cost ?? entry.totalCost;
+        const odo = entry.odometer ?? entry.mileage;
+        lifelogType = "车辆维保";
+        detailText = parts(subject, rowOwnerLink, cat, cost !== undefined && `¥${cost}`, odo !== undefined && `里程 ${odo} km`, typeof entry.shop === "string" ? entry.shop.trim() : "", note);
+        tags = ["#车辆", "#维保"];
+    } else if (kind === "vitals") {
+        const vtype = String(entry.type ?? "bp");
+        const owner = rowOwnerLink && !rawSubject.includes(linkOpts?.rowMemberName || "\u0000") ? rowOwnerLink : undefined;
+        if (vtype === "bg") {
+            const timing = entry.val2 === 1 || entry.glucoseTiming === "postprandial" ? "餐后" : "空腹";
+            lifelogType = "血糖监测";
+            detailText = parts(subject, owner, `${timing} ${entry.val1 ?? entry.glucose ?? "—"} mmol/L`, note);
+            tags = ["#健康", "#血糖"];
+        } else if (vtype === "hr") {
+            lifelogType = "心率监测";
+            detailText = parts(subject, owner, `${entry.val1 ?? entry.pulse ?? "—"} bpm`, note);
+            tags = ["#健康", "#心率"];
+        } else {
+            const pulse = entry.pulse !== undefined ? `心率 ${entry.pulse} bpm` : undefined;
+            lifelogType = "血压监测";
+            detailText = parts(subject, owner, `${entry.val1 ?? entry.systolic ?? "—"}/${entry.val2 ?? entry.diastolic ?? "—"} mmHg`, pulse, note);
+            tags = ["#健康", "#血压"];
+        }
+    } else if (kind === "chexecs") {
+        const whoRaw = memberNameById(members, entry.memberId);
+        const who = whoRaw ? formatBlockRef(linkOpts?.membersDocId, whoRaw) : rowOwnerLink;
+        const pts = typeof entry.points === "number" && entry.points > 0 ? `+${entry.points} 积分` : undefined;
+        lifelogType = "家务打卡";
+        detailText = parts(subject, who ? `执行人 ${who}` : undefined, pts, note);
+        tags = ["#家务"];
+    } else if (kind === "quickflows") {
+        const rawQ = String(entry.title ?? rawSubject ?? "").trim();
+        const qtitle = rawQ ? formatBlockRef(linkOpts?.subjectDocId, rawQ) : "";
+        if (String(entry.kind ?? "snippet") === "shopping") {
+            const qty = typeof entry.qty === "number" && entry.qty > 0 ? `数量 ${entry.qty}` : undefined;
+            lifelogType = "待买清单";
+            detailText = parts(qtitle, qty, note);
+            tags = ["#待买"];
+        } else {
+            const detail = typeof entry.detail === "string" && entry.detail.trim() && entry.detail.trim() !== rawQ ? entry.detail.trim().slice(0, 100) : undefined;
+            lifelogType = "随手便签";
+            detailText = parts(qtitle, detail, note);
+            tags = ["#便签"];
+        }
+    } else if (SIMPLE_LOG_MAP[kind]) {
+        const simple = SIMPLE_LOG_MAP[kind]!;
+        lifelogType = simple.type;
+        detailText = parts(subject, simple.format(entry), note);
+        tags = simple.tags;
+    }
+
+    return { date, time, sortKey, lifelogType, detailText, tags };
+}
+
+const SIMPLE_LOG_MAP: Partial<Record<LogKind, { type: string; tags: string[]; format: (e: Record<string, unknown>) => string }>> = {
+    valuations: { type: "资产估值", tags: ["#资产"], format: (e) => `¥${e.value ?? "—"}` },
+    moves: { type: "位置变更", tags: ["#变更"], format: (e) => `${e.from || "—"} ➔ ${e.to || "—"}` },
+    transfers: { type: "位置变更", tags: ["#变更"], format: (e) => `${e.from || "—"} ➔ ${e.to || "—"}` },
+    prices: { type: "价格记录", tags: ["#价格"], format: (e) => `¥${e.price ?? "—"}${e.channel ? ` · ${e.channel}` : ""}` },
+    meters: { type: "水电抄表", tags: ["#抄表"], format: (e) => `读数 ${e.reading ?? "—"}${e.usage !== undefined ? ` · 本期用量 ${e.usage}` : ""}` },
+    checks: { type: "盘点核验", tags: ["#盘点"], format: (e) => String(e.result ?? "已核对") },
+    loans: { type: "借还记录", tags: ["#借还"], format: (e) => `${e.to ?? "—"}${e.back ? ` · 已还 ${e.back}` : ""}` },
+    deposits: { type: "心愿存入", tags: ["#心愿"], format: (e) => `¥${e.amount ?? "—"}` },
+};
+
+/**
+ * 将单条 rowlog 子记录格式化为标准 LifeLog 单行段落文本：`HH:mm 类型：内容 #标签`
  */
 export function formatRowLogEntryLine(
     kind: LogKind,
     entry: Record<string, unknown>,
     members?: FamilyMember[],
+    subjectTitle?: string,
 ): string {
-    const date = String(entry.date ?? entry.at ?? "").slice(0, 10) || "—";
-    const note = typeof entry.note === "string" && entry.note.trim() ? ` · ${entry.note.trim()}` : "";
+    const spec = describeRowLogAsLifelog(kind, entry, members, subjectTitle);
+    const tagSuffix = spec.tags.length > 0 ? ` ${spec.tags.join(" ")}` : "";
+    return buildLifelogLine(spec.time, spec.lifelogType, `${spec.detailText}${tagSuffix}`);
+}
 
-    switch (kind) {
-        case "fuelings": {
-            const qty = entry.quantity ?? entry.liters;
-            const cost = entry.totalCost ?? entry.cost;
-            const odo = entry.odometer ?? entry.mileage;
-            const station = typeof entry.station === "string" && entry.station.trim() ? ` · ${entry.station.trim()}` : "";
-            return `- **${date}** · ⛽ 加油${qty !== undefined ? ` **${qty} L**` : ""}${cost !== undefined ? ` · **¥${cost}**` : ""}${odo !== undefined ? ` · 里程 **${odo} km**` : ""}${station}${note}`;
+/**
+ * 过滤与合并同一时刻由血压附带生成的冗余心率条目（把 pulse 合并进血压读数，保持 LifeLog 时间线清爽）
+ */
+function normalizeVitalsForLifelog(list: ReadonlyArray<Record<string, unknown>>): Array<Record<string, unknown>> {
+    const bpByStamp = new Map<string, Record<string, unknown>>();
+    const out: Array<Record<string, unknown>> = [];
+
+    for (const item of list) {
+        if (!item || typeof item !== "object") continue;
+        if (String(item.type ?? "bp") === "bp") {
+            const copy = { ...item };
+            const stamp = `${String(item.date ?? "")}|${String(item.at ?? item.time ?? "")}`;
+            bpByStamp.set(stamp, copy);
+            out.push(copy);
         }
-        case "chargings": {
-            const qty = entry.quantity ?? entry.liters;
-            const cost = entry.totalCost ?? entry.cost;
-            const odo = entry.odometer ?? entry.mileage;
-            const station = typeof entry.station === "string" && entry.station.trim() ? ` · ${entry.station.trim()}` : "";
-            return `- **${date}** · ⚡ 充电${qty !== undefined ? ` **${qty} kWh**` : ""}${cost !== undefined ? ` · **¥${cost}**` : ""}${odo !== undefined ? ` · 里程 **${odo} km**` : ""}${station}${note}`;
-        }
-        case "maintenance": {
-            const cat = typeof entry.category === "string" && entry.category.trim() ? entry.category.trim() : "常规维保";
-            const cost = entry.cost ?? entry.totalCost;
-            const odo = entry.odometer ?? entry.mileage;
-            const shop = typeof entry.shop === "string" && entry.shop.trim() ? ` · ${entry.shop.trim()}` : "";
-            return `- **${date}** · 🔧 维保（**${cat}**）${cost !== undefined ? ` · **¥${cost}**` : ""}${odo !== undefined ? ` · 里程 **${odo} km**` : ""}${shop}${note}`;
-        }
-        case "vitals": {
-            const vtype = String(entry.type ?? "bp");
-            if (vtype === "bg") {
-                const timing = entry.val2 === 1 || entry.glucoseTiming === "postprandial" ? "餐后" : "空腹";
-                return `- **${date}** · 🩸 血糖 **${entry.val1 ?? entry.glucose ?? "—"} mmol/L**（${timing}）${note}`;
-            }
-            if (vtype === "hr") {
-                return `- **${date}** · 💓 心率 **${entry.val1 ?? entry.pulse ?? "—"} bpm**${note}`;
-            }
-            const sys = entry.val1 ?? entry.systolic ?? "—";
-            const dia = entry.val2 ?? entry.diastolic ?? "—";
-            const pulse = entry.pulse !== undefined ? ` · 心率 **${entry.pulse} bpm**` : "";
-            return `- **${date}** · ❤️ 血压 **${sys}/${dia} mmHg**${pulse}${note}`;
-        }
-        case "chexecs": {
-            const who = memberNameById(members, entry.memberId);
-            const pts = typeof entry.points === "number" && entry.points > 0 ? ` · **+${entry.points} 积分**` : "";
-            return `- **${date}** · 🧹 家务打卡${who ? ` · 执行人：**${who}**` : ""}${pts}${note}`;
-        }
-        case "valuations":
-            return `- **${date}** · 💰 估值快照 **¥${entry.value ?? "—"}**${note}`;
-        case "moves":
-        case "transfers":
-            return `- **${date}** · 📦 变更记录 **${entry.from || "—"} ➔ ${entry.to || "—"}**${note}`;
-        case "prices":
-            return `- **${date}** · 🏷 价格记录 **¥${entry.price ?? "—"}**${entry.channel ? ` · ${entry.channel}` : ""}${note}`;
-        case "meters":
-            return `- **${date}** · ⚡ 抄表读数 **${entry.reading ?? "—"}**${entry.usage !== undefined ? `（本期用量 **${entry.usage}**）` : ""}${note}`;
-        case "checks":
-            return `- **${date}** · ✅ 盘点核验 **${entry.result ?? "已核对"}**${note}`;
-        case "loans":
-            return `- **${date}** · 🤝 借出/归还 **${entry.to ?? "—"}**${entry.back ? `（已还 ${entry.back}）` : ""}${note}`;
-        case "deposits":
-            return `- **${date}** · 🪙 心愿存入 **¥${entry.amount ?? "—"}**${note}`;
-        default:
-            return `- **${date}** · 记录更新${note}`;
     }
+    for (const item of list) {
+        if (!item || typeof item !== "object") continue;
+        if (String(item.type ?? "bp") === "bp") continue;
+        if (String(item.type) === "hr") {
+            const stamp = `${String(item.date ?? "")}|${String(item.at ?? item.time ?? "")}`;
+            const pairedBp = bpByStamp.get(stamp);
+            if (pairedBp) {
+                if (pairedBp.pulse === undefined && item.val1 !== undefined) {
+                    pairedBp.pulse = item.val1;
+                }
+                continue;
+            }
+        }
+        out.push(item);
+    }
+    return out;
 }
 
 export interface FormatModuleRowLogsInput {
@@ -188,16 +404,29 @@ export interface FormatModuleRowLogsInput {
     logs: RowLogs;
     renewHistory?: Record<string, Array<{ from: string; to: string; at: string }>>;
     members?: FamilyMember[];
+    /** 关联的 `/📒 日常流水与备忘` 文档 ID（传入后自动生成指向流水总账的反向双链） */
+    journalDocId?: string;
+    /** 家庭成员台账文档 ID（传入后自动将成员名渲染为双链） */
+    membersDocId?: string;
+}
+
+export function buildFlowEntryIdKey(
+    rowLogKey: string,
+    kind: string,
+    entry: Record<string, unknown>,
+    spec: Pick<ParsedLifelogSpec, "date" | "time" | "detailText">,
+): string {
+    const fingerprint = String(entry.at ?? `${spec.date}T${spec.time}:${spec.detailText}`);
+    return `${rowLogKey}|${kind}|${fingerprint}`;
 }
 
 /**
- * 生成单个台账模块文档底部的 `## 📋 日常流水与附属记录` Markdown 内容
+ * 生成单个台账模块文档底部的 `## 📋 日常流水与附属记录（LifeLog）` Markdown 内容（按日期倒序排列，带双向双链）
  */
 export function formatModuleRowLogsMarkdown(input: FormatModuleRowLogsInput): string {
-    const { avId, rows, columns, logs, renewHistory = {}, members } = input;
+    const { avId, rows, columns, logs, renewHistory = {}, members, journalDocId, membersDocId } = input;
     const rowById = new Map(rows.map((r) => [r.itemID, r]));
     const prefix = `${avId}|`;
-    const sections: string[] = [];
 
     const rowIds = new Set<string>();
     for (const r of rows) rowIds.add(r.itemID);
@@ -205,61 +434,88 @@ export function formatModuleRowLogsMarkdown(input: FormatModuleRowLogsInput): st
         if (key.startsWith(prefix)) rowIds.add(key.slice(prefix.length));
     }
 
+    const byDate = new Map<string, Array<{ sortKey: string; text: string }>>();
+    const pushDateLine = (date: string, sortKey: string, text: string) => {
+        const list = byDate.get(date) ?? [];
+        list.push({ sortKey, text });
+        byDate.set(date, list);
+    };
+
     for (const rowId of rowIds) {
-        const grouped: RowLog | undefined = logs[`${avId}|${rowId}`];
+        const rowLogKey = `${avId}|${rowId}`;
+        const grouped: RowLog | undefined = logs[rowLogKey];
         const renews = renewHistory[rowId] ?? [];
-        const lines: Array<{ sortKey: string; text: string }> = [];
+        const row = rowById.get(rowId);
+        const rowTitle = rowTitleFromCells(row, columns) || "关联条目";
+        const memberRelationIds = columns?.member ? row?.cells?.[columns.member]?.relation?.blockIDs : undefined;
+        const rowMemberName = Array.isArray(memberRelationIds) && memberRelationIds[0]
+            ? memberNameById(members, memberRelationIds[0])
+            : "";
 
         if (grouped && typeof grouped === "object") {
             for (const kind of ALL_LOG_KINDS) {
-                const list = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
-                if (!Array.isArray(list) || list.length === 0) continue;
+                const rawList = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
+                if (!Array.isArray(rawList) || rawList.length === 0) continue;
+                const list = kind === "vitals" ? normalizeVitalsForLifelog(rawList) : rawList;
                 for (const entry of list) {
                     if (!entry || typeof entry !== "object") continue;
-                    const sortKey = String(entry.at ?? entry.date ?? "");
-                    lines.push({
-                        sortKey,
-                        text: formatRowLogEntryLine(kind, entry, members),
+                    const spec = describeRowLogAsLifelog(kind, entry, members, rowTitle, {
+                        membersDocId,
+                        rowMemberName,
                     });
+                    const idKey = buildFlowEntryIdKey(rowLogKey, kind, entry, spec);
+                    const journalTargetId = journalDocId ? stableAvSeed(`ll:${idKey}`, journalDocId) : undefined;
+                    const backRef = journalTargetId ? ` ((${journalTargetId} "📒 流水总账"))` : "";
+                    const tagSuffix = spec.tags.length > 0 ? ` ${spec.tags.join(" ")}` : "";
+                    const line = buildLifelogLine(spec.time, spec.lifelogType, `${spec.detailText}${tagSuffix}${backRef}`);
+                    pushDateLine(spec.date, spec.sortKey, line);
                 }
             }
         }
 
         for (const r of renews) {
-            lines.push({
-                sortKey: String(r.at ?? r.to ?? ""),
-                text: `- **${String(r.at ?? "").slice(0, 10) || "—"}** · 🔄 效期续期 **${r.from} ➔ ${r.to}**`,
-            });
+            const date = normalizeValidDate(undefined, r.at);
+            const time = normalizeLifelogTime(undefined, r.at);
+            const line = buildLifelogLine(time, "效期续期", `${rowTitle} · ${r.from} ➔ ${r.to} #续期`);
+            pushDateLine(date, `${date}T${time}:${String(r.at ?? "")}`, line);
         }
-
-        if (lines.length === 0) continue;
-        lines.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-        const rowTitle = rowTitleFromCells(rowById.get(rowId), columns) || "关联条目";
-        sections.push(`### 📌 ${rowTitle}\n\n${lines.map((l) => l.text).join("\n")}`);
     }
 
-    if (sections.length === 0) {
-        return "";
+    if (byDate.size === 0) return "";
+
+    const sortedDates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+    const dayBlocks: string[] = [];
+    for (const date of sortedDates) {
+        const entries = (byDate.get(date) ?? []).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+        const wk = weekdayOfDate(date);
+        dayBlocks.push(`### ${date}${wk ? ` ${wk}` : ""}\n\n${entries.map((e) => e.text).join("\n\n")}`);
     }
 
-    return `## 📋 日常流水与附属记录\n\n> 💡 以下流水由「快速记录 · 日常流水」或台账详情抽屉实时同步，与上方思源属性视图数据库联动。\n\n${sections.join("\n\n")}`;
+    const journalDocRef = journalDocId
+        ? `，已与 ((${journalDocId} "📒 ${DAILY_JOURNAL_TITLE}")) 建立双向链接`
+        : "";
+    return `## 📋 日常流水与附属记录（LifeLog）\n\n> 💡 以下记录采用标准 \`HH:mm 类型：内容\` LifeLog 段落格式，按日期倒序同步，可被 LifeLog 插件直接识别${journalDocRef}。\n\n${dayBlocks.join("\n\n")}`;
 }
 
 export interface DailyJournalFlowItem {
+    idKey: string;
     date: string;
+    time: string;
     sortKey: string;
-    moduleId: string;
-    moduleTitle: string;
+    lifelogType: string;
+    detailText: string;
+    tags?: string[];
     docId?: string;
-    rowTitle: string;
-    summaryLine: string;
+    moduleTitle?: string;
 }
 
 export interface FormatDailyJournalInput {
+    docId?: string;
     memos: Array<{
         id: string;
         title: string;
         dueDate: string;
+        createdAt?: string;
         doneAt?: string;
         priority?: "high" | "medium" | "low";
         category?: string;
@@ -267,59 +523,109 @@ export interface FormatDailyJournalInput {
         recurrenceAnchor?: "due" | "completion";
     }>;
     flowItems: DailyJournalFlowItem[];
-    quickItems?: Array<{
-        date: string;
-        kindLabel: string;
-        title: string;
-        detail?: string;
-        docId?: string;
-        moduleTitle?: string;
-    }>;
 }
 
 /**
- * 生成 `/📒 日常流水与备忘` 汇总文档的完整同步区块 Markdown
+ * 生成 `/📒 日常流水与备忘` 完整原生文档 Markdown：
+ * - 顶部待办备忘区（H2，可折叠）
+ * - 【年（H2）】➔【月（H3）】➔【日期（H4）】三级标题严格倒序排列，便于按年、按月一键折叠
+ * - 每条流水均为独立标准 LifeLog 段落：`HH:mm 类型：内容 #标签 ((docId "台账 · 模块"))` + 稳定块 ID
  */
 export function formatDailyJournalMarkdown(input: FormatDailyJournalInput): string {
-    const { memos = [], flowItems = [], quickItems = [] } = input;
+    const { docId = "20260101000000-journal", memos = [], flowItems = [] } = input;
+    const blockIdFor = (seedKey: string) => stableAvSeed(seedKey, docId);
 
-    // 1. 日常流水部分
-    const flowLines: string[] = [];
-    for (const q of quickItems) {
-        const ref = q.docId ? ` · ((${q.docId} "${q.moduleTitle || "查看台账"}"))` : "";
-        flowLines.push(`- **${q.date}** · ${q.kindLabel} **${q.title}**${q.detail ? ` · ${q.detail}` : ""}${ref}`);
-    }
-    const sortedFlows = [...flowItems].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-    for (const item of sortedFlows) {
-        const cleanBody = item.summaryLine.replace(/^-\s*\*\*[^*]+\*\*\s*·\s*/, "");
-        const ref = item.docId ? ` · ((${item.docId} "台账 · ${item.moduleTitle}"))` : "";
-        flowLines.push(`- **${item.date}** · **${item.rowTitle}**（${item.moduleTitle}）· ${cleanBody}${ref}`);
-    }
+    const introId = blockIdFor("bq:intro");
+    const intro = [
+        `> 🏠 **小驴管家 · ${DAILY_JOURNAL_TITLE}（LifeLog 标准时间线）**`,
+        `> 💡 时间记录采用 \`HH:mm 类型：内容\` LifeLog 标准格式，与台账及成员双向链接；按年/月/日倒序组织，支持标题折叠。`,
+        `{: id="${introId}" custom-lvhome="1"}`,
+    ].join("\n");
 
-    const flowsSection = flowLines.length > 0
-        ? `## ⚡ 日常流水记录（共 ${flowLines.length} 条）\n\n${flowLines.slice(0, 100).join("\n")}`
-        : `## ⚡ 日常流水记录\n\n- 暂无日常流水记录。可在管家「⚡ 快速记录 · 日常流水」中随时录入加油充电、血压血糖、家务打卡、快捷待买与随手便签。`;
-
-    // 2. 临时备忘与周期提醒部分
+    // 1. 待办备忘区（H2）
     const activeMemos = memos.filter((m) => !m.doneAt).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-    const doneMemos = memos.filter((m) => !!m.doneAt).sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
-
+    const memosH2Id = blockIdFor("h2:pending-memos");
+    const memosBodyId = blockIdFor("body:pending-memos");
     const memoLines: string[] = [];
     for (const m of activeMemos) {
         const pri = m.priority === "high" ? " · 🔥 高优" : m.priority === "medium" ? " · ⚡ 中优" : m.priority === "low" ? " · 🌱 低优" : "";
         const cat = m.category ? ` · #${m.category}` : "";
         const cyc = m.cycle ? ` · 🔁 ${m.cycle}${m.recurrenceAnchor === "completion" ? "(按完成顺延)" : ""}` : "";
-        memoLines.push(`- [ ] **${m.title}** · 📅 到期 \`${m.dueDate}\`${pri}${cat}${cyc}`);
+        memoLines.push(`- [ ] **${m.title}** · 到期 \`${m.dueDate}\`${pri}${cat}${cyc}`);
     }
-    for (const m of doneMemos.slice(0, 30)) {
-        memoLines.push(`- [x] ~~${m.title}~~ · ✅ 完成于 \`${String(m.doneAt).slice(0, 10)}\``);
-    }
-
     const memosSection = memoLines.length > 0
-        ? `## 📌 临时备忘与周期事项（待办 ${activeMemos.length} 项）\n\n${memoLines.join("\n")}`
-        : `## 📌 临时备忘与周期事项\n\n- 暂无临时备忘。可在总览「快速记录」中输入自然语言备忘（支持 \`@明天 !高 #家务 *!14天\`）。`;
+        ? `## 📌 待办备忘与周期事项（${activeMemos.length} 项）\n{: id="${memosH2Id}" custom-lvhome="1"}\n\n${memoLines.join("\n")}\n{: id="${memosBodyId}" custom-lvhome="1"}`
+        : `## 📌 待办备忘与周期事项\n{: id="${memosH2Id}" custom-lvhome="1"}\n\n暂无待办备忘。\n{: id="${memosBodyId}" custom-lvhome="1"}`;
 
-    return `${flowsSection}\n\n---\n\n${memosSection}`;
+    // 2. 收集全部带时间的 LifeLog 条目（含已办结备忘的完成时刻）
+    const allFlows: DailyJournalFlowItem[] = [...flowItems];
+    for (const m of memos) {
+        if (!m.doneAt) continue;
+        const doneDate = normalizeValidDate(undefined, m.doneAt);
+        const doneTime = normalizeLifelogTime(undefined, m.doneAt);
+        const tags = ["#备忘"];
+        if (m.category) tags.push(`#${m.category.replace(/\s+/g, "_")}`);
+        allFlows.push({
+            idKey: `memo-done:${m.id}:${m.doneAt}`,
+            date: doneDate,
+            time: doneTime,
+            sortKey: `${doneDate}T${doneTime}:${m.doneAt}`,
+            lifelogType: "备忘办结",
+            detailText: m.title,
+            tags,
+        });
+    }
+
+    if (allFlows.length === 0) {
+        const emptyH2Id = blockIdFor("h2:empty-flows");
+        const emptyPId = blockIdFor("p:empty-flows");
+        return `${intro}\n\n${memosSection}\n\n## ⚡ 日常流水时间线\n{: id="${emptyH2Id}" custom-lvhome="1"}\n\n暂无日常流水记录。\n{: id="${emptyPId}" custom-lvhome="1"}`;
+    }
+
+    // 3. 按【年】->【月】->【日期】三级分组并全层级严格倒序排列
+    const tree = new Map<string, Map<string, Map<string, DailyJournalFlowItem[]>>>();
+    for (const item of allFlows) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(item.date)) continue;
+        const [y, m] = [item.date.slice(0, 4), item.date.slice(5, 7)];
+        const ym = tree.get(y) ?? new Map();
+        if (!tree.has(y)) tree.set(y, ym);
+        const dm = ym.get(m) ?? new Map();
+        if (!ym.has(m)) ym.set(m, dm);
+        const dl = dm.get(item.date) ?? [];
+        if (!dm.has(item.date)) dm.set(item.date, dl);
+        dl.push(item);
+    }
+
+    const yearBlocks: string[] = [];
+    for (const y of [...tree.keys()].sort((a, b) => b.localeCompare(a))) {
+        const ym = tree.get(y)!;
+        const monthBlocks: string[] = [];
+        for (const m of [...ym.keys()].sort((a, b) => b.localeCompare(a))) {
+            const dm = ym.get(m)!;
+            const dateBlocks: string[] = [];
+            for (const d of [...dm.keys()].sort((a, b) => b.localeCompare(a))) {
+                const itemsDesc = [...(dm.get(d) ?? [])].sort((a, b) =>
+                    b.sortKey.localeCompare(a.sortKey) || b.idKey.localeCompare(a.idKey),
+                );
+                const seenP = new Set<string>();
+                const pars = itemsDesc.map((it, idx) => {
+                    const tag = it.tags?.length ? ` ${it.tags.join(" ")}` : "";
+                    const ref = it.docId ? ` ((${it.docId} "${(it.moduleTitle || "查看台账").replace(/"/g, "'")}"))` : "";
+                    const line = buildLifelogLine(it.time, it.lifelogType, `${it.detailText}${tag}${ref}`);
+                    let pId = blockIdFor(`ll:${it.idKey}`);
+                    if (seenP.has(pId)) pId = blockIdFor(`ll:${it.idKey}:${idx}`);
+                    seenP.add(pId);
+                    return `${line}\n{: id="${pId}" custom-lvhome="1"}`;
+                });
+                const wk = weekdayOfDate(d);
+                dateBlocks.push(`#### ${d}${wk ? ` ${wk}` : ""}\n{: id="${blockIdFor(`yd:${d}`)}" custom-lvhome="1"}\n\n${pars.join("\n\n")}`);
+            }
+            monthBlocks.push(`### ${m} 月\n{: id="${blockIdFor(`ym:${y}-${m}`)}" custom-lvhome="1"}\n\n${dateBlocks.join("\n\n")}`);
+        }
+        yearBlocks.push(`## ${y} 年\n{: id="${blockIdFor(`yr:${y}`)}" custom-lvhome="1"}\n\n${monthBlocks.join("\n\n")}`);
+    }
+
+    return `${intro}\n\n${memosSection}\n\n${yearBlocks.join("\n\n")}`;
 }
 
 /**
@@ -353,8 +659,8 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
             return found.id;
         }
 
-        const headerMd = `# 📒 ${DAILY_JOURNAL_TITLE}\n\n> 🏠 **小驴管家 · 日常流水与临时备忘总账**\n> 💡 这里实时汇总您在小驴管家录入的**日常流水**（加油/充电、血压/血糖/心率、家务打卡、快捷待买、随手便签）与**临时备忘**，并与各模块台账文档双向联动。\n\n`;
-        const docId = await createDocWithMd(notebookId, DAILY_JOURNAL_HPATH, headerMd, {
+        const initMd = `> 🏠 **小驴管家 · ${DAILY_JOURNAL_TITLE}（LifeLog 标准时间线）**\n`;
+        const docId = await createDocWithMd(notebookId, DAILY_JOURNAL_HPATH, initMd, {
             idempotencyKey: `provision:doc:adhoc:${notebookId}:${DAILY_JOURNAL_HPATH}`,
             retries: 0,
         });
@@ -370,7 +676,7 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
 }
 
 /**
- * 将指定模块的 rowlogs 与续期历史同步写入该模块对应的 `/台账 · XXX` 思源文档
+ * 将指定模块的 rowlogs 与续期历史按标准 LifeLog 格式同步写入对应 `/台账 · XXX` 思源文档底部
  */
 export async function syncModuleDocSection(
     plugin: any,
@@ -390,6 +696,8 @@ export async function syncModuleDocSection(
         const secId = sectionBlockId(ref.docId, "rowlogs");
         if (!hasModuleLogs && !hasRenews && !knownSectionIds.has(secId)) return;
 
+        const journalDocId = plugin.settings.dbRefs?.adhoc?.docId || (await ensureDailyJournalDoc(plugin));
+        const membersDocId = plugin.settings.dbRefs?.members?.docId;
         const read = await renderLedgerAll(ref.avId);
         const modTitle = typeof plugin.i18nText === "function"
             ? plugin.i18nText(`module.${moduleId}`)
@@ -402,6 +710,8 @@ export async function syncModuleDocSection(
             logs,
             renewHistory,
             members: plugin.settings.members,
+            journalDocId,
+            membersDocId,
         });
         if (!md) return;
         await upsertDocSection(ref.docId, "rowlogs", md);
@@ -411,7 +721,7 @@ export async function syncModuleDocSection(
 }
 
 /**
- * 同步更新 `/📒 日常流水与备忘` 思源文档（汇总全部日常流水、待买/便签速记与临时备忘）
+ * 同步更新 `/📒 日常流水与备忘` 思源文档（按【年 ➔ 月 ➔ 日】倒序渲染标准 LifeLog 时间线、双向链接与待办备忘）
  */
 export async function syncDailyJournalDoc(
     plugin: any,
@@ -425,12 +735,12 @@ export async function syncDailyJournalDoc(
         const logs = providedLogs ?? (await loadRowLogs(plugin));
         const memos = plugin.runtime?.memos ?? [];
         const members: FamilyMember[] = plugin.settings.members ?? [];
+        const membersDocId = plugin.settings.dbRefs?.members?.docId;
         const modLabel = (id: string) =>
             typeof plugin.i18nText === "function"
                 ? plugin.i18nText(`module.${id}`)
                 : String(plugin.i18n?.[`module.${id}`] ?? id);
 
-        // 找出 logs 涉及到的模块并读取行名称
         const avToModule = new Map<string, { moduleId: string; docId?: string; columns?: Record<string, string> }>();
         for (const [mid, ref] of Object.entries(plugin.settings.dbRefs ?? {}) as Array<[string, any]>) {
             if (ref?.avId) {
@@ -454,6 +764,8 @@ export async function syncDailyJournalDoc(
         }
 
         const flowItems: DailyJournalFlowItem[] = [];
+        const loggedQuickRowIds = new Set<string>();
+
         for (const [key, grouped] of Object.entries(logs)) {
             if (!grouped || typeof grouped !== "object") continue;
             const idx = key.indexOf("|");
@@ -465,82 +777,87 @@ export async function syncDailyJournalDoc(
             const moduleTitle = modLabel(moduleId);
             const row = rowsByAvId.get(avId)?.get(rowId);
             const rowTitle = rowTitleFromCells(row, modInfo?.columns) || moduleTitle;
+            const memberRelIds = modInfo?.columns?.member ? row?.cells?.[modInfo.columns.member]?.relation?.blockIDs : undefined;
+            const rowMemberName = Array.isArray(memberRelIds) && memberRelIds[0]
+                ? memberNameById(members, memberRelIds[0])
+                : "";
 
             for (const kind of ALL_LOG_KINDS) {
-                const list = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
-                if (!Array.isArray(list)) continue;
+                const rawList = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
+                if (!Array.isArray(rawList) || rawList.length === 0) continue;
+                if (kind === "quickflows") loggedQuickRowIds.add(rowId);
+                const list = kind === "vitals" ? normalizeVitalsForLifelog(rawList) : rawList;
                 for (const entry of list) {
                     if (!entry || typeof entry !== "object") continue;
-                    const date = String(entry.date ?? entry.at ?? "").slice(0, 10) || "—";
-                    const sortKey = String(entry.at ?? entry.date ?? "");
+                    const linkedSpec = describeRowLogAsLifelog(kind, entry, members, rowTitle, {
+                        subjectDocId: modInfo?.docId,
+                        membersDocId,
+                        rowMemberName,
+                    });
                     flowItems.push({
-                        date,
-                        sortKey,
-                        moduleId,
-                        moduleTitle,
+                        idKey: buildFlowEntryIdKey(key, kind, entry, linkedSpec),
+                        date: linkedSpec.date,
+                        time: linkedSpec.time,
+                        sortKey: linkedSpec.sortKey,
+                        lifelogType: linkedSpec.lifelogType,
+                        detailText: linkedSpec.detailText,
+                        tags: linkedSpec.tags,
                         docId: modInfo?.docId,
-                        rowTitle,
-                        summaryLine: formatRowLogEntryLine(kind, entry, members),
+                        moduleTitle: `台账 · ${moduleTitle}`,
                     });
                 }
             }
         }
 
-        // 同时汇总最近快捷录入的待买清单（shopping）与随手便签（snippets）前 10 条
-        const quickItems: NonNullable<FormatDailyJournalInput["quickItems"]> = [];
-        const shopRef = plugin.settings.dbRefs?.shopping;
-        if (shopRef?.avId && shopRef.columns?.name) {
+        // 兼容历史已存在于 shopping/snippets 台账但尚未写 quickflows 时间戳的条目
+        const extractFromSiYuanRowId = (itemId: string): { date: string; time: string } | undefined => {
+            const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})-/.exec(itemId);
+            return m ? { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}` } : undefined;
+        };
+        const readQuickFallback = async (ref: any, mid: string, ltype: string, tag: string, getDetail: (r: any) => string) => {
+            if (!ref?.avId || !ref.columns?.name) return;
             try {
-                const shopRead = await renderLedgerAll(shopRef.avId);
-                for (const r of (shopRead.rows ?? []).slice(0, 10)) {
-                    const name = rowTitleFromCells(r, shopRef.columns);
+                const read = await renderLedgerAll(ref.avId);
+                for (const r of (read.rows ?? []).slice(0, 20)) {
+                    if (loggedQuickRowIds.has(r.itemID)) continue;
+                    const name = rowTitleFromCells(r, ref.columns);
                     if (!name) continue;
-                    const qty = shopRef.columns.qty ? r.cells?.[shopRef.columns.qty]?.number?.content : undefined;
-                    const dateMs = shopRef.columns.date && r.cells?.[shopRef.columns.date]?.date?.isNotEmpty
-                        ? r.cells[shopRef.columns.date].date.content
-                        : undefined;
-                    const dateStr = typeof dateMs === "number" && dateMs > 0
-                        ? new Date(dateMs).toISOString().slice(0, 10)
-                        : "近期";
-                    quickItems.push({
+                    const parsedId = extractFromSiYuanRowId(r.itemID);
+                    const dateMs = ref.columns.date && r.cells?.[ref.columns.date]?.date?.isNotEmpty ? r.cells[ref.columns.date].date.content : undefined;
+                    const dateStr = typeof dateMs === "number" && dateMs > 0 ? new Date(dateMs).toISOString().slice(0, 10) : (parsedId?.date ?? normalizeValidDate(undefined));
+                    const timeStr = parsedId?.time ?? "09:00";
+                    flowItems.push({
+                        idKey: `${mid}:${r.itemID}`,
                         date: dateStr,
-                        kindLabel: "🛒 待买清单",
-                        title: name,
-                        detail: qty ? `数量 ${qty}` : undefined,
-                        docId: shopRef.docId,
-                        moduleTitle: `台账 · ${modLabel("shopping")}`,
+                        time: timeStr,
+                        sortKey: `${dateStr}T${timeStr}:${r.itemID}`,
+                        lifelogType: ltype,
+                        detailText: [name, getDetail(r)].filter(Boolean).join(" · "),
+                        tags: [tag],
+                        docId: ref.docId,
+                        moduleTitle: `台账 · ${modLabel(mid)}`,
                     });
                 }
             } catch { /* soft */ }
-        }
-
+        };
+        const shopRef = plugin.settings.dbRefs?.shopping;
+        await readQuickFallback(shopRef, "shopping", "待买清单", "#待买", (r) => {
+            const qty = shopRef?.columns?.qty ? r.cells?.[shopRef.columns.qty]?.number?.content : undefined;
+            return qty ? `数量 ${qty}` : "";
+        });
         const snipRef = plugin.settings.dbRefs?.snippets;
-        if (snipRef?.avId && snipRef.columns?.name) {
-            try {
-                const snipRead = await renderLedgerAll(snipRef.avId);
-                for (const r of (snipRead.rows ?? []).slice(0, 10)) {
-                    const name = rowTitleFromCells(r, snipRef.columns);
-                    if (!name) continue;
-                    const contentKey = snipRef.columns.content || snipRef.columns.note;
-                    const bodyText = contentKey ? String(r.cells?.[contentKey]?.text?.content ?? "").trim() : "";
-                    quickItems.push({
-                        date: "便签",
-                        kindLabel: "📝 随手便签",
-                        title: name,
-                        detail: bodyText && bodyText !== name ? bodyText.slice(0, 60) : undefined,
-                        docId: snipRef.docId,
-                        moduleTitle: `台账 · ${modLabel("snippets")}`,
-                    });
-                }
-            } catch { /* soft */ }
-        }
+        await readQuickFallback(snipRef, "snippets", "随手便签", "#便签", (r) => {
+            const ck = snipRef?.columns?.content || snipRef?.columns?.note;
+            const b = ck ? String(r.cells?.[ck]?.text?.content ?? "").trim() : "";
+            return b && b !== rowTitleFromCells(r, snipRef?.columns) ? b.slice(0, 80) : "";
+        });
 
         const md = formatDailyJournalMarkdown({
+            docId,
             memos,
             flowItems,
-            quickItems,
         });
-        await upsertDocSection(docId, "journal", md);
+        await replaceJournalDocPreservingFolds(docId, md);
         return docId;
     } catch {
         return undefined;
@@ -548,7 +865,7 @@ export async function syncDailyJournalDoc(
 }
 
 /**
- * 打开指定模块台账文档或 `/📒 日常流水与备忘` 文档（若尚未创建则即时同步创建后打开）
+ * 打开 `/📒 日常流水与备忘` 文档（若尚未创建则即时同步创建后打开）
  */
 export async function openDailyJournalDoc(plugin: any): Promise<boolean> {
     if (!plugin) return false;
@@ -579,7 +896,7 @@ export async function openModuleOrJournalDoc(
 }
 
 /**
- * 当 rowlogs 发生变更时，自动将最新流水同步至涉及的台账文档及 `/📒 日常流水与备忘`
+ * 当 rowlogs 发生变更时，自动将最新 LifeLog 流水同步至涉及的台账文档及 `/📒 日常流水与备忘`
  */
 export async function syncRowLogsToSiYuanDocs(plugin: any, logs?: RowLogs): Promise<void> {
     if (!plugin?.settings?.dbRefs) return;

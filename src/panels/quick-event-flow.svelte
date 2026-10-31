@@ -3,7 +3,7 @@
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage } from "siyuan";
     import { renderLedgerAll } from "@/core/siyuan";
-    import { buildChoreLog, buildFuelingLog, buildVitalLog, validateFuelingInput, validateVitalInput } from "@/core/quick-actions";
+    import { buildChoreLog, buildFuelingLog, buildVitalLog, composeLifelogIsoAt, currentLocalHHMM, validateFuelingInput, validateVitalInput } from "@/core/quick-actions";
     import type { EnergyKind } from "@/core/fuel";
     import { appendEntry, updateRowLogs } from "@/core/rowlog";
     import UiIcon from "@/ui/icon.svelte";
@@ -45,6 +45,9 @@
         });
     }
 
+    // 常用流水：统一 LifeLog 时间（HH:mm，每次打开刷新为当前时刻，可手改）
+    let eventTime = $state(currentLocalHHMM());
+
     // 常用流水：车辆与加油
     let vehiclesList = $state<Array<{ itemID: string; name: string; plate: string; mileage?: number }>>([]);
     let selectedVehicleId = $state("");
@@ -75,9 +78,11 @@
     // 常用流水：快捷待买
     let quickShopName = $state("");
     let quickShopQty = $state(1);
+    let quickShopDate = $state(localDateKey(new Date()));
 
     // 常用流水：随手便签
     let quickSnippetText = $state("");
+    let quickSnippetDate = $state(localDateKey(new Date()));
 
     async function ensureTargetRef(mod: string) {
         let r = plugin.settings.dbRefs?.[mod];
@@ -102,6 +107,7 @@
         try {
             const log = buildFuelingLog({
                 date: fuelingDate,
+                time: eventTime,
                 kind: fuelingKind,
                 amount: fuelingAmount,
                 quantity: fuelingLiters!,
@@ -155,6 +161,7 @@
         try {
             const readings = buildVitalLog({
                 date: vitalDate,
+                time: eventTime,
                 metricType: vitalMetricType,
                 systolic: vitalSys,
                 diastolic: vitalDia,
@@ -239,7 +246,7 @@
         saveError = "";
         try {
             const cRef = await ensureTargetRef("chores");
-            const log = buildChoreLog({ date: choreDate, memberId: choreMemberId || undefined, points: chorePoints, note: choreNote });
+            const log = buildChoreLog({ date: choreDate, time: eventTime, memberId: choreMemberId || undefined, points: chorePoints, note: choreNote });
             const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, cRef.avId!, choreRowId, "chexecs", log));
             const whoMember = (plugin.settings.members ?? []).find((m: any) => m.id === choreMemberId || m.avItemId === choreMemberId);
             const summaryParts = [
@@ -292,21 +299,30 @@
         saveError = "";
         try {
             const shopRef = await ensureTargetRef("shopping");
+            const dateStr = quickShopDate || localDateKey(new Date());
             const { writeLedgerRow } = await import("@/core/ledger-writer");
-            await writeLedgerRow({
+            const { itemID } = await writeLedgerRow({
                 moduleId: "shopping",
                 target: shopRef,
                 name,
                 operationKey: `quick:shop:${Date.now()}`,
                 fields: {
                     qty: quickShopQty || 1,
-                    date: localDateKey(new Date()),
+                    date: dateStr,
                     category: "daily",
                 },
             });
+            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, shopRef.avId!, itemID, "quickflows", {
+                kind: "shopping",
+                date: dateStr,
+                time: eventTime,
+                title: name,
+                qty: quickShopQty || 1,
+                at: composeLifelogIsoAt(dateStr, eventTime),
+            }));
             try {
                 const { syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncDailyJournalDoc(plugin);
+                await syncDailyJournalDoc(plugin, nextLogs);
             } catch { /* soft */ }
             try { await plugin.refreshHub?.(["shopping"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
@@ -332,9 +348,10 @@
         saveError = "";
         try {
             const snipRef = await ensureTargetRef("snippets");
+            const dateStr = quickSnippetDate || localDateKey(new Date());
             const title = text.slice(0, 30);
             const { writeLedgerRow } = await import("@/core/ledger-writer");
-            await writeLedgerRow({
+            const { itemID } = await writeLedgerRow({
                 moduleId: "snippets",
                 target: snipRef,
                 name: title,
@@ -345,9 +362,17 @@
                     note: text,
                 },
             });
+            const nextLogs = await updateRowLogs(plugin as any, (cur) => appendEntry(cur, snipRef.avId!, itemID, "quickflows", {
+                kind: "snippet",
+                date: dateStr,
+                time: eventTime,
+                title,
+                detail: text,
+                at: composeLifelogIsoAt(dateStr, eventTime),
+            }));
             try {
                 const { syncDailyJournalDoc } = await import("@/core/doc-sync");
-                await syncDailyJournalDoc(plugin);
+                await syncDailyJournalDoc(plugin, nextLogs);
             } catch { /* soft */ }
             try { await plugin.refreshHub?.(["snippets"], true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
@@ -427,6 +452,7 @@
     }
 
     export function reloadContext() {
+        eventTime = currentLocalHHMM();
         void loadQuickEventContext();
     }
 
@@ -434,6 +460,16 @@
         void loadQuickEventContext();
     });
 </script>
+
+{#snippet dtRow(idPrefix: string, val: string, onVal: (v: string) => void)}
+    <div class="lv-frow">
+        <label for={`lv-${idPrefix}-date`}>{t("field.date")}</label>
+        <div class="lv-datetime-pair">
+            <input id={`lv-${idPrefix}-date`} class="b3-text-field" type="date" value={val} oninput={(e) => onVal(e.currentTarget.value)} disabled={saving} />
+            <input id={`lv-${idPrefix}-time`} class="b3-text-field lv-time-field" type="time" aria-label={t("field.date")} bind:value={eventTime} disabled={saving} />
+        </div>
+    </div>
+{/snippet}
 
 <div class="lv-event-subnav" role="tablist" aria-label={t("capture.tabEvent")}>
     {#each subActions as s, i (s)}
@@ -490,10 +526,7 @@
                 <label for="lv-fuel-liters">{t("capture.fuelLiters")} *</label>
                 <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" required placeholder={t("capture.phQuantity")} bind:value={fuelingLiters} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
             </div>
-            <div class="lv-frow">
-                <label for="lv-fuel-date">{t("field.date")}</label>
-                <input id="lv-fuel-date" class="b3-text-field" type="date" bind:value={fuelingDate} disabled={saving} />
-            </div>
+            {@render dtRow("fuel", fuelingDate, (v) => { fuelingDate = v; })}
         {/if}
     {:else if eventSub === "vital"}
         <div class="lv-frow">
@@ -537,6 +570,7 @@
                 </select>
             </div>
         {/if}
+        {@render dtRow("vital", vitalDate, (v) => { vitalDate = v; })}
     {:else if eventSub === "chore"}
         {#if choresList.length === 0}
             <div class="lv-capture-empty">
@@ -561,10 +595,7 @@
                     {/each}
                 </select>
             </div>
-            <div class="lv-frow">
-                <label for="lv-chore-date">{t("field.date")} *</label>
-                <input id="lv-chore-date" class="b3-text-field" type="date" bind:value={choreDate} disabled={saving} />
-            </div>
+            {@render dtRow("chore", choreDate, (v) => { choreDate = v; })}
             <div class="lv-frow">
                 <label for="lv-chore-points">{t("ledger.chorePoints")}</label>
                 <input id="lv-chore-points" class="b3-text-field" type="number" min="0" step="1" placeholder={t("ledger.chorePointsTip")} bind:value={chorePoints} disabled={saving} />
@@ -583,11 +614,13 @@
             <label for="lv-shop-qty">{t("field.qty")}</label>
             <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder={t("capture.phShopQty")} bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
         </div>
+        {@render dtRow("shop", quickShopDate, (v) => { quickShopDate = v; })}
     {:else if eventSub === "snippet"}
         <div class="lv-frow lv-col-stretch">
             <label for="lv-snip-text">{t("capture.actSnippet")}</label>
-            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder={t("capture.phSnippet")} bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
+            <textarea id="lv-snip-text" class="b3-text-field" rows="3" placeholder={t("capture.phSnippet")} bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
         </div>
+        {@render dtRow("snip", quickSnippetDate, (v) => { quickSnippetDate = v; })}
     {/if}
     {#if saveError}
         <div class="lv-caption lv-event-flow-error">
@@ -629,19 +662,5 @@
         display: flex;
         align-items: center;
         gap: 6px;
-    }
-    .lv-event-doc-bar {
-        margin-top: 10px;
-        padding-top: 8px;
-        border-top: 1px dashed var(--lv-line);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-    .lv-event-doc-btn {
-        font-size: 12px;
-        min-height: 24px;
-        padding: 2px 6px;
     }
 </style>

@@ -272,33 +272,3 @@
     </table>
 </div>
 
-<style>
-    .lv-table-margin-top {
-        margin-top: 12px;
-    }
-    .lv-checkbox-clean {
-        cursor: pointer;
-        margin: 0;
-    }
-    .lv-th-sort-btn {
-        min-height: 24px;
-        padding: 2px 4px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-    }
-    .lv-sort-arrow {
-        display: inline-flex;
-        align-items: center;
-        vertical-align: middle;
-    }
-    .lv-cell-center-min {
-        min-width: 18px;
-        text-align: center;
-    }
-    .lv-btn-center-block {
-        margin: 0 auto;
-        display: block;
-    }
-</style>

@@ -1382,6 +1382,57 @@ async function main() {
             `开启模块=${seededStats.enabledCount}个, 新增台账=${seededStats.addedRows}行, 提醒项=${seededStats.remindersCount}个`,
         );
 
+        // ── Step 17: 填充后全域生活台账与卡片交互全景巡检（零 2000-01-01 幽灵日期 / 抽屉展开 / 控制台零异常）──
+        await page.locator("#lv-rail-tab-ledger").click();
+        await sleep(1000);
+        const inspectMods = ["vehicles", "pets", "memberships", "insurance", "assets-real", "medicine", "chores", "stock", "shopping", "contracts"];
+        const inspectedSamples = {};
+        while (await page.locator(".b3-dialog--open, .b3-dialog").count() > 0) {
+            await page.keyboard.press("Escape");
+            await sleep(200);
+        }
+        for (const mod of inspectMods) {
+            const sel = page.locator(".lv-ledger-toolbar > select.b3-select");
+            await sel.selectOption(mod);
+            await sleep(600);
+            const tableText = await page.locator(".lv-table, .lv-vehicle-grid, .lv-ledger-table-wrap").innerText().catch(() => "");
+            assert.equal(tableText.includes("2000-01-01"), false, `模块 ${mod} 不得出现 2000-01-01 幽灵空日期渲染`);
+            inspectedSamples[mod] = tableText.replace(/\s+/g, " ").slice(0, 30);
+            // 抽屉展开与关闭走查
+            if (mod !== "vehicles") {
+                const openBtn = page.locator("button.lv-table-open").first();
+                if (await openBtn.count()) {
+                    await openBtn.click();
+                    await sleep(400);
+                    while (await page.locator(".b3-dialog--open, .b3-dialog").count() > 0) {
+                        await page.keyboard.press("Escape");
+                        await sleep(200);
+                    }
+                }
+            }
+        }
+
+        // 切回总览，验证 420px 窄视口在 21 个模块充满下依然零横向溢出
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(600);
+        await page.setViewportSize({ width: 420, height: 800 });
+        await sleep(400);
+        const filledNarrowOverflow = await page.evaluate(() => {
+            const stage = document.querySelector(".lv-main-stage");
+            return stage ? stage.scrollWidth - stage.clientWidth : -1;
+        });
+        assert.equal(filledNarrowOverflow <= 0, true, "充满21个模块台账后在 420px 窄屏下仍不得出现横向溢出");
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await sleep(300);
+
+        assert.equal(pageErrors.length, 0, `全量巡检过程中不得发生任何未捕获页面异常: ${pageErrors.join("; ")}`);
+        await page.screenshot({ path: path.join(SHOT_DIR, "17-comprehensive-walkthrough-success.png") });
+        rec(
+            "Step 17 · 填充后全域生活台账与卡片交互全景巡检（零幽灵日期/抽屉开合/420px窄屏/控制台零异常）",
+            true,
+            `已巡检${inspectMods.length}个模块台账，幽灵空日期彻底绝迹，控制台0异常，窄屏溢出=${filledNarrowOverflow}px`,
+        );
+
         await browser.close();
         browser = undefined;
 

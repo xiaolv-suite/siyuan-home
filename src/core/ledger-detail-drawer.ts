@@ -97,7 +97,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     function rawFromValue(type: string, v: any): any {
         switch (type) {
             case "number": return v?.number?.isNotEmpty && typeof v.number.content === "number" ? v.number.content : "";
-            case "date": return v?.date?.isNotEmpty ? localDateKey(new Date(v.date.content)) : "";
+            case "date": return v?.date?.isNotEmpty && v.date.content ? localDateKey(new Date(v.date.content)) : "";
             case "checkbox": return !!v?.checkbox?.checked;
             case "select": return selectCellContent(v) ?? "";
             case "url": return v?.url?.content ?? "";

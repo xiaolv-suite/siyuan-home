@@ -36,11 +36,12 @@ export function formatLedgerCellText(
             return content;
         }
         case "date": {
-            if (v.date?.content === undefined || v.date.content === null) return "—";
+            if (!v.date || v.date.isNotEmpty === false || v.date.content === undefined || v.date.content === null) return "—";
             const raw = v.date.content;
             const num = Number(raw);
+            if (!isNaN(num) && (num === 0 || num <= -60000000000000)) return "—";
             const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
-            return isNaN(d.getTime()) ? "—" : localDateKey(d);
+            return isNaN(d.getTime()) || d.getFullYear() < 1900 ? "—" : localDateKey(d);
         }
         case "select": {
             const s = selectCellContent(v) ?? "—";
@@ -67,7 +68,7 @@ export function calculateLedgerTone(r: any, columns?: Record<string, string>, wa
     const col = columns?.expiry ?? columns?.due;
     if (!col) return "none";
     const v = r.cells?.[col];
-    const s = v?.type === "date" && v.date?.isNotEmpty ? localDateKey(new Date(v.date.content)) : "";
+    const s = v?.type === "date" && v.date?.isNotEmpty && v.date.content ? localDateKey(new Date(v.date.content)) : "";
     if (!s) return "none";
     const today = localDateKey(new Date());
     if (s < today) return "danger";

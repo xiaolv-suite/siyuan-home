@@ -3,7 +3,8 @@
     import { localDateKey } from "@/core/hub/rule";
     import { showMessage } from "siyuan";
     import { addDetachedRow, setCell, renderLedgerAll } from "@/core/siyuan";
-    import { buildFuelingLog, buildVitalLog } from "@/core/quick-actions";
+    import { buildChoreLog, buildFuelingLog, buildVitalLog, validateFuelingInput, validateVitalInput } from "@/core/quick-actions";
+    import type { EnergyKind } from "@/core/fuel";
     import { appendEntry, updateRowLogs } from "@/core/rowlog";
     import UiIcon from "@/ui/icon.svelte";
 
@@ -25,8 +26,11 @@
         onSwitchToLedger?: (moduleId: string) => void;
     } = $props();
 
-    type EventSubAction = "fuel" | "vital" | "shopping" | "snippet";
-    const subActions: EventSubAction[] = ["fuel", "vital", "shopping", "snippet"];
+    type EventSubAction = "fuel" | "vital" | "chore" | "shopping" | "snippet";
+    const subActions: EventSubAction[] = ["fuel", "vital", "chore", "shopping", "snippet"];
+    const subActionLabel: Record<EventSubAction, string> = {
+        fuel: "capture.actFuel", vital: "capture.actVital", chore: "capture.actChore", shopping: "capture.actShopping", snippet: "capture.actSnippet",
+    };
     let eventSub = $state<EventSubAction>("fuel");
 
     function onSubKeydown(e: KeyboardEvent, index: number) {
@@ -47,7 +51,7 @@
     let fuelingAmount = $state<number | undefined>();
     let fuelingLiters = $state<number | undefined>();
     let fuelingMileage = $state<number | undefined>();
-    let fuelingType = $state("gasoline");
+    let fuelingKind = $state<EnergyKind>("fuel");
     let fuelingDate = $state(localDateKey(new Date()));
 
     // 常用流水：生理指标（血压/血糖）
@@ -59,6 +63,14 @@
     let vitalPulse = $state<number | undefined>();
     let vitalGlucose = $state<number | undefined>();
     let vitalTiming = $state<"fasting" | "postprandial">("fasting");
+
+    // 常用流水：家务打卡（写入家务行 chexecs，与家务轮换抽屉、积分结算同源）
+    let choresList = $state<Array<{ itemID: string; name: string }>>([]);
+    let choreRowId = $state("");
+    let choreMemberId = $state("");
+    let choreDate = $state(localDateKey(new Date()));
+    let chorePoints = $state<number | undefined>();
+    let choreNote = $state("");
 
     // 常用流水：快捷待买
     let quickShopName = $state("");
@@ -79,8 +91,10 @@
 
     async function submitQuickFueling() {
         if (saving) return;
-        if (!selectedVehicleId || !fuelingAmount) {
-            saveError = t("ledger.logInvalid");
+        // 里程与升数/度数是油耗统计的必需项，缺任一项抽屉统计会丢弃该记录
+        const missing = validateFuelingInput({ mileage: fuelingMileage, quantity: fuelingLiters, amount: fuelingAmount });
+        if (!selectedVehicleId || missing.length > 0) {
+            saveError = t("capture.fuelRequired");
             return;
         }
         saving = true;
@@ -88,13 +102,13 @@
         try {
             const log = buildFuelingLog({
                 date: fuelingDate,
+                kind: fuelingKind,
                 amount: fuelingAmount,
-                liters: fuelingLiters,
-                mileage: fuelingMileage,
-                fuelType: fuelingType,
+                quantity: fuelingLiters!,
+                mileage: fuelingMileage!,
             });
             const vRef = await ensureTargetRef("vehicles");
-            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingType === "electric" ? "chargings" : "fuelings", log));
+            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, vRef.avId!, selectedVehicleId, fuelingKind === "charging" ? "chargings" : "fuelings", log as unknown as Record<string, unknown>));
             if (fuelingMileage && vRef.columns?.mileage) {
                 await setCell(vRef.avId!, vRef.columns.mileage, selectedVehicleId, { type: "number", number: { content: fuelingMileage } });
             }
@@ -117,10 +131,14 @@
             saveError = t("members.reassignSelectTo");
             return;
         }
+        if (validateVitalInput({ metricType: vitalMetricType, systolic: vitalSys, diastolic: vitalDia, glucose: vitalGlucose }).length > 0) {
+            saveError = t("capture.vitalRequired");
+            return;
+        }
         saving = true;
         saveError = "";
         try {
-            const log = buildVitalLog({
+            const readings = buildVitalLog({
                 date: vitalDate,
                 metricType: vitalMetricType,
                 systolic: vitalSys,
@@ -143,12 +161,42 @@
                 }
                 row = { itemID: rowId, cells: {} };
             }
-            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, healthRef.avId!, row.itemID, "vitals", log));
+            await updateRowLogs(plugin as any, (cur) => readings.reduce(
+                (acc, reading) => appendEntry(acc, healthRef.avId!, row.itemID, "vitals", reading as unknown as Record<string, unknown>), cur));
             try { await plugin.refreshHub?.(undefined, true); } catch { /* soft */ }
             showMessage(t("capture.savedEvent"), 2500, "info");
             vitalSys = undefined;
             vitalDia = undefined;
+            vitalPulse = undefined;
             vitalGlucose = undefined;
+            if (!keepContext) onClose?.();
+        } catch (e) {
+            saveError = String(e);
+        } finally {
+            saving = false;
+        }
+    }
+
+    async function submitQuickChore() {
+        if (saving) return;
+        if (!choreRowId || !choreDate) {
+            saveError = t("capture.choreRequired");
+            return;
+        }
+        saving = true;
+        saveError = "";
+        try {
+            const cRef = await ensureTargetRef("chores");
+            const log = buildChoreLog({ date: choreDate, memberId: choreMemberId || undefined, points: chorePoints, note: choreNote });
+            await updateRowLogs(plugin as any, (cur) => appendEntry(cur, cRef.avId!, choreRowId, "chexecs", log));
+            // 同步“上次完成”列：活动流与按完成日顺延的周期提醒都读它
+            const { writeLedgerRow } = await import("@/core/ledger-writer");
+            const { failed } = await writeLedgerRow({ moduleId: "chores", target: cRef, itemId: choreRowId, name: "", fields: { last_done: choreDate } });
+            try { await plugin.refreshHub?.(["chores"], true); } catch { /* soft */ }
+            if (failed.length > 0) showMessage(t("ledger.writePartialFailed").replace("${fields}", t("field.last_done")), 5000, "error");
+            else showMessage(t("capture.savedEvent"), 2500, "info");
+            chorePoints = undefined;
+            choreNote = "";
             if (!keepContext) onClose?.();
         } catch (e) {
             saveError = String(e);
@@ -228,6 +276,18 @@
             } catch { /* soft */ }
         }
 
+        const cRef = plugin.settings.dbRefs?.chores;
+        if (cRef?.avId && cRef.columns?.name) {
+            try {
+                const res = await renderLedgerAll(cRef.avId);
+                choresList = (res.rows ?? []).map((r) => ({
+                    itemID: r.itemID,
+                    name: String(r.cells?.[cRef.columns!.name]?.text?.content ?? r.cells?.[cRef.columns!.name]?.block?.content ?? "").trim() || t("ledger.unnamed"),
+                }));
+                if (choresList.length > 0 && !choreRowId) choreRowId = choresList[0].itemID;
+            } catch { /* soft */ }
+        }
+
         const mems = plugin.settings.members ?? [];
         if (mems.length > 0 && !vitalMemberId) {
             const first = mems.find((m) => !!m.avItemId) || mems[0];
@@ -238,6 +298,7 @@
     export function submitCurrentSubAction() {
         if (eventSub === "fuel") void submitQuickFueling();
         else if (eventSub === "vital") void submitQuickVital();
+        else if (eventSub === "chore") void submitQuickChore();
         else if (eventSub === "shopping") void submitQuickShopping();
         else if (eventSub === "snippet") void submitQuickSnippet();
     }
@@ -263,7 +324,7 @@
             onclick={() => { eventSub = s; }}
             onkeydown={(e) => onSubKeydown(e, i)}
         >
-            {s === "fuel" ? t("capture.actFuel") : s === "vital" ? t("capture.actVital") : s === "shopping" ? t("capture.actShopping") : t("capture.actSnippet")}
+            {t(subActionLabel[s])}
         </button>
     {/each}
 </div>
@@ -288,16 +349,23 @@
                 </select>
             </div>
             <div class="lv-frow">
-                <label for="lv-fuel-amount">{t("capture.amountCny")} *</label>
-                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：300 或 250.5" bind:value={fuelingAmount} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+                <span class="lv-frow-label">{t("capture.energyKind")}</span>
+                <div class="lv-radio-group" role="radiogroup" aria-label={t("capture.energyKind")}>
+                    <label class="lv-radio-label"><input type="radio" name="fuelKind" value="fuel" bind:group={fuelingKind} disabled={saving} aria-label={t("fuel.fuelTitle")} /> {t("fuel.fuelTitle")}</label>
+                    <label class="lv-radio-label"><input type="radio" name="fuelKind" value="charging" bind:group={fuelingKind} disabled={saving} aria-label={t("fuel.chargingTitle")} /> {t("fuel.chargingTitle")}</label>
+                </div>
             </div>
             <div class="lv-frow">
-                <label for="lv-fuel-mileage">{t("capture.currentMileage")}</label>
-                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" placeholder="例如：15800（公里）" bind:value={fuelingMileage} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+                <label for="lv-fuel-amount">{t("capture.amountCny")}</label>
+                <input id="lv-fuel-amount" class="b3-text-field" type="number" min="0" step="any" placeholder={t("capture.phAmount")} bind:value={fuelingAmount} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
             </div>
             <div class="lv-frow">
-                <label for="lv-fuel-liters">{t("capture.fuelLiters")}</label>
-                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" placeholder="例如：42.5（升）或 50（度）" bind:value={fuelingLiters} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+                <label for="lv-fuel-mileage">{t("capture.currentMileage")} *</label>
+                <input id="lv-fuel-mileage" class="b3-text-field" type="number" min="0" required placeholder={t("capture.phMileage")} bind:value={fuelingMileage} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
+            </div>
+            <div class="lv-frow">
+                <label for="lv-fuel-liters">{t("capture.fuelLiters")} *</label>
+                <input id="lv-fuel-liters" class="b3-text-field" type="number" min="0" step="any" required placeholder={t("capture.phQuantity")} bind:value={fuelingLiters} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickFueling(); }} />
             </div>
             <div class="lv-frow">
                 <label for="lv-fuel-date">{t("field.date")}</label>
@@ -314,51 +382,88 @@
             </select>
         </div>
         <div class="lv-frow">
-            <label for="lv-vital-type">指标类型</label>
-            <div class="lv-radio-group">
+            <span class="lv-frow-label">{t("capture.metricType")}</span>
+            <div class="lv-radio-group" role="radiogroup" aria-label={t("capture.metricType")}>
                 <label class="lv-radio-label"><input type="radio" name="vitalType" value="bp" bind:group={vitalMetricType} aria-label={t("capture.metricBp")} /> {t("capture.metricBp")}</label>
                 <label class="lv-radio-label"><input type="radio" name="vitalType" value="glucose" bind:group={vitalMetricType} aria-label={t("capture.metricGlucose")} /> {t("capture.metricGlucose")}</label>
             </div>
         </div>
         {#if vitalMetricType === "bp"}
             <div class="lv-frow">
-                <label for="lv-vital-sys">{t("capture.systolic")}</label>
-                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder="收缩压高压，例如：120" bind:value={vitalSys} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <label for="lv-vital-sys">{t("capture.systolic")} *</label>
+                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
             </div>
             <div class="lv-frow">
-                <label for="lv-vital-dia">{t("capture.diastolic")}</label>
-                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder="舒张压低压，例如：80" bind:value={vitalDia} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <label for="lv-vital-dia">{t("capture.diastolic")} *</label>
+                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-pulse">{t("capture.pulse")}</label>
-                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder="静息心率，例如：72" bind:value={vitalPulse} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder={t("capture.phPulse")} bind:value={vitalPulse} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
             </div>
         {:else}
             <div class="lv-frow">
-                <label for="lv-vital-glu">{t("capture.glucoseVal")}</label>
-                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder="空腹/餐后血糖，例如：5.6" bind:value={vitalGlucose} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
+                <label for="lv-vital-glu">{t("capture.glucoseVal")} *</label>
+                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder={t("capture.phGlucose")} bind:value={vitalGlucose} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickVital(); }} />
             </div>
             <div class="lv-frow">
-                <label for="lv-vital-tim">测量时段</label>
+                <label for="lv-vital-tim">{t("capture.measureTiming")}</label>
                 <select id="lv-vital-tim" class="b3-select" bind:value={vitalTiming} disabled={saving}>
                     <option value="fasting">{t("capture.fasting")}</option>
                     <option value="postprandial">{t("capture.postprandial")}</option>
                 </select>
             </div>
         {/if}
+    {:else if eventSub === "chore"}
+        {#if choresList.length === 0}
+            <div class="lv-capture-empty">
+                <span class="lv-caption">{t("capture.noChores")}</span>
+                <button type="button" class="b3-button b3-button--outline" onclick={() => onSwitchToLedger?.("chores")}><UiIcon name="add" size={13} /> {t("capture.addChoreFirst")}</button>
+            </div>
+        {:else}
+            <div class="lv-frow">
+                <label for="lv-chore-row">{t("capture.selectChore")} *</label>
+                <select id="lv-chore-row" class="b3-select" bind:value={choreRowId} disabled={saving}>
+                    {#each choresList as c (c.itemID)}
+                        <option value={c.itemID}>{c.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="lv-frow">
+                <label for="lv-chore-mem">{t("field.member")}</label>
+                <select id="lv-chore-mem" class="b3-select" bind:value={choreMemberId} disabled={saving}>
+                    <option value="">{t("capture.selectOptional")}</option>
+                    {#each plugin.settings.members ?? [] as m (m.id)}
+                        <option value={m.id}>{m.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="lv-frow">
+                <label for="lv-chore-date">{t("field.date")} *</label>
+                <input id="lv-chore-date" class="b3-text-field" type="date" bind:value={choreDate} disabled={saving} />
+            </div>
+            <div class="lv-frow">
+                <label for="lv-chore-points">{t("ledger.chorePoints")}</label>
+                <input id="lv-chore-points" class="b3-text-field" type="number" min="0" step="1" placeholder={t("ledger.chorePointsTip")} bind:value={chorePoints} disabled={saving} />
+            </div>
+            <div class="lv-frow">
+                <label for="lv-chore-note">{t("field.note")}</label>
+                <input id="lv-chore-note" class="b3-text-field" type="text" placeholder={t("ledger.choreNote")} bind:value={choreNote} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickChore(); }} />
+            </div>
+        {/if}
     {:else if eventSub === "shopping"}
         <div class="lv-frow">
             <label for="lv-shop-name">{t("field.name")} *</label>
-            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder="例如：维达无芯卷纸 / 纯牛奶 / 抽纸" bind:value={quickShopName} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
+            <input id="lv-shop-name" class="b3-text-field" type="text" placeholder={t("capture.phShopName")} bind:value={quickShopName} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
         </div>
         <div class="lv-frow">
             <label for="lv-shop-qty">{t("field.qty")}</label>
-            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder="数量，默认 1" bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
+            <input id="lv-shop-qty" class="b3-text-field" type="number" min="1" placeholder={t("capture.phShopQty")} bind:value={quickShopQty} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void submitQuickShopping(); }} />
         </div>
     {:else if eventSub === "snippet"}
         <div class="lv-frow lv-col-stretch">
             <label for="lv-snip-text">{t("capture.actSnippet")}</label>
-            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder="随时记录一句话、常用语或家庭备忘，支持自动提炼标题与日期 (Ctrl+Enter快速保存)..." bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
+            <textarea id="lv-snip-text" class="b3-text-field" rows="4" placeholder={t("capture.phSnippet")} bind:value={quickSnippetText} disabled={saving} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submitQuickSnippet(); } }}></textarea>
         </div>
     {/if}
     {#if saveError}

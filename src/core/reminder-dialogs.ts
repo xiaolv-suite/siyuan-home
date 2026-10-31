@@ -3,6 +3,8 @@
  * 包含：排期规划、命名视图保存/删除、续期对话框、备忘编辑、延后菜单
  */
 
+import { escapeHtml } from "./modal-shell";
+import { bindDialogA11y } from "./dialog-a11y";
 import type { Reminder } from "@/types";
 import { localDateKey } from "./hub/rule";
 import { parseQuickAdd } from "./quick-add";
@@ -46,7 +48,7 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
         content: `<div class="b3-dialog__content lv-dialog-col">
             <p class="lv-caption">${t("hub.planScheduleIntro")}</p>
             <div class="lv-caption ft__on-surface">
-                <b>${r.title}</b> · ${t("hub.summaryDue")}: ${r.dueDate}
+                <b>${escapeHtml(r.title)}</b> · ${t("hub.summaryDue")}: ${escapeHtml(r.dueDate)}
             </div>
             <div class="lv-chips-wrap">
                 <button class="b3-button b3-button--outline lv-preset-tag" id="lv-plan-preset-today">${t("hub.planPresetToday")}</button>
@@ -67,6 +69,7 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
         width: "420px",
     });
 
+    bindDialogA11y({ dlg, defaultFocus: "#lv-plan-date-input" });
     const dateInput = dlg.element.querySelector("#lv-plan-date-input") as HTMLInputElement;
     const setDate = (val: string) => { if (dateInput) dateInput.value = val; };
     if (dateInput) {
@@ -145,6 +148,7 @@ export function openNamedViewSaveDialog(options: OpenNamedViewSaveDialogOptions)
         </div>`,
         width: "400px",
     });
+    bindDialogA11y({ dlg, defaultFocus: "#lv-named-view-input" });
     const input = dlg.element.querySelector("#lv-named-view-input") as HTMLInputElement;
     if (input) {
         input.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -223,6 +227,7 @@ export function openReminderRenewDialog(options: OpenReminderRenewDialogOptions)
     const sub = dlg.element.querySelector("#lv-renew-sub") as HTMLElement;
     sub.textContent = r.title;
     dateInput?.focus();
+    bindDialogA11y({ dlg, defaultFocus: "#lv-renew-date" });
     dlg.element.querySelector("#lv-renew-cancel")?.addEventListener("click", () => dlg.destroy());
     dlg.element.querySelector("#lv-renew-ok")?.addEventListener("click", async () => {
         const v = dateInput?.value;
@@ -261,13 +266,13 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     const { r, plugin, DialogCls, t, onMemoUpdated } = options;
     const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" class="lv-dialog-col"></div>`, width: "460px" });
     const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
-    const row1 = document.createElement("div");
+    const row1 = document.createElement("label");
     row1.className = "lv-row-field";
     const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.textContent = t("triage.name");
     const titleInput = document.createElement("input"); titleInput.className = "b3-text-field"; titleInput.value = r.title;
     titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
     row1.append(l1, titleInput);
-    const row2 = document.createElement("div");
+    const row2 = document.createElement("label");
     row2.className = "lv-row-field";
     const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.textContent = t("triage.due");
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
@@ -306,6 +311,7 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     cancel.addEventListener("click", () => dlg.destroy());
     const action = document.createElement("div"); action.className = "b3-dialog__action"; action.append(err, cancel, save);
     box.append(row1, row2, action);
+    bindDialogA11y({ dlg, defaultFocus: titleInput });
     requestAnimationFrame(() => titleInput.focus());
 }
 

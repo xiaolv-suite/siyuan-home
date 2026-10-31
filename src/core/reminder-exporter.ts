@@ -5,6 +5,7 @@
 
 import type { Reminder } from "@/types";
 import { saveRuntime } from "./hub/runtime";
+import { escapeHtml, openModalShell } from "./modal-shell";
 
 export interface OpenReminderDigestDialogOptions {
     filtered: Reminder[];
@@ -35,30 +36,27 @@ export async function openReminderDigestDialog(options: OpenReminderDigestDialog
         });
         const markdown = formatDigestMarkdown(digest, (id) => (t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id));
 
-        const dlg = new DialogCls({
+        const shell = openModalShell({
+            DialogCls,
             title: t("hub.digestTitle"),
-            content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-report-pre"></pre></div>
-<div class="b3-dialog__action">
-  <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button" id="lv-digest-copy">${t("hub.digestCopy")}</button>
-</div>`,
+            bodyId: "lv-digest-body",
+            body: `<pre class="lv-report-pre">${escapeHtml(markdown)}</pre>`,
             width: "600px",
+            actions: [
+                { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
+                { id: "copy", label: escapeHtml(t("hub.digestCopy")), kind: "primary" },
+            ],
         });
-
-        const pre = dlg.element.querySelector("pre");
-        if (pre) pre.textContent = markdown;
-        const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
-        if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
-        const copyBtn = dlg.element.querySelector("#lv-digest-copy") as HTMLButtonElement | null;
+        const copyBtn = shell.button("copy");
         if (copyBtn) {
-            copyBtn.onclick = async () => {
+            copyBtn.onclick = () => void shell.runBusy("copy", async () => {
                 try {
                     await navigator.clipboard.writeText(markdown);
                     showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
                 } catch {
                     showMessageFn(t("hub.digestCopyFailed"), 4000, "error");
                 }
-            };
+            });
         }
 
         // 记录本次快照，供下期生成对比差值

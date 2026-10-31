@@ -7,6 +7,7 @@
  */
 
 import { confirm } from "@/libs/dialog";
+import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 
 export interface RxToMedicineButtonOptions {
@@ -135,6 +136,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                     }
                 },
             });
+            bindDialogA11y({ dlg: dialog });
             let stockCommitted = false;
             const bodyEl = dialog.element.querySelector("#lv-stockin-body") as HTMLElement;
             if (bodyEl) bodyEl.textContent = t("ledger.stockInBody").replace("${name}", name).replace("${qty}", String(qty)).replace("${n}", String(matches.length));
@@ -273,18 +275,24 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                 width: "420px",
             });
 
+            let s2aSaving = false;
+            bindDialogA11y({
+                dlg,
+                defaultFocus: "#lv-s2a-name",
+                onClose: () => {
+                    if (!s2aSaving) {
+                        busy = false;
+                        btn.disabled = false;
+                    }
+                },
+            });
             const cancelBtn = dlg.element.querySelector("#lv-s2a-cancel") as HTMLButtonElement | null;
-            if (cancelBtn) {
-                cancelBtn.onclick = () => {
-                    dlg.destroy();
-                    busy = false;
-                    btn.disabled = false;
-                };
-            }
+            if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
 
             const saveBtn = dlg.element.querySelector("#lv-s2a-save") as HTMLButtonElement | null;
             if (saveBtn) {
                 saveBtn.onclick = async function (this: HTMLButtonElement) {
+                    s2aSaving = true;
                     const nameVal = (dlg.element.querySelector("#lv-s2a-name") as HTMLInputElement)?.value.trim() || draft.name;
                     const catVal = (dlg.element.querySelector("#lv-s2a-cat") as HTMLSelectElement)?.value || draft.suggestedCategory;
                     const amtVal = Number((dlg.element.querySelector("#lv-s2a-amount") as HTMLInputElement)?.value) || draft.amount;
@@ -292,38 +300,23 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                     this.disabled = true;
                     dlg.destroy();
                     try {
-                        const { addDetachedRow, setCell } = await import("./siyuan");
-                        const rowId = await addDetachedRow(assetsRef.avId!, nameVal);
-                        if (assetsRef.columns.category) {
-                            await setCell(assetsRef.avId!, assetsRef.columns.category, rowId, {
-                                type: "select", select: { content: catVal },
-                            });
-                        }
-                        if (assetsRef.columns.amount && typeof amtVal === "number" && Number.isFinite(amtVal)) {
-                            await setCell(assetsRef.avId!, assetsRef.columns.amount, rowId, {
-                                type: "number", number: { content: amtVal, isNotEmpty: true },
-                            });
-                        }
-                        if (assetsRef.columns.date && draft.date) {
-                            await setCell(assetsRef.avId!, assetsRef.columns.date, rowId, {
-                                type: "date", date: { content: draft.date, isNotEmpty: true },
-                            });
-                        }
-                        if (assetsRef.columns.channel && draft.channel) {
-                            await setCell(assetsRef.avId!, assetsRef.columns.channel, rowId, {
-                                type: "text", text: { content: draft.channel },
-                            });
-                        }
-                        if (assetsRef.columns.member && draft.memberId) {
-                            await setCell(assetsRef.avId!, assetsRef.columns.member, rowId, {
-                                type: "relation", relation: { blockIDs: [draft.memberId] },
-                            });
-                        }
-                        if (assetsRef.columns.note) {
-                            const noteContent = draft.note ? `${draft.note} (来自购物记录)` : "来自购物记录";
-                            await setCell(assetsRef.avId!, assetsRef.columns.note, rowId, {
-                                type: "text", text: { content: noteContent },
-                            });
+                        // 经写入网关：分类 select 双形态、购买日转时间戳（此前单形态 + 日期字符串，分类与日期落盘为空）
+                        const { writeLedgerRow } = await import("./ledger-writer");
+                        const { failed } = await writeLedgerRow({
+                            moduleId: "assets-real",
+                            target: assetsRef,
+                            name: nameVal,
+                            fields: {
+                                category: catVal,
+                                amount: Number.isFinite(amtVal) ? amtVal : undefined,
+                                date: draft.date,
+                                channel: draft.channel,
+                                member: draft.memberId,
+                                note: draft.note ? `${draft.note} (来自购物记录)` : "来自购物记录",
+                            },
+                        });
+                        if (failed.length > 0) {
+                            showMessageFn(t("ledger.writePartialFailed").replace("${fields}", failed.map((k) => t(`field.${k}`)).join("、")), 6000, "error");
                         }
                         showMessageFn(t("ledger.shoppingToAssetDone").replace("${name}", nameVal), 3500, "info");
                         btn.innerHTML = `${uiIcon("check", "", 13)} ${t("ledger.shoppingToAssetDoneShort")}`;

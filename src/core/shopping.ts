@@ -4,6 +4,7 @@
  * qty 与阈值均有值且 qty ≤ 阈值才入清单（缺列/缺值不评估，不误报）。
  */
 import type { AvRow } from "./siyuan";
+import { bindDialogA11y } from "./dialog-a11y";
 import type { AvCellLike } from "./avcell";
 
 export interface ShoppingItem {
@@ -169,6 +170,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
         width: "560px",
     });
 
+    bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-shop-body") as HTMLElement;
     if (items.length === 0) {
         const none = document.createElement("div");

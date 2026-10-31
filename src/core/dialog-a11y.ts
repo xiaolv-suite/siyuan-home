@@ -53,32 +53,43 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
         }
     };
 
-    dlg.element.addEventListener("keydown", handleKeydown);
+    dlg.element?.addEventListener?.("keydown", handleKeydown);
 
     const scheduleFocus = typeof requestAnimationFrame === "function"
         ? requestAnimationFrame
         : (cb: () => void) => setTimeout(cb, 0);
 
+    const normalizeButtons = () => {
+        try {
+            dlg.element?.querySelectorAll?.<HTMLButtonElement>("button:not([type])").forEach((btn) => {
+                btn.type = "button";
+            });
+        } catch { /* soft */ }
+    };
+    normalizeButtons();
+
     scheduleFocus(() => {
         try {
+            normalizeButtons();
             if (defaultFocus) {
                 const target = typeof defaultFocus === "string"
-                    ? dlg.element.querySelector<HTMLElement>(defaultFocus)
+                    ? dlg.element?.querySelector?.<HTMLElement>(defaultFocus)
                     : defaultFocus;
                 target?.focus?.();
             } else {
-                const cancelBtn = dlg.element.querySelector<HTMLElement>(".b3-button--cancel, #lv-detail-close, #lv-loc-close, #lv-favors-close, #lv-life-index-close, #lv-sub-stats-close, #lv-util-tiers-close, #lv-asset-val-close, #lv-store-close, #lv-mealplan-close, #lv-med-supply-close, #lv-em-close, #lv-member-timeline-close, #lv-rewards-close, #lv-sc-close");
-                cancelBtn?.focus?.();
+                const cancelBtn = dlg.element?.querySelector?.<HTMLElement>(".b3-button--cancel, #lv-detail-close, #lv-loc-close, #lv-favors-close, #lv-life-index-close, #lv-sub-stats-close, #lv-util-tiers-close, #lv-asset-val-close, #lv-store-close, #lv-mealplan-close, #lv-med-supply-close, #lv-em-close, #lv-member-timeline-close, #lv-rewards-close, #lv-sc-close");
+                const fallback = dlg.element?.querySelector?.<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+                (cancelBtn ?? fallback)?.focus?.();
             }
         } catch { /* soft */ }
     });
 
-    const originalDestroy = dlg.destroy.bind(dlg);
+    const originalDestroy = typeof dlg.destroy === "function" ? dlg.destroy.bind(dlg) : () => undefined;
     let destroyed = false;
     dlg.destroy = () => {
         if (destroyed) return;
         destroyed = true;
-        dlg.element.removeEventListener("keydown", handleKeydown);
+        dlg.element?.removeEventListener?.("keydown", handleKeydown);
         originalDestroy();
         onClose?.();
         restoreFocus();

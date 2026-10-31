@@ -194,7 +194,7 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     for (const rel of dialogFiles) {
       const fullPath = path.resolve(__dirname, rel);
       const content = fs.readFileSync(fullPath, 'utf8');
-      expect(content).toContain('bindDialogA11y');
+      expect(content.includes('bindDialogA11y') || content.includes('openModalShell')).toBe(true);
     }
   });
 

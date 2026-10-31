@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.184** is protected by 173 test suites (1,133 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.185** is protected by 175 test suites (1,150 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.184-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1133%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.185-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1150%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
@@ -182,20 +182,21 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.184 (2026-10-31 · Current Version)
+### v0.5.185 (2026-10-31 · Current Version)
 - **Fixed**:
-  - Included `trash` and `firstRunWelcomed` in `semanticRuntimeFingerprint` and added `normalizeTrash` in `loadRuntime`, preventing cleared/restored trash items from reverting after reload;
-  - Wired `muted` and `snoozed` state for `adhoc` memos in `applyRuntime` and `listHandled`, and cleaned up orphaned `muted` / `snoozeCounts` entries upon memo or ledger row deletion;
-  - Added concurrency lock (`batch-postpone`) and `disabled` / `aria-busy` state to the Overview overdue batch postpone & undo buttons.
-- **Added & Completed**:
-  - Completed Quick Add `*cycle` and `*!completion` recurrence syntax (`*weekly`, `*每月15号`, `*!14d`, `*完成后7天`), connected to Overview, Calendar day memo, and recurring memo completion rollover;
-  - Connected `chores` ledger `last_done` column and `chexecs` completion logs with `recurrenceAnchor: "completion"` in `SchemaLedgerProvider`;
-  - Surfaced Quick Add priority (`!high/!medium/!low`) and category (`#tag`) badges on Reminder cards, Overview upcoming list, and the memo edit dialog.
+  - Unified cross-module ledger writes through `ledger-writer.ts`, fixing empty cell writes in chore reward settlement, emergency kit batch creation, vaccine logging, allergy logging, and shopping-to-asset conversion;
+  - Unified Quick Capture fuel/charging & blood pressure/glucose logs with vehicle energy and health vitals drawers, added required field validation, and added lossless in-memory upgrade for legacy `rowlogs.json` entries;
+  - Replaced silent `catch {}` failures in Emergency Card, Yearly Share Card, Member Timeline, Life Index, and Location Search with explicit partial-read warning banners and escaped HTML interpolations.
+- **Added**:
+  - Wired the Quick Capture `🧹 Chore Check-in` sub-tab to append `chexecs` logs and update `last_done` dates in the `chores` ledger.
 - **Improved**:
-  - Unified parse-chip, priority, tag, and snooze-heavy badge styles under `.lv-home` design tokens, eliminating top-level `:global` selectors and hardcoded colors, and localized remaining hardcoded Chinese labels.
+  - Streamlined the UI shell: removed the redundant right Context Dock, deduplicated wide-screen rail/top tabs, scoped the KPI strip to Overview only, merged Ledger pinned & filter bars, added outside-click/`Esc`/arrow-key support to Ledger More Actions, and eliminated narrow/150%-zoom horizontal overflow;
+  - Consolidated `src/core` modal dialogs via `modal-shell.ts` with 100% `bindDialogA11y` focus/Escape coverage, hid unconfigured budget-limit empty text, and replaced the 84KB `qrcode` dependency with a zero-dependency ISO 18004 QR encoder verified bit-for-bit against the reference library.
 
 <details>
-<summary><b>View Historical Releases (v0.5.183 and earlier)</b></summary>
+<summary><b>View Historical Releases (v0.5.184 and earlier)</b></summary>
+
+- **v0.5.184 (2026-10-31)**: Fixed Terser `pure_getters` production reactivity freeze, trash runtime fingerprint persistence, adhoc memo snooze/mute handling, and completed dual recurrence anchors + Quick Add `*cycle` / priority / tag loop.
 
 - **v0.5.183 (2026-10-30)**: Bento dark accent card, action/data dual-color separation, one-click reminder setting defaults restore, lossless batch delete snapshots, and bundle size optimization.
 - **v0.5.182 (2026-10-29)**: `saveRuntime` exclusive lock against race conditions, midnight date normalization, expired medication critical alert, and mobile/ultrawide layout refinements.

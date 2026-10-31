@@ -9,7 +9,7 @@ import type { Reminder, DbRef } from "@/types";
 import { selectCellContent } from "./avcell";
 import { localDateKey } from "./hub/rule";
 import { uiIcon } from "@/ui/icons";
-import { bindDialogA11y } from "./dialog-a11y";
+import { createReadTracker, escapeHtml, openModalShell } from "./modal-shell";
 
 export type LifeDimension = "health_safety" | "finance_contracts" | "daily_efficiency" | "culture_growth";
 export type LifeScoreLevel = "excellent" | "good" | "fair" | "needs_attention";
@@ -26,6 +26,7 @@ export interface FamilyLifeContext {
     mediaCompletedCount: number;
     mediaTotalCount: number;
     hasEmergencyKit?: boolean;
+    failedModules?: string[];
 }
 
 export interface DimensionAnalysis {
@@ -270,18 +271,15 @@ export async function collectFamilyLifeContext(
     let hasEmergencyKit = false;
 
     const { renderLedgerAll } = await import("./siyuan");
+    const reads = createReadTracker();
 
-    const readRows = async (ref?: DbRef) => {
+    const readRows = async (moduleId: string, ref?: DbRef) => {
         if (!ref?.avId) return [];
-        try {
-            const res = await renderLedgerAll(ref.avId);
-            return res.complete ? res.rows : [];
-        } catch {
-            return [];
-        }
+        const res = await reads.read(moduleId, () => renderLedgerAll(ref.avId));
+        return res?.rows ?? [];
     };
 
-    const medRows = await readRows(plugin.settings.dbRefs?.medicine);
+    const medRows = await readRows("medicine", plugin.settings.dbRefs?.medicine);
     medicineCount = medRows.length;
     const medExp = plugin.settings.dbRefs?.medicine?.columns?.expiry;
     if (medExp) {
@@ -297,7 +295,7 @@ export async function collectFamilyLifeContext(
         }
     }
 
-    const ctRows = await readRows(plugin.settings.dbRefs?.contracts);
+    const ctRows = await readRows("contracts", plugin.settings.dbRefs?.contracts);
     contractsActiveCount = ctRows.length;
     const ctDep = plugin.settings.dbRefs?.contracts?.columns?.deposit;
     if (ctDep) {
@@ -307,7 +305,7 @@ export async function collectFamilyLifeContext(
         }
     }
 
-    const mediaRows = await readRows(plugin.settings.dbRefs?.media);
+    const mediaRows = await readRows("media", plugin.settings.dbRefs?.media);
     mediaTotalCount = mediaRows.length;
     const mediaSt = plugin.settings.dbRefs?.media?.columns?.status;
     if (mediaSt) {
@@ -317,7 +315,7 @@ export async function collectFamilyLifeContext(
         }
     }
 
-    const stockRows = await readRows(plugin.settings.dbRefs?.stock);
+    const stockRows = await readRows("stock", plugin.settings.dbRefs?.stock);
     const stockCat = plugin.settings.dbRefs?.stock?.columns?.category;
     if (stockCat) {
         hasEmergencyKit = stockRows.some((r) => (selectCellContent(r.cells[stockCat]) ?? "") === "emergency_st");
@@ -334,6 +332,7 @@ export async function collectFamilyLifeContext(
         mediaCompletedCount,
         mediaTotalCount,
         hasEmergencyKit,
+        ...(reads.failed.length > 0 ? { failedModules: reads.failed } : {}),
     };
 }
 
@@ -345,18 +344,24 @@ export function openLifeIndexDialog(
     t: (k: string) => string,
     DialogCls: new (options: { title: string; content: string; width?: string }) => { element: HTMLElement; destroy: () => void },
     showMessageFn: (message: string, timeout?: number, type?: "info" | "error") => void,
+    failedModules: string[] = [],
 ): void {
-    const dlg = new DialogCls({
+    const warnings = failedModules.length
+        ? [t("modal.readIncomplete").replace("${modules}", failedModules.map((m) => t(`module.${m}`)).join("、"))]
+        : [];
+    const shell = openModalShell({
+        DialogCls,
         title: t("overview.lifeIndexTitle"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-life-index-body"></div>
-<div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-life-index-close">${t("close")}</button><button class="b3-button" id="lv-life-index-copy">${t("overview.lifeIndexCopy")}</button></div>`,
+        bodyId: "lv-life-index-body",
+        body: "",
         width: "580px",
+        warnings,
+        actions: [
+            { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
+            { id: "copy", label: escapeHtml(t("overview.lifeIndexCopy")), kind: "primary" },
+        ],
     });
-
-    const body = dlg.element.querySelector("#lv-life-index-body") as HTMLElement;
-    const copyBtn = dlg.element.querySelector("#lv-life-index-copy") as HTMLButtonElement;
-    (dlg.element.querySelector("#lv-life-index-close") as HTMLButtonElement).onclick = () => dlg.destroy();
-    bindDialogA11y({ dlg });
+    const body = shell.body;
 
     // 1. 顶部总评卡片
     const heroCard = document.createElement("div");
@@ -391,13 +396,16 @@ export function openLifeIndexDialog(
         body.appendChild(hlSec);
     }
 
-    copyBtn.onclick = async () => {
-        const text = formatLifeIndexReportText(report);
-        try {
-            await navigator.clipboard.writeText(text);
-            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
-        } catch {
-            showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
-        }
-    };
+    const copyBtn = shell.button("copy");
+    if (copyBtn) {
+        copyBtn.onclick = () => void shell.runBusy("copy", async () => {
+            const text = formatLifeIndexReportText(report);
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            } catch {
+                showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
+            }
+        });
+    }
 }

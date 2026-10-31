@@ -288,14 +288,16 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
         importBtn.disabled = true;
         let created = 0;
         try {
-            const { selectCellValue } = await import("./avcell");
+            const { writeLedgerRow } = await import("./ledger-writer");
             for (const r of newRows) {
-                const rowId = await addDetachedRowFn(ref.avId, r.name);
-                if (!rowId) continue;
-                if (ref.columns?.category) await setCellFn(ref.avId, ref.columns.category, rowId, selectCellValue(r.category));
-                if (ref.columns?.qty) await setCellFn(ref.avId, ref.columns.qty, rowId, r.qty);
-                if (ref.columns?.low_stock_at) await setCellFn(ref.avId, ref.columns.low_stock_at, rowId, r.low_stock_at);
-                if (r.note && ref.columns?.note) await setCellFn(ref.avId, ref.columns.note, rowId, r.note);
+                await writeLedgerRow({
+                    moduleId: "stock",
+                    target: ref,
+                    name: r.name,
+                    fields: { category: r.category, qty: r.qty, low_stock_at: r.low_stock_at, note: r.note },
+                    addRowFn: addDetachedRowFn,
+                    setCellFn,
+                });
                 created++;
             }
             showMessageFn(t("ledger.emergencyKitImportSuccess").replace("${n}", String(created)), 3000, "info");
@@ -303,6 +305,9 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
             onCreatedCallback?.();
         } catch (e) {
             showMessageFn(t("capture.failed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            if (created > 0) onCreatedCallback?.();
+        } finally {
+            importBtn.disabled = false;
         }
     };
 }

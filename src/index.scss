@@ -744,6 +744,20 @@
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
     }
+    // 弹窗底座：跨库读取不完整时的顶部警告条（modal-shell.ts）
+    .lv-modal-warn {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0 0 12px;
+        padding: 8px 12px;
+        border: 1px solid var(--lv-warn);
+        border-radius: var(--lv-r-control);
+        background: var(--lv-warn-soft, var(--lv-surface-2));
+        color: var(--lv-tx);
+        font-size: 12.5px;
+        line-height: 1.5;
+    }
 }
 
 :root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),

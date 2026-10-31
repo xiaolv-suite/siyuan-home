@@ -14,6 +14,7 @@ import {
     type FamilyYearlyReportCardData,
 } from "./sharecard";
 import { bindDialogA11y } from "./dialog-a11y";
+import { createReadTracker, modalWarningHtml } from "./modal-shell";
 import { aggregateFamilyMilestones, type MilestoneSourceRow } from "./milestones";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
@@ -23,7 +24,7 @@ export interface ShareCardDialogOptions {
     t: (k: string) => string;
     plugin: {
         settings: {
-            members?: Array<{ id: string; name: string }>;
+            members?: Array<{ id: string; name: string; avItemId?: string }>;
             dbRefs: Record<string, { avId?: string; columns?: Record<string, string> }>;
         };
     };
@@ -52,32 +53,33 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
 
     // 2. 收集家务完成数
     let choresCompleted = 0;
+    // 读取失败或不完整的模块记下来，卡片上方如实提示，不再把读不到当成“0”
+    const reads = createReadTracker();
+    for (const fm of ctx.failedModules ?? []) {
+        if (!reads.failed.includes(fm)) reads.failed.push(fm);
+    }
     const choresRef = plugin.settings.dbRefs?.chores;
     if (choresRef?.avId) {
-        try {
-            const logs = await loadRowLogs(plugin as never);
-            const choresRes = await renderLedgerAllFn(choresRef.avId);
-            if (choresRes.complete) {
-                for (const r of choresRes.rows) {
-                    const entries = getEntries(logs, choresRef.avId, r.itemID, "chexecs");
-                    choresCompleted += entries.length;
-                }
-            }
-        } catch { /* ignore */ }
+        const logs = await loadRowLogs(plugin as never);
+        const choresRes = await reads.read("chores", () => renderLedgerAllFn(choresRef.avId!));
+        for (const r of choresRes?.rows ?? []) {
+            choresCompleted += getEntries(logs, choresRef.avId, r.itemID, "chexecs").length;
+        }
     }
 
     // 3. 收集大事记
     const milestoneSourceRows: MilestoneSourceRow[] = [];
-    const memberMap = new Map((plugin.settings.members ?? []).map((m) => [m.id, m.name]));
+    // relation 列存的是成员台账行 avItemId，不是 settings 成员 id
+    const memberMap = new Map((plugin.settings.members ?? []).flatMap((m) => [[m.id, m.name], ...(m.avItemId ? [[m.avItemId, m.name]] : [])] as Array<[string, string]>));
 
     const checkModules = ["parenting", "schooling", "certs", "contracts", "assets-real"] as const;
     await Promise.all(
         checkModules.map(async (mod) => {
             const ref = plugin.settings.dbRefs?.[mod];
             if (!ref?.avId || !ref.columns?.name) return;
-            try {
-                const res = await renderLedgerAllFn(ref.avId);
-                if (!res.complete) return;
+            {
+                const res = await reads.read(mod, () => renderLedgerAllFn(ref.avId!));
+                if (!res) return;
                 const nameKey = ref.columns.name;
                 const dateKey = ref.columns.date || ref.columns.expiry || ref.columns.exam_date || ref.columns.purchase_date;
                 if (!dateKey) return;
@@ -96,7 +98,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
                         memberName: memName,
                     });
                 }
-            } catch { /* ignore */ }
+            }
         }),
     );
 
@@ -119,6 +121,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
     const dlg = new DialogCls({
         title: t("overview.shareCardTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body fn__text-center" id="lv-sharecard-body">
+  ${modalWarningHtml(reads.failed.length ? [t("modal.readIncomplete").replace("${modules}", reads.failed.map((m) => t(`module.${m}`)).join("、"))] : [])}
   <div id="lv-sharecard-preview" class="lv-loading-center">
     <span class="lv-caption">${t("activity.loading")}...</span>
   </div>

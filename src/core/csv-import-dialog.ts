@@ -3,6 +3,7 @@
  */
 
 import { parseCsv } from "./csv";
+import { bindDialogA11y } from "./dialog-a11y";
 import { planImport, guessMapping } from "./importer";
 import { addDetachedRow, setCell, RowIdentityPendingError } from "./siyuan";
 import { cellValue } from "./avcell";
@@ -54,6 +55,7 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
             width: "560px",
         });
 
+        bindDialogA11y({ dlg });
         const mapBox = dlg.element.querySelector("#lv-csvimp-map") as HTMLElement;
         const selects: HTMLSelectElement[] = [];
         headers.forEach((h, i) => {

@@ -4,6 +4,7 @@
  * 判定各证件与合同的效期、履约状态与剩余天数，构建统一的时间轴节点与资产档案。
  * 纯函数，无思源/DOM 强依赖，100% 可单元测试。
  */
+import { createReadTracker, escapeHtml, modalWarningHtml } from "./modal-shell";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { formatAmount } from "./format";
@@ -347,19 +348,10 @@ export async function openMemberTimelineFlow(
 
     const { renderLedgerAll } = await import("./siyuan");
 
-    if (certRef?.avId) {
-        try {
-            const allCerts = await renderLedgerAll(certRef.avId);
-            if (allCerts.complete) certRows = allCerts.rows;
-        } catch { /* 忽略单个读取失败 */ }
-    }
-
-    if (contractRef?.avId) {
-        try {
-            const allContracts = await renderLedgerAll(contractRef.avId);
-            if (allContracts.complete) contractRows = allContracts.rows;
-        } catch { /* 忽略单个读取失败 */ }
-    }
+    // 读取失败或不完整时如实提示，不把“读不到”显示成“0 份证件/合同”
+    const reads = createReadTracker();
+    if (certRef?.avId) certRows = (await reads.read("certs", () => renderLedgerAll(certRef.avId)))?.rows ?? [];
+    if (contractRef?.avId) contractRows = (await reads.read("contracts", () => renderLedgerAll(contractRef.avId)))?.rows ?? [];
 
     const report = buildMemberAssetTimeline(
         m.avItemId ?? "",
@@ -371,8 +363,8 @@ export async function openMemberTimelineFlow(
     );
 
     const dlg = new DialogCls({
-        title: t("members.timelineTitle").replace("${name}", m.name),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-member-timeline-body"></div>
+        title: escapeHtml(t("members.timelineTitle").replace("${name}", m.name)),
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-member-timeline-body">${modalWarningHtml(reads.failed.length ? [t("modal.readIncomplete").replace("${modules}", reads.failed.map((id) => t(`module.${id}`)).join("、"))] : [])}</div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-member-timeline-close">${t("close")}</button><button class="b3-button" id="lv-member-timeline-copy">${t("members.timelineCopy")}</button></div>`,
         width: "600px",
     });

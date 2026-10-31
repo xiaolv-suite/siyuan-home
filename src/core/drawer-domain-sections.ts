@@ -10,6 +10,7 @@
  */
 
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface RenderHouseWarrantySectionOptions {
     body: HTMLElement;
@@ -474,29 +475,25 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                 });
                 const reactionInput = adlg.element.querySelector("#lv-allergy-reaction") as HTMLInputElement;
                 (adlg.element.querySelector("#lv-allergy-cancel") as HTMLButtonElement).onclick = () => adlg.destroy();
+                bindDialogA11y({ dlg: adlg, defaultFocus: "#lv-allergy-reaction" });
                 (adlg.element.querySelector("#lv-allergy-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
                     this.disabled = true;
                     try {
-                        const { addDetachedRow, setCell } = await import("./siyuan");
-                        const newRowId = await addDetachedRow(healthRef.avId!, `${t("field.category.opt.allergy")} - ${foodName}`, {
-                            idempotencyKey: `allergy-sync:${row.itemID}:${Date.now()}`,
-                            retries: 1,
+                        // 经写入网关：分类走 select 双形态（此前单形态数组，内核 3.8.x 落盘为空）
+                        const { writeLedgerRow } = await import("./ledger-writer");
+                        const { failed } = await writeLedgerRow({
+                            moduleId: "health",
+                            target: healthRef,
+                            name: foodName,
+                            fields: { category: "allergy", member: memberBlockId, note: reactionInput.value.trim() },
+                            operationKey: `allergy-sync:${row.itemID}:${Date.now()}`,
                         });
-                        if (healthRef.columns.category) {
-                            await setCell(healthRef.avId!, healthRef.columns.category, newRowId, { type: "select", select: [{ content: "allergy" }] });
-                        }
-                        if (healthRef.columns.name) {
-                            await setCell(healthRef.avId!, healthRef.columns.name, newRowId, { type: "text", text: { content: foodName } });
-                        }
-                        if (healthRef.columns.member && memberBlockId) {
-                            await setCell(healthRef.avId!, healthRef.columns.member, newRowId, { type: "relation", relation: { blockIDs: [memberBlockId], contents: null } });
-                        }
-                        const reaction = reactionInput.value.trim();
-                        if (healthRef.columns.note && reaction) {
-                            await setCell(healthRef.avId!, healthRef.columns.note, newRowId, { type: "text", text: { content: reaction } });
-                        }
                         adlg.destroy();
-                        showMessageFn(t("ledger.recordAllergyDone"), 3000, "info");
+                        if (failed.length > 0) {
+                            showMessageFn(t("ledger.writePartialFailed").replace("${fields}", failed.map((k) => t(`field.${k}`)).join("、")), 6000, "error");
+                        } else {
+                            showMessageFn(t("ledger.recordAllergyDone"), 3000, "info");
+                        }
                     } catch (err) {
                         showMessageFn(t("ledger.recordAllergyFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 5000, "error");
                         this.disabled = false;

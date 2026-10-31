@@ -1,3 +1,22 @@
+## v0.5.185 2026-10-31（本地就绪版）
+
+### 唯一台账写入网关收口、界面外壳减法重构、命令式弹窗底座统一与零依赖 QR 瘦身
+
+#### 🛠️ 修复（Fixed）
+- **[P0 级] 唯一台账写入网关（`src/core/ledger-writer.ts`）**：统一接管 `rewards-dialog.ts`（家务积分结算入零花钱）、`emergency-kit.ts`（应急物资一键建档）、`growth-dialog.ts`（疫苗接种登记）、`drawer-domain-sections.ts`（辅食过敏登记）与 `drawer-conversions.ts`（购物转资产）的台账写入，自动完成 `selectCellValue` 双形态、日期毫秒时间戳、`member.id -> avItemId` 空间映射与名称列显式落盘；积分结算在金额写入失败时保留待结积分不误销；
+- **[P0 级] 快速记录日常流水与抽屉读取契约统一**：对齐 `quick-actions.ts` 与 `fuel.ts`（`EnergyRecord`）、`vitals.ts`（`VitalReading`）的数据结构，补齐里程/油电量与血压/血糖必填校验，并在 `rowlog.ts#loadRowLogs` 中提供幂等无损的旧版流水自动补齐升级；
+- **[P1 级] 跨库读取异常诚实告警与 HTML 转义**：消除 `emergency-card-dialog.ts`、`sharecard-dialog.ts`、`member-timeline.ts`、`life-index.ts`、`location-dialog.ts` 与 `ledger-modals.ts`（周餐单囤货读取）中的静默吞错，读取不完整或失败时在弹窗顶部渲染 `role="alert"` 警告条；对排期、改派、急救卡等动态插值全面接入 `escapeHtml`。
+
+#### 🚀 新增与补齐（Added）
+- **快速记录「🧹 家务打卡」闭环接线**：在 `quick-event-flow.svelte` 正式挂载家务打卡子页签，支持选择家务项、成员、日期、积分与备注，写入 `chexecs` 流水并同步更新台账 `last_done` 日期以驱动完成日顺延提醒。
+
+#### 🔄 优化（Changed）
+- **界面外壳减法与首屏空间释放**：移除重复展示相同指标的右侧 `TabContextDock` 侧板；宽屏下左侧 Rail 导航与顶栏胶囊页签及工具按钮去重；`TabKpiBar` 仅在总览屏展示，为提醒、台账、成员三屏释放首屏纵向空间；合并台账常用模块条与成员/分类筛选条，补齐台账「更多操作」外部点击/`Escape` 收起与上下方向键导航，修复 420px 窄分屏与 150% 缩放下周律动条及日历事项行横向溢出；
+- **统一命令式弹窗底座（`src/core/modal-shell.ts`）与包体瘦身**：将 `src/core` 下全部 36 个业务弹窗 100% 纳入 `bindDialogA11y` / `openModalShell` 焦点循环、`Escape` 恢复与按钮 `type="button"` 保护并建立静态契约单测；隐藏未配置时的预算限额空壳文本；用 100% 位级对齐 ISO 18004 标准的零依赖 QR 编码器替换 84KB `qrcode` 库，单文件 `dist/index.js` gzip 净降至 **302.6 KiB**。
+
+<details>
+<summary><b>查看历史版本更新记录（v0.5.184 及更早版本）</b></summary>
+
 ## v0.5.184 2026-10-31（本地就绪版）
 
 ### 存量材料收口、回收站与备忘运行态持久化修复、双基准循环与自然语言标记全链路闭环
@@ -17,9 +36,6 @@
 #### 🔄 优化（Changed）
 - **设计令牌统一与 `:global` 裸类清零**：将 `.lv-parsechip` 变体、`.is-snooze-heavy`、`.lv-recurrence-badge`、`.lv-priority-badge`、`.lv-tag-badge` 收口至 `src/styles/design-system.scss` 的 `.lv-home` 作用域内，全部改用 `--lv-danger`、`--lv-warn`、`--lv-accent`、`--lv-ok` 语义令牌；
 - **残留中文硬编码国际化**：清零 `member-card.svelte`、`settings-data-tab.svelte`、`settings-modules-tab.svelte`、`tab-panel.svelte` 中的 7 处硬编码中文文案。
-
-<details>
-<summary><b>查看历史版本更新记录（v0.5.183 及更早版本）</b></summary>
 
 ## v0.5.183 2026-10-30（本地就绪版）
 

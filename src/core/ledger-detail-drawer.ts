@@ -320,119 +320,132 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 cardRows.push({ label: String(c.name), value: cellTextFn(row.cells[c.id]) });
             }
         }
-    }
 
-    const addRowLogSection = (opts: any) => renderRowLogSection({
-        body,
-        row,
-        active,
-        activityTarget,
-        t,
-        showMessageFn,
-        ...opts,
-    });
+        const addRowLogSection = (opts: any) => renderRowLogSection({
+            body,
+            row,
+            active,
+            activityTarget,
+            t,
+            showMessageFn,
+            ...opts,
+        });
 
-    addHistorySection();
-    addAttachmentsSection();
+        addHistorySection();
+        addAttachmentsSection();
+        renderDrawerQrSection({ body, row, ref, active, t });
 
-    renderDrawerQrSection({ body, row, ref, active, t });
+        // 跨模块业务时间线与子记录
+        (async () => {
+            if (active === "vehicles") {
+                const { renderVehicleDetailSections } = await import("./vehicle-drawer");
+                await renderVehicleDetailSections({
+                    body,
+                    row,
+                    ref,
+                    active,
+                    plugin,
+                    t,
+                    DialogCls,
+                    showMessageFn,
+                    cellTextFn,
+                    selectContentFn: (cell) => selectCellContent(cell),
+                    rawFromValueFn: rawFromValue,
+                    activityTarget,
+                    vehicleActionQueue,
+                    onLogUpdated: async () => {
+                        try { await plugin.refreshHub(["vehicles"], true); } catch { /* soft */ }
+                    },
+                });
+            }
+            const { renderModuleSpecificSections } = await import("./drawer-module-sections");
+            await renderModuleSpecificSections({
+                body,
+                active,
+                row,
+                ref,
+                plugin,
+                t,
+                DialogCls,
+                showMessageFn,
+                renderLedgerAllFn,
+                cellTextFn,
+                rawFromValue,
+                addRowLogSection,
+            });
+        })().catch((error) => {
+            showMessageFn(t("ledger.logReadFailed") + " (" + (error instanceof Error ? error.message : String(error)) + ")", 6000, "error");
+        });
 
-    // 跨模块业务时间线与子记录
-    (async () => {
-        if (active === "vehicles") {
-            const { renderVehicleDetailSections } = await import("./vehicle-drawer");
-            await renderVehicleDetailSections({
+        renderDrawerDocTemplates({
+            body,
+            dlg,
+            row,
+            ref,
+            active,
+            schemaCols,
+            plugin,
+            t,
+            cellTextFn,
+            showMessageFn,
+        });
+
+        import("./drawer-sections").then(({
+            renderRxToMedicineButton,
+            renderStockInButton,
+            renderShoppingToAssetButton,
+            renderRenewChainSection,
+            renderFavorsSyncSection,
+        }) => {
+            renderRxToMedicineButton({ body, row, ref, active, plugin, t, showMessageFn, cellTextFn });
+            renderStockInButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
+            renderShoppingToAssetButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
+            renderRenewChainSection({
+                body,
+                row,
+                rows: [],
+                ref,
+                active,
+                t,
+                DialogCls,
+                showMessageFn,
+                cellTextFn,
+                onChainUpdated: async (targetRowId: string) => {
+                    await onReload();
+                    try { await plugin.refreshHub([active]); } catch { /* ignore */ }
+                    const fresh = (await renderLedgerAllFn(ref.avId!)).rows.find((x) => x.itemID === targetRowId);
+                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh });
+                },
+            });
+
+            renderFavorsSyncSection({
                 body,
                 row,
                 ref,
                 active,
                 plugin,
                 t,
-                DialogCls,
                 showMessageFn,
-                cellTextFn,
                 selectContentFn: (cell) => selectCellContent(cell),
-                rawFromValueFn: rawFromValue,
-                activityTarget,
-                vehicleActionQueue,
-                onLogUpdated: async () => {
-                    try { await plugin.refreshHub(["vehicles"], true); } catch { /* soft */ }
-                },
+                rawDateFn: (cell) => rawFromValue("date", cell) ?? "",
             });
+        });
+
+        if (active === "vehicles") {
+            const quick = document.createElement("section");
+            quick.className = "lv-vehicle-quick-actions lv-quick-bar";
+            const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.className = "lv-domain-title";
+            quick.appendChild(label);
+            for (const action of ["fuel", "charging", "maintenance"] as const) {
+                const button = document.createElement("button");
+                button.className = "b3-button b3-button--outline";
+                button.textContent = t(`vehicle.quick.${action}`);
+                button.onclick = () => requestVehicleAction(action);
+                quick.appendChild(button);
+            }
+            body.prepend(quick);
         }
-        const { renderModuleSpecificSections } = await import("./drawer-module-sections");
-        await renderModuleSpecificSections({
-            body,
-            active,
-            row,
-            ref,
-            plugin,
-            t,
-            DialogCls,
-            showMessageFn,
-            renderLedgerAllFn,
-            cellTextFn,
-            rawFromValue,
-            addRowLogSection,
-        });
-
-    })().catch((error) => {
-        showMessageFn(t("ledger.logReadFailed") + " (" + (error instanceof Error ? error.message : String(error)) + ")", 6000, "error");
-    });
-
-    renderDrawerDocTemplates({
-        body,
-        dlg,
-        row,
-        ref,
-        active,
-        schemaCols,
-        plugin,
-        t,
-        cellTextFn,
-        showMessageFn,
-    });
-
-    import("./drawer-sections").then(({
-        renderRxToMedicineButton,
-        renderStockInButton,
-        renderShoppingToAssetButton,
-        renderRenewChainSection,
-        renderFavorsSyncSection,
-    }) => {
-        renderRxToMedicineButton({ body, row, ref, active, plugin, t, showMessageFn, cellTextFn });
-        renderStockInButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
-        renderShoppingToAssetButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
-        renderRenewChainSection({
-            body,
-            row,
-            rows: [],
-            ref,
-            active,
-            t,
-            DialogCls,
-            showMessageFn,
-            cellTextFn,
-            onChainUpdated: async (targetRowId: string) => {
-                await onReload();
-                try { await plugin.refreshHub([active]); } catch { /* ignore */ }
-                const fresh = (await renderLedgerAllFn(ref.avId!)).rows.find((x) => x.itemID === targetRowId);
-                if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh });
-            },
-        });
-
-        renderFavorsSyncSection({
-            body,
-            row,
-            ref,
-            active,
-            plugin,
-            t,
-            showMessageFn,
-            selectContentFn: (cell) => selectCellContent(cell),
-            rawDateFn: (cell) => rawFromValue("date", cell) ?? "",
-        });
-    });
+    }
 
     function buildEdit() {
         import("./drawer-actions").then(({ renderDrawerEditMode }) => {
@@ -457,18 +470,6 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     buildView();
 
     if (active === "vehicles") {
-        const quick = document.createElement("section");
-        quick.className = "lv-vehicle-quick-actions lv-quick-bar";
-        const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.className = "lv-domain-title";
-        quick.appendChild(label);
-        for (const action of ["fuel", "charging", "maintenance"] as const) {
-            const button = document.createElement("button");
-            button.className = "b3-button b3-button--outline";
-            button.textContent = t(`vehicle.quick.${action}`);
-            button.onclick = () => requestVehicleAction(action);
-            quick.appendChild(button);
-        }
-        body.prepend(quick);
         if (vehicleAction === "edit") {
             requestAnimationFrame(() => (dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement | null)?.click());
         } else if (vehicleAction) {

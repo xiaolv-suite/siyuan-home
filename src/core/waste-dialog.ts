@@ -7,7 +7,7 @@
 
 import { nextWastePickups, formatWasteScheduleText, DEFAULT_WASTE_RULES, type WasteRule } from "./waste-schedule";
 import { uiIcon } from "@/ui/icons";
-import { bindDialogA11y } from "./dialog-a11y";
+import { escapeHtml, openModalShell } from "./modal-shell";
 
 export interface WasteDialogOptions {
     t: (k: string) => string;
@@ -26,24 +26,18 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
     const pickups = nextWastePickups(rules);
     const reportText = formatWasteScheduleText(pickups);
 
-    const dlg = new DialogCls({
+    const shell = openModalShell({
+        DialogCls,
         title: t("ledger.wasteTitle"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-waste-body">
-  <div class="lv-card lv-notice-card fn__text-left">
-    <span class="lv-caption font-weight-600">${t("ledger.wasteIntro")}</span>
-  </div>
-  <div id="lv-waste-list" class="lv-ecard-list"></div>
-</div>
-<div class="b3-dialog__action">
-  <button class="b3-button b3-button--cancel">${t("close")}</button>
-  <button class="b3-button" id="lv-waste-copy">${uiIcon("copy", "", 13)} ${t("ledger.copyWasteSchedule") || "复制清运计划"}</button>
-</div>`,
+        bodyId: "lv-waste-body",
+        body: `<div class="lv-card lv-notice-card fn__text-left"><span class="lv-caption font-weight-600">${escapeHtml(t("ledger.wasteIntro"))}</span></div><div id="lv-waste-list" class="lv-ecard-list"></div>`,
         width: "560px",
+        actions: [
+            { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
+            { id: "copy", label: `${uiIcon("copy", "", 13)} ${escapeHtml(t("ledger.copyWasteSchedule") || "复制清运计划")}`, kind: "primary" },
+        ],
     });
-
-    const listEl = dlg.element.querySelector("#lv-waste-list") as HTMLElement;
-    (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-    bindDialogA11y({ dlg });
+    const listEl = shell.body.querySelector("#lv-waste-list") as HTMLElement;
 
     // 按日期聚类渲染条目
     const byDate = new Map<string, typeof pickups>();
@@ -86,12 +80,15 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
         listEl.appendChild(row);
     }
 
-    (dlg.element.querySelector("#lv-waste-copy") as HTMLButtonElement).onclick = async () => {
-        try {
-            await navigator.clipboard.writeText(reportText);
-            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
-        } catch {
-            showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
-        }
-    };
+    const copyBtn = shell.button("copy");
+    if (copyBtn) {
+        copyBtn.onclick = () => void shell.runBusy("copy", async () => {
+            try {
+                await navigator.clipboard.writeText(reportText);
+                showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            } catch {
+                showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
+            }
+        });
+    }
 }

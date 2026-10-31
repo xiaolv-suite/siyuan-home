@@ -4,6 +4,7 @@
  */
 
 import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "./rowlog";
+import { bindDialogA11y } from "./dialog-a11y";
 import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "./fuel";
 import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "./chart";
 import { rowLogActivityId, markActivityLine, type ActivityTarget } from "./activity";
@@ -83,6 +84,7 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             width: "560px",
         });
         dialog.element.classList.add("lv-energy-dialog");
+        bindDialogA11y({ dlg: dialog });
         const formBody = dialog.element.querySelector("#lv-energy-form-body") as HTMLElement;
         const grid = document.createElement("div");
         grid.className = "lv-diag-grid";

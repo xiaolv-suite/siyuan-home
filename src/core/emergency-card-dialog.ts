@@ -10,6 +10,7 @@ import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { uiIcon } from "@/ui/icons";
 import { bindDialogA11y } from "./dialog-a11y";
+import { createReadTracker, escapeHtml, modalWarningHtml } from "./modal-shell";
 
 export interface EmergencyCardDialogOptions {
     t: (k: string) => string;
@@ -43,13 +44,14 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     const certRows: CertRowLike[] = [];
     const stockRows: StockRowLike[] = [];
 
-    // 并行拉取各模块真实台账行
+    // 并行拉取各模块真实台账行；读取失败或不完整的模块记下来，弹窗顶部如实提示
+    const reads = createReadTracker();
     await Promise.all([
         (async () => {
             if (!healthRef?.avId || !healthRef.columns) return;
-            try {
-                const res = await renderLedgerAllFn(healthRef.avId);
-                if (!res.complete) return;
+            {
+                const res = await reads.read("health", () => renderLedgerAllFn(healthRef.avId!));
+                if (!res) return;
                 for (const r of res.rows) {
                     const memId = memberMap.get(String(r.cells[healthRef.columns.member ?? ""]?.relation?.blockIDs?.[0] ?? ""));
                     const cat = cellTextFn(r.cells[healthRef.columns.category ?? ""]);
@@ -58,13 +60,13 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
                     const note = healthRef.columns.note ? cellTextFn(r.cells[healthRef.columns.note]) : undefined;
                     healthRows.push({ memberId: memId, category: cat, diagnosis: diag, name, note });
                 }
-            } catch { /* ignore read failure */ }
+            }
         })(),
         (async () => {
             if (!certsRef?.avId || !certsRef.columns) return;
-            try {
-                const res = await renderLedgerAllFn(certsRef.avId);
-                if (!res.complete) return;
+            {
+                const res = await reads.read("certs", () => renderLedgerAllFn(certsRef.avId!));
+                if (!res) return;
                 for (const r of res.rows) {
                     const memId = memberMap.get(String(r.cells[certsRef.columns.member ?? ""]?.relation?.blockIDs?.[0] ?? ""));
                     const cat = cellTextFn(r.cells[certsRef.columns.category ?? ""]);
@@ -72,20 +74,20 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
                     const name = certsRef.columns.name ? cellTextFn(r.cells[certsRef.columns.name]) : undefined;
                     certRows.push({ memberId: memId, category: cat, number: no, name });
                 }
-            } catch { /* ignore read failure */ }
+            }
         })(),
         (async () => {
             if (!stockRef?.avId || !stockRef.columns) return;
-            try {
-                const res = await renderLedgerAllFn(stockRef.avId);
-                if (!res.complete) return;
+            {
+                const res = await reads.read("stock", () => renderLedgerAllFn(stockRef.avId!));
+                if (!res) return;
                 for (const r of res.rows) {
                     const cat = cellTextFn(r.cells[stockRef.columns.category ?? ""]);
                     const name = stockRef.columns.name ? cellTextFn(r.cells[stockRef.columns.name]) : undefined;
                     const loc = stockRef.columns.location ? cellTextFn(r.cells[stockRef.columns.location]) : undefined;
                     stockRows.push({ category: cat, name, location: loc });
                 }
-            } catch { /* ignore read failure */ }
+            }
         })(),
     ]);
 
@@ -102,7 +104,8 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     const dlg = new DialogCls({
         title: t("overview.emergencyCardTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ecard-body">
-  ${card.emergencyKitLocation ? `<div class="lv-ecard-location"><span>${uiIcon("box", "", 13)} ${t("overview.emergencyKitLocation")}: <b>${card.emergencyKitLocation}</b></span></div>` : ""}
+  ${modalWarningHtml(reads.failed.length ? [t("modal.readIncomplete").replace("${modules}", reads.failed.map((m) => t(`module.${m}`)).join("、"))] : [])}
+  ${card.emergencyKitLocation ? `<div class="lv-ecard-location"><span>${uiIcon("box", "", 13)} ${t("overview.emergencyKitLocation")}: <b>${escapeHtml(card.emergencyKitLocation)}</b></span></div>` : ""}
   <div id="lv-ecard-members" class="lv-ecard-list"></div>
 </div>
 <div class="b3-dialog__action">
@@ -127,9 +130,9 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
         const nameLine = document.createElement("div");
         nameLine.className = "lv-ecard-nameline";
         const roleLabel = t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role;
-        nameLine.innerHTML = `<b>${m.name}</b><span class="lv-badge gray">${roleLabel}</span>`;
+        nameLine.innerHTML = `<b>${escapeHtml(m.name)}</b><span class="lv-badge gray">${escapeHtml(roleLabel)}</span>`;
         if (m.bloodType) {
-            nameLine.innerHTML += `<span class="lv-badge orange">${uiIcon("heartPulse", "", 11)} ${m.bloodType}</span>`;
+            nameLine.innerHTML += `<span class="lv-badge orange">${uiIcon("heartPulse", "", 11)} ${escapeHtml(m.bloodType)}</span>`;
         }
 
         const contact = document.createElement("span");

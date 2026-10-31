@@ -3,6 +3,7 @@
  */
 
 import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "./assets";
+import { bindDialogA11y } from "./dialog-a11y";
 import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, uploadAsset } from "./siyuan";
 import { confirm } from "@/libs/dialog";
 import { uiIcon } from "@/ui/icons";
@@ -33,6 +34,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
             width: "460px",
         });
         guide.element.querySelector("#lv-ocr-guide-close")?.addEventListener("click", () => guide.destroy());
+        bindDialogA11y({ dlg: guide });
     }
 
     function showOCRText(fileName: string, text: string, onRerun?: () => void) {
@@ -47,6 +49,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         if (textEl) textEl.value = text || t("ledger.ocrNoText");
 
         result.element.querySelector("#lv-ocr-close")?.addEventListener("click", () => result.destroy());
+        bindDialogA11y({ dlg: result });
         result.element.querySelector("#lv-ocr-copy")?.addEventListener("click", async () => {
             try {
                 await navigator.clipboard.writeText(text);

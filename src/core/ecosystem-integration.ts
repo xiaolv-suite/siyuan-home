@@ -1,7 +1,7 @@
 import { mountLvHomeBridge } from "@/bridge/external-bridge";
 import { registerRaikiriModuleSafely } from "@/libs/ecosystem-bridge-kit";
 
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.184";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.185";
 
 export interface EcosystemIntegrationOptions {
     plugin: any;

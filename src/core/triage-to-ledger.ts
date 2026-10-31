@@ -4,6 +4,7 @@
  */
 
 import type { Reminder } from "@/types";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export interface OpenTriageToLedgerDialogOptions {
     r: Reminder;
@@ -25,7 +26,7 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     const dlg = new DialogCls({ title: t("triage.title"), content: `<div id="lv-triage" class="lv-dialog-col"></div>`, width: "460px" });
     const box = dlg.element.querySelector("#lv-triage") as HTMLElement;
 
-    const row1 = document.createElement("div");
+    const row1 = document.createElement("label");
     row1.className = "lv-row-field";
     const l1 = document.createElement("span"); l1.className = "ft__on-surface"; l1.textContent = t("triage.module");
     const sel = document.createElement("select"); sel.className = "b3-select";
@@ -36,7 +37,7 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     }
     row1.append(l1, sel);
 
-    const rowM = document.createElement("div");
+    const rowM = document.createElement("label");
     rowM.className = "lv-row-field";
     const lM = document.createElement("span"); lM.className = "ft__on-surface"; lM.textContent = t("field.member");
     const memberSel = document.createElement("select"); memberSel.className = "b3-select";
@@ -51,13 +52,13 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     }
     rowM.append(lM, memberSel);
 
-    const row2 = document.createElement("div");
+    const row2 = document.createElement("label");
     row2.className = "lv-row-field";
     const l2 = document.createElement("span"); l2.className = "ft__on-surface"; l2.textContent = t("triage.name");
     const nameInput = document.createElement("input"); nameInput.className = "b3-text-field"; nameInput.value = r.title;
     row2.append(l2, nameInput);
 
-    const row3 = document.createElement("div");
+    const row3 = document.createElement("label");
     row3.className = "lv-row-field";
     const l3 = document.createElement("span"); l3.className = "ft__on-surface"; l3.textContent = t("triage.due");
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
@@ -163,5 +164,6 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
         }).finally(() => { if (!identityPending) ok.disabled = false; });
     });
     box.append(row1, rowM, row2, row3, err, ok);
+    bindDialogA11y({ dlg, defaultFocus: nameInput });
     nameInput.focus();
 }

@@ -21,7 +21,7 @@ export async function openLifeIndexModal(ctx: OverviewModalContext): Promise<voi
         const { collectFamilyLifeContext, calculateFamilyLifeIndex, openLifeIndexDialog } = await import("./life-index");
         const lifeContext = await collectFamilyLifeContext(plugin, allReminders, localDateKey(new Date()));
         const report = calculateFamilyLifeIndex(lifeContext);
-        openLifeIndexDialog(report, t, DialogCls, showMessageFn);
+        openLifeIndexDialog(report, t, DialogCls, showMessageFn, lifeContext.failedModules);
     } catch (e) {
         showMessageFn(t("ledger.logReadFailed") + " (" + (e instanceof Error ? e.message : String(e)) + ")", 5000, "error");
     }

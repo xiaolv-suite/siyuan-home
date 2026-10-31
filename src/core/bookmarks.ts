@@ -4,6 +4,7 @@
  * 并提供汇总报告与结构化文本导出。
  */
 import type { AvRow } from "@/core/siyuan";
+import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 
 export type BookmarkLinkStatus = "healthy" | "broken" | "invalid_url" | "timeout" | "unreachable";
@@ -208,6 +209,7 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
     const copyBtn = dlg.element.querySelector("#lv-bm-check-copy") as HTMLButtonElement;
 
     (dlg.element.querySelector("#lv-bm-check-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
 
     const report = await checkBookmarksHealth(rows, columns);
     body.replaceChildren();

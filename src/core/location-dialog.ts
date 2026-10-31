@@ -4,6 +4,7 @@
  * 按位置归集，提供实时关键词搜索、点击直达原文文档、一键复制文本。
  * 独立于页面存在，避免页面膨胀。
  */
+import { modalWarningHtml } from "./modal-shell";
 import { buildLocationIndex, searchLocations, formatLocationIndexText, type LocationRowInput } from "./location-index";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
@@ -43,7 +44,8 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
 
         try {
             const res = await renderLedgerAllFn(ref.avId);
-            if (!res.complete) continue;
+            // 未读完整也用已读到的行，但记入错误让弹窗如实提示
+            if (!res.complete) errors.push(`${mod}: incomplete`);
             for (const r of res.rows) {
                 const name = cellTextFn(r.cells[ref.columns.name]);
                 if (!name) continue;
@@ -66,8 +68,13 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
         }
     }
 
+    // 此前 errors 只收集不展示：读取失败时直接显示“没有存放位置”，现在如实告知
+    const failedModules = [...new Set(errors.map((e) => e.split(":")[0]))];
+    const readWarning = failedModules.length
+        ? t("modal.readIncomplete").replace("${modules}", failedModules.map((m) => (t(`module.${m}`) !== `module.${m}` ? t(`module.${m}`) : m)).join("、"))
+        : "";
     if (inputs.length === 0) {
-        showMessageFn(t("ledger.locEmptyAll"), 4000, "info");
+        showMessageFn(readWarning || t("ledger.locEmptyAll"), readWarning ? 6000 : 4000, readWarning ? "error" : "info");
         return;
     }
 
@@ -76,7 +83,7 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
 
     const dlg = new DialogCls({
         title: t("ledger.locTitle"),
-        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-loc-body">
+        content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-loc-body">${modalWarningHtml(readWarning ? [readWarning] : [])}
   <div>
     <input class="b3-text-field fn__block" id="lv-loc-search" placeholder="${t("ledger.locSearchPlaceholder")}" />
   </div>

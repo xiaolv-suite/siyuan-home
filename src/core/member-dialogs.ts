@@ -3,6 +3,8 @@
  * 包含：成员台账归属批量改派、vCard 4.0 格式导出
  */
 
+import { escapeHtml } from "./modal-shell";
+import { bindDialogA11y } from "./dialog-a11y";
 import type { FamilyMember } from "@/types";
 
 export interface OpenMemberReassignDialogOptions {
@@ -25,11 +27,11 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
     if (typeof document === "undefined") return;
     const fromOptions = [
         `<option value="unassigned">${t("members.unassignedOrStale")}</option>`,
-        ...members.filter((m) => m.avItemId).map((m) => `<option value="${m.avItemId}" ${fromMember?.id === m.id ? "selected" : ""}>${m.name}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`),
+        ...members.filter((m) => m.avItemId).map((m) => `<option value="${escapeHtml(m.avItemId)}" ${fromMember?.id === m.id ? "selected" : ""}>${escapeHtml(m.name)}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`),
     ].join("");
     const toOptions = members
         .filter((m) => m.avItemId && m.id !== fromMember?.id)
-        .map((m) => `<option value="${m.avItemId}">${m.name}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`)
+        .map((m) => `<option value="${escapeHtml(m.avItemId)}">${escapeHtml(m.name)}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`)
         .join("");
 
     const dlg = new DialogCls({
@@ -52,6 +54,7 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
         width: "440px",
     });
 
+    bindDialogA11y({ dlg });
     const cancelBtn = dlg.element.querySelector("#lv-reassign-cancel") as HTMLButtonElement | null;
     if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
 

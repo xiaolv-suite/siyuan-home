@@ -95,7 +95,49 @@
         onSearchClear?.();
         requestAnimationFrame(() => searchInputEl?.focus());
     }
+
+    function handleWindowPointerDown(e: PointerEvent) {
+        if (!ledgerMoreDetails?.open) return;
+        const target = e.target as Node | null;
+        if (target && !ledgerMoreDetails.contains(target)) {
+            ledgerMoreDetails.open = false;
+        }
+    }
+
+    function handleWindowKeydown(e: KeyboardEvent) {
+        if (!ledgerMoreDetails?.open || e.key !== "Escape") return;
+        if (document.querySelector(".b3-dialog")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        ledgerMoreDetails.open = false;
+        ledgerMoreDetails.querySelector<HTMLElement>("summary")?.focus();
+    }
+
+    function handleMoreKeydown(e: KeyboardEvent) {
+        if (!ledgerMoreDetails?.open) return;
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            ledgerMoreDetails.open = false;
+            ledgerMoreDetails.querySelector<HTMLElement>("summary")?.focus();
+            return;
+        }
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+        const items = Array.from(
+            ledgerMoreDetails.querySelectorAll<HTMLButtonElement>('.lv-ledger-more__menu button[role="menuitem"]:not([disabled])'),
+        );
+        if (items.length === 0) return;
+        e.preventDefault();
+        const cur = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = e.key === "Home" ? 0
+            : e.key === "End" ? items.length - 1
+            : e.key === "ArrowDown" ? (cur + 1) % items.length
+            : (cur - 1 + items.length) % items.length;
+        items[next]?.focus();
+    }
 </script>
+
+<svelte:window onpointerdowncapture={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
 
 <div class="lv-toolbar lv-ledger-toolbar">
     {#if ledgers.length > 0}
@@ -144,7 +186,8 @@
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
         <button type="button" class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
-        <details class="lv-ledger-more" bind:this={ledgerMoreDetails}>
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <details class="lv-ledger-more" bind:this={ledgerMoreDetails} onkeydown={handleMoreKeydown}>
             <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -186,21 +229,20 @@
     {/if}
 </div>
 
-{#if pinnedLedgers.length > 1}
-    <div class="lv-ledger-pinned-bar">
-        <span class="lv-caption lv-pinned-icon"><UiIcon name="bookmark" size={13} /></span>
-        {#each pinnedLedgers as pid (pid)}
-            <button type="button" class="lv-preset-tag" class:active={active === pid}
-                aria-pressed={active === pid}
-                onclick={() => onSwitchLedger ? onSwitchLedger(pid) : (active = pid)}>
-                {t(`module.${pid}`)}
-            </button>
-        {/each}
-    </div>
-{/if}
-
-{#if (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
+{#if pinnedLedgers.length > 1 || (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
     <div class="lv-filter-bar">
+        {#if pinnedLedgers.length > 1}
+            <div class="lv-ledger-pinned-bar lv-filter-pill-group">
+                <span class="lv-caption lv-pinned-icon"><UiIcon name="bookmark" size={13} /></span>
+                {#each pinnedLedgers as pid (pid)}
+                    <button type="button" class="lv-preset-tag" class:active={active === pid}
+                        aria-pressed={active === pid}
+                        onclick={() => onSwitchLedger ? onSwitchLedger(pid) : (active = pid)}>
+                        {t(`module.${pid}`)}
+                    </button>
+                {/each}
+            </div>
+        {/if}
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
             <div class="lv-filter-pill-group">
                 <span class="lv-caption lv-filter-pill-icon"><UiIcon name="users" size={13} /></span>
@@ -230,14 +272,14 @@
 
 <style>
     .lv-ledger-toolbar {
-        margin: 0 0 14px;
+        margin: 0 0 10px;
     }
     .lv-ledger-pinned-bar {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
         flex-wrap: wrap;
-        margin: -6px 0 10px;
+        margin: 0;
     }
     .lv-pinned-icon {
         font-size: 11px;

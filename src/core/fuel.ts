@@ -8,6 +8,7 @@
  */
 
 import { uiIcon } from "@/ui/icons";
+import { bindDialogA11y } from "./dialog-a11y";
 
 export type EnergyKind = "fuel" | "charging";
 
@@ -272,6 +273,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
         width: "620px",
     });
     dlg.element.classList.add("lv-energy-dialog");
+    bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-fuel-dashboard") as HTMLElement;
     if (!body) return;
 

@@ -4,6 +4,7 @@
  */
 
 import { setCell } from "./siyuan";
+import { bindDialogA11y } from "./dialog-a11y";
 import { saveRuntime } from "./hub/runtime";
 import { blockDeepLink, generateQRDataUrl } from "./qr";
 import { localDateKey } from "./hub/rule";
@@ -51,6 +52,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
                 content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-pick-body"></div>`,
                 width: "420px",
             });
+            bindDialogA11y({ dlg: picker });
             const list = picker.element.querySelector("#lv-pick-body") as HTMLElement;
             for (const r of rows) {
                 if (r.itemID === row.itemID) continue;

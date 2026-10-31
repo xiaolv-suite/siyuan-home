@@ -173,11 +173,62 @@ export function removeRowLog(logs: RowLogs, avId: string, rowId: string): RowLog
     return next;
 }
 
+const finiteNum = (v: unknown): number | undefined => {
+    const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
+    return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+};
+
+/** 旧快速流水（v0.5.184 及以前快速记录写入的 `{cost, liters}` / `{systolic, glucose}`）
+ * 补齐为抽屉与统计读取的标准字段。只增字段不删原字段，幂等；返回是否有改动。 */
+export function upgradeLegacyEntry(kind: LogKind, entry: Record<string, unknown>): boolean {
+    if (!entry || typeof entry !== "object") return false;
+    if (kind === "fuelings" || kind === "chargings") {
+        if (entry.kind !== undefined) return false;
+        const quantity = finiteNum(entry.quantity) ?? finiteNum(entry.liters);
+        const totalCost = finiteNum(entry.totalCost) ?? finiteNum(entry.cost);
+        if (quantity === undefined && totalCost === undefined) return false;
+        entry.kind = kind === "fuelings" ? "fuel" : "charging";
+        if (quantity !== undefined) entry.quantity = quantity;
+        if (totalCost !== undefined) entry.totalCost = totalCost;
+        return true;
+    }
+    if (kind === "vitals") {
+        if (entry.type !== undefined) return false;
+        const sys = finiteNum(entry.systolic);
+        const glucose = finiteNum(entry.glucose);
+        if (sys !== undefined) {
+            entry.type = "bp";
+            entry.val1 = sys;
+            const dia = finiteNum(entry.diastolic);
+            if (dia !== undefined) entry.val2 = dia;
+            return true;
+        }
+        if (glucose !== undefined) {
+            entry.type = "bg";
+            entry.val1 = glucose;
+            entry.val2 = entry.glucoseTiming === "postprandial" ? 1 : 0;
+            return true;
+        }
+    }
+    return false;
+}
+
+export function upgradeLegacyRowLogs(logs: RowLogs): RowLogs {
+    for (const log of Object.values(logs)) {
+        if (!log || typeof log !== "object") continue;
+        for (const kind of ["fuelings", "chargings", "vitals"] as const) {
+            const list = log[kind];
+            if (Array.isArray(list)) for (const entry of list) upgradeLegacyEntry(kind, entry);
+        }
+    }
+    return logs;
+}
+
 /** 载入 rowlogs.json（坏文件容错同 settings：备份标记 + 回退空） */
 export async function loadRowLogs(plugin: Plugin): Promise<RowLogs> {
     const { data, corrupted } = await loadDataSafe(plugin, ROWLOGS_NAME);
     if (corrupted || !data || typeof data !== "object" || Array.isArray(data)) return {};
-    return data as RowLogs;
+    return upgradeLegacyRowLogs(data as RowLogs);
 }
 
 export async function saveRowLogs(plugin: Plugin, logs: RowLogs): Promise<void> {

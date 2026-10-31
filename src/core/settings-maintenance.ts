@@ -4,6 +4,7 @@
  */
 
 import { confirm } from "@/libs/dialog";
+import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
 
@@ -94,6 +95,7 @@ export async function openDiagnosticsPreviewDialog(
     });
 
     (dlg.element.querySelector("#lv-diag-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg });
     (dlg.element.querySelector("#lv-diag-copy-summary") as HTMLButtonElement).onclick = async () => {
         try {
             const summaryText = `【小驴管家健康诊断摘要】\n- 版本：v${payload.plugin}\n- 启用模块：${payload.enabledModules?.join("、")}\n- 台账就绪：${provisionedCount}/${totalCount}\n- 扫描异常：${errorCount}\n- 生成时间：${payload.generatedAt}`;
@@ -157,6 +159,7 @@ export async function openAmbiguityDialog(
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ambig-cancel">${t("cancel")}</button><button class="b3-button" id="lv-ambig-ok">${t("save")}</button></div>`,
         width: "520px",
     });
+    bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-ambig-body") as HTMLElement;
     let applyingAmbiguity = false;
     ambiguous.forEach((a, ai) => {

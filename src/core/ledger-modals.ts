@@ -249,6 +249,8 @@ export async function openMealPlanModal(ctx: LedgerModalContext): Promise<void> 
         let stockItems: import("@/core/meal-plan").StockItemInfo[] = [];
         const stockRef = plugin.settings.dbRefs?.stock;
         if (stockRef?.avId && stockRef.columns?.name) {
+            // 囤货读不到时缺口会被算成“全部要买”，必须提示用户结果不可信
+            let stockReadOk = false;
             try {
                 const allStock = await renderLedgerAllFn(stockRef.avId);
                 if (allStock.complete) {
@@ -257,8 +259,10 @@ export async function openMealPlanModal(ctx: LedgerModalContext): Promise<void> 
                         nameCol: stockRef.columns.name,
                         qtyCol: stockRef.columns.qty,
                     });
+                    stockReadOk = true;
                 }
-            } catch { /* soft */ }
+            } catch { /* 下方统一提示 */ }
+            if (!stockReadOk) showMessageFn(t("modal.readIncomplete").replace("${modules}", t("module.stock")), 6000, "error");
         }
 
         const { openMealPlanDialog } = await import("@/core/meal-plan");

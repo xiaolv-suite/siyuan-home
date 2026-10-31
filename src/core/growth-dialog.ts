@@ -3,8 +3,10 @@
  */
 
 import { collectGrowthSeries, whoBand, whoPercentile } from "./growth";
+import { bindDialogA11y } from "./dialog-a11y";
 import { calculateVaccineSchedule, type GivenDoseRecord } from "./immunization";
 import { addDetachedRow, setCell, renderLedgerAll, type AvRow } from "./siyuan";
+import { writeLedgerRow } from "./ledger-writer";
 import { pointsToSmoothBezierPath } from "./chart";
 import { uiIcon } from "@/ui/icons";
 import type { FamilyMember } from "@/types";
@@ -26,6 +28,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-growth-body"></div>`,
         width: "560px",
     });
+    bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-growth-body") as HTMLElement;
     if (!body) return;
 
@@ -197,6 +200,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
         });
         const body = dlg.element.querySelector("#lv-vaccine-sched-body") as HTMLElement;
         (dlg.element.querySelector("#lv-vaccine-sched-close") as HTMLButtonElement).onclick = () => dlg.destroy();
+        bindDialogA11y({ dlg });
 
         const render = () => {
             body.replaceChildren();
@@ -341,6 +345,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                             width: "400px",
                         });
                         (rdlg.element.querySelector("#lv-vrec-cancel") as HTMLButtonElement).onclick = () => rdlg.destroy();
+                        bindDialogA11y({ dlg: rdlg, defaultFocus: "#lv-vrec-date" });
                         (rdlg.element.querySelector("#lv-vrec-save") as HTMLButtonElement).onclick = async function (this: HTMLButtonElement) {
                             const dateVal = (rdlg.element.querySelector("#lv-vrec-date") as HTMLInputElement)?.value.trim() || it.targetDate;
                             const batchVal = (rdlg.element.querySelector("#lv-vrec-batch") as HTMLInputElement)?.value.trim();
@@ -348,15 +353,28 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                             this.disabled = true;
                             rdlg.destroy();
                             try {
-                                const rowId = await addDetachedRow(avId, it.vaccine);
-                                if (columns.category) await setCell(avId, columns.category, rowId, { type: "select", select: { content: "vaccine_p" } });
-                                if (columns.date) await setCell(avId, columns.date, rowId, { type: "date", date: { content: dateVal, isNotEmpty: true } });
-                                if (columns.vaccine_name) await setCell(avId, columns.vaccine_name, rowId, { type: "text", text: { content: it.vaccine } });
-                                if (columns.dose_no) await setCell(avId, columns.dose_no, rowId, { type: "number", number: { content: it.dose, isNotEmpty: true } });
-                                if (columns.vaccine_batch && batchVal) await setCell(avId, columns.vaccine_batch, rowId, { type: "text", text: { content: batchVal } });
-                                if (columns.vaccine_site && siteVal) await setCell(avId, columns.vaccine_site, rowId, { type: "text", text: { content: siteVal } });
-                                if (columns.member && child.avItemId) await setCell(avId, columns.member, rowId, { type: "relation", relation: { blockIDs: [child.avItemId] } });
-                                showMessageFn(t("ledger.recordVaccineSaved"), 3000, "info");
+                                // 经写入网关：分类走 select 双形态、日期转时间戳（此前日期以字符串写入、分类单形态，内核落盘为空）
+                                const { itemID: rowId, failed } = await writeLedgerRow({
+                                    moduleId: "parenting",
+                                    target: { avId, columns },
+                                    name: it.vaccine,
+                                    fields: {
+                                        category: "vaccine_p",
+                                        date: dateVal,
+                                        vaccine_name: it.vaccine,
+                                        dose_no: it.dose,
+                                        vaccine_batch: batchVal,
+                                        vaccine_site: siteVal,
+                                        member: child.avItemId,
+                                    },
+                                    addRowFn: addDetachedRow,
+                                    setCellFn: setCell,
+                                });
+                                if (failed.length > 0) {
+                                    showMessageFn(t("ledger.writePartialFailed").replace("${fields}", failed.map((k) => t(`field.${k}`)).join("、")), 6000, "error");
+                                } else {
+                                    showMessageFn(t("ledger.recordVaccineSaved"), 3000, "info");
+                                }
                                 all.rows.push({
                                     itemID: rowId,
                                     cells: {

@@ -6,6 +6,7 @@
  */
 
 import { extractBlockId, parseBlockToLedgerRow, formatBlockIngestSnippet } from "./block-ingest";
+import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 
 export interface BlockIngestDialogOptions {
@@ -79,6 +80,7 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
     const previewEl = dlg.element.querySelector("#lv-ingest-preview") as HTMLElement;
     const submitBtn = dlg.element.querySelector("#lv-ingest-submit") as HTMLButtonElement;
     (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
+    bindDialogA11y({ dlg, defaultFocus: "#lv-ingest-link" });
 
     const updatePreview = () => {
         const rawLink = linkInp.value.trim();

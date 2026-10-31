@@ -5,7 +5,6 @@
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
     import TabKpiBar from "./tab-kpi-bar.svelte";
-    import TabContextDock from "./tab-context-dock.svelte";
     import TabRailNav from "./tab-rail-nav.svelte";
     import TabGuestBanner from "./tab-guest-banner.svelte";
     import UiIcon from "@/ui/icon.svelte";
@@ -400,11 +399,6 @@
         return plugin.settings?.members?.length ?? 0;
     });
 
-    let dockOpen = $state<boolean>(false);
-    function toggleDock() {
-        dockOpen = !dockOpen;
-    }
-
     // C1b：滑动胶囊（offsetLeft/width + spring，与原型一致）
     let navEl: HTMLElement;
     let pill = $state({ x: 0, w: 0 });
@@ -528,11 +522,11 @@
                 </button>
                 <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
                 <div class="lv-tabbar-actions">
-                    <button type="button" class="lv-iconbtn" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
+                    <!-- 搜索/快速记录/设置在宽屏由左侧导航栏承担，顶栏同名按钮只在窄屏（无侧栏）出现 -->
+                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
                     <button type="button" class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-                    <button type="button" class="lv-iconbtn" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
-                    <button type="button" class="lv-iconbtn" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
-                    <button type="button" class="lv-iconbtn" class:orange={dockOpen} aria-label={t("tab.toggleDock")} title={dockOpen ? t("tab.collapseDock") : t("tab.expandDock")} onclick={toggleDock}><UiIcon name="menu" size={16} /></button>
+                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
                     {#if onMobileClose}
                         <button type="button" class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
                     {/if}
@@ -547,14 +541,16 @@
                 />
             {/if}
 
-            <!-- 统计优先：关键指标行（KPI Strip） -->
-            <TabKpiBar
-                {t}
-                {kpiUrgentCount}
-                {kpiMonthlyRatio}
-                {kpiRecordsTotal}
-                {kpiMemberCount}
-            />
+            <!-- 关键指标行只属于总览；提醒/台账/成员页把首屏留给列表本身 -->
+            {#if screen === "overview"}
+                <TabKpiBar
+                    {t}
+                    {kpiUrgentCount}
+                    {kpiMonthlyRatio}
+                    {kpiRecordsTotal}
+                    {kpiMemberCount}
+                />
+            {/if}
 
             {#key screen}
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
@@ -575,22 +571,6 @@
             {/key}
         </div>
 
-        <!-- 3. 右侧可收起上下文侧板 -->
-        {#if dockOpen}
-            <TabContextDock
-                {screen}
-                {t}
-                {plugin}
-                {kpiUrgentCount}
-                {kpiMonthlyRatio}
-                {kpiRecordsTotal}
-                {kpiMemberCount}
-                onToggleDock={toggleDock}
-                onOpenCapture={(mid) => openCapture(mid)}
-                onOpenSpotlight={() => void openSpotlight()}
-                onRefreshScan={() => void refreshInitialScan(true)}
-            />
-        {/if}
     </div>
 
     <!-- 267 波：快速记录弹层（常驻挂载——关闭仅收起，草稿保留） -->

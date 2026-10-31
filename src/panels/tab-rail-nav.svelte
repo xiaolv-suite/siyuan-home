@@ -41,6 +41,7 @@
             <button
                 type="button"
                 id={`lv-rail-tab-${s.id}`}
+                data-s={s.id}
                 class="lv-rail-nav__item"
                 class:on={screen === s.id}
                 role="tab"

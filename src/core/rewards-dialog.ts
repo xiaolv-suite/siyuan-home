@@ -14,13 +14,14 @@ import {
 } from "./rewards-ledger";
 import { uiIcon } from "@/ui/icons";
 import { bindDialogA11y } from "./dialog-a11y";
+import { localDateKey } from "./hub/rule";
 
 export interface RewardsDialogOptions {
     t: (k: string) => string;
     plugin: {
         settings: {
             dbRefs: Record<string, { avId?: string; columns?: Record<string, string> }>;
-            members?: Array<{ id: string; name: string }>;
+            members?: Array<{ id: string; name: string; avItemId?: string }>;
         };
         saveData: (name: string, data: unknown) => Promise<unknown>;
     };
@@ -172,9 +173,11 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 
         settleBtn.disabled = true;
         let settledMembers = 0;
+        const settledMemberIds = new Set<string | undefined>();
+        const failedMembers: string[] = [];
         try {
-            const today = new Date().toISOString().slice(0, 10);
-            const { selectCellValue } = await import("./avcell");
+            const today = localDateKey(new Date());
+            const { writeLedgerRow } = await import("./ledger-writer");
 
             for (const m of report.members) {
                 if (m.unsettledPoints <= 0) continue;
@@ -182,26 +185,38 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
                 const payload = mapPointsToAllowanceRow(m, mName, { date: today, pointsPerYuan: report.pointsPerYuan });
                 if (!payload) continue;
 
-                // 在 allowance 台账新建行
-                const rowId = await addDetachedRowFn(allowRef.avId, payload.name);
-                if (!rowId) continue;
-
-                if (allowRef.columns?.amount) await setCellFn(allowRef.avId, allowRef.columns.amount, rowId, payload.amount);
-                if (allowRef.columns?.category) await setCellFn(allowRef.avId, allowRef.columns.category, rowId, selectCellValue(payload.category));
-                if (allowRef.columns?.direction) await setCellFn(allowRef.avId, allowRef.columns.direction, rowId, selectCellValue(payload.direction));
-                if (allowRef.columns?.date) await setCellFn(allowRef.avId, allowRef.columns.date, rowId, payload.date);
-                if (payload.memberId && allowRef.columns?.member) {
-                    await setCellFn(allowRef.avId, allowRef.columns.member, rowId, { type: "relation", relation: { blockIDs: [payload.memberId], contents: null } });
+                // 经写入网关建行：金额/日期按列类型包装，成员 id 换成成员台账 avItemId
+                const { failed } = await writeLedgerRow({
+                    moduleId: "allowance",
+                    target: allowRef,
+                    name: payload.name,
+                    fields: {
+                        amount: payload.amount,
+                        category: payload.category,
+                        direction: payload.direction,
+                        date: payload.date,
+                        member: payload.memberId,
+                        note: payload.note,
+                        source: payload.source,
+                    },
+                    members: plugin.settings.members,
+                    addRowFn: addDetachedRowFn,
+                    setCellFn,
+                });
+                // 金额没写进去就不算结算成功，保留积分待下次重试
+                if (failed.includes("amount")) {
+                    failedMembers.push(mName);
+                    continue;
                 }
-                if (payload.note && allowRef.columns?.note) await setCellFn(allowRef.avId, allowRef.columns.note, rowId, payload.note);
-                if (payload.source && allowRef.columns?.source) await setCellFn(allowRef.avId, allowRef.columns.source, rowId, payload.source);
-
+                settledMemberIds.add(m.memberId);
                 settledMembers++;
             }
 
-            // 更新已结算标记到 chexecs 日志中
+            // 只为金额落库成功的成员标记已结算
             await rl.updateRowLogs(plugin as never, (current) => {
                 for (const ptr of recordPointers) {
+                    const ptrMember = typeof ptr.entry.memberId === "string" ? ptr.entry.memberId : undefined;
+                    if (!settledMemberIds.has(ptrMember)) continue;
                     const key = rl.logKey(ptr.avId, ptr.rowId);
                     const log = current[key];
                     const list = (log?.chexecs as Array<Record<string, unknown>>) ?? [];
@@ -211,8 +226,12 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
                 return current;
             });
 
-            showMessageFn(t("ledger.rewardsSettleSuccess").replace("${n}", String(settledMembers)), 4000, "info");
-            dlg.destroy();
+            if (failedMembers.length > 0) {
+                showMessageFn(t("ledger.rewardsSettlePartial").replace("${n}", String(settledMembers)).replace("${names}", failedMembers.join("、")), 6000, "error");
+            } else {
+                showMessageFn(t("ledger.rewardsSettleSuccess").replace("${n}", String(settledMembers)), 4000, "info");
+                dlg.destroy();
+            }
         } catch (e) {
             showMessageFn(t("capture.failed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         } finally {

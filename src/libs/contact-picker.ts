@@ -4,19 +4,56 @@
  * 降级：人脉未装/未初始化/搜索失败各有提示；快照格式 `名称 [docId]`。
  */
 import { Dialog } from "siyuan";
-import { getBridgeSafely } from "./ecosystem-bridge-kit";
+import { getBridgeSafely, type ContactsBridgeApi } from "./ecosystem-bridge-kit";
 
 export interface ContactPickHandle {
     showMessage(msg: string, timeout: number, type: "info" | "error"): void;
     t(key: string, vars?: Record<string, string>): string;
 }
 
-interface LvContactsSearch {
-    searchPeople?: (keyword: string) => Promise<{ docId: string; name: string }[]>;
+export function getContactsBridge(): ContactsBridgeApi | undefined {
+    return getBridgeSafely<ContactsBridgeApi>("contacts");
 }
 
-export function getContactsBridge(): LvContactsSearch | undefined {
-    return getBridgeSafely<LvContactsSearch>("contacts");
+/**
+ * 解析人脉联系人快照字符串格式：名称 [docId]
+ */
+export function parseContactSnapshot(raw?: string): { name: string; docId?: string } {
+    if (!raw) return { name: "" };
+    const match = raw.match(/^(.*?)\s*\[(.*?)\]$/);
+    return {
+        name: match ? match[1].trim() : raw.trim(),
+        docId: match ? match[2].trim() : undefined,
+    };
+}
+
+/**
+ * 向小驴人脉沉淀互动事实 (Epoch 6 联邦规范)
+ */
+export async function logContactInteractionSafely(options: {
+    contactSnapshot?: string;
+    personDocId?: string;
+    date?: string;
+    note: string;
+    ref?: string;
+}): Promise<boolean> {
+    const bridge = getContactsBridge();
+    if (!bridge?.recordInteraction) return false;
+    let docId = options.personDocId;
+    if (!docId && options.contactSnapshot) {
+        docId = parseContactSnapshot(options.contactSnapshot).docId;
+    }
+    if (!docId) return false;
+    try {
+        const res = await bridge.recordInteraction([docId], {
+            date: options.date || new Date().toISOString().slice(0, 10),
+            note: options.note,
+            ref: options.ref || `home-interaction-${Date.now()}`,
+        });
+        return Boolean(res?.complete || (res?.recorded && res.recorded > 0));
+    } catch {
+        return false;
+    }
 }
 
 /** 打开选人对话框；选中回调收到快照串 `名称 [docId]` */

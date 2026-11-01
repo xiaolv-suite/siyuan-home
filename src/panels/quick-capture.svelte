@@ -49,6 +49,7 @@
 
     let eventFlowRef: any = $state();
     let lastMemberId = $state("");
+    let returnToEventSub = $state<string | undefined>();
 
     async function ensureTargetRef(mod: string) {
         let r = plugin.settings.dbRefs?.[mod];
@@ -218,7 +219,7 @@
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();
             if (captureTab === "event") {
-                eventFlowRef?.submitCurrentSubAction();
+                eventFlowRef?.submitCurrentSubAction(e.altKey);
             } else if (modules.length > 0 && captureFields.length > 0) {
                 void save(e.altKey);
             }
@@ -367,6 +368,17 @@
                     valuesByModule = { ...valuesByModule, [moduleId]: {} };
                 }
                 refocusName = true;
+            } else if (returnToEventSub) {
+                const targetSub = returnToEventSub;
+                returnToEventSub = undefined;
+                values = {};
+                valuesByModule = { ...valuesByModule, [moduleId]: {} };
+                captureTab = "event";
+                void tick().then(() => {
+                    eventFlowRef?.reloadContext?.();
+                    if (targetSub) eventFlowRef?.selectSubAction?.(targetSub);
+                    showMessage(t("capture.backToEventHint"), 3200, "info");
+                });
             } else {
                 values = {};
                 valuesByModule = { ...valuesByModule, [moduleId]: {} };
@@ -413,7 +425,7 @@
 <!-- 267 波：.lv-mask/.lv-modal（07 §10）首次投产；常驻挂载 + .open 切换保住出入场过渡与草稿 -->
 <div class="lv-mask" class:open aria-hidden="true" onclick={close}></div>
 <div class="lv-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-capture-title" aria-busy={saving} tabindex="-1" inert={!open}>
-    <div class="lv-sheet" style={keyboardOffset > 0 ? `transform:translateY(-${Math.min(keyboardOffset, 200)}px)` : undefined}>
+    <div class="lv-sheet" style={keyboardOffset > 0 ? `transform:translateY(-${Math.min(keyboardOffset, 160)}px); max-height: calc(100% - ${Math.min(keyboardOffset, 160)}px);` : undefined}>
         {#if showDiscardConfirm}
             <QuickCaptureConfirm
                 {t}
@@ -447,7 +459,7 @@
             {/if}
             <button type="button" class="lv-iconbtn" aria-label={t("capture.closeKeepDraft")} title={t("capture.closeKeepDraft")} onclick={close} disabled={saving}><UiIcon name="close" size={16} /></button>
         </div>
-        <div class="lv-sheet-body lv-cap-body">
+        <div class="lv-sheet-body lv-cap-body" style={keyboardOffset > 0 ? `scroll-padding-bottom: ${keyboardOffset + 36}px;` : undefined}>
             <div class="lv-capture-mode-bar" role="tablist" aria-label={t("capture.title")}>
                 <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "event"} role="tab" aria-selected={captureTab === "event"} tabindex={captureTab === "event" ? 0 : -1} onclick={() => switchMode("event")} onkeydown={onModeKey}><span>{t("capture.tabEvent")}</span></button>
                 <button type="button" class="lv-capture-mode-btn" class:active={captureTab === "ledger"} role="tab" aria-selected={captureTab === "ledger"} tabindex={captureTab === "ledger" ? 0 : -1} onclick={() => switchMode("ledger")} onkeydown={onModeKey}><span>{t("capture.tabLedger")}</span></button>
@@ -462,7 +474,11 @@
                     bind:saveError
                     keepContext={keepContext}
                     onClose={close}
-                    onSwitchToLedger={(mod) => { captureTab = "ledger"; moduleId = mod; }}
+                    onSwitchToLedger={(mod, returnSub) => {
+                        captureTab = "ledger";
+                        moduleId = mod;
+                        returnToEventSub = returnSub;
+                    }}
                 />
             {:else}
                 <!-- 实体台账建档模式 -->
@@ -515,7 +531,7 @@
             canSubmitLedger={modules.length > 0 && captureFields.length > 0}
             {t}
             onClose={close}
-            onSubmitEvent={() => { eventFlowRef?.submitCurrentSubAction(); }}
+            onSubmitEvent={(continueAfter) => { eventFlowRef?.submitCurrentSubAction(continueAfter); }}
             onOpenPendingLedger={openPendingLedger}
             onSaveLedger={(continueAfter) => void save(continueAfter)}
         />

@@ -142,6 +142,47 @@ export async function copyReminderAsTaskBlock(
     }
 }
 
+/** 格式化为家庭群通知文本 (CAND-24) */
+export function formatFamilyNotice(
+    r: Reminder,
+    options?: { memberName?: string; moduleName?: string; note?: string },
+): string {
+    const target = options?.memberName || "全家";
+    const mod = options?.moduleName ? ` · ${options.moduleName}` : "";
+    const dueHint = r.daysLeft < 0 ? `（已逾期 ${Math.abs(r.daysLeft)} 天）`
+        : r.daysLeft === 0 ? "（今日到期）"
+        : `（还剩 ${r.daysLeft} 天）`;
+    return [
+        `📢【家庭提醒${mod}】`,
+        `📌 事项：${r.title}`,
+        `📅 截止：${r.dueDate} ${dueHint}`,
+        `👤 责任人：${target}`,
+        ...(options?.note ? [`📝 备注：${options.note}`] : []),
+        `💡 来自小驴管家智能提醒`,
+    ].join("\n");
+}
+
+/** 复制家庭群通知文本到剪贴板 */
+export async function copyReminderFamilyNotice(
+    r: Reminder,
+    t: (k: string) => string,
+    showMessage: (msg: string, time?: number, type?: string) => void,
+    options?: { memberName?: string },
+): Promise<void> {
+    const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
+    const text = formatFamilyNotice(r, {
+        memberName: options?.memberName,
+        moduleName: modTitle,
+        note: r.tag ? `#${r.tag}` : undefined,
+    });
+    try {
+        await navigator.clipboard.writeText(text);
+        showMessage(t("hub.familyNoticeCopied"), 2500, "info");
+    } catch {
+        showMessage(t("hub.digestCopyFailed"), 3000, "error");
+    }
+}
+
 /** 切换今日快速计划日期 */
 export async function toggleReminderQuickPlanToday(
     r: Reminder,

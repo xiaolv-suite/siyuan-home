@@ -1,0 +1,5632 @@
+[
+  {
+    "id": "CTRL-001",
+    "category": "页面与面板",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte",
+    "type": "主面板/页面",
+    "label": "总览主屏 (Overview)",
+    "action": "日常待办概览、周律动、指标Bento卡、模块快捷入口",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-002",
+    "category": "页面与面板",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger.svelte",
+    "type": "主面板/页面",
+    "label": "家庭台账 (Ledger)",
+    "action": "21项核心生活台账表格、车辆能耗网格、批量管理与筛选",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-003",
+    "category": "页面与面板",
+    "module": "reminders",
+    "location": "src/panels/screens/reminders.svelte",
+    "type": "主面板/页面",
+    "label": "到期提醒中枢 (Reminders)",
+    "action": "全域待办/周期提醒/多段割点聚合、一键顺延、批量处理与已处理归档",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-004",
+    "category": "页面与面板",
+    "module": "members",
+    "location": "src/panels/screens/members.svelte",
+    "type": "主面板/页面",
+    "label": "家庭成员档案 (Members)",
+    "action": "成员档案名片、农历生日、时间轴、证件与健康聚合",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-005",
+    "category": "页面与面板",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte",
+    "type": "主面板/页面",
+    "label": "生活日历 (Calendar)",
+    "action": "月度视图、日期待办分布、当日便签添加、农历节气",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-006",
+    "category": "页面与面板",
+    "module": "settings",
+    "location": "src/panels/settings.svelte",
+    "type": "主面板/页面",
+    "label": "管家设置 (Settings)",
+    "action": "成员管理、模块启停、提醒策略与免打扰、数据备份/恢复/回收站、关于",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-007",
+    "category": "页面与面板",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte",
+    "type": "主面板/页面",
+    "label": "初次使用向导 (Onboarding)",
+    "action": "全新安装引导、成员添加、默认模块启用与一键建库",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-008",
+    "category": "页面与面板",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte",
+    "type": "主面板/页面",
+    "label": "主导航轨 (Rail Navigation)",
+    "action": "五屏切换、访客模式开关、近期动态入口、关于与设置",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-009",
+    "category": "页面与面板",
+    "module": "nav",
+    "location": "src/panels/tab-guest-banner.svelte",
+    "type": "主面板/页面",
+    "label": "访客模式横幅 (Guest Banner)",
+    "action": "脱敏只读保护状态提示与退出访客按钮",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-010",
+    "category": "页面与面板",
+    "module": "overview",
+    "location": "src/panels/overview-pulse-strip.svelte",
+    "type": "主面板/页面",
+    "label": "周律动条 (Pulse Strip)",
+    "action": "近7天任务与习惯律动分布直方图",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-011",
+    "category": "页面与面板",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte",
+    "type": "主面板/页面",
+    "label": "全局异常边界 (Error Boundary)",
+    "action": "渲染崩溃兜底保护与一键刷新重试",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-012",
+    "category": "弹窗与抽屉",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte",
+    "type": "弹窗/抽屉",
+    "label": "快速记录弹窗 (Quick Capture)",
+    "action": "N快捷键唤起，支持日常流水优先与台账直达双模式",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-013",
+    "category": "弹窗与抽屉",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte",
+    "type": "弹窗/抽屉",
+    "label": "日常流水录入流 (Quick Event Flow)",
+    "action": "加油/充电换算、血压血糖、家务打卡、采购购物、备忘便签录入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-014",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte",
+    "type": "弹窗/抽屉",
+    "label": "新建/编辑台账记录弹窗",
+    "action": "动态表单录入各模块台账行、智能识别与校验",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-015",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/ledger-detail-drawer.ts",
+    "type": "弹窗/抽屉",
+    "label": "台账详情抽屉 (Ledger Detail Drawer)",
+    "action": "行字段编辑、历史流水、附件、分享卡、定位直达与删除",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-016",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/vehicle-drawer.ts",
+    "type": "弹窗/抽屉",
+    "label": "车辆详情抽屉 (Vehicle Drawer)",
+    "action": "车辆档案、能耗统计看板、加油充电明细与维保记录",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-017",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/attachment-drawer.ts",
+    "type": "弹窗/抽屉",
+    "label": "附件管理抽屉 (Attachment Drawer)",
+    "action": "图片附件上传、预览、重命名与删除",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-018",
+    "category": "弹窗与抽屉",
+    "module": "spotlight",
+    "location": "src/core/spotlight-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "全景检索 (Spotlight Dialog)",
+    "action": "Ctrl+K 全局拼音检索、位置反查、复制引用与直达",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-019",
+    "category": "弹窗与抽屉",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte",
+    "type": "弹窗/抽屉",
+    "label": "近期活动动态 (Activity Feed)",
+    "action": "近期打卡流水、日志时间轴与分页浏览",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-020",
+    "category": "弹窗与抽屉",
+    "module": "overview",
+    "location": "src/core/emergency-card-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "家庭急救卡弹窗 (Emergency Card)",
+    "action": "血型、慢病、过敏、急救箱与紧急联络人聚合展示与复制",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-021",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/location-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "物品存放位置索引 (Location Dialog)",
+    "action": "聚合全库 location 字段，全局检索东西放哪了",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-022",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/rewards-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "儿童积分结算弹窗 (Rewards Dialog)",
+    "action": "家务打卡积分结算，一键兑换零花钱写入账本",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-023",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/waste-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "市政垃圾清运排期 (Waste Dialog)",
+    "action": "两周垃圾清运日程推算与分类指南",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-024",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/expense-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "支出分类预算限额 (Expense Dialog)",
+    "action": "分类月度预算限额测算与超支告警",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-025",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/vitals-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "生理指标监测 (Vitals Dialog)",
+    "action": "血压/血糖/心率时间序列与高低压医学判定",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-026",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/chore-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "家务轮换与打卡 (Chore Dialog)",
+    "action": "轮换规则判定、本轮该谁、完成历史记录",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-027",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/store-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "超市动线扫货模式 (Store Dialog)",
+    "action": "按动线分类分组核对采购清单",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-028",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/growth-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "成长发育评估 (Growth Dialog)",
+    "action": "WHO生长曲线百分位测算与疫苗接种登记",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-029",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/favors-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "人情往来账本 (Favors Dialog)",
+    "action": "收礼送礼往来平衡测算与还礼提醒",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-030",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/block-ingest-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "思源块收录入台账 (Block Ingest)",
+    "action": "智能解析思源块内容/ID并双向收录入台账",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-031",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/bind-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "绑定已有思源文档 (Bind Dialog)",
+    "action": "将已有思源文档/属性视图关联为台账事实源",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-032",
+    "category": "弹窗与抽屉",
+    "module": "reminders",
+    "location": "src/core/batch-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "批量操作确认弹窗 (Batch Dialog)",
+    "action": "批量顺延天数、标记完成等二次确认",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-033",
+    "category": "弹窗与抽屉",
+    "module": "reminders",
+    "location": "src/core/reminder-dialogs.ts",
+    "type": "弹窗/抽屉",
+    "label": "备忘提醒编辑弹窗 (Reminder Dialogs)",
+    "action": "快速便签与周期提醒参数编辑",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-034",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/sharecard-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "分享卡生成弹窗 (Sharecard Dialog)",
+    "action": "Canvas 渲染高清分享卡并复制/下载图片",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-035",
+    "category": "弹窗与抽屉",
+    "module": "ledger",
+    "location": "src/core/csv-import-dialog.ts",
+    "type": "弹窗/抽屉",
+    "label": "CSV 导入向导 (CSV Import Dialog)",
+    "action": "文件选择、表头对齐映射与批量导入",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-036",
+    "category": "弹窗与抽屉",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte",
+    "type": "弹窗/抽屉",
+    "label": "成员头像裁剪弹窗 (Avatar Settings)",
+    "action": "图片缩放、平移裁剪并保存至思源资源库",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-037",
+    "category": "输入框与开关",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:76",
+    "type": "复选框",
+    "label": "Input [checkbox]",
+    "action": "双向绑定 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-038",
+    "category": "输入框与开关",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:78",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "双向绑定 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-039",
+    "category": "输入框与开关",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:80",
+    "type": "文本域",
+    "label": "Input [textarea]",
+    "action": "双向绑定 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-040",
+    "category": "输入框与开关",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:82",
+    "type": "数值输入框",
+    "label": "Input [number]",
+    "action": "双向绑定 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-041",
+    "category": "按钮与图标按钮",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:84",
+    "type": "按钮",
+    "label": "{button?.label ?? value}",
+    "action": "handleClick",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-042",
+    "category": "下拉与分段控件",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:86",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-043",
+    "category": "输入框与开关",
+    "module": "other",
+    "location": "src/libs/components/Form/form-input.svelte:93",
+    "type": "输入框",
+    "label": "Input [range]",
+    "action": "双向绑定 value",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-044",
+    "category": "下拉与分段控件",
+    "module": "other",
+    "location": "src/libs/components/sidebar-tabs-layout.svelte:54",
+    "type": "分段/页签控件",
+    "label": "Tab Segment",
+    "action": "切换选中选项卡/视图",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-045",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:127",
+    "type": "按钮",
+    "label": "${t(\"close\")}",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-046",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:128",
+    "type": "按钮",
+    "label": "${t(\"activity.insightCopy\")}",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-047",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:280",
+    "type": "按钮",
+    "label": "Button (src/panels/activity-feed.svelte:280)",
+    "action": "() => { showFilterTools = !showFilterTools;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-048",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:284",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => void openJournalDoc()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-049",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:287",
+    "type": "按钮",
+    "label": "Button (src/panels/activity-feed.svelte:287)",
+    "action": "() => void refresh(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-050",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:291",
+    "type": "按钮",
+    "label": "{t(\"activity.insight\")}",
+    "action": "openInsightDialog",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-051",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:293",
+    "type": "图标按钮",
+    "label": "Button (src/panels/activity-feed.svelte:293)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-052",
+    "category": "输入框与开关",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:305",
+    "type": "输入框",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-053",
+    "category": "下拉与分段控件",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:307",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-054",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:321",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-055",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:324",
+    "type": "按钮",
+    "label": "void refresh(true)}>{loading ? t(\"activity.loading\") : t(\"activity.retry\")}",
+    "action": "() => void refresh(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-056",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:331",
+    "type": "按钮",
+    "label": "void refresh(true)}>{t(\"activity.retry\")}",
+    "action": "() => void refresh(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-057",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:334",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-058",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:337",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-059",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:341",
+    "type": "按钮",
+    "label": "{t(\"activity.clearFilters\")}",
+    "action": "clearFilters",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-060",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:342",
+    "type": "按钮",
+    "label": "plugin.openSetting()}>{t(\"activity.configure\")}",
+    "action": "() => plugin.openSetting()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-061",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:346",
+    "type": "按钮",
+    "label": "{t(\"activity.clearFilters\")}",
+    "action": "clearFilters",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-062",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:347",
+    "type": "按钮",
+    "label": "plugin.openSetting()}>{t(\"activity.configure\")}",
+    "action": "() => plugin.openSetting()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-063",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:355",
+    "type": "按钮",
+    "label": "void refresh(true)}>{t(\"activity.retry\")}",
+    "action": "() => void refresh(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-064",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:359",
+    "type": "按钮",
+    "label": "void refresh(true)}>{t(\"activity.retry\")}",
+    "action": "() => void refresh(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-065",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:367",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => open(record)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-066",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:372",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => openRecordDoc(record)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-067",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:397",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "handlePrevPage",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-068",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:399",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "handleNextPage",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-069",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/activity-feed.svelte:401",
+    "type": "按钮",
+    "label": "Button (src/panels/activity-feed.svelte:401)",
+    "action": "goToLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-070",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:277",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openSettings",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-071",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:297",
+    "type": "按钮",
+    "label": "{t(\"avatar.cropReset\")}",
+    "action": "resetCrop",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-072",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:298",
+    "type": "输入框",
+    "label": "Input [range]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-073",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:302",
+    "type": "按钮",
+    "label": "{t(\"avatar.cancel\")}",
+    "action": "cancelCrop",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-074",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:303",
+    "type": "按钮",
+    "label": "{saving ? t(\"ledger.saving\") : t(\"avatar.usePhoto\")}",
+    "action": "saveCrop",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-075",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:308",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "closeSettings",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-076",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:316",
+    "type": "按钮",
+    "label": "Button (src/panels/avatar-settings.svelte:316)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-077",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:324",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 customText",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-078",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:325",
+    "type": "按钮",
+    "label": "{t(\"avatar.apply\")}",
+    "action": "applyText",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-079",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:328",
+    "type": "文件选择器",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-080",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:330",
+    "type": "按钮",
+    "label": "fileInput.click()}>{avatarImage ? t(\"avatar.editPhoto\") : t(\"avatar.photo\")}",
+    "action": "() => fileInput.click()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-081",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:331",
+    "type": "按钮",
+    "label": "{t(\"avatar.clearPhoto\")}",
+    "action": "clearPhoto",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-082",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/avatar-settings.svelte:332",
+    "type": "按钮",
+    "label": "{t(\"avatar.reset\")}",
+    "action": "resetAvatar",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-083",
+    "category": "空态与错误态",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:30",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-084",
+    "category": "空态与错误态",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:31",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-085",
+    "category": "空态与错误态",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:34",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-086",
+    "category": "空态与错误态",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:37",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-087",
+    "category": "空态与错误态",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:40",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-088",
+    "category": "按钮与图标按钮",
+    "module": "system",
+    "location": "src/panels/error-boundary.svelte:42",
+    "type": "按钮",
+    "label": "Button (src/panels/error-boundary.svelte:42)",
+    "action": "() => retry(resetBoundary)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-089",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:119",
+    "type": "按钮",
+    "label": "Button (src/panels/onboarding.svelte:119)",
+    "action": "() => toggle(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-090",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:128",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => (children = Math.max(0, children - 1))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-091",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:130",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => (children += 1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-092",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:134",
+    "type": "按钮",
+    "label": "{provisioning ? t(\"wiz.provisioningShort\") : t(\"wiz.skip\")}",
+    "action": "skip",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-093",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:135",
+    "type": "按钮",
+    "label": "Button (src/panels/onboarding.svelte:135)",
+    "action": "() => goToStep(2)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-094",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:155",
+    "type": "按钮",
+    "label": "Button (src/panels/onboarding.svelte:155)",
+    "action": "() => goToStep(1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-095",
+    "category": "按钮与图标按钮",
+    "module": "onboarding",
+    "location": "src/panels/onboarding.svelte:159",
+    "type": "按钮",
+    "label": "Button (src/panels/onboarding.svelte:159)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-096",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/overview-pulse-strip.svelte:45",
+    "type": "按钮",
+    "label": "Button (src/panels/overview-pulse-strip.svelte:45)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-097",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-confirm.svelte:35",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-capture-confirm.svelte:35)",
+    "action": "onCancel",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-098",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-confirm.svelte:38",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-capture-confirm.svelte:38)",
+    "action": "onConfirm",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-099",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-foot.svelte:28",
+    "type": "按钮",
+    "label": "{t(\"cancel\")}",
+    "action": "onClose",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-100",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-foot.svelte:31",
+    "type": "按钮",
+    "label": "Ctrl+Enter",
+    "action": "onSubmitEvent",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-101",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-foot.svelte:36",
+    "type": "按钮",
+    "label": "{t(\"capture.checkLedger\")}",
+    "action": "onOpenPendingLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-102",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-foot.svelte:39",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-capture-foot.svelte:39)",
+    "action": "() => onSaveLedger(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-103",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-foot.svelte:42",
+    "type": "按钮",
+    "label": "Ctrl+Enter",
+    "action": "() => onSaveLedger(false)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-104",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:121",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-105",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:123",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-106",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:132",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 values[f.key]",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-107",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:132",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-108",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:141",
+    "type": "日期输入框",
+    "label": "Input [date]",
+    "action": "双向绑定 values[f.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-109",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:141",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-110",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:143",
+    "type": "按钮",
+    "label": "applyDatePreset(f.key, 0)}>{t(\"capture.presetToday\")}",
+    "action": "() => applyDatePreset(f.key, 0)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-111",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:144",
+    "type": "按钮",
+    "label": "applyDatePreset(f.key, 1)}>{t(\"capture.presetTomorrow\")}",
+    "action": "() => applyDatePreset(f.key, 1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-112",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:145",
+    "type": "按钮",
+    "label": "applyDatePreset(f.key, 7)}>{t(\"capture.presetNextWeek\")}",
+    "action": "() => applyDatePreset(f.key, 7)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-113",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:148",
+    "type": "数值输入框",
+    "label": "fieldPlaceholder(f)",
+    "action": "双向绑定 values[f.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-114",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:148",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-115",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:150",
+    "type": "复选框",
+    "label": "Input [checkbox]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-116",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:150",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-117",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:152",
+    "type": "输入框",
+    "label": "fieldPlaceholder(f)",
+    "action": "双向绑定 values[f.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-118",
+    "category": "空态与错误态",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:152",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-119",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:156",
+    "type": "按钮",
+    "label": "applyLocationPreset(f.key, loc)}>{loc}",
+    "action": "() => applyLocationPreset(f.key, loc)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-120",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:175",
+    "type": "复选框",
+    "label": "`${t(",
+    "action": "双向绑定 keepContext",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-121",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture-form.svelte:179",
+    "type": "按钮",
+    "label": "{t(\"capture.discardUncertain\")}",
+    "action": "onDiscardUncertain",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-122",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:428",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 moduleId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-123",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:438",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openPendingLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-124",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:444",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => eventFlowRef?.openCurrentTargetDoc?.()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-125",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:448",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "close",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-126",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:452",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-capture.svelte:452)",
+    "action": "() => switchMode(\"event\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-127",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:453",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-capture.svelte:453)",
+    "action": "() => switchMode(\"ledger\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-128",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-capture.svelte:472",
+    "type": "按钮",
+    "label": "plugin.openSetting()}>{t(\"startGuide.openSettings\")}",
+    "action": "() => plugin.openSetting()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-129",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:421",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:421)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-130",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:425",
+    "type": "分段/页签控件",
+    "label": "Tab Segment",
+    "action": "切换选中选项卡/视图",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-131",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:441",
+    "type": "按钮",
+    "label": "{t(\"capture.addVehicleFirst\")}",
+    "action": "() => onSwitchToLedger?.(\"vehicles\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-132",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:446",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 selectedVehicleId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-133",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:459",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:459)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-134",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:476",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:476)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-135",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:501",
+    "type": "按钮",
+    "label": "{ fuelGrade = val; }} disabled={saving}>{lbl}",
+    "action": "() => { fuelGrade = val;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-136",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:505",
+    "type": "按钮",
+    "label": "{ chargingMode = val; }} disabled={saving}>{lbl}",
+    "action": "() => { chargingMode = val;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-137",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:513",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-138",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:529",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-139",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:543",
+    "type": "按钮",
+    "label": "onAmountInput(amt)} disabled={saving}>¥{amt}",
+    "action": "() => onAmountInput(amt)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-140",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:551",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-141",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:569",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-142",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:588",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-143",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:604",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 vitalMemberId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-144",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:615",
+    "type": "按钮",
+    "label": "{ vitalMetricType = vt as any; }} disabled={saving}>{vl}",
+    "action": "() => { vitalMetricType = vt as any;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-145",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:623",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalSys",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-146",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:627",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalDia",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-147",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:631",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalPulse",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-148",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:636",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalGlucose",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-149",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:640",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 vitalTiming",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-150",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:648",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalWeight",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-151",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:653",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 vitalTemp",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-152",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:660",
+    "type": "按钮",
+    "label": "{t(\"capture.addChoreFirst\")}",
+    "action": "() => onSwitchToLedger?.(\"chores\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-153",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:665",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 choreRowId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-154",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:677",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 chorePoints",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-155",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:681",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 choreNote",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-156",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:687",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 quickShopName",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-157",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:692",
+    "type": "按钮",
+    "label": "-",
+    "action": "() => { if (quickShopQty > 1) quickShopQty--;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-158",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:693",
+    "type": "数值输入框",
+    "label": "Input [number]",
+    "action": "双向绑定 quickShopQty",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-159",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:694",
+    "type": "按钮",
+    "label": "{ quickShopQty++; }} disabled={saving}>+",
+    "action": "() => { quickShopQty++;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-160",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:699",
+    "type": "数值输入框",
+    "label": "¥ (可选)",
+    "action": "双向绑定 quickShopPrice",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-161",
+    "category": "下拉与分段控件",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:703",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 quickShopCategory",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-162",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:715",
+    "type": "文本域",
+    "label": "t(",
+    "action": "双向绑定 quickSnippetText",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-163",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:721",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:721)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-164",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:740",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-165",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:747",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-166",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:755",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:755)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-167",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:770",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:770)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-168",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:780",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:780)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-169",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-event-flow.svelte:803",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-event-flow.svelte:803)",
+    "action": "() => void openCurrentTargetDoc()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-170",
+    "category": "输入框与开关",
+    "module": "quick-capture",
+    "location": "src/panels/quick-smart-bar.svelte:47",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-171",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-smart-bar.svelte:55",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-smart-bar.svelte:55)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-172",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-smart-bar.svelte:67",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-smart-bar.svelte:67)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-173",
+    "category": "按钮与图标按钮",
+    "module": "quick-capture",
+    "location": "src/panels/quick-smart-bar.svelte:83",
+    "type": "按钮",
+    "label": "Button (src/panels/quick-smart-bar.svelte:83)",
+    "action": "() => onApplyTemplate?.(tpl)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-174",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:201",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/calendar.svelte:201)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-175",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:203",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/calendar.svelte:203)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-176",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:206",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "() => nav(-1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-177",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:207",
+    "type": "按钮",
+    "label": "{t(\"cal.today\")}",
+    "action": "goToday",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-178",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:208",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "() => nav(1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-179",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:221",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/calendar.svelte:221)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-180",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:252",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/calendar.svelte:252)",
+    "action": "copyDayTasks",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-181",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:287",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => copySingleTask(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-182",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:289",
+    "type": "按钮",
+    "label": "isPinnedFn?.(r) ? t(",
+    "action": "() => onTogglePin?.(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-183",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:293",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => onConvert(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-184",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:295",
+    "type": "按钮",
+    "label": "void completeReminder(r)}>{completing.has(r.id) ? t(\"ledger.saving\") : t(\"act.do",
+    "action": "() => void completeReminder(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-185",
+    "category": "输入框与开关",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:302",
+    "type": "输入框",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-186",
+    "category": "按钮与图标按钮",
+    "module": "calendar",
+    "location": "src/panels/screens/calendar.svelte:305",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/calendar.svelte:305)",
+    "action": "addMemoForDay",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-187",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-batch-bar.svelte:207",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-batch-bar.svelte:207)",
+    "action": "openBatchLocationModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-188",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-batch-bar.svelte:212",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-batch-bar.svelte:212)",
+    "action": "openBatchMemberModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-189",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-batch-bar.svelte:216",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-batch-bar.svelte:216)",
+    "action": "batchCopyRefs",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-190",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-batch-bar.svelte:219",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-batch-bar.svelte:219)",
+    "action": "batchDelete",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-191",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-batch-bar.svelte:222",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "clearSelection",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-192",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:61",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-193",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:62",
+    "type": "按钮",
+    "label": "{t(\"ledger.retryRead\")}",
+    "action": "onLoad",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-194",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:65",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-195",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:66",
+    "type": "按钮",
+    "label": "{t(\"startGuide.openSettings\")}",
+    "action": "onOpenSettings",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-196",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:70",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-197",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:80",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-empty-state.svelte:80)",
+    "action": "onRebuildLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-198",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:83",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-empty-state.svelte:83)",
+    "action": "onOpenBindDoc",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-199",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:86",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-empty-state.svelte:86)",
+    "action": "onOpenNewRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-200",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:95",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-201",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:99",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-empty-state.svelte:99)",
+    "action": "onClearSearch",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-202",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:107",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-203",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:112",
+    "type": "按钮",
+    "label": "{t(\"ledger.newRecord\")}",
+    "action": "onOpenNewRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-204",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-empty-state.svelte:114",
+    "type": "按钮",
+    "label": "{t(\"ledger.importCsv\")}",
+    "action": "onImportCsv",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-205",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-missing-cols-banner.svelte:25",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-missing-cols-banner.svelte:25)",
+    "action": "onRebuild",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-206",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-attachments.svelte:114",
+    "type": "文件选择器",
+    "label": "Input [file]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-207",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-attachments.svelte:121",
+    "type": "按钮",
+    "label": "void removeCertificateFile(target.key, \"uploaded\", index)} disabled={saving || i",
+    "action": "() => void removeCertificateFile(target.key, \"uploaded\", index)",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-208",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-attachments.svelte:127",
+    "type": "按钮",
+    "label": "void removeCertificateFile(target.key, \"local\", index)} disabled={saving || iden",
+    "action": "() => void removeCertificateFile(target.key, \"local\", index)",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-209",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:28",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-foot.svelte:28)",
+    "action": "onClose",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-210",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:32",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-foot.svelte:32)",
+    "action": "onOpenPendingLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-211",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:35",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-foot.svelte:35)",
+    "action": "onDiscardUncertainDraft",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-212",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:39",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-foot.svelte:39)",
+    "action": "onClearNewRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-213",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:43",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-foot.svelte:43)",
+    "action": "() => onSaveNewRecord(true)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-214",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-foot.svelte:46",
+    "type": "按钮",
+    "label": "Ctrl+Enter",
+    "action": "() => onSaveNewRecord(false)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-215",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:448",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "closeNewRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-216",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:457",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-record-modal.svelte:457)",
+    "action": "() => applyLedgerTemplate(tpl)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-217",
+    "category": "下拉与分段控件",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:469",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 form[e.key]",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-218",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:469",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-219",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:478",
+    "type": "日期输入框",
+    "label": "Input [date]",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-220",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:478",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-221",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:480",
+    "type": "按钮",
+    "label": "applyDatePreset(e.key, 0)}>{t(\"capture.presetToday\")}",
+    "action": "() => applyDatePreset(e.key, 0)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-222",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:481",
+    "type": "按钮",
+    "label": "applyDatePreset(e.key, 1)}>{t(\"capture.presetTomorrow\")}",
+    "action": "() => applyDatePreset(e.key, 1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-223",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:482",
+    "type": "按钮",
+    "label": "applyDatePreset(e.key, 7)}>{t(\"capture.presetNextWeek\")}",
+    "action": "() => applyDatePreset(e.key, 7)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-224",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:485",
+    "type": "数值输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-225",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:485",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-226",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:487",
+    "type": "输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-227",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:487",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-228",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:489",
+    "type": "复选框",
+    "label": "Input [checkbox]",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-229",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:489",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-230",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:491",
+    "type": "输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-231",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:491",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-232",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:493",
+    "type": "文本域",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-233",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:493",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-234",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:495",
+    "type": "输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-235",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:495",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-236",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-modal.svelte:506",
+    "type": "按钮",
+    "label": "{ form[e.key] = loc; }}>{loc}",
+    "action": "() => { form[e.key] = loc;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-237",
+    "category": "下拉与分段控件",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:41",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选中绑定至 form[e.key]",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-238",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:41",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-239",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:50",
+    "type": "日期输入框",
+    "label": "Input [date]",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-240",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:50",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-241",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:52",
+    "type": "数值输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-242",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:52",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-243",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:54",
+    "type": "输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-244",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:54",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-245",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:56",
+    "type": "复选框",
+    "label": "Input [checkbox]",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-246",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:56",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-247",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:58",
+    "type": "文本域",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-248",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:58",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-249",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:60",
+    "type": "输入框",
+    "label": "fieldMetaPlaceholder(e)",
+    "action": "双向绑定 form[e.key]",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-250",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-record-more.svelte:60",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-251",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-save-status.svelte:21",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-save-status.svelte:21)",
+    "action": "() => onOpenDoc(savedDocId || undefined)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-252",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:205",
+    "type": "复选框",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-253",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:211",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-254",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:231",
+    "type": "复选框",
+    "label": "`${t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-255",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:234",
+    "type": "按钮",
+    "label": "`${t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-256",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:244",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-table.svelte:244)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-257",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:247",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-table.svelte:247)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-258",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-table.svelte:264",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-table.svelte:264)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-259",
+    "category": "下拉与分段控件",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:144",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-260",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:156",
+    "type": "按钮",
+    "label": "plugin.openSetting()}>{t(\"startGuide.openSettings\")}",
+    "action": "() => plugin.openSetting()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-261",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:165",
+    "type": "按钮",
+    "label": "{t(\"ledger.rebuild\")}",
+    "action": "onRebuildLedger",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-262",
+    "category": "输入框与开关",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:168",
+    "type": "输入框",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-263",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:178",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:178)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-264",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:182",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:182)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-265",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:188",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:188)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-266",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:192",
+    "type": "按钮",
+    "label": "{t(\"ledger.newRecord\")}",
+    "action": "onOpenNewRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-267",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:199",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-268",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:201",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-269",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:203",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-270",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:205",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-271",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:207",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"energy\")}>{t(\"fuel.dashboardButton\")}",
+    "action": "() => onOpenModal?.(\"energy\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-272",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:209",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"growth\")}>{t(\"ledger.growthChart\")}",
+    "action": "() => onOpenModal?.(\"growth\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-273",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:210",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"vaccine\")}>{t(\"ledger.vaccineSchedule\")}",
+    "action": "() => onOpenModal?.(\"vaccine\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-274",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:212",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"shopping\")}>{t(\"ledger.shoppingList\")}",
+    "action": "() => onOpenModal?.(\"shopping\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-275",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:213",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"emergency-kit\")}>{t(\"ledger.emergencyKit\")}",
+    "action": "() => onOpenModal?.(\"emergency-kit\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-276",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:214",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"store-mode\")}>{t(\"ledger.storeMode\")}",
+    "action": "() => onOpenModal?.(\"store-mode\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-277",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:215",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"location-index\")}>{t(\"ledger.locSearch\")}",
+    "action": "() => onOpenModal?.(\"location-index\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-278",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:216",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"block-ingest\")}>{t(\"capture.ingestAction\")}",
+    "action": "() => onOpenModal?.(\"block-ingest\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-279",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:217",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"expense-trend\")}>{t(\"ledger.expenseTrend\")}",
+    "action": "() => onOpenModal?.(\"expense-trend\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-280",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:218",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"favors-report\")}>{t(\"ledger.favorsReport\")}",
+    "action": "() => onOpenModal?.(\"favors-report\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-281",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:219",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"bookmarks-check\")}>{t(\"ledger.checkBookmarks\")}",
+    "action": "() => onOpenModal?.(\"bookmarks-check\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-282",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:220",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"subscription-stats\")}>{t(\"ledger.subscriptionStats\")}",
+    "action": "() => onOpenModal?.(\"subscription-stats\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-283",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:221",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"asset-valuation\")}>{t(\"ledger.assetValuationReport\")}",
+    "action": "() => onOpenModal?.(\"asset-valuation\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-284",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:222",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"media-report\")}>{t(\"ledger.mediaReport\")}",
+    "action": "() => onOpenModal?.(\"media-report\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-285",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:223",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"meal-plan\")}>{t(\"ledger.mealPlan\")}",
+    "action": "() => onOpenModal?.(\"meal-plan\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-286",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:224",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"medicine-supply\")}>{t(\"ledger.medicineSupply\")}",
+    "action": "() => onOpenModal?.(\"medicine-supply\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-287",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:225",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"utility-tiers\")}>{t(\"ledger.utilityTiers\")}",
+    "action": "() => onOpenModal?.(\"utility-tiers\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-288",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:226",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"waste-schedule\")}>{t(\"ledger.wasteSchedule\")}",
+    "action": "() => onOpenModal?.(\"waste-schedule\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-289",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:227",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"rewards-settle\")}>{t(\"ledger.rewardsSettle\")}",
+    "action": "() => onOpenModal?.(\"rewards-settle\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-290",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:228",
+    "type": "按钮",
+    "label": "onOpenModal?.(\"csv-import\")}>{t(\"ledger.importCsv\")}",
+    "action": "() => onOpenModal?.(\"csv-import\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-291",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:229",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:229)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-292",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:242",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:242)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-293",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:253",
+    "type": "按钮",
+    "label": "{ filterMemberId = \"\"; }}>{t(\"ledger.allMembers\")}",
+    "action": "() => { filterMemberId = \"\";",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-294",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:256",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:256)",
+    "action": "() => { filterMemberId = filterMemberId === m.avItemId ? \"\" : m.avItemId;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-295",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:266",
+    "type": "按钮",
+    "label": "{ filterCategory = \"\"; }}>{t(\"ledger.allCategories\")}",
+    "action": "() => { filterCategory = \"\";",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-296",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-toolbar.svelte:268",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/ledger-toolbar.svelte:268)",
+    "action": "() => { filterCategory = filterCategory === catVal ? \"\" : catVal;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-297",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:77",
+    "type": "按钮",
+    "label": "`${t(",
+    "action": "() => onOpenDetail(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-298",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:90",
+    "type": "按钮",
+    "label": "{ e.stopPropagation(); onOpenDetail(r, \"fuel\"); }}>{t(\"vehicle.quick.fuel\")}",
+    "action": "(e) => { e.stopPropagation(); onOpenDetail(r, \"fuel\");",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-299",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:91",
+    "type": "按钮",
+    "label": "{ e.stopPropagation(); onOpenDetail(r, \"charging\"); }}>{t(\"vehicle.quick.chargin",
+    "action": "(e) => { e.stopPropagation(); onOpenDetail(r, \"charging\");",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-300",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:92",
+    "type": "按钮",
+    "label": "{ e.stopPropagation(); onOpenDetail(r, \"maintenance\"); }}>{t(\"vehicle.quick.main",
+    "action": "(e) => { e.stopPropagation(); onOpenDetail(r, \"maintenance\");",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-301",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:93",
+    "type": "按钮",
+    "label": "{ e.stopPropagation(); onOpenDetail(r, \"edit\"); }}>{t(\"members.edit\")}",
+    "action": "(e) => { e.stopPropagation(); onOpenDetail(r, \"edit\");",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-302",
+    "category": "按钮与图标按钮",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger-vehicle-grid.svelte:99",
+    "type": "按钮",
+    "label": "(renderLimit += RENDER_PAGE)}>{t(\"ledger.loadMore\").replace(\"${n}\", String(filte",
+    "action": "() => (renderLimit += RENDER_PAGE)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-303",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger.svelte:14",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-304",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger.svelte:16",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-305",
+    "category": "空态与错误态",
+    "module": "ledger",
+    "location": "src/panels/screens/ledger.svelte:233",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-306",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:124",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/member-card.svelte:124)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-307",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:139",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-308",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:142",
+    "type": "按钮",
+    "label": "onStartEdit()}>{t(\"members.edit\")}",
+    "action": "() => onStartEdit()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-309",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:143",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-310",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:160",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/member-card.svelte:160)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-311",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:171",
+    "type": "按钮",
+    "label": "onMove(-1)}>{reorderBusy ? t(\"ledger.saving\") : t(\"members.moveUp\")}",
+    "action": "() => onMove(-1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-312",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:172",
+    "type": "按钮",
+    "label": "onMove(1)}>{reorderBusy ? t(\"ledger.saving\") : t(\"members.moveDown\")}",
+    "action": "() => onMove(1)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-313",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:174",
+    "type": "按钮",
+    "label": "plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t(\"members.openLedg",
+    "action": "() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-314",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:176",
+    "type": "按钮",
+    "label": "onDelete()}>{t(\"delete\")}",
+    "action": "() => onDelete()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-315",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:182",
+    "type": "按钮",
+    "label": "onUnlinkContact()}>{t(\"members.contactUnlink\")}",
+    "action": "() => onUnlinkContact()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-316",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:188",
+    "type": "按钮",
+    "label": "onLinkContact()}>{t(\"members.contactLink\")}",
+    "action": "() => onLinkContact()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-317",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:199",
+    "type": "按钮",
+    "label": "onCompleteAlert(r)}>{actionBusy ? t(\"ledger.saving\") : t(\"act.done\")}",
+    "action": "() => onCompleteAlert(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-318",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-card.svelte:226",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/member-card.svelte:226)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-319",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:164",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 name",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-320",
+    "category": "空态与错误态",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:165",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-321",
+    "category": "下拉与分段控件",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:174",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 role",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-322",
+    "category": "下拉与分段控件",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:180",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 sex",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-323",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:188",
+    "type": "日期输入框",
+    "label": "t(",
+    "action": "双向绑定 birthday",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-324",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:191",
+    "type": "复选框",
+    "label": "t(",
+    "action": "双向绑定 lunar",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-325",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:195",
+    "type": "文本域",
+    "label": "t(",
+    "action": "双向绑定 notes",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-326",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:199",
+    "type": "按钮",
+    "label": "{t(\"cancel\")}",
+    "action": "cancelEdit",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-327",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/member-form-editor.svelte:201",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/member-form-editor.svelte:201)",
+    "action": "save",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-328",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/members-header.svelte:49",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/members-header.svelte:49)",
+    "action": "onReassign",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-329",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/members-header.svelte:52",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/members-header.svelte:52)",
+    "action": "onExportVcf",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-330",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/members-header.svelte:56",
+    "type": "按钮",
+    "label": "t(",
+    "action": "onOpenMembersDoc",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-331",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/members-header.svelte:61",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/members-header.svelte:61)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-332",
+    "category": "空态与错误态",
+    "module": "members",
+    "location": "src/panels/screens/members.svelte:414",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-333",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/screens/members.svelte:418",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/members.svelte:418)",
+    "action": "startNewMember",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-334",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/screens/members.svelte:462",
+    "type": "文件选择器",
+    "label": "t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-335",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-bento-grid.svelte:42",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-bento-grid.svelte:42)",
+    "action": "handleHeroClick",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-336",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-bento-grid.svelte:81",
+    "type": "按钮",
+    "label": "`${t(",
+    "action": "() => onFocusToday ? onFocusToday() : onGoto(\"reminders\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-337",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-bento-grid.svelte:89",
+    "type": "按钮",
+    "label": "`${t(",
+    "action": "() => onGoto(\"members\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-338",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:118",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:118)",
+    "action": "() => { showModuleTools = !showModuleTools;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-339",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:121",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:121)",
+    "action": "onOpenSetting",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-340",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:138",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:138)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-341",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:141",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:141)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-342",
+    "category": "输入框与开关",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:147",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 moduleQuery",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-343",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:154",
+    "type": "按钮",
+    "label": "{ moduleQuery = \"\"; moduleGroupFilter = \"all\"; }}>{t(\"dash.moduleClear\")}",
+    "action": "() => { moduleQuery = \"\"; moduleGroupFilter = \"all\";",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-344",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:164",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:164)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-345",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:186",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:186)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-346",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:198",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:198)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-347",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-module-grid.svelte:204",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-module-grid.svelte:204)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-348",
+    "category": "输入框与开关",
+    "module": "overview",
+    "location": "src/panels/screens/overview-quick-memo.svelte:70",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 memoTitle",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-349",
+    "category": "输入框与开关",
+    "module": "overview",
+    "location": "src/panels/screens/overview-quick-memo.svelte:95",
+    "type": "日期输入框",
+    "label": "t(",
+    "action": "双向绑定 memoDue",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-350",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-quick-memo.svelte:96",
+    "type": "按钮",
+    "label": "void addMemo()}>{savingMemo ? t(\"ledger.saving\") : t(\"memo.add\")}",
+    "action": "() => void addMemo()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-351",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-start-guide.svelte:32",
+    "type": "按钮",
+    "label": "onGoto(\"members\")}>{t(\"startGuide.openMembers\")}",
+    "action": "() => onGoto(\"members\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-352",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-start-guide.svelte:37",
+    "type": "按钮",
+    "label": "{starterModule ? t(\"startGuide.openLedger\") : t(\"startGuide.openSettings\")}",
+    "action": "onOpenStarterRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-353",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-start-guide.svelte:42",
+    "type": "按钮",
+    "label": "{t(\"startGuide.openSettings\")}",
+    "action": "onOpenSettings",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-354",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-start-guide.svelte:47",
+    "type": "按钮",
+    "label": "onGoto(\"reminders\")}>{t(\"startGuide.openReminders\")}",
+    "action": "() => onGoto(\"reminders\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-355",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:71",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => { pulseDateFilter = undefined;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-356",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:76",
+    "type": "按钮",
+    "label": "t(",
+    "action": "onBatchPostponeOverdue",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-357",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:81",
+    "type": "按钮",
+    "label": "t(",
+    "action": "onUndoPostpone",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-358",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:85",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-upcoming-list.svelte:85)",
+    "action": "onViewAll",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-359",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:88",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-360",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:91",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-upcoming-list.svelte:91)",
+    "action": "onRetryScan",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-361",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:97",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-362",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:98",
+    "type": "按钮",
+    "label": "{t(\"dash.clearFilter\")}",
+    "action": "onClearMemberFilter",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-363",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:116",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-364",
+    "category": "空态与错误态",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:118",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-365",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:123",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview-upcoming-list.svelte:123)",
+    "action": "onOpenStarterRecord",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-366",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:162",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => onOpenDoc(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-367",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:164",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => onCopyTaskBlock(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-368",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:165",
+    "type": "按钮",
+    "label": "onCompleteReminder(r)}>{overviewBusy.has(r.id) ? t(\"ledger.saving\") : t(\"act.don",
+    "action": "() => onCompleteReminder(r)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-369",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview-upcoming-list.svelte:166",
+    "type": "按钮",
+    "label": "onSnoozeReminder(r, 7)}>{overviewBusy.has(r.id) ? t(\"ledger.saving\") : t(\"act.sn",
+    "action": "() => onSnoozeReminder(r, 7)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-370",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:372",
+    "type": "按钮",
+    "label": "{t(\"dash.quickRecord\")}",
+    "action": "() => openQuickEvent()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-371",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:374",
+    "type": "按钮",
+    "label": "{t(\"dash.heroOpen\")}",
+    "action": "() => onGoto(\"reminders\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-372",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:375",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => void openJournalDoc()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-373",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:377",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openLocationIndexModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-374",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:378",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openLifeIndexModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-375",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:379",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openEmergencyCardModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-376",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:380",
+    "type": "按钮",
+    "label": "t(",
+    "action": "openShareCardModal",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-377",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:390",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:390)",
+    "action": "retryScan",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-378",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:416",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:416)",
+    "action": "() => { showLedgerQuickChips = !showLedgerQuickChips;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-379",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:420",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:420)",
+    "action": "() => void openJournalDoc()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-380",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:428",
+    "type": "按钮",
+    "label": "t(flow.desc)",
+    "action": "() => openQuickEvent(flow.sub)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-381",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:439",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:439)",
+    "action": "() => mid === \"members\" ? onGoto(\"members\") : openQuickCapture(mid)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-382",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:445",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:445)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-383",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:476",
+    "type": "按钮",
+    "label": "setMemberFilter(undefined)}>{t(\"members.all\")}",
+    "action": "() => setMemberFilter(undefined)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-384",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:478",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:478)",
+    "action": "() => setMemberFilter(m.id)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-385",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:482",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => onGoto(\"members\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-386",
+    "category": "按钮与图标按钮",
+    "module": "overview",
+    "location": "src/panels/screens/overview.svelte:484",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/overview.svelte:484)",
+    "action": "() => { showPulseStrip = !showPulseStrip;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-387",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:191",
+    "type": "按钮",
+    "label": "{t(\"hub.selectAll\")}",
+    "action": "selectAllFiltered",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-388",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:193",
+    "type": "按钮",
+    "label": "{t(\"hub.batchCopyTasks\")}",
+    "action": "batchCopyAsTasks",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-389",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:194",
+    "type": "按钮",
+    "label": "{t(\"hub.batchCopyRefs\")}",
+    "action": "batchCopyBlockRefs",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-390",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:195",
+    "type": "按钮",
+    "label": "{t(\"hub.planPresetToday\")}",
+    "action": "batchPlanToday",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-391",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:196",
+    "type": "按钮",
+    "label": "{t(\"act.done\")}",
+    "action": "() => runBatch(\"done\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-392",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:197",
+    "type": "按钮",
+    "label": "{t(\"act.snooze7\")}",
+    "action": "() => runBatch(\"snooze7\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-393",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:198",
+    "type": "按钮",
+    "label": "{t(\"act.mute\")}",
+    "action": "() => runBatch(\"mute\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-394",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-batch-bar.svelte:199",
+    "type": "按钮",
+    "label": "{t(\"cancel\")}",
+    "action": "clearSelection",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-395",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:143",
+    "type": "复选框",
+    "label": "`${t(",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-396",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:186",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:186)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-397",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:193",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:193)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-398",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:200",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:200)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-399",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:220",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => void openReminderDoc()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-400",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:224",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:224)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-401",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:233",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:233)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-402",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:238",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onRenew?.(r))}>{t(\"act.renew\")}",
+    "action": "() => handleMoreAction(() => onRenew?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-403",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:241",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => handleMoreAction(() => void openReminderDoc())",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-404",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:243",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t(\"hub.editPlanDate",
+    "action": "() => handleMoreAction(() => onSchedulePlan?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-405",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:244",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onCopyTask?.(r))}>{t(\"hub.copyTaskBlock\")}",
+    "action": "() => handleMoreAction(() => onCopyTask?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-406",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:245",
+    "type": "按钮",
+    "label": "isItemPinned ? t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-407",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:248",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:248)",
+    "action": "(e) => handleMoreAction(() => onSnooze?.(r, e))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-408",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:249",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? ",
+    "action": "() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-409",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:251",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onEditMemo?.(r))}>{t(\"memo.edit\")}",
+    "action": "() => handleMoreAction(() => onEditMemo?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-410",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:252",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onDeleteMemo?.(r))}>{t(\"delete\")}",
+    "action": "() => handleMoreAction(() => onDeleteMemo?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-411",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:253",
+    "type": "按钮",
+    "label": "handleMoreAction(() => onTriage?.(r))}>{t(\"triage.title\")}",
+    "action": "() => handleMoreAction(() => onTriage?.(r))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-412",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-card.svelte:292",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-card.svelte:292)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-413",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:82",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:82)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-414",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:84",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:84)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-415",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:88",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-416",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:95",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-417",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:101",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-418",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:107",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-419",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:114",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:114)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-420",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:120",
+    "type": "按钮",
+    "label": "t(",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-421",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:122",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:122)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-422",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:127",
+    "type": "按钮",
+    "label": "{t(\"hub.batch\")}",
+    "action": "toggleBatchMode",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-423",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:128",
+    "type": "按钮",
+    "label": "{t(\"hub.rescan\")}",
+    "action": "onRescan",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-424",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:129",
+    "type": "按钮",
+    "label": "{exportingIcs ? t(\"ledger.saving\") : t(\"hub.icsExport\")}",
+    "action": "onExportIcs",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-425",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:137",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:137)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-426",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:142",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:142)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-427",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-controls-bar.svelte:150",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-controls-bar.svelte:150)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-428",
+    "category": "空态与错误态",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:186",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-429",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:187",
+    "type": "按钮",
+    "label": "{rescanning ? t(\"diag.rebuilding\") : t(\"hub.rescan\")}",
+    "action": "onRescan",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-430",
+    "category": "空态与错误态",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:190",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-431",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:191",
+    "type": "按钮",
+    "label": "{t(\"hub.clearFilters\")}",
+    "action": "onClearFilters",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-432",
+    "category": "空态与错误态",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:194",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-433",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-groups-list.svelte:224",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-groups-list.svelte:224)",
+    "action": "() => (renderLimit += REMINDER_PAGE_SIZE)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-434",
+    "category": "空态与错误态",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:37",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-435",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:41",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-handled-list.svelte:41)",
+    "action": "onClearFilters",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-436",
+    "category": "空态与错误态",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:48",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-437",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:68",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-handled-list.svelte:68)",
+    "action": "() => onRestore?.(h.id)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-438",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:72",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-handled-list.svelte:72)",
+    "action": "() => onDeleteMemo?.(h.id, h.title || t(\"hub.handledUnknown\"))",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-439",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-handled-list.svelte:81",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-handled-list.svelte:81)",
+    "action": "() => (renderLimit += PAGE_SIZE)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-440",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/screens/reminder-permission-banner.svelte:18",
+    "type": "按钮",
+    "label": "Button (src/panels/screens/reminder-permission-banner.svelte:18)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-441",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:52",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:52)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-442",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:55",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:55)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-443",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:84",
+    "type": "按钮",
+    "label": "{t(\"settings.diagPreview\")}",
+    "action": "onPreviewDiagnostics",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-444",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:85",
+    "type": "按钮",
+    "label": "{exportingDiagnostics ? t(\"ledger.saving\") : t(\"settings.diagExport\")}",
+    "action": "onExportDiagnostics",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-445",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:87",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:87)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-446",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:92",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:92)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-447",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:97",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:97)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-448",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:102",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:102)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-449",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-about-tab.svelte:106",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-about-tab.svelte:106)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-450",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:49",
+    "type": "按钮",
+    "label": "(dataSection = \"migration\")}>{t(\"settings.migrateTitle\")}",
+    "action": "() => (dataSection = \"migration\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-451",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:50",
+    "type": "按钮",
+    "label": "(dataSection = \"trash\")}>{t(\"settings.trashTitle\") || \"回收站\"}",
+    "action": "() => (dataSection = \"trash\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-452",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:51",
+    "type": "按钮",
+    "label": "(dataSection = \"demo\")}>{t(\"settings.demoTitle\")}",
+    "action": "() => (dataSection = \"demo\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-453",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:52",
+    "type": "按钮",
+    "label": "(dataSection = \"ecosystem\")}>{t(\"settings.ecoTitle\")}",
+    "action": "() => (dataSection = \"ecosystem\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-454",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:53",
+    "type": "按钮",
+    "label": "(dataSection = \"shortcuts\")}>{t(\"faq.shortcuts\")}",
+    "action": "() => (dataSection = \"shortcuts\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-455",
+    "category": "下拉与分段控件",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:61",
+    "type": "下拉选择框",
+    "label": "Select Dropdown",
+    "action": "选项选择",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-456",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:81",
+    "type": "按钮",
+    "label": "{t(\"settings.export\")}",
+    "action": "onExportSettings",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-457",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:82",
+    "type": "按钮",
+    "label": "importInput?.click()}>{migrationAction === \"import\" ? t(\"ledger.saving\") : t(\"se",
+    "action": "() => importInput?.click()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-458",
+    "category": "输入框与开关",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:83",
+    "type": "文件选择器",
+    "label": "Input [file]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-459",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:87",
+    "type": "按钮",
+    "label": "{migrationAction === \"restore\" ? t(\"ledger.saving\") : t(\"settings.restoreBtn\")}",
+    "action": "onRestorePreImport",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-460",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:107",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-data-tab.svelte:107)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-461",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:123",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-data-tab.svelte:123)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-462",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:150",
+    "type": "按钮",
+    "label": "{demoAction === \"generate\" ? t(\"ledger.saving\") : t(\"settings.demoGenerate\")}",
+    "action": "onGenerateDemo",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-463",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte:151",
+    "type": "按钮",
+    "label": "{demoAction === \"clear\" ? t(\"ledger.saving\") : t(\"settings.demoClear\")}",
+    "action": "onClearDemo",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-464",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:34",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-members-tab.svelte:34)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-465",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:42",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 draftMembers[i].name",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-466",
+    "category": "下拉与分段控件",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:46",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 draftMembers[i].role",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-467",
+    "category": "下拉与分段控件",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:54",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 draftMembers[i].sex",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-468",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:62",
+    "type": "日期输入框",
+    "label": "t(",
+    "action": "双向绑定 draftMembers[i].birthday",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-469",
+    "category": "输入框与开关",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:66",
+    "type": "复选框",
+    "label": "t(",
+    "action": "双向绑定 draftMembers[i].lunarBirthday",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-470",
+    "category": "按钮与图标按钮",
+    "module": "members",
+    "location": "src/panels/settings-members-tab.svelte:71",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-members-tab.svelte:71)",
+    "action": "onAddMember",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-471",
+    "category": "输入框与开关",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte:48",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-472",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte:56",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-modules-tab.svelte:56)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-473",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte:69",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-modules-tab.svelte:69)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-474",
+    "category": "输入框与开关",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte:88",
+    "type": "输入框",
+    "label": "Input [text]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-475",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:133",
+    "type": "按钮",
+    "label": "(reminderSection = \"schedule\")}>{t(\"settings.reminderSchedule\")}",
+    "action": "() => (reminderSection = \"schedule\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-476",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:134",
+    "type": "按钮",
+    "label": "(reminderSection = \"webhook\")}>{t(\"settings.webhookTitle\")}",
+    "action": "() => (reminderSection = \"webhook\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-477",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:135",
+    "type": "按钮",
+    "label": "(reminderSection = \"leads\")}>{t(\"settings.leadsTitle\")}",
+    "action": "() => (reminderSection = \"leads\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-478",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:136",
+    "type": "按钮",
+    "label": "(reminderSection = \"checkin\")}>{t(\"settings.checkinBindingsTitle\")}",
+    "action": "() => (reminderSection = \"checkin\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-479",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:146",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 draftNotifyHour",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-480",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:151",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 draftSilentFrom",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-481",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:153",
+    "type": "数值输入框",
+    "label": "t(",
+    "action": "双向绑定 draftSilentTo",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-482",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:157",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-reminders-tab.svelte:157)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-483",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:174",
+    "type": "复选框",
+    "label": "t(",
+    "action": "双向绑定 draftWebhookEnabled",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-484",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:179",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 draftWebhookMode",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-485",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:187",
+    "type": "输入框",
+    "label": "t(",
+    "action": "双向绑定 draftWebhookUrl",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-486",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:190",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-reminders-tab.svelte:190)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-487",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:199",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-reminders-tab.svelte:199)",
+    "action": "() => (showAllLeads = !showAllLeads)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-488",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:204",
+    "type": "按钮",
+    "label": "Button (src/panels/settings-reminders-tab.svelte:204)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-489",
+    "category": "输入框与开关",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:215",
+    "type": "数值输入框",
+    "label": "Input [number]",
+    "action": "内容输入",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-490",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:232",
+    "type": "按钮",
+    "label": "{ checkinItems = []; checkinPresent = null; checkinProbe += 1; }}>{t(\"settings.c",
+    "action": "() => { checkinItems = []; checkinPresent = null; checkinProbe += 1;",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-491",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:236",
+    "type": "按钮",
+    "label": "onSwitchArea?.(\"members\")}>{t(\"tabMembers\")}",
+    "action": "() => onSwitchArea?.(\"members\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-492",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:240",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 b.memberId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-493",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:244",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 b.itemId",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-494",
+    "category": "下拉与分段控件",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:247",
+    "type": "下拉选择框",
+    "label": "t(",
+    "action": "选中绑定至 b.metric",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-495",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:250",
+    "type": "按钮",
+    "label": "`${t(",
+    "action": "() => removeBinding(i)",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-496",
+    "category": "按钮与图标按钮",
+    "module": "reminders",
+    "location": "src/panels/settings-reminders-tab.svelte:262",
+    "type": "按钮",
+    "label": "{t(\"settings.checkinAdd\")}",
+    "action": "addBinding",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-497",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings.svelte:422",
+    "type": "按钮",
+    "label": "Button (src/panels/settings.svelte:422)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-498",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings.svelte:508",
+    "type": "按钮",
+    "label": "{t(\"enableAll\")}",
+    "action": "enableAll",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-499",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings.svelte:509",
+    "type": "按钮",
+    "label": "{t(\"coreOnly\")}",
+    "action": "coreOnly",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-500",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings.svelte:516",
+    "type": "按钮",
+    "label": "{t(\"cancel\")}",
+    "action": "revertDraft",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-501",
+    "category": "按钮与图标按钮",
+    "module": "settings",
+    "location": "src/panels/settings.svelte:519",
+    "type": "按钮",
+    "label": "{saving || demoBusy ? t(\"ledger.saving\") : t(\"save\")}",
+    "action": "save",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-502",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-guest-banner.svelte:21",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-guest-banner.svelte:21)",
+    "action": "onOpenEmergencyCard",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-503",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-guest-banner.svelte:24",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-guest-banner.svelte:24)",
+    "action": "onToggleGuestMode",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-504",
+    "category": "空态与错误态",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:6",
+    "type": "错误/异常保护态",
+    "label": "错误拦截或缺失提示",
+    "action": "异常反馈与修复指引",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-505",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:488",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-panel.svelte:488)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-506",
+    "category": "下拉与分段控件",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:489",
+    "type": "分段/页签控件",
+    "label": "Tab Segment",
+    "action": "切换选中选项卡/视图",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-507",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:499",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-panel.svelte:499)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-508",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:511",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "openSpotlight",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-509",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:512",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "toggleGuestMode",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-510",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:513",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "(event) => openCapture(undefined, event)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-511",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:514",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "() => plugin.openSetting()",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-512",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:516",
+    "type": "图标按钮",
+    "label": "t(",
+    "action": "onMobileClose",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-513",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:533",
+    "type": "按钮",
+    "label": "void loadScreen(screen)}>{t(\"error.retry\")}",
+    "action": "() => void loadScreen(screen)",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-514",
+    "category": "空态与错误态",
+    "module": "nav",
+    "location": "src/panels/tab-panel.svelte:533",
+    "type": "空态展示区",
+    "label": "空数据缺省态提示",
+    "action": "引导创建或初始数据填充",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-515",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:36",
+    "type": "按钮",
+    "label": "t(",
+    "action": "() => onGotoScreen(\"overview\")",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-516",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:41",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-rail-nav.svelte:41)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-517",
+    "category": "下拉与分段控件",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:47",
+    "type": "分段/页签控件",
+    "label": "Tab Segment",
+    "action": "切换选中选项卡/视图",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-518",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:63",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-rail-nav.svelte:63)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-519",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:72",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-rail-nav.svelte:72)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-520",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/panels/tab-rail-nav.svelte:81",
+    "type": "按钮",
+    "label": "Button (src/panels/tab-rail-nav.svelte:81)",
+    "action": "点击触发交互",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-521",
+    "category": "菜单项与右键菜单",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:106",
+    "type": "顶栏右键菜单项",
+    "label": "⚡   (i18n[faq.quickCapture] ?? 快速记录)",
+    "action": "点击快速打开相应功能",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-522",
+    "category": "菜单项与右键菜单",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:114",
+    "type": "顶栏右键菜单项",
+    "label": "⏰   (i18n.tabReminders ?? 到期提醒)",
+    "action": "点击快速打开相应功能",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-523",
+    "category": "菜单项与右键菜单",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:119",
+    "type": "顶栏右键菜单项",
+    "label": "🗂️   (i18n.tabLedger ?? 家庭台账)",
+    "action": "点击快速打开相应功能",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-524",
+    "category": "菜单项与右键菜单",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:124",
+    "type": "顶栏右键菜单项",
+    "label": "👥   (i18n.tabMembers ?? 家庭成员)",
+    "action": "点击快速打开相应功能",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-525",
+    "category": "菜单项与右键菜单",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:135",
+    "type": "顶栏右键菜单项",
+    "label": "⚙️   (i18n.settingsTitle ?? 管家设置)",
+    "action": "点击快速打开相应功能",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-526",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/core/plugin-entrypoints.ts:144",
+    "type": "顶栏图标按钮",
+    "label": "思源顶栏管家图标 (iconLvHome)",
+    "action": "左键打开管家，右键唤出快捷菜单",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-527",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/core/plugin-entrypoints.ts:192",
+    "type": "顶栏图标按钮",
+    "label": "思源顶栏管家图标 (iconLvHome)",
+    "action": "左键打开管家，右键唤出快捷菜单",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-528",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:207",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "快捷键 Ctrl+Alt+H 触发",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-529",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:215",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-530",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:226",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-531",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:237",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-532",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:245",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-533",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:253",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-534",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:263",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-535",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:275",
+    "type": "命令面板指令",
+    "label": "管家：管家",
+    "action": "命令面板执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-536",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:282",
+    "type": "编辑器斜杠指令 (/)",
+    "label": "Slash Command: lvHomeSlashQuickCapture",
+    "action": "思源编辑器输入 / 唤起执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-537",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:282",
+    "type": "编辑器斜杠指令 (/)",
+    "label": "Slash Command: lvHomeSlashOpen",
+    "action": "思源编辑器输入 / 唤起执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-538",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-entrypoints.ts:282",
+    "type": "编辑器斜杠指令 (/)",
+    "label": "Slash Command: lvHomeSlashReminders",
+    "action": "思源编辑器输入 / 唤起执行",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-539",
+    "category": "按钮与图标按钮",
+    "module": "nav",
+    "location": "src/core/plugin-entrypoints.ts:311",
+    "type": "状态栏角标控件",
+    "label": "状态栏到期待办角标 (⏰ N)",
+    "action": "点击直达提醒中枢",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-540",
+    "category": "菜单项与右键菜单",
+    "module": "context-menu",
+    "location": "src/core/plugin-context-menus.ts:43",
+    "type": "思源上下文右键菜单项",
+    "label": "t(capture.menuUrl)",
+    "action": "编辑器/文档块菜单收录或联动",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-541",
+    "category": "菜单项与右键菜单",
+    "module": "context-menu",
+    "location": "src/core/plugin-context-menus.ts:58",
+    "type": "思源上下文右键菜单项",
+    "label": "t(capture.menu)",
+    "action": "编辑器/文档块菜单收录或联动",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-542",
+    "category": "菜单项与右键菜单",
+    "module": "context-menu",
+    "location": "src/core/plugin-context-menus.ts:75",
+    "type": "思源上下文右键菜单项",
+    "label": "🏠   (i18n.butler ?? 小驴管家)   · 收录本块",
+    "action": "编辑器/文档块菜单收录或联动",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-543",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-context-menus.ts:94",
+    "type": "URL Scheme 协议监听",
+    "label": "siyuan://plugins/siyuan-home 深度链接",
+    "action": "外部或第三方通过 URL 直达特定模块或快录",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-544",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-context-menus.ts:121",
+    "type": "URL Scheme 协议监听",
+    "label": "siyuan://plugins/siyuan-home 深度链接",
+    "action": "外部或第三方通过 URL 直达特定模块或快录",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-545",
+    "category": "菜单项与右键菜单",
+    "module": "context-menu",
+    "location": "src/core/plugin-context-menus.ts:127",
+    "type": "思源上下文右键菜单项",
+    "label": "🏠   (i18n.butler ?? 小驴管家)   · 打开管理面板",
+    "action": "编辑器/文档块菜单收录或联动",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-546",
+    "category": "菜单项与右键菜单",
+    "module": "context-menu",
+    "location": "src/core/plugin-context-menus.ts:132",
+    "type": "思源上下文右键菜单项",
+    "label": "⚡   (i18n[faq.quickCapture] ?? 快速记录)",
+    "action": "编辑器/文档块菜单收录或联动",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-547",
+    "category": "快捷键与指令",
+    "module": "entry",
+    "location": "src/core/plugin-context-menus.ts:181",
+    "type": "URL Scheme 协议监听",
+    "label": "siyuan://plugins/siyuan-home 深度链接",
+    "action": "外部或第三方通过 URL 直达特定模块或快录",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-548",
+    "category": "快捷键与指令",
+    "module": "quick-capture",
+    "location": "src/panels/tab-panel.svelte:293",
+    "type": "全局单键快捷键",
+    "label": "N 键快速记一笔",
+    "action": "非输入态下按 N / n 唤出快速记录弹层",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-549",
+    "category": "快捷键与指令",
+    "module": "spotlight",
+    "location": "src/core/spotlight-dialog.ts",
+    "type": "全局组合快捷键",
+    "label": "Ctrl+K 全景检索",
+    "action": "按下 Ctrl+K 快速唤起全局全景生活检索 Spotlight",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-550",
+    "category": "快捷键与指令",
+    "module": "system",
+    "location": "src/panels/quick-capture.svelte",
+    "type": "全局通用快捷键",
+    "label": "Esc 关闭弹层",
+    "action": "在任何打开的弹层/抽屉中按 Esc 安全关闭",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-551",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-members-tab.svelte",
+    "type": "系统设置项",
+    "label": "家庭成员档案管理",
+    "action": "成员姓名/称谓/角色/公农历生日/头像配置",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-552",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte",
+    "type": "系统设置项",
+    "label": "全量生活模块启停",
+    "action": "21+ 生活台账模块的开关切换与台账生成",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-553",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-modules-tab.svelte",
+    "type": "系统设置项",
+    "label": "全部启用 / 仅保留默认模块",
+    "action": "一键批量启用或还原核心模块",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-554",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-reminders-tab.svelte",
+    "type": "系统设置项",
+    "label": "每日到期通知时间与开关",
+    "action": "提醒推送时机设定与静默时段免打扰",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-555",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-reminders-tab.svelte",
+    "type": "系统设置项",
+    "label": "周报与每周待办概览开关",
+    "action": "周日/周一自动汇总提醒配置",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-556",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-reminders-tab.svelte",
+    "type": "系统设置项",
+    "label": "外部 Webhook (Bark) 推送配置",
+    "action": "移动端 Bark 实时通知推送集成",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-557",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "配置备份导出 (JSON)",
+    "action": "导出当前管家配置与运行时快照",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-558",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "配置导入与覆盖恢复",
+    "action": "导入历史 JSON 配置文件并校验恢复",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-559",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "安全回收站查看与一键恢复",
+    "action": "查看被删除的行记录并可逆恢复",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-560",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "清空回收站",
+    "action": "物理清除回收站数据，防呆二次确认",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-561",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "重新执行首次使用向导",
+    "action": "重新配置基础参数，不破坏已有数据",
+    "risk": "高风险"
+  },
+  {
+    "id": "CTRL-562",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/settings-data-tab.svelte",
+    "type": "系统设置项",
+    "label": "导出系统诊断日志",
+    "action": "导出版本、模块状态与排障诊断报告",
+    "risk": "常规"
+  },
+  {
+    "id": "CTRL-563",
+    "category": "设置项与系统配置",
+    "module": "settings",
+    "location": "src/panels/tab-rail-nav.svelte",
+    "type": "系统设置项",
+    "label": "只读访客模式切换",
+    "action": "一键隐藏财务/合同等敏感档案，仅保留日常便签与急救",
+    "risk": "常规"
+  }
+]

@@ -97,6 +97,32 @@ export async function exportLedgerCsv(options: ExportCsvOptions): Promise<void> 
     await download();
 }
 
+/** 仅将用户选中的行导出为独立 CSV（CAND-18 / POOL-FEAT-14） */
+export function exportSelectedRowsToCsv(options: {
+    rows: any[];
+    moduleId: string;
+    sourceRef: { avId?: string; columns?: Record<string, string> };
+    schemaCatalog?: Record<string, any>;
+    t: (k: string) => string;
+    cellTextFn: (cell: any, key?: string, raw?: boolean) => string;
+}): void {
+    if (typeof document === "undefined" || !options.sourceRef?.columns) return;
+    const { rows, moduleId, sourceRef, schemaCatalog, t, cellTextFn } = options;
+    const cols = (schemaCatalog?.[moduleId]?.columns ?? []).filter((c: any) => sourceRef.columns?.[c.key]);
+    const label = (c: any) => (t(`field.${c.key}`) !== `field.${c.key}` ? t(`field.${c.key}`) : c.key);
+    const csv = buildCsv(
+        cols.map(label),
+        rows.map((r) => cols.map((c: any) => cellTextFn(r.cells?.[sourceRef.columns![c.key]], c.key, true)))
+    );
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const moduleTitle = t(`module.${moduleId}`) !== `module.${moduleId}` ? t(`module.${moduleId}`) : moduleId;
+    a.download = `小驴管家-${moduleTitle}-已选${rows.length}项-${localDateKey(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
 export interface ExportArchiveManifestOptions {
     sourceRef?: { avId?: string; columns?: Record<string, string> };
     moduleId: string;

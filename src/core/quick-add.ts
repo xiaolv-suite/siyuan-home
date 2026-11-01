@@ -45,6 +45,10 @@ export interface QuickAddResult {
     cycleToken?: string;
     /** 解析出的循环基准：due=按计划日固定循环；completion=按完成日顺延 */
     recurrenceAnchor?: "due" | "completion";
+    /** 解析出的金额（元） */
+    amount?: number;
+    /** 命中的金额原始 Token（如 "¥45" 或 "28元" 或 "45"） */
+    amountToken?: string;
 }
 
 const WEEKDAY_MAP: Record<string, number> = {
@@ -246,7 +250,35 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         working = working.replace(catMatch[0], " ");
     }
 
-    // 5. 若未通过 @ 语法识别到日期，尝试复用传统自然语言中文日期解析（如 "明天交水费"）
+    // 5. 扫描金额 Token：匹配 ¥/￥ 符号或 元/块/块钱 后缀，或末尾纯数字金额（如 "买水果 45", "打车 28元", "交物业费 ¥320"）
+    let amount: number | undefined;
+    let amountToken: string | undefined;
+
+    const currencyRegex = /(?:[¥$￥]\s*(\d+(?:\.\d{1,2})?)|(\d+(?:\.\d{1,2})?)\s*(?:元|块|块钱))(?=\s|$)/;
+    const curMatch = working.match(currencyRegex);
+    if (curMatch) {
+        const valStr = curMatch[1] || curMatch[2];
+        const num = parseFloat(valStr);
+        if (Number.isFinite(num) && num > 0) {
+            amount = num;
+            amountToken = curMatch[0];
+            working = working.replace(curMatch[0], " ");
+        }
+    } else {
+        // 末尾的显式空格 + 纯数字（如 "买水果 45"）
+        const endNumberMatch = working.match(/(?:\s+)(\d+(?:\.\d{1,2})?)\s*$/);
+        if (endNumberMatch && endNumberMatch.index !== undefined) {
+            const num = parseFloat(endNumberMatch[1]);
+            // 排除明显的年份或月份数字误判（如 >= 1900）
+            if (Number.isFinite(num) && num > 0 && num < 1900) {
+                amount = num;
+                amountToken = endNumberMatch[1];
+                working = working.slice(0, endNumberMatch.index).trim();
+            }
+        }
+    }
+
+    // 6. 若未通过 @ 语法识别到日期，尝试复用传统自然语言中文日期解析（如 "明天交水费"）
     if (!dueDate) {
         const natural = parseNaturalDate(working, today);
         if (natural) {
@@ -255,7 +287,7 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         }
     }
 
-    // 6. 收敛剩余空白获得干净的标题
+    // 7. 收敛剩余空白获得干净的标题
     const cleanTitle = working.replace(/\s+/g, " ").trim();
 
     return {
@@ -270,5 +302,7 @@ export function parseQuickAdd(input: string, today: Date = new Date()): QuickAdd
         cycle,
         cycleToken,
         recurrenceAnchor,
+        amount,
+        amountToken,
     };
 }

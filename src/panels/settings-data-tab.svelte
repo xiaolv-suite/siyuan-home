@@ -14,6 +14,7 @@
         demoAction = null,
         preImportBackupExists = false,
         onExportSettings,
+        onExportHtmlManual,
         onImportSettings,
         onRestorePreImport,
         onGenerateDemo,
@@ -29,6 +30,7 @@
         demoAction?: "generate" | "clear" | null;
         preImportBackupExists?: boolean;
         onExportSettings: () => void;
+        onExportHtmlManual?: () => void;
         onImportSettings: (e: Event) => Promise<void>;
         onRestorePreImport: () => Promise<void>;
         onGenerateDemo: () => Promise<void>;
@@ -47,7 +49,7 @@
 <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
 <nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>
     <button type="button" class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
-    <button type="button" class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle") || "回收站"}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle")}</button>
     <button type="button" class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
     <button type="button" class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
     <button type="button" class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
@@ -75,10 +77,53 @@
         </div>
     </div>
     <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.energyPresetsTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.energyPresetsHint")}</div>
+        <div class="lv-mt-10" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="min-width: 120px; font-size: 13px;" for="lv-set-fuel-presets">{t("settings.fuelPresets")}:</label>
+                <input id="lv-set-fuel-presets" class="b3-text-field fn__flex-1"
+                    value={(plugin.settings?.fuelPresetAmounts ?? [200, 300, 500]).join(", ")}
+                    onchange={async (e) => {
+                        const vals = (e.currentTarget as HTMLInputElement).value
+                            .split(/[,，\s]+/)
+                            .map((s) => Number(s.trim()))
+                            .filter((n) => Number.isFinite(n) && n > 0);
+                        if (vals.length > 0) {
+                            if (!plugin.settings) return;
+                            plugin.settings.fuelPresetAmounts = vals;
+                            await saveSettings(plugin, plugin.settings);
+                            showMessage(t("saved"), 2000, "info");
+                        }
+                    }}
+                />
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="min-width: 120px; font-size: 13px;" for="lv-set-charge-presets">{t("settings.chargePresets")}:</label>
+                <input id="lv-set-charge-presets" class="b3-text-field fn__flex-1"
+                    value={(plugin.settings?.chargePresetAmounts ?? [30, 50, 100]).join(", ")}
+                    onchange={async (e) => {
+                        const vals = (e.currentTarget as HTMLInputElement).value
+                            .split(/[,，\s]+/)
+                            .map((s) => Number(s.trim()))
+                            .filter((n) => Number.isFinite(n) && n > 0);
+                        if (vals.length > 0) {
+                            if (!plugin.settings) return;
+                            plugin.settings.chargePresetAmounts = vals;
+                            await saveSettings(plugin, plugin.settings);
+                            showMessage(t("saved"), 2000, "info");
+                        }
+                    }}
+                />
+            </div>
+        </div>
+    </div>
+    <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
         <div class="lv-setcard__hint lv-tx-warn"><UiIcon name="alert" size={13} /> {t("settings.migratePrivacy")}</div>
         <div class="lv-setcard__actions">
             <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} title={t("settings.exportHtmlManualTip")} onclick={onExportHtmlManual}>{t("settings.exportHtmlManual")}</button>
             <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
             <input type="file" accept="application/json,.json" class="fn__none"
                 aria-label={t("settings.import")}
@@ -90,11 +135,11 @@
     </div>
     {:else if dataSection === "trash"}
         <div class="lv-card lv-setcard">
-            <div class="lv-setcard__title"><UiIcon name="archive" size={15} /> {t("settings.trashTitle") || "台账安全回收站"}</div>
-            <div class="lv-setcard__hint">{t("settings.trashHint") || "最近删除的 50 条台账记录快照（包含单条删除与批量删除）。"}</div>
+            <div class="lv-setcard__title"><UiIcon name="archive" size={15} /> {t("settings.trashTitle")}</div>
+            <div class="lv-setcard__hint">{t("settings.trashHint")}</div>
             <div class="lv-mt-10 lv-dialog-list">
                 {#if trashItems.length === 0}
-                    <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("settings.trashEmpty") || "回收站空空如也，暂无删除快照"}</div>
+                    <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("settings.trashEmpty")}</div>
                 {:else}
                     {#each trashItems as item (item.id + item.deletedAt)}
                         <div class="lv-settings__row lv-trash-item">
@@ -110,12 +155,12 @@
                                     if (res.success) {
                                         trashRevision += 1;
                                         plugin.emitHubChanged?.();
-                                        showMessage(t("settings.trashRestored") || "已成功恢复该记录到台账！", 3000, "info");
+                                        showMessage(t("settings.trashRestored"), 3000, "info");
                                     } else {
-                                        showMessage(res.error || "恢复失败", 5000, "error");
+                                        showMessage(res.error || t("ledger.saveFailed"), 5000, "error");
                                     }
                                 }}>
-                                    {t("settings.trashRestore") || "恢复"}
+                                    {t("settings.trashRestore")}
                                 </button>
                             </div>
                         </div>
@@ -123,8 +168,8 @@
                     <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-self-start lv-mt-8" onclick={async () => {
                         const { confirm } = await import("@/libs/dialog");
                         confirm(
-                            t("settings.trashClear") || "清空回收站",
-                            t("settings.trashClearConfirm") || "确定彻底清空安全回收站中的所有删除快照吗？清空后将无法恢复。",
+                            t("settings.trashClear"),
+                            t("settings.trashClearConfirm"),
                             async () => {
                                 if (plugin.runtime) {
                                     plugin.runtime.trash = [];
@@ -137,7 +182,7 @@
                             }
                         );
                     }}>
-                        {t("settings.trashClear") || "清空回收站"}
+                        {t("settings.trashClear")}
                     </button>
                 {/if}
             </div>

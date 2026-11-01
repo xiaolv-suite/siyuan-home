@@ -27,11 +27,26 @@
         fieldMetaPlaceholder: (e: ColumnDef) => string;
         formFieldError: (e: ColumnDef) => string;
     } = $props();
+
+    const filledCount = $derived(
+        additionalCols.filter((col) => {
+            const v = form[col.key];
+            return v !== undefined && v !== null && v !== "" && (typeof v !== "string" || v.trim() !== "");
+        }).length
+    );
+    const isOpen = $derived(defaultOpen || filledCount > 0);
 </script>
 
 {#if additionalCols.length > 0}
-    <details class="lv-record-more" open={defaultOpen}>
-        <summary>{t("ledger.additionalFields")} <span>{additionalCols.length}</span></summary>
+    <details class="lv-record-more" open={isOpen}>
+        <summary>
+            {t("ledger.additionalFields")} <span>{additionalCols.length}</span>
+            {#if filledCount > 0}
+                <span class="lv-badge blue lv-badge--xs" style="margin-left: 6px;">
+                    {t("ledger.filledCount").replace("${n}", String(filledCount))}
+                </span>
+            {/if}
+        </summary>
         <section class="lv-record-section lv-record-section--nested">
             <div class="lv-record-grid">
                 {#each additionalCols as e (e.key)}

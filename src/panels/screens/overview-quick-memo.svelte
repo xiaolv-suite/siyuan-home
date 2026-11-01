@@ -19,6 +19,8 @@
     let memoInput: HTMLInputElement | undefined = $state();
     let savingMemo = $state(false);
 
+    const isGuest = $derived(Boolean(plugin.runtime?.guestModeActive));
+
     const quickParsed = $derived.by(() => {
         if (!memoTitle.trim()) return null;
         return parseQuickAdd(memoTitle);
@@ -52,6 +54,7 @@
                 category: parsed.category,
                 cycle: parsed.cycle,
                 recurrenceAnchor: parsed.recurrenceAnchor,
+                amount: parsed.amount,
             });
             memoTitle = ""; memoDue = "";
         } catch (e) {
@@ -67,8 +70,8 @@
 {/if}
 <div class={embedded ? "lv-memo lv-memo--embedded" : "lv-card lv-memo"}>
     <!-- 261 波：回车提交（isComposing 守卫——中文输入法选词的 Enter 不算提交） -->
-    <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1 lv-memo-input" placeholder={t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
-        disabled={savingMemo} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
+    <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1 lv-memo-input" placeholder={isGuest ? t("guest.writeBlocked") : t("memo.placeholder")} aria-label={t("memo.placeholder")} bind:value={memoTitle}
+        disabled={savingMemo || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
     <!-- Quick Add Magic 即时预览胶囊 (Vikunja / Todoist 规格) -->
     {#if quickParsed}
         {#if quickParsed.dueDate && !memoDue}
@@ -91,7 +94,12 @@
                 <UiIcon name="repeat" size={12} /> {quickParsed.cycleToken || quickParsed.cycle}
             </span>
         {/if}
+        {#if quickParsed.amount}
+            <span class="lv-parsechip lv-parsechip--amount" role="status" title={`¥${quickParsed.amount}`}>
+                <UiIcon name="money" size={12} /> ¥{quickParsed.amount}
+            </span>
+        {/if}
     {/if}
-    <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-    <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim()} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
+    <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} disabled={savingMemo || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
+    <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim() || isGuest} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
 </div>

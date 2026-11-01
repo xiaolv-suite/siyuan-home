@@ -31,7 +31,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
                 <span class="lv-caption">${t("ledger.bindDocHint")}</span>
                 <label class="lv-form-group">
                     <span class="lv-caption">${t("ledger.bindDocTitle")}：</span>
-                    <input class="b3-text-field" id="lv-bind-doc-input" placeholder="siyuan://blocks/20261021... 或 ((20261021...))" />
+                    <input class="b3-text-field" id="lv-bind-doc-input" placeholder="siyuan://blocks/20261021... / ((20261021...))" />
                 </label>
                 <div id="lv-bind-candidates" class="lv-candidates-list"></div>
             </div>
@@ -88,7 +88,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
         okBtn.onclick = async function (this: HTMLButtonElement) {
             const inputVal = (dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement)?.value.trim();
             if (!inputVal) {
-                showMessageFn(t("ledger.bindDocRequired") || "请输入思源文档链接或文档 ID", 3000, "info");
+                showMessageFn(t("ledger.bindDocRequired"), 3000, "info");
                 (dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement)?.focus();
                 return;
             }

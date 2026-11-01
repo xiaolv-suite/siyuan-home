@@ -66,10 +66,21 @@ export function assessBloodGlucose(value: number, isPostMeal = false): VitalAsse
     return { level: "normal", label: "餐后正常（3.9-7.8）", isAbnormal: false };
 }
 
+/** 体温判定（腋温 36.0-37.2 正常，37.3-38.0 低热，38.1-39.0 中度发热，>39.0 高热） */
+export function assessTemperature(value: number): VitalAssessment {
+    if (!Number.isFinite(value)) return { level: "normal", label: "未知", isAbnormal: false };
+    if (value < 36.0) return { level: "low", label: "体温偏低（<36.0°C）", isAbnormal: true };
+    if (value > 39.0) return { level: "high", label: "高热（>39.0°C）", isAbnormal: true };
+    if (value >= 38.1) return { level: "high", label: "发热（38.1-39.0°C）", isAbnormal: true };
+    if (value >= 37.3) return { level: "elevated", label: "低热（37.3-38.0°C）", isAbnormal: true };
+    return { level: "normal", label: "正常（36.0-37.2°C）", isAbnormal: false };
+}
+
 /** 单次读数评定 */
 export function assessReading(r: VitalReading): VitalAssessment {
     if (r.type === "bp") return assessBloodPressure(r.val1, r.val2 ?? 80);
     if (r.type === "bg") return assessBloodGlucose(r.val1, r.val2 === 1);
+    if (r.type === "temp") return assessTemperature(r.val1);
     // 心率（60-100 次/分正常）
     if (r.val1 < 60) return { level: "low", label: "心动过缓（<60）", isAbnormal: true };
     if (r.val1 > 100) return { level: "high", label: "心动过速（>100）", isAbnormal: true };
@@ -142,4 +153,25 @@ export function formatVitalsReportText(summary: VitalSummary): string {
         lines.push("🟢 所有读数均处于平稳范围");
     }
     return lines.join("\n");
+}
+
+/** 时间感知智能解析默认健康测量成员（晨起长辈、晚间孩子、日常本人） */
+export function resolveDefaultVitalMember(members: any[], hour = new Date().getHours()): string {
+    if (!members || members.length === 0) return "";
+    const linked = members.filter((m) => !!m.avItemId);
+    const pool = linked.length > 0 ? linked : members;
+
+    // 1. 晨起时段（06:00 - 10:59）：长辈晨间测血压/空腹血糖最为普遍
+    if (hour >= 6 && hour < 11) {
+        const elder = pool.find((m) => m.role === "elder" || m.role === "partner");
+        if (elder) return elder.avItemId || elder.id;
+    }
+    // 2. 晚间时段（19:00 - 23:00）：少儿测体温或睡前打卡
+    if (hour >= 19 && hour <= 23) {
+        const child = pool.find((m) => m.role === "child");
+        if (child) return child.avItemId || child.id;
+    }
+    // 3. 默认优先本人或首个有效成员
+    const self = pool.find((m) => m.role === "self");
+    return self?.avItemId || self?.id || pool[0].avItemId || pool[0].id || "";
 }

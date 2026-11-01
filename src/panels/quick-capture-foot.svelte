@@ -18,7 +18,7 @@
         canSubmitLedger: boolean;
         t: (k: string) => string;
         onClose: () => void;
-        onSubmitEvent: () => void;
+        onSubmitEvent: (continueAfter?: boolean) => void;
         onOpenPendingLedger: () => void;
         onSaveLedger: (continueAfter: boolean) => void;
     } = $props();
@@ -28,8 +28,11 @@
     <button type="button" class="b3-button b3-button--cancel" onclick={onClose} disabled={saving}>{t("cancel")}</button>
     <span class="fn__flex-1"></span>
     {#if captureTab === "event"}
-        <button type="button" class="lv-btn primary" title="Ctrl+Enter" onclick={onSubmitEvent} disabled={saving}>
-            {saving ? t("ledger.saving") : t("save")}
+        <button type="button" class="lv-btn" onclick={() => onSubmitEvent(true)} disabled={saving}>
+            {saving ? t("ledger.saving") : t("capture.saveContinue")}
+        </button>
+        <button type="button" class="lv-btn primary" title="Ctrl+Enter" onclick={() => onSubmitEvent(false)} disabled={saving}>
+            {saving ? t("ledger.saving") : t("capture.saveClose")}
         </button>
     {:else}
         {#if identityPending}

@@ -42,9 +42,12 @@ export interface ArchiveManifest {
  */
 export function buildArchiveManifest(
     records: ArchiveRecordItem[],
-    options: { maskSensitive?: boolean; generatedAt?: string } = {},
+    options: { maskSensitive?: boolean; generatedAt?: string; t?: (k: string) => string } = {},
 ): ArchiveManifest {
-    const { maskSensitive = false, generatedAt = new Date().toISOString().slice(0, 10) } = options;
+    const { maskSensitive = false, generatedAt = new Date().toISOString().slice(0, 10), t } = options;
+    const defaultMember = t ? t("members.unassigned") : "未指定成员";
+    const defaultAttachment = t ? t("ledger.unnamed") : "未命名附件";
+    const defaultRecord = t ? t("ledger.unnamed") : "未命名记录";
 
     const validRecords = (records || []).filter((r) => r.attachments && r.attachments.length > 0);
     const membersSet = new Set<string>();
@@ -52,7 +55,7 @@ export function buildArchiveManifest(
     let totalFiles = 0;
 
     for (const r of validRecords) {
-        const member = (r.memberName ?? "未指定成员").trim();
+        const member = (r.memberName ?? defaultMember).trim();
         membersSet.add(member);
 
         let cat = categoryMap.get(r.module);
@@ -64,13 +67,13 @@ export function buildArchiveManifest(
         const validAttachments = r.attachments
             .filter((a) => a && (a.content || a.name))
             .map((a) => ({
-                name: a.name || a.content?.split("/").pop() || "未命名附件",
+                name: a.name || a.content?.split("/").pop() || defaultAttachment,
                 path: a.content || "",
             }));
 
         totalFiles += validAttachments.length;
 
-        let displayTitle = r.title.trim() || "未命名记录";
+        let displayTitle = r.title.trim() || defaultRecord;
         if (maskSensitive && displayTitle.length > 4) {
             displayTitle = displayTitle.slice(0, 2) + "***" + displayTitle.slice(-2);
         }

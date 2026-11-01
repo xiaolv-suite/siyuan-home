@@ -53,12 +53,22 @@
         if (e.key === "ArrowLeft") {
             if (!prevBtnEl?.disabled) {
                 e.preventDefault();
-                prevBtnEl?.focus();
+                handlePrevPage();
             }
         } else if (e.key === "ArrowRight") {
             if (!nextBtnEl?.disabled) {
                 e.preventDefault();
-                nextBtnEl?.focus();
+                handleNextPage();
+            }
+        } else if (e.key === "Home") {
+            if (page > 1) {
+                e.preventDefault();
+                page = 1;
+            }
+        } else if (e.key === "End") {
+            if (page < pageCount) {
+                e.preventDefault();
+                page = pageCount;
             }
         }
     }
@@ -395,7 +405,15 @@
                     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
                     <nav class="lv-activity-pagination" aria-label={t("activity.title")} onkeydown={handlePaginationKeydown}>
                         <button bind:this={prevBtnEl} type="button" class="lv-iconbtn" aria-label={t("activity.previous")} disabled={page <= 1} onclick={handlePrevPage}><UiIcon name="back" size={14} /></button>
-                        <span class="lv-num" aria-current="page">{page} / {pageCount}</span>
+                        {#if pageCount > 2}
+                            <select class="b3-select lv-activity-page-select" aria-label={t("activity.pageSelect")} value={page} onchange={(e) => { page = Number((e.currentTarget as HTMLSelectElement).value); }}>
+                                {#each Array.from({ length: pageCount }, (_, i) => i + 1) as p (p)}
+                                    <option value={p}>{p} / {pageCount}</option>
+                                {/each}
+                            </select>
+                        {:else}
+                            <span class="lv-num" aria-current="page">{page} / {pageCount}</span>
+                        {/if}
                         <button bind:this={nextBtnEl} type="button" class="lv-iconbtn" aria-label={t("activity.next")} disabled={page >= pageCount} onclick={handleNextPage}><UiIcon name="forward" size={14} /></button>
                     </nav>
                     <button type="button" class="b3-button b3-button--text" onclick={goToLedger}><span>{t("activity.goToLedger")}</span> <UiIcon name="forward" size={12} /></button>

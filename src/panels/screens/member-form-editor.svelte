@@ -40,6 +40,40 @@
     let pendingNewMemberId = $state<string | undefined>();
     const roles: MemberRole[] = ["self", "spouse", "partner", "child", "elder", "kin", "other"];
 
+    const ROLE_NAME_SUGGESTIONS: Record<string, Record<string, string[]>> = {
+        spouse: {
+            male: ["老公", "先生", "孩他爸"],
+            female: ["老婆", "妻子", "孩他妈"],
+            any: ["配偶", "伴侣", "爱人"],
+        },
+        child: {
+            male: ["儿子", "大宝", "小宝"],
+            female: ["女儿", "大宝", "小宝"],
+            any: ["孩子", "宝贝", "宝宝"],
+        },
+        elder: {
+            male: ["爷爷", "外公", "爸爸", "公公", "岳父"],
+            female: ["奶奶", "外婆", "妈妈", "婆婆", "岳母"],
+            any: ["长辈"],
+        },
+        kin: {
+            male: ["哥哥", "弟弟", "叔叔", "舅舅"],
+            female: ["姐姐", "妹妹", "姑姑", "阿姨"],
+            any: ["亲戚", "亲属"],
+        },
+        self: {
+            any: ["本人", "我"],
+        },
+    };
+
+    const suggestedNames = $derived.by(() => {
+        const pool = ROLE_NAME_SUGGESTIONS[role];
+        if (!pool) return [];
+        const sexKey = sex === "male" || sex === "female" ? sex : "any";
+        const res = [...(pool[sexKey] ?? []), ...(sexKey !== "any" ? (pool["any"] ?? []) : [])];
+        return res.slice(0, 4);
+    });
+
     $effect(() => {
         if (editorOpen) {
             requestAnimationFrame(() => nameInput?.focus());
@@ -165,6 +199,15 @@
                 aria-invalid={nameError} aria-describedby={nameError ? "lv-member-name-error" : undefined}
                 oninput={() => { if (nameError) nameError = false; }}
                 onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) save(); }} />
+            {#if suggestedNames.length > 0 && !editId}
+                <div class="lv-member-suggest-chips" aria-label={t("members.suggestAppellations")}>
+                    {#each suggestedNames as sug (sug)}
+                        <button type="button" class="lv-chip sm lv-member-sug-btn" onclick={() => { name = sug; nameInput?.focus(); }}>
+                            {sug}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
             {#if nameError}
                 <small id="lv-member-name-error" class="lv-record-field-error" role="alert">{t("ledger.nameRequired")}</small>
             {/if}
@@ -195,6 +238,18 @@
             <textarea id="lv-member-notes-input" class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
         </div>
         <div class="lv-member-editor-actions">
+            {#if editId}
+                {@const editingMember = (plugin.settings?.members ?? []).find((m: any) => m.id === editId)}
+                {@const contactMatch = editingMember?.contactSnapshot?.match(/\[(.*?)\]$/)}
+                {#if contactMatch && contactMatch[1]}
+                    <button type="button" class="b3-button b3-button--text lv-tx-accent lv-btn-text-sm"
+                        title={t("members.openContactDoc")}
+                        onclick={() => plugin.showTabDocs?.(contactMatch[1])}>
+                        <UiIcon name="link" size={12} /> {t("members.openContactDoc")}
+                    </button>
+                    <span class="fn__flex-1"></span>
+                {/if}
+            {/if}
             {#if editorOpen}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
             {/if}

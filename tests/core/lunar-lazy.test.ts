@@ -3,7 +3,7 @@
  * 使用真实 lunar-typescript（日历库确定性）；2026 年春节 = 公历 2026-02-17 为已知锚点。
  */
 import { describe, it, expect } from "vitest";
-import { lunarToSolar, nextLunarAnniversary, lunarLabel } from "@/core/hub/lunar-lazy";
+import { lunarToSolar, nextLunarAnniversary, lunarLabel, getSolarTerm, getLunarDisplay } from "@/core/hub/lunar-lazy";
 import { Lunar } from "lunar-typescript";
 
 const solar = (y: number, m: number, d: number) => new Date(y, m - 1, d);
@@ -69,5 +69,20 @@ describe("lunar.lunarLabel", () => {
         const label = await lunarLabel("2026-02-17");
         expect(label).toContain("正月初一");
         expect(await lunarLabel("not-a-date")).toBeUndefined();
+    });
+});
+
+describe("lunar.getLunarDisplay & getSolarTerm (农历月日节气与干支)", () => {
+    it("2026 年显示为「丙午马年」", () => {
+        const res = getLunarDisplay(new Date(2026, 10, 1));
+        expect(res).toBeDefined();
+        expect(res).toContain("丙午马年");
+        expect(res).toContain("九月廿三");
+    });
+
+    it("节气计算覆盖清明/冬至已知公历锚点", () => {
+        // 2026 年清明大约为 4 月 5 日
+        const qm = getSolarTerm(new Date(2026, 3, 5));
+        expect(qm).toBe("清明");
     });
 });

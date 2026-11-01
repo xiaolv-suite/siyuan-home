@@ -23,14 +23,86 @@ export interface SpotlightResult {
     score: number;
 }
 
+export interface ParsedSpotlightQuery {
+    raw: string;
+    text: string;
+    tag?: string;
+    urgentOnly: boolean;
+}
+
+/**
+ * 解析全景检索输入（提取 #标签 与 !紧急 / !urgent 过滤器）
+ */
+export function parseSpotlightQuery(query: string): ParsedSpotlightQuery {
+    const raw = (query ?? "").trim();
+    let text = raw;
+    let tag: string | undefined;
+    let urgentOnly = false;
+
+    // 匹配 #xxx 标签语法
+    const tagMatch = text.match(/#([^\s#]+)/);
+    if (tagMatch) {
+        tag = tagMatch[1].toLowerCase();
+        text = text.replace(tagMatch[0], " ").trim();
+    }
+
+    // 匹配 !紧急 / !urgent / !overdue / !高优 语法
+    const urgentMatch = text.match(/!(?:紧急|urgent|overdue|高优)/i);
+    if (urgentMatch) {
+        urgentOnly = true;
+        text = text.replace(urgentMatch[0], " ").trim();
+    }
+
+    text = text.replace(/\s+/g, " ").trim();
+    return { raw, text, tag, urgentOnly };
+}
+
+/**
+ * 判断全景检索条目是否属于临期/紧急事项
+ */
+export function isSpotlightItemUrgent(item: SpotlightItem, now = new Date()): boolean {
+    if (item.dueDate) {
+        const [y, m, d] = item.dueDate.slice(0, 10).split("-").map(Number);
+        if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) {
+            const dueDt = new Date(y, m - 1, d);
+            const diffDays = Math.ceil((dueDt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 3) return true;
+        }
+    }
+    const combined = `${item.title} ${item.note ?? ""} ${item.category ?? ""}`;
+    return /(?:紧急|加急|过敏|高危|急救)/i.test(combined);
+}
+
+/**
+ * 判断全景检索条目是否匹配标签
+ */
+export function matchesSpotlightTag(item: SpotlightItem, tag: string): boolean {
+    const t = tag.toLowerCase();
+    if (item.category && (item.category.toLowerCase().includes(t) || searchMatch(item.category, t))) return true;
+    if (item.note && (item.note.toLowerCase().includes(t) || searchMatch(item.note, t))) return true;
+    if (item.title && (item.title.toLowerCase().includes(t) || searchMatch(item.title, t))) return true;
+    return false;
+}
+
 /**
  * 跨模块全景搜索过滤与相关度排序
  */
 export function searchSpotlight(items: SpotlightItem[], query: string, limit = 40): SpotlightItem[] {
-    const q = (query ?? "").trim().toLowerCase();
+    const { text, tag, urgentOnly } = parseSpotlightQuery(query);
+    const q = text.toLowerCase();
+
+    // 先做硬性条件过滤（标签、紧急）
+    let pool = items;
+    if (urgentOnly) {
+        pool = pool.filter((item) => isSpotlightItemUrgent(item));
+    }
+    if (tag) {
+        pool = pool.filter((item) => matchesSpotlightTag(item, tag));
+    }
+
+    // 若无额外文本过滤，按临近度或原序展示
     if (!q) {
-        // 空搜索时优先展示带有到期日且临近的重点事项，次按原序返回
-        return [...items].sort((a, b) => {
+        return [...pool].sort((a, b) => {
             if (a.dueDate && !b.dueDate) return -1;
             if (!a.dueDate && b.dueDate) return 1;
             if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
@@ -40,7 +112,7 @@ export function searchSpotlight(items: SpotlightItem[], query: string, limit = 4
 
     const scored: SpotlightResult[] = [];
 
-    for (const item of items) {
+    for (const item of pool) {
         let score = 0;
         const titleLower = item.title.toLowerCase();
 

@@ -19,6 +19,7 @@
         retryingScan = false,
         overviewBusy = new Set(),
         memberOf,
+        plugin,
         t,
         onViewAll,
         onClearMemberFilter,
@@ -47,6 +48,7 @@
         retryingScan?: boolean;
         overviewBusy?: Set<string>;
         memberOf: (id: string | undefined) => { name: string; id: string } | undefined;
+        plugin?: any;
         t: (k: string) => string;
         onViewAll: () => void;
         onClearMemberFilter: () => void;
@@ -62,6 +64,18 @@
         onUndoPostpone?: () => void;
         canUndoPostpone?: boolean;
     } = $props();
+
+    let showCompletedDetails = $state(false);
+
+    const completedOnPulseDate = $derived.by(() => {
+        if (!pulseDateFilter || !plugin?.listHandled) return [];
+        const targetDate = pulseDateFilter;
+        return (plugin.listHandled() ?? []).filter((h: any) => {
+            if (!h.at) return false;
+            const datePrefix = h.at.slice(0, 10);
+            return datePrefix === targetDate;
+        });
+    });
 </script>
 
 <div class="lv-sec">
@@ -112,6 +126,40 @@
             {/each}
         </div>
         <p class="lv-caption lv-scan-hint">{t("hub.firstScan")}</p>
+    {:else if pulseDateFilter}
+        {#if completedOnPulseDate.length > 0}
+            <div class="lv-card lv-pulse-completed-card">
+                <div class="lv-pulse-completed-head">
+                    <span class="lv-pulse-completed-title">
+                        <UiIcon name="checkCircle" size={15} />
+                        <b>{t("overview.completedOnDate").replace("${date}", pulseDateFilter).replace("${n}", String(completedOnPulseDate.length))}</b>
+                    </span>
+                    <button type="button" class="b3-button b3-button--text b3-button--small" onclick={() => onGoto("reminders")}>
+                        <span>{t("overview.viewHandledHistory")}</span> <UiIcon name="forward" size={12} />
+                    </button>
+                </div>
+                <div class="lv-pulse-completed-list">
+                    {#each completedOnPulseDate as item (item.id)}
+                        <div class="lv-pulse-completed-item">
+                            <span class="lv-pulse-completed-dot"></span>
+                            <span class="lv-pulse-completed-item-title">{item.title}</span>
+                            <span class="lv-badge gray lv-badge--xs">{t(`module.${item.moduleId}`) !== `module.${item.moduleId}` ? t(`module.${item.moduleId}`) : item.moduleId}</span>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        {:else}
+            <div class="lv-card lv-empty-compact" role="status">
+                <div class="eic-sm"><UiIcon name="check" size={18} /></div>
+                <div class="lv-empty-compact__text">
+                    <b>{t("dash.allClear")}</b>
+                    <span>{t("overview.noTasksOnDate").replace("${date}", pulseDateFilter)}</span>
+                </div>
+                <button type="button" class="b3-button b3-button--text b3-button--small" onclick={() => onGoto("reminders")}>
+                    <span>{t("overview.viewAllHandled")}</span> <UiIcon name="forward" size={12} />
+                </button>
+            </div>
+        {/if}
     {:else}
         <div class="lv-card lv-empty-compact" role="status">
             <div class="eic-sm"><UiIcon name="check" size={18} /></div>
@@ -136,22 +184,24 @@
                     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (r.moduleId !== 'adhoc') onOpenLedger(r.moduleId); else onGoto('reminders'); } }}
                     title={t("dash.heroOpen")}>
                     <b>
-                        {#if (r.snoozeCount ?? 0) >= 3}
-                            <span class="lv-plan-badge is-snooze-heavy" title={t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}>
-                                <UiIcon name="alert" size={11} /> {t("hub.snoozeHeavyBadge")}
-                            </span>
-                        {/if}
-                        {#if r.priority}
-                            <span class="lv-plan-badge lv-priority-badge--{r.priority}" title={r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}>
-                                <UiIcon name="alert" size={11} /> {r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}
-                            </span>
-                        {/if}
-                        {#if r.tag}
-                            <span class="lv-plan-badge lv-tag-badge" title={`#${r.tag}`}>
-                                <UiIcon name="bookmark" size={11} /> #{r.tag}
-                            </span>
-                        {/if}
-                        {r.title}
+                        <span class="lv-rem-badges">
+                            {#if (r.snoozeCount ?? 0) >= 3}
+                                <span class="lv-plan-badge is-snooze-heavy" title={t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}>
+                                    <UiIcon name="alert" size={11} /> {t("hub.snoozeHeavyBadge")}
+                                </span>
+                            {/if}
+                            {#if r.priority}
+                                <span class="lv-plan-badge lv-priority-badge--{r.priority}" title={r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}>
+                                    <UiIcon name="alert" size={11} /> {r.priority === "high" ? t("hub.priorityHigh") : r.priority === "medium" ? t("hub.priorityMedium") : t("hub.priorityLow")}
+                                </span>
+                            {/if}
+                            {#if r.tag}
+                                <span class="lv-plan-badge lv-tag-badge" title={`#${r.tag}`}>
+                                    <UiIcon name="bookmark" size={11} /> #{r.tag}
+                                </span>
+                            {/if}
+                        </span>
+                        <span class="lv-rem-title-text">{r.title}</span>
                     </b><span>{#if memberOf(r.memberId)}{@const member = memberOf(r.memberId)}<span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>{/if}{t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : t("adhoc.name")}{#if !r.memberId} · {t("members.unassigned")}{/if}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}</span>
                 </div>
                 <div class="lv-rem-when"><b class="lv-num">
@@ -167,5 +217,24 @@
                 </div>
             </div>
         {/each}
+        {#if pulseDateFilter && completedOnPulseDate.length > 0}
+            <div class="lv-pulse-completed-bar">
+                <button type="button" class="b3-button b3-button--text lv-pulse-completed-toggle" onclick={() => { showCompletedDetails = !showCompletedDetails; }}>
+                    <UiIcon name={showCompletedDetails ? "chevronUp" : "chevronDown"} size={12} />
+                    <span>{t("overview.hasCompletedBadge").replace("${n}", String(completedOnPulseDate.length))}</span>
+                </button>
+                {#if showCompletedDetails}
+                    <div class="lv-pulse-completed-list lv-mt-6">
+                        {#each completedOnPulseDate as item (item.id)}
+                            <div class="lv-pulse-completed-item">
+                                <span class="lv-pulse-completed-dot"></span>
+                                <span class="lv-pulse-completed-item-title">{item.title}</span>
+                                <span class="lv-badge gray lv-badge--xs">{t(`module.${item.moduleId}`) !== `module.${item.moduleId}` ? t(`module.${item.moduleId}`) : item.moduleId}</span>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        {/if}
     </div>
 {/if}

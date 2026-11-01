@@ -242,6 +242,10 @@
                 {/if}
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(async () => {
+                    const { copyReminderFamilyNotice } = await import("@/core/reminders-view-model");
+                    await copyReminderFamilyNotice(r, t, showMessage, { memberName: member?.name });
+                })}>{t("hub.copyFamilyNotice")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" title={isItemPinned ? t("act.unpin") : t("act.pin")}
                     disabled={batchBusy || isBusy} aria-busy={isBusy}
                     onclick={() => handleMoreAction(() => onTogglePin?.(r))}>{isBusy ? t("ledger.saving") : (isItemPinned ? t("act.unpin") : t("act.pin"))}</button>

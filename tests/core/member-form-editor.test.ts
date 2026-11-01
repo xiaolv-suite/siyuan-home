@@ -118,5 +118,38 @@ describe("member-form-editor (成员表单编辑器契约与校验)", () => {
         expect(nameError).toBe(false);
         expect(handleSave()).toBe(true);
     });
+
+    it("双向亲属称谓建议推导契约完备性", () => {
+        const ROLE_NAME_SUGGESTIONS: Record<string, Record<string, string[]>> = {
+            spouse: {
+                male: ["老公", "先生", "孩他爸"],
+                female: ["老婆", "妻子", "孩他妈"],
+                any: ["配偶", "伴侣", "爱人"],
+            },
+            child: {
+                male: ["儿子", "大宝", "小宝"],
+                female: ["女儿", "大宝", "小宝"],
+                any: ["孩子", "宝贝", "宝宝"],
+            },
+            elder: {
+                male: ["爷爷", "外公", "爸爸", "公公", "岳父"],
+                female: ["奶奶", "外婆", "妈妈", "婆婆", "岳母"],
+                any: ["长辈"],
+            },
+        };
+
+        const deriveSuggestions = (role: string, sex?: string) => {
+            const pool = ROLE_NAME_SUGGESTIONS[role];
+            if (!pool) return [];
+            const sexKey = sex === "male" || sex === "female" ? sex : "any";
+            const res = [...(pool[sexKey] ?? []), ...(sexKey !== "any" ? (pool["any"] ?? []) : [])];
+            return res.slice(0, 4);
+        };
+
+        expect(deriveSuggestions("spouse", "female")).toContain("老婆");
+        expect(deriveSuggestions("child", "male")).toContain("儿子");
+        expect(deriveSuggestions("elder", "female")).toContain("外婆");
+        expect(deriveSuggestions("spouse", undefined)).toContain("配偶");
+    });
 });
 

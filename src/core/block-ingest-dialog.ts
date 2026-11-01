@@ -55,7 +55,7 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
   <div class="lv-caption">${t("capture.ingestHint")}</div>
   <label class="lv-form-group">
     <span class="lv-caption">${t("capture.ingestBlockLink")}</span>
-    <input class="b3-text-field" id="lv-ingest-link" placeholder="siyuan://blocks/20261020... 或 ((20261020...))" />
+    <input class="b3-text-field" id="lv-ingest-link" placeholder="siyuan://blocks/20261020... / ((20261020...))" />
   </label>
   <label class="lv-form-group">
     <span class="lv-caption">${t("capture.ingestModule")}</span>

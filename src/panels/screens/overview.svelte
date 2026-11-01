@@ -25,6 +25,7 @@
     import OverviewModuleGrid from "./overview-module-grid.svelte";
     import OverviewBentoGrid from "./overview-bento-grid.svelte";
     import OverviewUpcomingList from "./overview-upcoming-list.svelte";
+    import { getLunarDisplay } from "@/core/hub/lunar-lazy";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
         plugin: HomePluginLike;
@@ -218,6 +219,7 @@
         return h < 11 ? t("dash.greet.morning") : h < 18 ? t("dash.greet.afternoon") : t("dash.greet.evening");
     });
     const dateLine = $derived(`${new Date().toLocaleDateString([], { month: "long", day: "numeric", weekday: "long" })} · ${t("dash.stripSnapshot")} ${snapshotLabel}`);
+    const lunarText = $derived(getLunarDisplay());
 
     // 17 组/196 波：统计卡下钻——待办徽章点击 → 提醒页并预筛选该模块（runtime.hubModuleId 为提醒页筛选持久态）
     function drillReminders(mid: string) {
@@ -348,7 +350,7 @@
 <div class="lv-hero lv-hero--compact">
     <div class="lv-hero-copy">
         <div class="lv-hero-meta" role="status" aria-label={t("dash.stripLabel")}>
-            <span>{dateLine}{scanStale ? ` · ${t("dash.stale")}` : ""}</span>
+            <span>{dateLine}{lunarText ? ` · ${lunarText}` : ""}{scanStale ? ` · ${t("dash.stale")}` : ""}</span>
             {#if memberFilter}
                 <span><strong>{t("dash.stripScope")}</strong> {scopeLabel}</span>
             {/if}
@@ -504,6 +506,7 @@
     {retryingScan}
     {overviewBusy}
     {memberOf}
+    {plugin}
     {t}
     onViewAll={viewAllReminders}
     onClearMemberFilter={() => void setMemberFilter(undefined)}

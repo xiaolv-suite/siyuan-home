@@ -130,10 +130,71 @@ export function calculateExpenseTrend(
     };
 }
 
+export interface FixedVsVariableReport {
+    fixedTotal: number;
+    variableTotal: number;
+    total: number;
+    fixedPct: number;
+    variablePct: number;
+    fixedCount: number;
+    variableCount: number;
+}
+
+const FIXED_CATEGORIES = new Set([
+    "house_rent", "rent", "mortgage", "house_mortgage", "property", "management",
+    "utility", "utilities", "broadband", "tuition", "school", "schooling",
+    "insurance", "premium", "loan", "membership", "memberships", "subscription",
+]);
+
+/**
+ * 分析支出结构中的固定支出（房租/房贷/保险/学费/订阅）与浮动开销（餐饮/日用/采买等）
+ */
+export function calculateFixedVsVariable(entries: ExpenseEntry[]): FixedVsVariableReport {
+    let fixedTotal = 0;
+    let variableTotal = 0;
+    let fixedCount = 0;
+    let variableCount = 0;
+
+    for (const e of entries ?? []) {
+        if (!e) continue;
+        const amount = Number(e.amount);
+        if (!Number.isFinite(amount) || amount <= 0) continue;
+        const cat = String(e.category ?? "").trim().toLowerCase();
+        const isFixed = FIXED_CATEGORIES.has(cat) || /rent|mortgage|insurance|loan|tuition|房租|房贷|物业|保险|学费|订阅|会员|宽带/i.test(cat);
+        if (isFixed) {
+            fixedTotal += amount;
+            fixedCount++;
+        } else {
+            variableTotal += amount;
+            variableCount++;
+        }
+    }
+
+    const total = round2(fixedTotal + variableTotal);
+    fixedTotal = round2(fixedTotal);
+    variableTotal = round2(variableTotal);
+    const fixedPct = total > 0 ? Math.round((fixedTotal / total) * 100) : 0;
+    const variablePct = total > 0 ? 100 - fixedPct : 0;
+
+    return {
+        fixedTotal,
+        variableTotal,
+        total,
+        fixedPct,
+        variablePct,
+        fixedCount,
+        variableCount,
+    };
+}
+
 /**
  * 格式化支出趋势为可读文本（用于剪贴板/对话框）
  */
-export function formatExpenseTrendReport(report: ExpenseTrendReport, unit = "元"): string {
+export function formatExpenseTrendReport(
+    report: ExpenseTrendReport,
+    unit = "元",
+    fixedVsVar?: FixedVsVariableReport,
+): string {
     if (report.months.length === 0) return "暂无可用支出记录。";
 
     const lines: string[] = [
@@ -142,10 +203,22 @@ export function formatExpenseTrendReport(report: ExpenseTrendReport, unit = "元
         `累计支出：${report.totalAll}${unit} · 月均：${report.average}${unit}`,
         `环比变化：${report.latestMoM === null ? "无法计算" : `${report.latestMoM > 0 ? "+" : ""}${report.latestMoM}%`}`,
         `年度预测：约 ${report.yearlyForecast}${unit}（按近 3 个月均值推算）`,
+    ];
+
+    if (fixedVsVar && fixedVsVar.total > 0) {
+        lines.push(
+            "",
+            "⚖️ 支出结构（固定开支 vs 浮动开销）：",
+            `  • 固定支出：${fixedVsVar.fixedTotal}${unit} (${fixedVsVar.fixedPct}%) — 房租/房贷/保险/学费/订阅等`,
+            `  • 浮动支出：${fixedVsVar.variableTotal}${unit} (${fixedVsVar.variablePct}%) — 餐饮/买菜/日用/出行/耗材等`,
+        );
+    }
+
+    lines.push(
         "",
         "明细：",
         ...report.months.map((m) => `  • ${m.month}：${m.total}${unit}（${m.count} 笔）`),
-    ];
+    );
 
     if (report.spikes.length > 0) {
         lines.push("", "⚠️ 异常突增月份：");

@@ -9,9 +9,11 @@
         exportingVcf,
         editorOpen,
         membersDocId,
+        hasContactsBridge = false,
         onReassign,
         onExportVcf,
         onOpenMembersDoc,
+        onImportFromContacts,
         onToggleEditor,
     }: {
         t: (k: string) => string;
@@ -21,9 +23,11 @@
         exportingVcf: boolean;
         editorOpen: boolean;
         membersDocId?: string;
+        hasContactsBridge?: boolean;
         onReassign: () => void;
         onExportVcf: () => void;
         onOpenMembersDoc?: () => void;
+        onImportFromContacts?: () => void;
         onToggleEditor: () => void;
     } = $props();
 </script>
@@ -55,6 +59,11 @@
     {#if membersDocId && onOpenMembersDoc}
         <button type="button" class="b3-button b3-button--outline" onclick={onOpenMembersDoc} title={t("members.openLedger")}>
             <UiIcon name="folder" size={14} /> {t("members.openLedger")}
+        </button>
+    {/if}
+    {#if hasContactsBridge && onImportFromContacts}
+        <button type="button" class="b3-button b3-button--outline" onclick={onImportFromContacts} title={t("members.importFromContacts")}>
+            <UiIcon name="link" size={14} /> {t("members.importFromContacts")}
         </button>
     {/if}
     <span class="fn__flex-1"></span>

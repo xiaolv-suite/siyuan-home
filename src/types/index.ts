@@ -193,6 +193,16 @@ export interface HomeSettings {
     budgetLimits?: Record<string, number>;
     /** 用户自选的台账建账目标笔记本 ID（未设定则使用或创建默认笔记本） */
     targetNotebookId?: string;
+    /** 快捷补能预设面额列表（元，默认 [200, 300, 500]） */
+    fuelPresetAmounts?: number[];
+    /** 快捷充电预设面额列表（元，默认 [30, 50, 100]） */
+    chargePresetAmounts?: number[];
+    /** 台账表格列显示自选配置（moduleId → 自选展示列 keys） */
+    columnVisibility?: Record<string, string[]>;
+    /** 台账表格排序列偏好记忆（moduleId → { key, asc }） */
+    ledgerSort?: Record<string, { key: string; asc: boolean }>;
+    /** 台账表格列宽手动调整记忆（moduleId → { colKey: widthPx }） */
+    ledgerColumnWidths?: Record<string, Record<string, number>>;
 }
 
 /** EC09：打卡绑定。metric 显式区分（不把次数当体重）；itemName 为绑定时点快照（展示用） */

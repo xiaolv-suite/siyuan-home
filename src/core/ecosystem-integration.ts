@@ -1,7 +1,7 @@
 import { mountLvHomeBridge } from "@/bridge/external-bridge";
 import { registerRaikiriModuleSafely } from "@/libs/ecosystem-bridge-kit";
 
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.191";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.192";
 
 export interface EcosystemIntegrationOptions {
     plugin: any;
@@ -117,15 +117,19 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
             return;
         }
         const register = speedSwitch.registerQuickAction.bind(speedSwitch);
-        const actions: { id: string; label: string; handler: () => void }[] = [
-            { id: "lvhome.open-overview", label: t("butler"), handler: () => showTab() },
-            { id: "lvhome.open-reminders", label: t("tab.reminders"), handler: () => openRemindersScreen() },
+        const actions: { id: string; label: string; icon?: string; handler: () => void }[] = [
+            { id: "lvhome.open-overview", label: t("butler"), icon: "iconHome", handler: () => showTab() },
+            { id: "lvhome.open-reminders", label: t("tab.reminders"), icon: "iconClock", handler: () => openRemindersScreen() },
+            { id: "lvhome.open-capture", label: t("capture.tabEvent") || "快速记一笔", icon: "iconZap", handler: () => {
+                showTab();
+                if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
+            }},
         ];
         for (const action of actions) {
             const dispose = register({
                 id: action.id,
                 label: action.label,
-                icon: "iconHome",
+                icon: action.icon || "iconHome",
                 value: "open",
                 targets: ["desktop", "sidebar", "mobile"],
                 handler: () => action.handler(),

@@ -11,6 +11,7 @@
         rows = [],
         dynamicLocations = [],
         memberCol,
+        cellText,
         t,
         onReload,
     }: {
@@ -21,6 +22,7 @@
         rows?: any[];
         dynamicLocations?: string[];
         memberCol?: string;
+        cellText?: (cell: any, key?: string, raw?: boolean) => string;
         t: (k: string) => string;
         onReload?: () => Promise<void>;
     } = $props();
@@ -131,10 +133,26 @@
         const text = refs.join("\n");
         try {
             await navigator.clipboard.writeText(text);
-            showMessage(t("spotlight.refCopied") || `已复制 ${selectedRows.length} 条块引用`, 2500, "info");
+            showMessage(t("spotlight.refCopied"), 2500, "info");
         } catch {
             showMessage(t("ledger.copyAsImageFail"), 4000, "error");
         }
+    }
+
+    async function batchExportCsv() {
+        if (!selectedItemIds.length || !ref?.columns) return;
+        const selectedRows = rows.filter((r) => selectedItemIds.includes(r.itemID));
+        if (selectedRows.length === 0) return;
+        const { exportSelectedRowsToCsv } = await import("@/core/ledger-export");
+        exportSelectedRowsToCsv({
+            rows: selectedRows,
+            moduleId: active,
+            sourceRef: ref,
+            schemaCatalog: plugin.schemaCatalog,
+            t,
+            cellTextFn: cellText ?? ((c: any) => String(c?.text?.content || c?.content || "")),
+        });
+        showMessage(t("ledger.exportSuccess"), 2000, "info");
     }
 
     function batchDelete() {
@@ -146,14 +164,14 @@
             async () => {
                 batchBusy = true;
                 try {
-	                    // 安全回收站快照留存：批量删除前为所有选定行建立完整备份
-	                    if (plugin.runtime) {
-	                        const trashList = plugin.runtime.trash ?? [];
-	                        for (const id of selectedItemIds) {
-	                            const matchedRow = rows.find((r) => r.itemID === id);
-	                            const nameCol = ref?.columns?.name;
-	                            const rawTitle = nameCol ? (matchedRow?.cells?.[nameCol]?.text?.content ?? matchedRow?.cells?.[nameCol]?.block?.content) : undefined;
-	                            const title = String(rawTitle || matchedRow?.itemID || `${count} 项批量删除条目`).trim();
+                    // 安全回收站快照留存：批量删除前为所有选定行建立完整备份
+                    if (plugin.runtime) {
+                        const trashList = plugin.runtime.trash ?? [];
+                        for (const id of selectedItemIds) {
+                            const matchedRow = rows.find((r) => r.itemID === id);
+                            const nameCol = ref?.columns?.name;
+                            const rawTitle = nameCol ? (matchedRow?.cells?.[nameCol]?.text?.content ?? matchedRow?.cells?.[nameCol]?.block?.content) : undefined;
+                            const title = String(rawTitle || matchedRow?.itemID || t("ledger.batchDeletedItems").replace("${n}", String(count))).trim();
 	                            trashList.unshift({
 	                                id,
 	                                moduleId: active,
@@ -215,6 +233,9 @@
         {/if}
         <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchCopyRefs}>
             <UiIcon name="paperclip" size={13} /> {t("ledger.copyBlockRef")}
+        </button>
+        <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchExportCsv}>
+            <UiIcon name="folder" size={13} /> {t("ledger.batchExportCsv")}
         </button>
         <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} aria-busy={batchBusy} onclick={batchDelete}>
             <UiIcon name="close" size={13} /> {batchBusy ? t("ledger.saving") : t("ledger.batchDelete")}

@@ -60,6 +60,10 @@
         const list = plugin.scan?.reminders ?? [];
         return plugin.runtime?.guestModeActive ? filterGuestReminders(list, createDefaultGuestConfig(true)) : list;
     });
+    const isGuestMode = $derived.by(() => {
+        void version;
+        return Boolean(plugin.runtime?.guestModeActive);
+    });
     const overdueCount = $derived(all.filter((r: Reminder) => r.level === "overdue").length);
     const permissionDenied = $derived((plugin.scan?.errors ?? []).some((error) => error.moduleId === "permission"));
     // C3d：筛选持久化（runtime.hubFilter）——初始快照为设计意图
@@ -414,13 +418,14 @@
     />
 {:else if viewMode === "calendar" && filter !== "handled"}
     <!-- 日历在空筛选结果时仍提供日期浏览与新增备忘入口。 -->
-    <Calendar items={filtered} {t} {version} initialMode={plugin.runtime.hubCalMode}
+    <Calendar items={filtered} {t} {version} isGuest={isGuestMode} initialMode={plugin.runtime.hubCalMode}
         onModeChange={(m: "month" | "week") => { plugin.runtime.hubCalMode = m; saveRuntime(plugin, plugin.runtime).catch((e) => showMessage(t("hub.preferenceSaveFailed").replace("${msg}", errText(e)), 5000, "error")); }}
         onComplete={(r: Reminder) => runReminderAction(() => plugin.complete(r), `calendar:${r.id}`)}
         onTogglePin={(r: Reminder) => runReminderAction(async () => { await toggleReminderPin(plugin, r.id); await plugin.refreshHub(); }, `calendar:pin:${r.id}`)}
         isPinnedFn={(r: Reminder) => isPinned(r)}
         onLocate={(r: Reminder) => plugin.showTabDocs(plugin.settings.dbRefs[r.moduleId]?.docId, r.rowId)}
         onAddMemo={(title: string, due: string, options?: any) => plugin.addMemo(title, due, options)}
+        onReschedule={(id: string, targetDate: string) => runReminderAction(() => plugin.snoozeToDate(id, targetDate), `calendar:reschedule:${id}`)}
         onConvert={(r: Reminder) => toLedgerDialog(r)} />
 {:else}
     <ReminderGroupsList

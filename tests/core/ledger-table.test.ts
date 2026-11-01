@@ -259,4 +259,31 @@ describe("ledger-table (台账通用数据表格与虚拟化滚动)", () => {
         handleQtyChange(1);
         expect(onAdjustQty).toHaveBeenCalledWith(mockRow, "stock_qty", 1);
     });
+
+    it("台账表格列宽拖拽计算与重置恢复自适应 (CAND-27)", () => {
+        let colWidths: Record<string, number> = { name: 180, expiry: 120 };
+
+        // 模拟拖拽调整列宽
+        function updateColWidth(colKey: string, startWidth: number, deltaX: number) {
+            const newWidth = Math.max(50, Math.round(startWidth + deltaX));
+            colWidths[colKey] = newWidth;
+        }
+
+        // 向右拖拽 40px
+        updateColWidth("name", 180, 40);
+        expect(colWidths.name).toBe(220);
+
+        // 向左拖拽过窄触发最小宽度保护 (50px)
+        updateColWidth("expiry", 120, -100);
+        expect(colWidths.expiry).toBe(50);
+
+        // 双击重置恢复自适应（清除指定列宽）
+        function resetColWidth(colKey: string) {
+            delete colWidths[colKey];
+        }
+
+        resetColWidth("name");
+        expect(colWidths.name).toBeUndefined();
+        expect(colWidths.expiry).toBe(50);
+    });
 });

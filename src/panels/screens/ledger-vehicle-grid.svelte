@@ -29,6 +29,8 @@
         onOpenDetail: (row: any, action?: "fuel" | "charging" | "maintenance" | "edit") => void;
     } = $props();
 
+    let loadedImages = $state<Record<string, boolean>>({});
+
     function vehicleImageHref(row: any): string {
         if (!ref?.columns?.attachments) return "";
         const cell = row.cells?.[ref.columns.attachments];
@@ -69,8 +71,16 @@
         {@const tone = ledgerTone(r)}
         {@const photo = vehicleImageHref(r)}
         <article class="lv-vehicle-card lv-card" role="group">
-            <div class="lv-vehicle-photo">
-                {#if photo}<img src={photo} alt={vehicleText(r, "name")} width="96" height="72" decoding="async" loading="lazy" />{:else}<UiIcon name="car" size={28} />{/if}
+            <div class="lv-vehicle-photo" class:is-loading={photo && !loadedImages[r.itemID]}>
+                {#if photo}
+                    <img src={photo} alt={vehicleText(r, "name")} width="96" height="72" decoding="async" loading="lazy"
+                        class="lv-vehicle-img"
+                        class:is-loaded={loadedImages[r.itemID]}
+                        onload={() => { loadedImages = { ...loadedImages, [r.itemID]: true }; }}
+                        onerror={() => { loadedImages = { ...loadedImages, [r.itemID]: true }; }} />
+                {:else}
+                    <UiIcon name="car" size={28} />
+                {/if}
             </div>
             <div class="lv-vehicle-main">
                 <div class="lv-vehicle-head">

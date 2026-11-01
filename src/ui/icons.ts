@@ -82,9 +82,47 @@ export function moduleUiIcon(id: string): UiIconName {
     return MODULE_UI_ICONS[id] ?? "folder";
 }
 
+/**
+ * 思源本体原生 SVG Symbol 映射表。
+ * 当在思源宿主环境中运行时，优先复用思源官方图标库（#icon...），
+ * 达到与思源官方界面 100% 视觉融合、自动跟随思源主题与第三方图标包。
+ */
+export const SIYUAN_NATIVE_ICON_MAP: Partial<Record<UiIconName, string>> = {
+    settings: "#iconSettings",
+    add: "#iconAdd",
+    close: "#iconClose",
+    search: "#iconSearch",
+    calendar: "#iconCalendar",
+    folder: "#iconFolder",
+    check: "#iconCheck",
+    info: "#iconInfo",
+    alert: "#iconTriangleAlert",
+    copy: "#iconCopy",
+    link: "#iconLink",
+    archive: "#iconTrashcan",
+    filter: "#iconFilter",
+    forward: "#iconRight",
+    back: "#iconLeft",
+    chevronDown: "#iconDown",
+    chevronUp: "#iconUp",
+    menu: "#iconMenu",
+    layout: "#iconLayout",
+    sparkle: "#iconSparkles",
+    bookmark: "#iconBookmark",
+    star: "#iconStar",
+    users: "#iconUsers",
+    bolt: "#iconZap",
+    moreHorizontal: "#iconMore",
+    repeat: "#iconRefresh",
+};
+
 /** String renderer for the small imperative dialogs in the ledger screen. */
 export function uiIcon(name: UiIconName, className = "", size = 16): string {
+    const symbol = SIYUAN_NATIVE_ICON_MAP[name];
+    if (symbol) {
+        return `<svg class="lv-ui-icon lv-ui-icon--native ${className}" width="${size}" height="${size}" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:middle;flex:none;width:${size}px!important;height:${size}px!important;fill:currentColor!important;stroke:none!important;"><use xlink:href="${symbol}"></use></svg>`;
+    }
     const path = UI_ICON_PATHS[name] ?? UI_ICON_PATHS.folder;
-    return `<svg class="lv-ui-icon ${className}" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:middle;flex:none;width:${size}px!important;height:${size}px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}" style="fill:none!important;stroke:currentColor!important"></path></svg>`;
+    return `<svg class="lv-ui-icon lv-ui-icon--custom ${className}" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:middle;flex:none;width:${size}px!important;height:${size}px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}" style="fill:none!important;stroke:currentColor!important"></path></svg>`;
 }
 

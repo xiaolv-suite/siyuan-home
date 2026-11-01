@@ -23,10 +23,15 @@
         filterCategory = $bindable(""),
         exporting = false,
         printing = false,
+        schemaKeys = [] as string[],
+        tableKeys = [] as string[],
+        fieldLabel,
         t,
         onSwitchLedger,
         onOpenNewRecord,
         onToggleDensity,
+        onToggleColumn,
+        onResetColumns,
         onSearchInput,
         onSearchClear,
         onRebuildLedger,
@@ -54,10 +59,15 @@
         filterCategory: string;
         exporting?: boolean;
         printing?: boolean;
+        schemaKeys?: string[];
+        tableKeys?: string[];
+        fieldLabel?: (k: string) => string;
         t: (k: string) => string;
         onSwitchLedger?: (next: string) => void;
         onOpenNewRecord?: () => void;
         onToggleDensity?: () => void;
+        onToggleColumn?: (k: string) => void;
+        onResetColumns?: () => void;
         onSearchInput?: (val: string) => void;
         onSearchClear?: () => void;
         onRebuildLedger?: () => void;
@@ -69,6 +79,13 @@
     } = $props();
 
     let ledgerMoreDetails: HTMLDetailsElement | undefined = $state();
+    let colVisDetails: HTMLDetailsElement | undefined = $state();
+
+    const resolveFieldLabel = (k: string) => {
+        if (fieldLabel) return fieldLabel(k);
+        const trans = t(`field.${k}`);
+        return trans !== `field.${k}` ? trans : k;
+    };
 
     function handleSwitchLedger(e: Event) {
         const next = (e.currentTarget as HTMLSelectElement).value;
@@ -97,20 +114,30 @@
     }
 
     function handleWindowPointerDown(e: PointerEvent) {
-        if (!ledgerMoreDetails?.open) return;
         const target = e.target as Node | null;
-        if (target && !ledgerMoreDetails.contains(target)) {
+        if (ledgerMoreDetails?.open && target && !ledgerMoreDetails.contains(target)) {
             ledgerMoreDetails.open = false;
+        }
+        if (colVisDetails?.open && target && !colVisDetails.contains(target)) {
+            colVisDetails.open = false;
         }
     }
 
     function handleWindowKeydown(e: KeyboardEvent) {
-        if (!ledgerMoreDetails?.open || e.key !== "Escape") return;
+        if (e.key !== "Escape") return;
         if (document.querySelector(".b3-dialog")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        ledgerMoreDetails.open = false;
-        ledgerMoreDetails.querySelector<HTMLElement>("summary")?.focus();
+        if (ledgerMoreDetails?.open) {
+            e.preventDefault();
+            e.stopPropagation();
+            ledgerMoreDetails.open = false;
+            ledgerMoreDetails.querySelector<HTMLElement>("summary")?.focus();
+        }
+        if (colVisDetails?.open) {
+            e.preventDefault();
+            e.stopPropagation();
+            colVisDetails.open = false;
+            colVisDetails.querySelector<HTMLElement>("summary")?.focus();
+        }
     }
 
     function handleMoreKeydown(e: KeyboardEvent) {
@@ -141,7 +168,7 @@
 
 <div class="lv-toolbar lv-ledger-toolbar">
     {#if ledgers.length > 0}
-        <select class="b3-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger") || "切换台账"}>
+        <select class="b3-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger")}>
             {#each groupedLedgers as g (g.groupId)}
                 <optgroup label={g.groupLabel}>
                     {#each g.modules as l (l.id)}
@@ -185,6 +212,31 @@
             onclick={onToggleDensity}>
             {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
         </button>
+        {#if schemaKeys.length > 0}
+            <details class="lv-col-vis-details" bind:this={colVisDetails}>
+                <summary class="b3-button b3-button--outline lv-col-vis-btn" title={t("ledger.columnVisibility")}>
+                    <UiIcon name="layout" size={13} /> <span>{t("ledger.columnVisibility")}</span>
+                </summary>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                <div class="lv-col-vis__menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+                    <div class="lv-col-vis__header">{t("ledger.columnSelect")}</div>
+                    <div class="lv-col-vis__list">
+                        {#each schemaKeys as k (k)}
+                            <label class="lv-col-vis__item">
+                                <input type="checkbox" class="b3-checkbox" checked={tableKeys.includes(k)} aria-label={resolveFieldLabel(k)} onchange={() => onToggleColumn?.(k)} />
+                                <span>{resolveFieldLabel(k)}</span>
+                            </label>
+                        {/each}
+                    </div>
+                    <div class="lv-col-vis__footer">
+                        <button type="button" class="b3-button b3-button--text b3-button--small" onclick={() => { onResetColumns?.(); if (colVisDetails) colVisDetails.open = false; }}>
+                            {t("ledger.columnReset")}
+                        </button>
+                    </div>
+                </div>
+            </details>
+        {/if}
         <button type="button" class="b3-button b3-button--outline lv-open-doc-btn" disabled={!ref?.docId}
             title={t("ledger.openDoc")} onclick={() => plugin.showTabDocs(ref?.docId)}>
             <UiIcon name="folder" size={13} /> <span>{t("ledger.openDoc")}</span>

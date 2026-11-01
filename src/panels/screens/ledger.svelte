@@ -2,8 +2,10 @@
     import { renderLedgerAll, addDetachedRow, setCell } from "@/core/siyuan";
     import { selectCellContent } from "@/core/avcell";
     import { showMessage, Dialog } from "siyuan";
+    import { confirm } from "@/libs/dialog";
+    import { localDateKey, parseDate } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";
-    import { saveRuntime } from "@/core/hub/runtime";
+    import { saveSettings } from "@/core/settings";
     import { ensurePinyin, pinyinReady } from "@/core/pinyin";
     import type { ActivityTarget } from "@/core/activity";
     import LedgerRecordModal from "./ledger-record-modal.svelte";
@@ -119,29 +121,41 @@
             if (pinyinReady()) pyTick += 1;
         });
     });
-    // 17 组：排序偏好记忆（表头点击切换列/方向，跨会话持久化）
-    // svelte-ignore state_referenced_locally
-    let sortKey = $state<string>(plugin.runtime.ledgerSortKey ?? "");
-    // svelte-ignore state_referenced_locally
-    let sortAsc = $state<boolean>(plugin.runtime.ledgerSortAsc ?? true);
+    // POOL-FEAT-11 / CAND-13：台账模块独立排序列与正反序偏好记忆（持久化至 settings.ledgerSort[active]）
+    let sortKey = $state<string>("");
+    let sortAsc = $state<boolean>(true);
+
+    const ref = $derived(ledgers.find((entry) => entry.id === active)?.ref);
+
+    $effect(() => {
+        const saved = plugin.settings?.ledgerSort?.[active];
+        if (saved && saved.key && (!ref?.columns || ref.columns[saved.key])) {
+            sortKey = saved.key;
+            sortAsc = saved.asc;
+        } else if (!saved) {
+            sortKey = "";
+            sortAsc = true;
+        }
+    });
+
     async function toggleSort(k: string) {
         const previousKey = sortKey;
         const previousAsc = sortAsc;
         if (sortKey === k) sortAsc = !sortAsc;
         else { sortKey = k; sortAsc = true; }
-        plugin.runtime.ledgerSortKey = sortKey;
-        plugin.runtime.ledgerSortAsc = sortAsc;
+
+        if (!plugin.settings) return;
+        if (!plugin.settings.ledgerSort) plugin.settings.ledgerSort = {};
+        plugin.settings.ledgerSort[active] = { key: sortKey, asc: sortAsc };
+
         try {
-            await saveRuntime(plugin, plugin.runtime);
+            await saveSettings(plugin, plugin.settings);
         } catch (e) {
             sortKey = previousKey;
             sortAsc = previousAsc;
-            plugin.runtime.ledgerSortKey = previousKey;
-            plugin.runtime.ledgerSortAsc = previousAsc;
             showMessage(t("ledger.sortSaveFailed").replace("${msg}", errText(e)), 5000, "error");
         }
     }
-    const ref = $derived(ledgers.find((entry) => entry.id === active)?.ref);
     // svelte-ignore state_referenced_locally
     const session = panelSession(plugin);
     let filterMemberId = $state(session.ledgerFilterMemberId ?? "");
@@ -232,7 +246,42 @@
     // dbRef in settings; exposing that ref here would show stale rows after a
     // settings change and make the empty-state actions misleading.
     const schemaKeys = $derived<string[]>(ref?.columns ? Object.keys(ref.columns) : []);
-    const tableKeys = $derived(computeTableKeys(schemaKeys, plugin.schemaCatalog?.[active]?.columns));
+    const defaultTableKeys = $derived(computeTableKeys(schemaKeys, plugin.schemaCatalog?.[active]?.columns));
+    const tableKeys = $derived.by(() => {
+        const custom = plugin.settings?.columnVisibility?.[active];
+        if (Array.isArray(custom) && custom.length > 0) {
+            const filtered = custom.filter((k) => schemaKeys.includes(k));
+            if (filtered.length > 0) return filtered;
+        }
+        return defaultTableKeys;
+    });
+
+    async function handleToggleColumn(k: string) {
+        if (!plugin.settings) return;
+        if (!plugin.settings.columnVisibility) plugin.settings.columnVisibility = {};
+        const current = [...tableKeys];
+        let next: string[];
+        if (current.includes(k)) {
+            if (current.length <= 1) {
+                showMessage(t("ledger.atLeastOneCol"), 3000, "info");
+                return;
+            }
+            next = current.filter((x) => x !== k);
+        } else {
+            next = [...current, k];
+        }
+        plugin.settings.columnVisibility[active] = next;
+        await saveSettings(plugin, plugin.settings);
+    }
+
+    async function handleResetColumns() {
+        if (plugin.settings?.columnVisibility?.[active]) {
+            delete plugin.settings.columnVisibility[active];
+            await saveSettings(plugin, plugin.settings);
+            showMessage(t("ledger.columnResetSuccess"), 2000, "info");
+        }
+    }
+
     const PINNED_MODULES = ["certs", "medicine", "vehicles", "stock", "shopping", "house", "contracts", "health"];
     const pinnedLedgers = $derived(PINNED_MODULES.filter((id) => ledgers.some((l) => l.id === id)).slice(0, 5));
 
@@ -414,6 +463,97 @@
         recordModalRef?.openNewRecordModal(initialForm);
     }
 
+    function handleDuplicateRow(r: any) {
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
+        const nameCol = ref?.columns?.name;
+        const rowName = (nameCol && cellText(r.cells?.[nameCol])) || "";
+        const cloneName = rowName ? `${rowName} (副本)` : "";
+        const copiedValues: Record<string, any> = { name: cloneName };
+        const schemaCols = plugin.schemaCatalog?.[active]?.columns ?? [];
+        for (const col of schemaCols) {
+            if (col.key === "name" || ["asset", "mAsset"].includes(col.type)) continue;
+            const keyID = ref?.columns?.[col.key];
+            const v = keyID ? r.cells?.[keyID] : undefined;
+            if (v) {
+                if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
+                else if (col.type === "number") {
+                    const raw = v.number?.content ?? v.content ?? v;
+                    const num = Number(raw);
+                    copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
+                } else if (col.type === "date") {
+                    const raw = v.date?.content ?? v.content;
+                    if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
+                    else if (typeof raw === "string" && raw.trim()) {
+                        const parsed = parseDate(raw.trim());
+                        copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
+                    }
+                } else if (col.type === "checkbox") {
+                    copiedValues[col.key] = v.checkbox?.checked ?? v.checked;
+                } else if (col.type === "relation") {
+                    copiedValues[col.key] = selectCellContent(v) || cellText(v, col.key);
+                } else {
+                    copiedValues[col.key] = cellText(v, col.key);
+                }
+            }
+        }
+        openNewRecord(copiedValues);
+        showMessage(t("ledger.duplicateSuccess").replace("${name}", cloneName || rowName), 3000, "info");
+    }
+
+    async function handleCopyRowMarkdown(r: any) {
+        const cols = (plugin.schemaCatalog?.[active]?.columns ?? []).filter((c: any) => ref?.columns?.[c.key]);
+        const headers = cols.map((c: any) => t(`field.${c.key}`) !== `field.${c.key}` ? t(`field.${c.key}`) : c.key);
+        const values = cols.map((c: any) => cellText(r.cells?.[ref?.columns?.[c.key]], c.key));
+        const md = `| ${headers.join(" | ")} |\n| ${headers.map(() => "---").join(" | ")} |\n| ${values.join(" | ")} |`;
+        try {
+            await navigator.clipboard.writeText(md);
+            showMessage(t("ledger.copyMarkdownOk"), 2500, "info");
+        } catch {
+            showMessage(t("ledger.copyAsImageFail"), 4000, "error");
+        }
+    }
+
+    function handleDeleteRow(r: any) {
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 4000, "info");
+            return;
+        }
+        const nameCol = ref?.columns?.name;
+        const rowTitle = (nameCol && cellText(r.cells?.[nameCol])) || t("ledger.detail");
+        confirm(t("ledger.delTitle"), t("ledger.delBody").replace("${name}", rowTitle), async () => {
+            try {
+                if (plugin.runtime) {
+                    const trashList = plugin.runtime.trash ?? [];
+                    trashList.unshift({
+                        id: r.itemID,
+                        moduleId: active,
+                        title: rowTitle,
+                        deletedAt: new Date().toISOString(),
+                        rowSnapshot: JSON.parse(JSON.stringify(r)),
+                    });
+                    if (trashList.length > 50) trashList.length = 50;
+                    plugin.runtime.trash = trashList;
+                }
+                const { removeLedgerRows } = await import("@/core/siyuan");
+                const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
+                await removeLedgerRows(ref!.avId!, [r.itemID], {
+                    idempotencyKey: `ledger:delete:${ref!.avId!}:${r.itemID}`,
+                    retries: 1,
+                });
+                cleanupRowRuntimeData(plugin.runtime, r.itemID);
+                await saveRuntime(plugin, plugin.runtime);
+                showMessage(t("ledger.delDone"), 2500, "info");
+                await load();
+                try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
+            } catch (e) {
+                showMessage(t("ledger.delFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            }
+        });
+    }
+
     const isGuestMode = $derived.by(() => {
         void version;
         return Boolean(plugin.runtime?.guestModeActive);
@@ -473,10 +613,15 @@
     bind:filterCategory
     {exporting}
     {printing}
+    {schemaKeys}
+    {tableKeys}
+    {fieldLabel}
     {t}
     onSwitchLedger={switchLedgerTo}
     onOpenNewRecord={openNewRecord}
     onToggleDensity={toggleDensity}
+    onToggleColumn={handleToggleColumn}
+    onResetColumns={handleResetColumns}
     onSearchInput={(val) => { panelMemory.ledgerSearch = val; }}
     onSearchClear={() => { panelMemory.ledgerSearch = ""; }}
     onRebuildLedger={rebuildLedger}
@@ -568,6 +713,7 @@
         {visibleRows}
         {filteredRows}
         {ref}
+        activeModuleId={active}
         {sortKey}
         {sortAsc}
         bind:selectedItemIds
@@ -577,9 +723,13 @@
         {ledgerTone}
         {toneCls}
         {toneColor}
+        {plugin}
         onToggleSort={toggleSort}
         onOpenDetail={openDetail}
         onAdjustQty={adjustRowQty}
+        onDuplicateRow={handleDuplicateRow}
+        onDeleteRow={handleDeleteRow}
+        onCopyRowMarkdown={handleCopyRowMarkdown}
         onLoadMore={() => (renderLimit += RENDER_PAGE)}
     />
     <LedgerBatchBar
@@ -590,6 +740,7 @@
         {rows}
         {dynamicLocations}
         {memberCol}
+        {cellText}
         {t}
         onReload={load}
     />

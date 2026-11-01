@@ -10,6 +10,8 @@ import {
     getReminderStage,
     copyReminderAsTaskBlock,
     toggleReminderQuickPlanToday,
+    formatFamilyNotice,
+    copyReminderFamilyNotice,
 } from "@/core/reminders-view-model";
 import type { Reminder } from "@/types";
 import type { HandledEntry } from "@/core/hub/runtime";
@@ -178,5 +180,39 @@ describe("reminders-view-model (提醒中枢视图模型与计算引擎)", () =>
         };
         await toggleReminderQuickPlanToday(r, failingPlugin, t, showMessage);
         expect(failingPlugin.runtime.planDates.r1).toBe("2026-10-30"); // 保持原值，不留脏数据
+    });
+
+    it("formatFamilyNotice 与 copyReminderFamilyNotice 格式化并复制家庭群通知 (CAND-24)", async () => {
+        const r: Reminder = {
+            id: "r-notice",
+            moduleId: "certs",
+            ruleKey: "exp",
+            rowId: "r-row",
+            title: "妈妈的护照换发",
+            dueDate: "2026-11-20",
+            daysLeft: 19,
+            level: "soon",
+            tag: "出国游",
+        };
+
+        const notice = formatFamilyNotice(r, { memberName: "妈妈", moduleName: "证件", note: "#出国游" });
+        expect(notice).toContain("📢【家庭提醒 · 证件】");
+        expect(notice).toContain("📌 事项：妈妈的护照换发");
+        expect(notice).toContain("📅 截止：2026-11-20 （还剩 19 天）");
+        expect(notice).toContain("👤 责任人：妈妈");
+        expect(notice).toContain("📝 备注：#出国游");
+        expect(notice).toContain("💡 来自小驴管家智能提醒");
+
+        let written = "";
+        Object.defineProperty(navigator, "clipboard", {
+            value: {
+                writeText: vi.fn(async (txt: string) => { written = txt; }),
+            },
+            configurable: true,
+        });
+        const showMessage = vi.fn();
+        await copyReminderFamilyNotice(r, t, showMessage, { memberName: "妈妈" });
+        expect(written).toContain("📢【家庭提醒 · certs】");
+        expect(showMessage).toHaveBeenCalled();
     });
 });

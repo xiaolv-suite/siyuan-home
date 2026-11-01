@@ -20,6 +20,7 @@ export interface BindDrawerMoreActionsOptions {
     cardRows: { key?: string; label: string; value: string }[];
     active: string;
     ref: { avId?: string; docId?: string; columns?: Record<string, string> };
+    plugin?: any;
     t: (k: string) => string;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
     cellTextFn: (cell: any, key?: string) => string;
@@ -27,7 +28,7 @@ export interface BindDrawerMoreActionsOptions {
 
 export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): void {
     if (typeof document === "undefined") return;
-    const { dlg, row, cardTitle, cardDeepLink, cardRows, active, ref, t, showMessageFn, cellTextFn } = options;
+    const { dlg, row, cardTitle, cardDeepLink, cardRows, active, ref, plugin, t, showMessageFn, cellTextFn } = options;
 
     const more = dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement | null;
     const closeMore = () => { if (more) more.open = false; };
@@ -174,6 +175,64 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
             try {
                 await navigator.clipboard.writeText(blockEmbedText);
                 showMessageFn(t("ledger.blockEmbedCopied"), 2500, "info");
+            } catch (e) {
+                showMessageFn(String(e), 5000, "error");
+            }
+        };
+    }
+
+    // 9. 沉淀至小驴人脉互动记录 (Epoch 6 跨插件联邦规范)
+    const recordContactBtn = dlg.element.querySelector("#lv-detail-record-contact") as HTMLButtonElement | null;
+    if (recordContactBtn) {
+        recordContactBtn.onclick = async () => {
+            closeMore();
+            try {
+                const { getContactsBridge, logContactInteractionSafely, openContactPicker, parseContactSnapshot } = await import("@/libs/contact-picker");
+                const bridge = getContactsBridge();
+                if (!bridge) {
+                    showMessageFn(t("ledger.contactsMissing"), 4000, "info");
+                    return;
+                }
+                const dateKey = ref.columns?.date ? cellTextFn(row.cells?.[ref.columns.date], "date") : new Date().toISOString().slice(0, 10);
+                const modName = t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active;
+                const noteContent = `${modName} · ${cardTitle}`;
+
+                let targetDocId: string | undefined;
+                if (ref.columns?.contact) {
+                    const snap = cellTextFn(row.cells?.[ref.columns.contact], "contact");
+                    targetDocId = parseContactSnapshot(snap).docId;
+                }
+                if (!targetDocId && ref.columns?.member) {
+                    const mId = row.cells?.[ref.columns.member]?.relation?.blockIDs?.[0];
+                    const targetMember = (plugin.settings?.members ?? []).find((m: any) => m.avItemId === mId || m.id === mId);
+                    if (targetMember?.contactSnapshot) {
+                        targetDocId = parseContactSnapshot(targetMember.contactSnapshot).docId;
+                    }
+                }
+
+                if (targetDocId) {
+                    const ok = await logContactInteractionSafely({
+                        personDocId: targetDocId,
+                        date: dateKey,
+                        note: noteContent,
+                        ref: `home:ledger:${row.itemID}`,
+                    });
+                    if (ok) showMessageFn(t("ledger.contactInteractionRecorded"), 3000, "info");
+                    else showMessageFn(t("ledger.contactInteractionFailed"), 4000, "error");
+                } else {
+                    openContactPicker({ showMessage: showMessageFn, t }, async (pickedSnapshot) => {
+                        const parsed = parseContactSnapshot(pickedSnapshot);
+                        if (!parsed.docId) return;
+                        const ok = await logContactInteractionSafely({
+                            personDocId: parsed.docId,
+                            date: dateKey,
+                            note: noteContent,
+                            ref: `home:ledger:${row.itemID}`,
+                        });
+                        if (ok) showMessageFn(t("ledger.contactInteractionRecorded"), 3000, "info");
+                        else showMessageFn(t("ledger.contactInteractionFailed"), 4000, "error");
+                    });
+                }
             } catch (e) {
                 showMessageFn(String(e), 5000, "error");
             }
@@ -425,7 +484,7 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
             const cloneName = rowName ? `${rowName} (副本)` : "";
             const copiedValues: Record<string, any> = { name: cloneName };
             for (const col of schemaCols) {
-                if (col.key === "name" || ["asset", "mAsset", "relation"].includes(col.type)) continue;
+                if (col.key === "name" || ["asset", "mAsset"].includes(col.type)) continue;
                 const v = ref.columns?.[col.key] ? row.cells?.[ref.columns[col.key]] : undefined;
                 if (v) {
                     if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
@@ -442,6 +501,8 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
                         }
                     } else if (col.type === "checkbox") {
                         copiedValues[col.key] = v.checkbox?.checked ?? (v as any).checked ?? (v as any).value?.checkbox?.checked;
+                    } else if (col.type === "relation") {
+                        copiedValues[col.key] = selectCellContent(v) || cellTextFn(v, col.key);
                     } else {
                         copiedValues[col.key] = cellTextFn(v, col.key);
                     }

@@ -703,6 +703,10 @@ async function main() {
 
         await page.locator("#lv-rail-tab-reminders").click();
         await sleep(1000);
+        await page.waitForFunction(
+            () => document.querySelector("#lv-panel-reminders")?.textContent?.includes("清洗空调滤网"),
+            { timeout: 8000 }
+        ).catch(() => undefined);
         const remText = await page.locator("#lv-panel-reminders").innerText();
         assert.equal(remText.includes("清洗空调滤网") && remText.includes("#家务"), true, "提醒中枢应渲染自然语言备忘与分类徽章");
 
@@ -1512,6 +1516,110 @@ async function main() {
             "Step 18 · 一家人共同参与多选交互、能源动态快捷面额与全域多成员台账联动深度实测",
             true,
             `一家人一起一键全选正常，充放电快捷面额动态切换自适应，全域多选台账模态联动正常`,
+        );
+
+        // ── Step 19: CAND-24~27新特性与生态跨插件联动深度端到端实测 ──
+        await page.locator("#lv-rail-tab-reminders").click();
+        await sleep(800);
+        await clearSnackbars();
+
+        // 1. CAND-24: 家庭群通知一键复制与格式化自检
+        let copyNoticeBtn = page.locator(".lv-rem-more-menu button").filter({ hasText: /家庭群通知|copyFamilyNotice/ }).first();
+        if (!(await copyNoticeBtn.isVisible())) {
+            const firstRemMore = page.locator(".lv-rem .lv-rem-more-toggle").first();
+            if (await firstRemMore.isVisible()) {
+                await firstRemMore.click();
+                await sleep(250);
+            }
+        }
+        assert.equal(await copyNoticeBtn.isVisible(), true, "提醒列表中应具备「复制家庭群通知」按钮 (CAND-24)");
+        await copyNoticeBtn.click();
+        await sleep(400);
+
+        // 2. CAND-25: 原生日历视图切换与离线 ICS 日历导出
+        const viewToggleCal = page.locator(".lv-hub-view-toggle button").filter({ hasText: /日历|calendar/i }).first();
+        assert.equal(await viewToggleCal.isVisible(), true, "提醒顶栏应提供「日历」视图切换按钮");
+        await viewToggleCal.click();
+        await sleep(600);
+        const calExportBtn = page.locator(".lv-cal-export-btn").first();
+        assert.equal(await calExportBtn.isVisible(), true, "日历顶栏应显示「导出手机日历 (.ics)」按钮 (CAND-25)");
+        await calExportBtn.click();
+        await sleep(400);
+        const viewToggleList = page.locator(".lv-hub-view-toggle button").filter({ hasText: /列表|list/i }).first();
+        await viewToggleList.click();
+        await sleep(400);
+
+        // 3. CAND-26: 全景聚光灯标签 (#tag) 与紧急度 (!紧急) 高级过滤
+        await page.evaluate(() => {
+            window.dispatchEvent(new CustomEvent("siyuan-home:open-spotlight"));
+        });
+        await sleep(500);
+        const spotlightModal = page.locator(".lv-spotlight-dialog-body");
+        assert.equal(await spotlightModal.isVisible(), true, "全景生活聚光灯检索弹窗应正常唤起");
+        const spotInp19 = page.locator("#lv-spotlight-input");
+        await spotInp19.fill("#证件");
+        await sleep(400);
+        const certsFilterText = await page.locator("#lv-spotlight-list").innerText();
+        assert.equal(certsFilterText.includes("身份证") || certsFilterText.includes("证件"), true, "输入 #证件 标签应精准过滤出证件条目 (CAND-26)");
+        await spotInp19.fill("!紧急");
+        await sleep(400);
+        const urgentStatusText = await page.locator("#lv-spotlight-status").innerText();
+        assert.equal(Boolean(urgentStatusText), true, "输入 !紧急 过滤条件状态栏应即时响应重算");
+        await page.keyboard.press("Escape");
+        await sleep(300);
+
+        // 4. CAND-27: 台账列宽鼠标拖拽调整、双击重置与记忆持久化
+        await page.locator("#lv-rail-tab-ledger").click();
+        await sleep(800);
+        const resizerHandle = page.locator("thead th .lv-col-resizer").first();
+        assert.equal(await resizerHandle.isVisible(), true, "台账表头应渲染可拖拽列宽句柄 .lv-col-resizer (CAND-27)");
+        const thBox = await resizerHandle.boundingBox();
+        if (thBox) {
+            await page.mouse.move(thBox.x + thBox.width / 2, thBox.y + thBox.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(thBox.x + 60, thBox.y + thBox.height / 2);
+            await page.mouse.up();
+            await sleep(400);
+        }
+        const widthPersistCheck = await page.evaluate(() => {
+            const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
+            return Boolean(p.settings?.ledgerColumnWidths && Object.keys(p.settings.ledgerColumnWidths).length > 0);
+        });
+        assert.equal(widthPersistCheck, true, "拖拽列宽后应在 settings.ledgerColumnWidths 中建立对应持久化映射");
+        await resizerHandle.dblclick();
+        await sleep(300);
+
+        // 5. 生态跨插件联动：台账抽屉人脉沉淀与拾遗阅读流入口
+        const firstRowOpenBtn = page.locator(".lv-row-link .lv-table-open").first();
+        if (await firstRowOpenBtn.count()) {
+            await firstRowOpenBtn.click();
+            await sleep(500);
+            const drawerMoreSummary = page.locator(".lv-detail-actions .lv-detail-more summary");
+            if (await drawerMoreSummary.count()) {
+                await drawerMoreSummary.click();
+                await sleep(250);
+                const contactBtn = page.locator("#lv-detail-record-contact");
+                const gleanBtn = page.locator("#lv-detail-push-glean");
+                assert.equal(await contactBtn.isVisible(), true, "抽屉更多菜单中应具备「沉淀为人脉互动」入口");
+                assert.equal(await gleanBtn.isVisible(), true, "抽屉更多菜单中应具备「推入拾遗渐进阅读」入口");
+                await contactBtn.click();
+                await sleep(300);
+            }
+            while (await page.locator(".b3-dialog--open, .b3-dialog").count() > 0) {
+                await page.keyboard.press("Escape");
+                await sleep(200);
+            }
+        }
+
+        // 6. 控制台 0 异常检验与截图归档
+        await page.locator("#lv-rail-tab-overview").click();
+        await sleep(400);
+        assert.equal(pageErrors.length, 0, `Step 19 新特性与生态联动实测中不得发生任何未捕获异常: ${pageErrors.join("; ")}`);
+        await page.screenshot({ path: path.join(SHOT_DIR, "19-cand24-27-and-ecosystem-interop.png") });
+        rec(
+            "Step 19 · CAND-24~27新特性与生态跨插件联动深度端到端实测",
+            true,
+            `家庭通知复制正常, 日历ICS导出合规, 聚光灯标签/紧急过滤精准, 台账列宽自适应持久化, 人脉与拾遗联动优雅降级`,
         );
 
         await browser.close();

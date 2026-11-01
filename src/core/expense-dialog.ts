@@ -5,7 +5,7 @@
  * 纯逻辑 + DOM 独立模块，按需动态加载以减轻页面体积。
  */
 
-import { calculateExpenseTrend, formatExpenseTrendReport, type ExpenseEntry } from "./expense-trend";
+import { calculateExpenseTrend, formatExpenseTrendReport, calculateFixedVsVariable, type ExpenseEntry } from "./expense-trend";
 import { evaluateBudgetUsage, formatBudgetLimitReport } from "./budget-limit";
 import { uiIcon } from "@/ui/icons";
 import { escapeHtml, openModalShell } from "./modal-shell";
@@ -25,7 +25,8 @@ export function openExpenseTrendDialog(opts: ExpenseDialogOptions): void {
     const { entries, budgetLimits = {}, t, DialogCls, showMessageFn } = opts;
 
     const trendReport = calculateExpenseTrend(entries);
-    const trendText = formatExpenseTrendReport(trendReport);
+    const fixedVsVar = calculateFixedVsVariable(entries);
+    const trendText = formatExpenseTrendReport(trendReport, "元", fixedVsVar);
 
     // 仅在已配置分类限额时附加预算简报，不再展示无配置入口的“暂未配置”空壳区块
     const hasBudgetLimits = Object.keys(budgetLimits).some((k) => Number(budgetLimits[k]) > 0);

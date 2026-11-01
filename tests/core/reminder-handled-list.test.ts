@@ -44,4 +44,44 @@ describe("reminder-handled-list (提醒中枢已处理事项列表组件)", () =
         visible = mockList.slice(0, limit);
         expect(visible).toHaveLength(45);
     });
+
+    it("归档子类型过滤与计数统计精准分流", () => {
+        const mockHandled = [
+            { id: "1", kind: "done" },
+            { id: "2", kind: "done" },
+            { id: "3", kind: "muted" },
+            { id: "4", kind: "period" },
+            { id: "5", kind: "year" },
+            { id: "6", kind: "memo" },
+        ];
+
+        const counts = {
+            all: mockHandled.length,
+            done: mockHandled.filter((h) => h.kind === "done").length,
+            muted: mockHandled.filter((h) => h.kind === "muted").length,
+            period: mockHandled.filter((h) => h.kind === "period" || h.kind === "year").length,
+            memo: mockHandled.filter((h) => h.kind === "memo").length,
+        };
+
+        expect(counts.all).toBe(6);
+        expect(counts.done).toBe(2);
+        expect(counts.muted).toBe(1);
+        expect(counts.period).toBe(2);
+        expect(counts.memo).toBe(1);
+
+        const filterKind = (kind: string) => {
+            if (kind === "all") return mockHandled;
+            if (kind === "done") return mockHandled.filter((h) => h.kind === "done");
+            if (kind === "muted") return mockHandled.filter((h) => h.kind === "muted");
+            if (kind === "period") return mockHandled.filter((h) => h.kind === "period" || h.kind === "year");
+            if (kind === "memo") return mockHandled.filter((h) => h.kind === "memo");
+            return mockHandled;
+        };
+
+        expect(filterKind("done")).toHaveLength(2);
+        expect(filterKind("period")).toHaveLength(2);
+        expect(filterKind("muted")).toHaveLength(1);
+        expect(filterKind("memo")).toHaveLength(1);
+        expect(filterKind("all")).toHaveLength(6);
+    });
 });

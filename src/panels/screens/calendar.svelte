@@ -11,10 +11,11 @@
     import { showMessage } from "siyuan";
     import { formatAsTaskBlock } from "@/core/block-capture";
 
-    let { items, t, version, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn, onLocate }: {
+    let { items, t, version, isGuest = false, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn, onLocate, onReschedule }: {
         items: Reminder[];
         t: (k: string) => string;
         version?: number;
+        isGuest?: boolean;
         onComplete: (r: Reminder) => void | Promise<void>;
         onAddMemo: (title: string, due: string, options?: any) => void | Promise<void>;
         onConvert: (r: Reminder) => void;
@@ -24,6 +25,7 @@
         onTogglePin?: (r: Reminder) => void | Promise<void>;
         isPinnedFn?: (r: Reminder) => boolean;
         onLocate?: (r: Reminder) => void;
+        onReschedule?: (id: string, targetDate: string) => void | Promise<void>;
     } = $props();
 
     const now = new Date();
@@ -122,6 +124,10 @@
     }
     async function addMemoForDay() {
         if (savingMemo) return;
+        if (isGuest) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         const rawTitle = memoTitle.trim();
         if (!rawTitle) {
             memoInput?.focus();
@@ -171,6 +177,62 @@
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
         }
     }
+    let draggingReminderId = $state<string | null>(null);
+    let dragOverCellKey = $state<string | null>(null);
+
+    function handleDragStart(e: DragEvent, r: Reminder) {
+        if (isGuest) return;
+        draggingReminderId = r.id;
+        if (e.dataTransfer) {
+            e.dataTransfer.setData("text/plain", r.id);
+            e.dataTransfer.setData("application/json", JSON.stringify({ id: r.id, dueDate: r.dueDate, title: r.title }));
+            e.dataTransfer.effectAllowed = "move";
+        }
+    }
+
+    function handleDragEnd() {
+        draggingReminderId = null;
+        dragOverCellKey = null;
+    }
+
+    function handleCellDragOver(e: DragEvent, cellKey: string) {
+        if (isGuest) return;
+        e.preventDefault();
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = "move";
+        }
+        if (dragOverCellKey !== cellKey) {
+            dragOverCellKey = cellKey;
+        }
+    }
+
+    function handleCellDragLeave(cellKey: string) {
+        if (dragOverCellKey === cellKey) {
+            dragOverCellKey = null;
+        }
+    }
+
+    async function handleCellDrop(e: DragEvent, cellKey: string) {
+        if (isGuest) return;
+        e.preventDefault();
+        dragOverCellKey = null;
+        const remId = e.dataTransfer?.getData("text/plain") || draggingReminderId;
+        draggingReminderId = null;
+        if (!remId) return;
+        const targetReminder = items.find((r) => r.id === remId);
+        if (targetReminder && targetReminder.dueDate === cellKey) {
+            return;
+        }
+        try {
+            if (onReschedule) {
+                await onReschedule(remId, cellKey);
+            }
+            showMessage(t("cal.rescheduledTo").replace("${d}", cellKey), 2500, "info");
+        } catch (err) {
+            showMessage(t("hub.actionFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 4000, "error");
+        }
+    }
+
     function moveDayFocus(event: KeyboardEvent, index: number) {
         const key = event.key;
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(key)) return;
@@ -188,8 +250,48 @@
         const next = key === "Home" ? rowStart : key === "End" ? Math.min(cells.length - 1, rowStart + cols - 1)
             : key === "ArrowLeft" ? Math.max(0, index - 1) : key === "ArrowRight" ? Math.min(cells.length - 1, index + 1)
                 : key === "ArrowUp" ? Math.max(0, index - cols) : Math.min(cells.length - 1, index + cols);
-        selected = cells[next].key;
-        requestAnimationFrame(() => (document.querySelector(`[data-cal-day="${cells[next].key}"]`) as HTMLButtonElement | undefined)?.focus());
+        const targetCell = cells[next];
+        selectCalCell(targetCell);
+        requestAnimationFrame(() => (document.querySelector(`[data-cal-day="${targetCell.key}"]`) as HTMLButtonElement | undefined)?.focus());
+    }
+
+    function selectCalCell(c: CalCell) {
+        selected = c.key;
+        if (mode === "month" && !c.inMonth) {
+            const cellDate = keyToDate(c.key);
+            viewYear = cellDate.getFullYear();
+            viewMonth = cellDate.getMonth();
+        }
+    }
+
+    async function exportCalendarIcs() {
+        if (typeof document === "undefined") return;
+        const visibleKeys = new Set(cells.map((c) => c.key));
+        const matched = items.filter((r) => visibleKeys.has(r.dueDate) || (mode === "month" && r.dueDate.startsWith(`${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`)));
+        if (matched.length === 0) {
+            showMessage(t("hub.icsEmpty"), 3000, "info");
+            return;
+        }
+        try {
+            const { buildIcs } = await import("@/core/ics");
+            const events = matched.map((r: Reminder) => ({
+                uid: `${r.id}@lvhome.local`,
+                date: r.dueDate,
+                summary: r.title,
+                description: r.moduleId === "adhoc" ? t("adhoc.name") : (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId),
+            }));
+            const label = mode === "month" ? `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}` : weekLabel.replace(/\s+/g, "");
+            const ics = buildIcs(`${t("cal.title")} · ${headLabel}`, events);
+            const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `lvhome-schedule-${label}.ics`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showMessage(t("cal.icsExportDone").replace("${n}", String(matched.length)), 3000, "info");
+        } catch (e) {
+            showMessage(t("hub.icsFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+        }
     }
 </script>
 
@@ -197,6 +299,9 @@
     <div class="lv-cal-head">
         <b>{headLabel}</b>
         <span class="fn__flex-1"></span>
+        <button type="button" class="b3-button b3-button--outline lv-cal-export-btn" title={t("cal.exportIcs")} aria-label={t("cal.exportIcs")} onclick={exportCalendarIcs}>
+            <UiIcon name="calendar" size={13} /> {t("cal.exportIcs")}
+        </button>
         <span class="lv-tabs" role="group" aria-label={t("cal.title")}>
             <button type="button" class="lv-tabs__item" class:on={mode === "month"}
                 aria-pressed={mode === "month"} onclick={() => setMode("month")}>{t("view.month")}</button>
@@ -204,7 +309,7 @@
                 aria-pressed={mode === "week"} onclick={() => setMode("week")}>{t("view.week")}</button>
         </span>
         <button type="button" class="lv-iconbtn" aria-label={t("cal.prev")} title={t("cal.prev")} onclick={() => nav(-1)}><UiIcon name="back" size={16} /></button>
-        <button type="button" class="b3-button b3-button--outline" onclick={goToday}>{t("cal.today")}</button>
+        <button type="button" class="b3-button b3-button--outline lv-cal-today-btn" onclick={goToday}>{t("cal.today")}</button>
         <button type="button" class="lv-iconbtn" aria-label={t("cal.next")} title={t("cal.next")} onclick={() => nav(1)}><UiIcon name="forward" size={16} /></button>
     </div>
     <div class="lv-cal-grid" class:wk={mode === "week"} role="grid" aria-label={t("cal.title")}>
@@ -218,11 +323,14 @@
                 {#each week as c, dayIndex (c.key)}
                     {@const dayReminders = byDate.get(c.key) ?? []}
                     {@const hasOverdue = dayReminders.some((r) => r.level === "overdue")}
-                    <button type="button" class="lv-cal-cell" class:out={mode === "month" && !c.inMonth} class:sel={c.key === selected}
+                    <button type="button" class="lv-cal-cell" class:out={mode === "month" && !c.inMonth} class:sel={c.key === selected} class:is-drag-over={dragOverCellKey === c.key}
                         data-cal-day={c.key} role="gridcell" aria-selected={c.key === selected}
                         aria-label={`${c.key}, ${dayReminders.length} ${t("cal.itemsUnit")}${c.key === todayKey ? `, ${t("cal.today")}` : ""}${mode === "month" && !c.inMonth ? `, ${t("cal.otherMonth")}` : ""}`}
                         tabindex={c.key === selected ? 0 : -1} onkeydown={(e) => moveDayFocus(e, weekIndex * 7 + dayIndex)}
-                        onclick={() => (selected = c.key)}>
+                        ondragover={(e) => handleCellDragOver(e, c.key)}
+                        ondragleave={() => handleCellDragLeave(c.key)}
+                        ondrop={(e) => handleCellDrop(e, c.key)}
+                        onclick={() => selectCalCell(c)}>
                         <span class="d" class:today={c.key === todayKey} class:has-overdue={hasOverdue}>{c.day}</span>
                         <span class="dots">
                             {#each dayReminders.slice(0, 5) as r (r.id)}
@@ -259,7 +367,10 @@
         {:else}
             <div class="lv-cal-items">
                 {#each dayItems as r (r.id)}
-                    <div class="lv-cal-item">
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="lv-cal-item" role="listitem" draggable={!isGuest} class:is-dragging={draggingReminderId === r.id}
+                        ondragstart={(e) => handleDragStart(e, r)} ondragend={handleDragEnd}
+                        title={!isGuest ? t("cal.dragDropTip") : undefined}>
                         <span class="lv-rem-ic" aria-hidden="true"><UiIcon name={moduleUiIcon(r.moduleId)} size={18} /></span>
                         {#if onLocate && r.moduleId !== "adhoc"}
                             <div class="lv-cal-item-t is-link"
@@ -299,10 +410,13 @@
         {/if}
         <!-- 233 波：当日快捷新增备忘（日期预设为选中日） -->
         <div class="lv-cal-memo-bar">
-            <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1" placeholder={t("cal.memoPlaceholder")} aria-label={t("cal.memoPlaceholder")} disabled={savingMemo}
+            <input bind:this={memoInput} type="text" class="b3-text-field fn__flex-1"
+                placeholder={isGuest ? t("guest.writeBlocked") : t("cal.memoPlaceholder")}
+                aria-label={t("cal.memoPlaceholder")}
+                disabled={savingMemo || isGuest}
                 bind:value={memoTitle}
                 onkeydown={(e: KeyboardEvent) => e.key === "Enter" && !e.isComposing && void addMemoForDay()} />
-            <button type="button" class="lv-btn primary sm" disabled={savingMemo} aria-busy={savingMemo} onclick={addMemoForDay}>
+            <button type="button" class="lv-btn primary sm" disabled={savingMemo || isGuest || !memoTitle.trim()} aria-busy={savingMemo} onclick={addMemoForDay}>
                 {#if !savingMemo}<UiIcon name="add" size={12} /> {/if}{savingMemo ? t("ledger.saving") : t("memo.add")}
             </button>
         </div>

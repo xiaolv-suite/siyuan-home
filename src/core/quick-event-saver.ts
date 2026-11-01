@@ -193,6 +193,27 @@ export async function saveQuickVitalRecord(params: QuickVitalSaveParams): Promis
         vitalMetricType: metricType,
     });
 
+    // 跨插件联邦联动：体征录入打卡自动协同（Epoch 6 标准）
+    queueMicrotask(async () => {
+        try {
+            const { logCheckinEventSafely } = await import("@/libs/ecosystem-bridge-kit");
+            const matchedBinding = (plugin.settings?.checkinBindings ?? []).find(
+                (b: any) => (!b.memberId || b.memberId === memberId) && (b.metric === metricType || b.itemId?.includes(metricType))
+            ) || (plugin.settings?.checkinBindings ?? []).find(
+                (b: any) => !b.memberId || b.memberId === memberId
+            );
+            const targetItemId = matchedBinding?.itemId || `home_health_${metricType}`;
+            await logCheckinEventSafely({
+                itemId: targetItemId,
+                value: metricType === "weight" ? weight : metricType === "glucose" ? glucose : 1,
+                unit: metricType === "weight" ? "kg" : metricType === "glucose" ? "mmol/L" : "次",
+                externalRef: `home:health:${row?.itemID || "vital"}:${date}`,
+                note: `${memberName} ${summaryDiag}`,
+                occurredAt: `${date}T${time || "08:00"}:00.000Z`,
+            });
+        } catch { /* 优雅降级 */ }
+    });
+
     return nextLogs;
 }
 
@@ -243,6 +264,26 @@ export async function saveQuickChoreRecord(params: QuickChoreSaveParams): Promis
         choreMemberIds: memberIds,
     });
 
+    // 跨插件联邦联动：家务打卡自动协同打卡连击（Epoch 6 标准）
+    queueMicrotask(async () => {
+        try {
+            const { logCheckinEventSafely } = await import("@/libs/ecosystem-bridge-kit");
+            const primaryMemberId = memberIds[0];
+            const matchedBinding = (plugin.settings?.checkinBindings ?? []).find(
+                (b: any) => (!b.memberId || b.memberId === primaryMemberId)
+            );
+            const targetItemId = matchedBinding?.itemId || `home_chores_${choreRowId}`;
+            await logCheckinEventSafely({
+                itemId: targetItemId,
+                value: points || 1,
+                unit: points ? "分" : "次",
+                externalRef: `home:chores:${choreRowId}:${date}`,
+                note: note ? `家务打卡：${note}` : "家务打卡完成",
+                occurredAt: `${date}T${time || "12:00"}:00.000Z`,
+            });
+        } catch { /* 优雅降级 */ }
+    });
+
     return nextLogs;
 }
 
@@ -258,6 +299,7 @@ export interface QuickShoppingSaveParams {
 
 export async function saveQuickShoppingRecord(params: QuickShoppingSaveParams): Promise<any> {
     const { plugin, date, time, name, qty, price, category } = params;
+    const normalizedCategory = category === "food" ? "food_sh" : category === "other" ? "other_sh" : (category || "daily");
     const shopRef = await ensureModuleTargetRef(plugin, "shopping");
     const { itemID } = await writeLedgerRow({
         moduleId: "shopping",
@@ -267,7 +309,7 @@ export async function saveQuickShoppingRecord(params: QuickShoppingSaveParams): 
         fields: {
             qty: qty || 1,
             date,
-            category: category || "daily",
+            category: normalizedCategory,
             ...(price ? { price } : {}),
         },
     });
@@ -278,12 +320,12 @@ export async function saveQuickShoppingRecord(params: QuickShoppingSaveParams): 
         title: name,
         qty: qty || 1,
         price,
-        category,
+        category: normalizedCategory,
         at: composeLifelogIsoAt(date, time),
     }));
 
     saveQuickDefaults(plugin, {
-        shoppingCategory: category,
+        shoppingCategory: normalizedCategory,
     });
 
     return nextLogs;

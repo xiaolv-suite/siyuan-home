@@ -103,3 +103,41 @@ export async function lunarLabel(iso: string): Promise<string | undefined> {
     const day = p.day <= 10 ? `初${p.day === 10 ? "十" : nums[p.day]}` : p.day < 20 ? `十${nums[p.day - 10]}` : p.day === 20 ? "二十" : p.day < 30 ? `廿${nums[p.day - 20]}` : "三十";
     return `${String(p.year).replace(/[0-9]/g, (n) => nums[Number(n)])}年${p.leap ? "闰" : ""}${months[p.month]}${day}`;
 }
+
+const TERM_INFO = [0, 21208, 42467, 63836, 85337, 107014, 128867, 150921, 173149, 195551, 218072, 240693, 263365, 286058, 308703, 331233, 353609, 375780, 397693, 419289, 440516, 461330, 481689, 501538];
+const SOLAR_TERMS = ["小寒", "大寒", "立春", "雨水", "惊蛰", "春分", "清明", "谷雨", "立夏", "小满", "芒种", "夏至", "小暑", "大暑", "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪", "冬至"];
+const TIAN_GAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+const DI_ZHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+const SHENG_XIAO = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+
+export function getSolarTerm(date: Date): string | undefined {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    for (let i = 0; i < 2; i++) {
+        const termIndex = m * 2 + i;
+        const termUtc = new Date(Date.UTC(1900, 0, 6, 2, 5) + (31556925974.7 * (y - 1900) + TERM_INFO[termIndex] * 60000));
+        if (termUtc.getUTCMonth() === m && termUtc.getUTCDate() === d) {
+            return SOLAR_TERMS[termIndex];
+        }
+    }
+    return undefined;
+}
+
+/** 获取农历综合展示文本（如 "丙午马年 · 九月廿三" 或 "丙午马年 · 九月廿三 · 霜降"） */
+export function getLunarDisplay(date: Date = new Date()): string | undefined {
+    const p = partsForDate(date);
+    if (!p) return undefined;
+    const nums = "〇一二三四五六七八九";
+    const months = ["", "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
+    const day = p.day <= 10 ? `初${p.day === 10 ? "十" : nums[p.day]}` : p.day < 20 ? `十${nums[p.day - 10]}` : p.day === 20 ? "二十" : p.day < 30 ? `廿${nums[p.day - 20]}` : "三十";
+    const offset = (p.year - 4) % 60;
+    const gan = TIAN_GAN[offset % 10] ?? "";
+    const zhiIdx = offset % 12;
+    const zhi = DI_ZHI[zhiIdx] ?? "";
+    const xiao = SHENG_XIAO[zhiIdx] ?? "";
+    const yearText = `${gan}${zhi}${xiao}年`;
+    const monthDayText = `${p.leap ? "闰" : ""}${months[p.month]}${day}`;
+    const term = getSolarTerm(date);
+    return term ? `${yearText} · ${monthDayText} · ${term}` : `${yearText} · ${monthDayText}`;
+}

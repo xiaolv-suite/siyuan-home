@@ -244,14 +244,14 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
             const draft = mapShoppingToAssetReal(row, ref.columns!);
 
             const catOptions = [
-                { val: "digital", label: "数码电子" },
-                { val: "appliance", label: "家用电器" },
-                { val: "furniture", label: "家具家居" },
-                { val: "apparel", label: "服饰箱包" },
-                { val: "collection", label: "潮玩收藏" },
-                { val: "sports", label: "运动户外" },
-                { val: "other_ar", label: "其他资产" },
-            ].map((c) => `<option value="${c.val}" ${c.val === draft.suggestedCategory ? "selected" : ""}>${c.label}</option>`).join("");
+                "digital",
+                "appliance",
+                "furniture",
+                "apparel",
+                "collection",
+                "sports",
+                "other_ar",
+            ].map((val) => `<option value="${val}" ${val === draft.suggestedCategory ? "selected" : ""}>${t(`field.category.opt.${val}`)}</option>`).join("");
 
             const dlg = new DialogCls({
                 title: t("ledger.shoppingToAssetTitle"),

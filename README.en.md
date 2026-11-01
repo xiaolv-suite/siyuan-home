@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.188** is protected by 175 test suites (1,151 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.192** is protected by 198 test suites (1,237 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.188-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1151%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.192-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1237%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
@@ -41,13 +41,14 @@ Lv Home does not ask you to record cumbersome daily journals. Instead, it relies
 
 | Domain | Key Capabilities & Features | User Value |
 |---|---|---|
-| **🏠 Overview Dashboard** | Bento-style dark accent card, weekly pulse rhythm, family milestone achievements, fast member-perspective toggle | Instant grasp of urgent tasks upon opening each day; eliminate core risks at a glance |
-| **⏰ Expiry Reminder Hub** | Dual-date model (objective deadline vs. subjective plan-date), list & calendar grid double views, multi-stage tiered warnings, saved named views, iCalendar (.ics) export & Markdown weekly digest | Total prevention of overdue tasks; agile day-of planning like Things 3; seamless syncing with phone calendars |
-| **🗂️ 31 Life Ledgers** | Covering certificates, vehicles, health, insurance, medicine, assets, contracts, chores, and schooling; virtualized high-performance table, multi-column sorting, full-field search | Structured fact repository; attachment and invoice receipts; embeddable as native SiYuan attribute views in notes |
-| **👥 Member Archive** | Family role tree (self, spouse, children, elders, pets), local avatar storage, solar & lunar birthday conversion, single-member record drill-down, vCard export | Drill down into all certificates, assets, vitals, and tasks per member without blind spots |
-| **🔍 Spotlight Search** | Universal `Ctrl+K` hotkey launcher, preloaded pinyin fuzzy indexing, keyword `<mark>` highlighting, and keyboard navigation | Locate any household item, certificate number, or storage location in milliseconds |
-| **⚡ Quick Capture** | Global `N` key trigger, natural language date parsing (e.g. "pick up health checkup tomorrow afternoon"), multi-line continuous capture | Capture thoughts and events immediately without breaking current reading or note-taking flow |
+| **🏠 Overview Dashboard** | Bento-style dark accent card, weekly pulse rhythm, family milestone achievements, fast member-perspective toggle, streamlined daily flow shortcuts | Instant grasp of urgent tasks upon opening each day; eliminate core risks at a glance |
+| **⏰ Expiry Reminder Hub** | Dual-date model (objective deadline vs. subjective plan-date), list & calendar grid double views, **one-click copy family notice (CAND-24)**, **native calendar offline iCalendar (.ics) export (CAND-25)**, multi-stage tiered warnings, saved named views, Markdown weekly digest | Total prevention of overdue tasks; one-click group notice broadcast; seamless import into iOS/Android calendar |
+| **🗂️ 31 Life Ledgers** | Covering certificates, vehicles, health, insurance, medicine, assets, contracts, chores; virtualized high-performance table, **adaptive column width dragging & memory persistence (CAND-27)**, multi-column sorting, full-field search | Structured fact repository; custom column widths saved per ledger; embeddable as native SiYuan attribute views |
+| **👥 Member Archive** | Family role tree (self, spouse, children, elders, pets), local avatar storage, solar & lunar birthday conversion, **"Entire Family Together" multi-member chip**, single-member record drill-down, vCard export | Drill down into all certificates, assets, vitals, and tasks per member without blind spots |
+| **🔍 Spotlight Search** | Universal `Ctrl+K` hotkey launcher, preloaded pinyin fuzzy indexing, **`#tag` and `!urgent` composite query syntax (CAND-26)**, keyword `<mark>` highlighting, keyboard navigation | Locate any household item, certificate number, or storage location in milliseconds |
+| **⚡ Quick Capture** | Global `N` key trigger, **energy smart 3-number conversion with dynamic denominations**, Quick Add syntax tags (`@tomorrow`, `!high`, `#category`, `*monthly`), natural language date parsing | Capture thoughts and events immediately with memory defaults; zero friction |
 | **📍 Storage Location Index** | Cross-module item storage index with reverse search (e.g. search by "study", "master bedroom", "storage box", "garage") | Never turn drawers upside down again; locate any item instantly |
+| **🤝 Ecosystem Federation** | Deep interop with `siyuan-checkin` (habits/vitals streak), `siyuan-contacts` (timeline interactions), `siyuan-glean` (progressive reading slices), `siyuan-speed-switch` (Raikiri overview widget & actions) | Seamless friction-free integration with XiaoLv plugin family, with 100% graceful degradation |
 | **🛡️ Privacy & Safety** | Guest Mode masking sensitive financial numbers and IDs, family Emergency Card (blood type, allergies, contacts), safe Trash recovery | Safe presentation in public; fast response during emergencies; lossless recovery from accidental deletions |
 
 ---
@@ -182,15 +183,29 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.188 (2026-10-31 · Current Version)
-- **Fixed (Native SiYuan Document Materialization, Column Order & Cross-Panel Linkage)**:
-  - Aligned the `data-av-id` and `data-node-id` (`dbRefs.avId`) on `<div data-type="NodeAttributeView">` via Kramdown IAL `{: id="${avIdSeed}"}` in `createAttributeView`, ensuring native SiYuan ledger documents in the notebook tree render all columns and rows directly inside Protyle;
-  - Chained `previousKeyID` across `ensureColumns` and `addAttributeViewColumn` so columns in native SiYuan AttributeView tables appear in natural schema order after the `Primary Key` column instead of reversed;
-  - Fixed `showTabDocs(docId, blockId)` to open the ledger document `docId` when `blockId` is a detached AV item ID (`isDetached: true`), and focus/highlight `blockId` when it is a bound document block;
-  - Connected Overview Bento `Focus Today` card click to filter Reminders by 7-day/overdue scope, refreshed active ledgers upon Quick Capture shopping/snippet saves, added feedback toast on unchanged drawer saves, and right-aligned Member Editor action buttons on desktop.
+### v0.5.192 (2026-11-01 · Current Version)
+- **Added (One-Click Copy Family Group Notice · CAND-24)**: Added "Copy Family Notice" in reminder card action menus, formatting tasks, deadlines, days remaining, assignees, and notes into structured group notifications ready for messaging apps;
+- **Added (Native Calendar Offline iCalendar .ics Export · CAND-25)**: Added "Export Phone Calendar (.ics)" to the Reminders Calendar header, generating standard RFC 5545 `.ics` event files without external dependencies for iOS/Android calendar import;
+- **Added (Spotlight Tag & Urgency Advanced Filtering · CAND-26)**: Universal Spotlight (`Ctrl+K`) supports `#tag` (e.g. `#certs`, `#daily`) and `!urgent` / `!overdue` / `!high` composite query syntax with fuzzy pinyin matching and dynamic count headers;
+- **Added (Adaptive Column Resizing with Memory Persistence · CAND-27)**: Added draggable column resize handles (`.lv-col-resizer`) on all ledger table headers with a 50px minimum width guard, double-click auto-reset, and session persistence in `settings.ledgerColumnWidths`;
+- **Added (XiaoLv Ecosystem Federation Cross-Plugin Synergy)**:
+  - **Checkin (`siyuan-checkin`)**: Auto-logs vital records (blood pressure, glucose, weight, temp) and chore completions into daily habit streaks;
+  - **Contacts (`siyuan-contacts`)**: Added "Record to Contacts" drawer action to sink gifts, medical visits, and contract events into personal contact timelines;
+  - **Glean (`siyuan-glean`)**: Added "Push to Glean Reading" drawer action to ingest lengthy insurance terms and contracts into incremental reading queues;
+  - **Speed Switch / Raikiri (`siyuan-speed-switch`)**: Registers home overview widgets and `lvhome.open-capture` quick actions safely with zero latency;
+  - **100% Graceful Degradation**: Safe capability detection (`getBridgeSafely`) ensures clean fallback without unhandled console errors when sibling plugins are uninstalled.
+- **Optimized (Testing & Quality Assurance)**: Added Step 19 to `scripts/e2e-isolated.mjs` with 20/20 browser e2e checks passing cleanly; 198 test suites and 1,237 automated unit tests all green.
 
 <details>
-<summary><b>View Historical Releases (v0.5.187 and earlier)</b></summary>
+<summary><b>View Historical Releases (v0.5.191 and earlier)</b></summary>
+
+- **v0.5.191 (2026-11-01)**: Energy 3-number conversion (amount-first, unit-price quantity link, dynamic chips), multi-member selection & "Entire Family Together" chip (`use:memberChips`), user habit memory engine, phantom date `2000-01-01` visual bug elimination, and UTC midnight rollover fix.
+
+- **v0.5.190 (2026-10-31)**: Standard LifeLog timeline format, 3-level collapsible Year/Month/Day reverse outline with SiYuan bidirectional links preserved, precise HH:mm timestamp inputs.
+
+- **v0.5.189 (2026-10-31)**: Quick flow daily journal prioritized with Markdown document sync, streamlined Overview hero cards, universal one-click native doc navigation buttons.
+
+- **v0.5.188 (2026-10-31)**: Aligned native document `data-av-id` seeds, sequential column append in AttributeView tables, and accurate Protyle block focus.
 
 - **v0.5.187 (2026-10-31)**: Fixed Dark Mode button/pill contrast (`1.86:1` ➔ `9.8:1`), Vehicle Card quick Fuel/Charging dialog timing, inline `+/-` quantity steppers on `stock`/`medicine`/`shopping`, and end-to-end Guest Mode filtering & write protection.
 

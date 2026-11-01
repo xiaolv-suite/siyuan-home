@@ -244,6 +244,65 @@ export function calculateEnergyStats(records: readonly EnergyRecord[], kind: Ene
     };
 }
 
+export interface MultiVehicleComparison {
+    vehicles: Array<{
+        name: string;
+        plate?: string;
+        costPerKm?: number;
+        consumptionPer100Km?: number;
+        totalSpending: number;
+        kind: EnergyKind;
+    }>;
+    bestCostVehicle?: string;
+    savingsPerKm?: number;
+    savingsPct?: number;
+}
+
+/** 多车综合能耗与每百公里成本对比分析 */
+export function compareVehiclesCost(
+    vehicleStats: Array<{
+        name: string;
+        plate?: string;
+        fuel: EnergyStats;
+        charge: EnergyStats;
+        energyType: string;
+    }>
+): MultiVehicleComparison | null {
+    if (vehicleStats.length < 2) return null;
+    const list: MultiVehicleComparison["vehicles"] = [];
+    for (const v of vehicleStats) {
+        const isEv = v.energyType === "ev" || v.energyType === "electric";
+        const stats = isEv ? v.charge : (v.fuel.recordCount > 0 ? v.fuel : v.charge);
+        const costPerKm = stats.costPer100Km !== undefined ? stats.costPer100Km / 100 : undefined;
+        list.push({
+            name: v.name,
+            plate: v.plate,
+            costPerKm,
+            consumptionPer100Km: stats.consumptionPer100Km,
+            totalSpending: (v.fuel.totalCost || 0) + (v.charge.totalCost || 0),
+            kind: isEv ? "charging" : "fuel",
+        });
+    }
+
+    const validCosts = list.filter((x) => x.costPerKm !== undefined && x.costPerKm > 0)
+        .sort((a, b) => a.costPerKm! - b.costPerKm!);
+    if (validCosts.length < 2) {
+        return { vehicles: list };
+    }
+
+    const best = validCosts[0];
+    const worst = validCosts[validCosts.length - 1];
+    const diff = Math.round((worst.costPerKm! - best.costPerKm!) * 100) / 100;
+    const pct = Math.round((diff / worst.costPerKm!) * 100);
+
+    return {
+        vehicles: list,
+        bestCostVehicle: best.name,
+        savingsPerKm: diff,
+        savingsPct: pct,
+    };
+}
+
 /** 仅保留合法值并按日期排序，供趋势图和导出共用。 */
 export function normalizeEnergyRecords(records: readonly EnergyRecord[], kind: EnergyKind): EnergyRecord[] {
     return sortRecords(records, kind);
@@ -311,6 +370,14 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
         const vehicleType = (row: any) => selectContentFn(row.cells?.[cols.energy_type ?? ""]) ?? "gasoline";
         const formatAmount = (n: number) => n.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+        const calculatedVehicleStats: Array<{
+            name: string;
+            plate?: string;
+            fuel: EnergyStats;
+            charge: EnergyStats;
+            energyType: string;
+        }> = [];
+
         const miniStat = (label: string, value: string) => {
             const item = document.createElement("div");
             item.className = "lv-metric-item lv-diag-stat-card";
@@ -358,12 +425,38 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
                 miniStat(t("fuel.chargeRecordedSpending"), charge.costRecordCount === 0 ? t("fuel.costUnknown") : `${formatAmount(charge.totalCost)} ${t("fuel.currency")}${charge.costRecordCount < charge.recordCount ? ` · ${t("fuel.subtotal")}` : ""}`),
             );
 
+            calculatedVehicleStats.push({
+                name: cellTextFn(vehicle.cells?.[cols.name ?? ""], "name") || t("ledger.unnamed"),
+                plate: cellTextFn(vehicle.cells?.[cols.plate ?? ""]),
+                fuel,
+                charge,
+                energyType: vehicleType(vehicle),
+            });
+
             const action = document.createElement("button");
             action.className = "b3-button b3-button--text lv-dialog-link";
             action.innerHTML = `<span>${t("fuel.openVehicle")}</span> ${uiIcon("forward", "", 12)}`;
             action.onclick = () => { dlg.destroy(); onOpenVehicleDetail?.(vehicle); };
             card.append(head, grid, action);
             body.appendChild(card);
+        }
+
+        if (calculatedVehicleStats.length >= 2) {
+            const comparison = compareVehiclesCost(calculatedVehicleStats);
+            if (comparison && comparison.bestCostVehicle && comparison.savingsPerKm !== undefined && comparison.savingsPerKm > 0) {
+                const banner = document.createElement("div");
+                banner.className = "lv-card lv-dialog-card";
+                banner.style.marginBottom = "12px";
+                banner.style.background = "var(--lv-ok-soft)";
+                banner.style.borderColor = "var(--lv-ok)";
+                const yearly = Math.round(comparison.savingsPerKm * 10000);
+                banner.innerHTML = `<span style="color:var(--lv-ok);font-size:12.5px;font-weight:600;">🚗⚡ ${t("fuel.compareSavings")
+                    .replace("${best}", comparison.bestCostVehicle)
+                    .replace("${diff}", String(comparison.savingsPerKm))
+                    .replace("${pct}", String(comparison.savingsPct))
+                    .replace("${yearly}", String(yearly))}</span>`;
+                body.insertBefore(banner, body.children[1] || null);
+            }
         }
     } catch (error) {
         body.replaceChildren();

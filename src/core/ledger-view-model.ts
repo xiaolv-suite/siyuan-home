@@ -203,13 +203,34 @@ export function computeMissingSchemaColumns(
 export function computeTableKeys(
     schemaKeys: string[],
     schemaColumns?: any[],
-    preferred = ["name", "category", "status", "qty", "stock_qty", "date", "expiry", "due", "amount", "brand_model", "plate", "energy_type", "mileage", "note"],
+    preferred = [
+        "name",
+        "category",
+        "amount",
+        "qty",
+        "stock_qty",
+        "member",
+        "status",
+        "date",
+        "expiry",
+        "due",
+        "brand_model",
+        "plate",
+        "energy_type",
+        "mileage",
+        "note",
+    ],
 ): string[] {
     const keys = preferred.filter((key) => schemaKeys.includes(key));
     const columns = schemaColumns ?? [];
     for (const column of columns) {
-        if (keys.length >= 5) break;
-        if (schemaKeys.includes(column.key) && !keys.includes(column.key) && !["asset", "mAsset", "mSelect", "relation"].includes(column.type)) {
+        if (keys.length >= 6) break;
+        if (
+            schemaKeys.includes(column.key) &&
+            !keys.includes(column.key) &&
+            !["asset", "mAsset", "mSelect"].includes(column.type) &&
+            !(column.type === "relation" && column.key !== "member")
+        ) {
             keys.push(column.key);
         }
     }

@@ -332,6 +332,47 @@
         editorOpen = false;
     }
 
+    const hasContactsBridge = $derived(Boolean(getContactsBridge()));
+
+    function handleImportFromContacts() {
+        if (!getContactsBridge()) return;
+        openContactPicker({ t: (k) => t(k), showMessage: (msg, timeout, type) => showMessage(msg, timeout, type) },
+            (snapshot) => {
+                const match = snapshot.match(/^(.*?)\s*\[(.*?)\]$/);
+                const pName = match ? match[1] : snapshot;
+                const existing = (plugin.settings.members ?? []).find((m: any) => m.name.trim() === pName.trim());
+                if (existing) {
+                    void saveContactSnapshot(existing, snapshot);
+                    showMessage(t("members.contactLinked"), 2500, "info");
+                    return;
+                }
+                name = pName.trim();
+                role = "other";
+                editorOpen = true;
+                requestAnimationFrame(() => {
+                    editorComp?.focusName?.();
+                });
+            });
+    }
+
+    async function handleMemberSaved() {
+        const bridge = getContactsBridge();
+        if (bridge?.ensurePerson && name.trim()) {
+            try {
+                const person = await bridge.ensurePerson(name.trim());
+                if (person?.docId) {
+                    const target = (plugin.settings.members ?? []).find((m: any) => m.name.trim() === name.trim());
+                    if (target && !target.contactSnapshot) {
+                        target.contactSnapshot = `${person.name} [${person.docId}]`;
+                        const { saveSettings } = await import("@/core/settings");
+                        await saveSettings(plugin as any, plugin.settings);
+                    }
+                }
+            } catch { /* soft fallback: non-blocking if contacts unavailable */ }
+        }
+        await plugin.refreshHub?.(undefined, true);
+    }
+
     // 296波：重要证件与合同的个人资产全景时间轴
     async function openMemberAssetTimeline(m: FamilyMember) {
         try {
@@ -382,6 +423,7 @@
     {reassignBusy}
     {exportingVcf}
     {editorOpen}
+    {hasContactsBridge}
     membersDocId={plugin.settings?.dbRefs?.members?.docId}
     onReassign={() => openReassignDialog()}
     onExportVcf={exportVcf}
@@ -389,6 +431,7 @@
         const docId = plugin.settings?.dbRefs?.members?.docId;
         if (docId) plugin.showTabDocs?.(docId);
     }}
+    onImportFromContacts={handleImportFromContacts}
     onToggleEditor={editorOpen ? cancelEdit : startNewMember}
 />
 
@@ -404,9 +447,7 @@
     bind:notes
     {plugin}
     {t}
-    onSaved={async () => {
-        await plugin.refreshHub?.(undefined, true);
-    }}
+    onSaved={handleMemberSaved}
     onCancel={cancelEdit}
 />
 

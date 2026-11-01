@@ -226,6 +226,7 @@
     });
 
     const exportSettings = () => import("@/core/settings-maintenance").then((m) => m.exportSettingsJson(plugin, t));
+    const exportHtmlManual = () => import("@/core/offline-manual-exporter").then((m) => m.exportOfflineHtmlManual(plugin, t, showMessage));
     const exportDiagnostics = () => {
         if (exportingDiagnostics) return;
         exportingDiagnostics = true;
@@ -475,6 +476,7 @@
             {demoAction}
             {preImportBackupExists}
             onExportSettings={exportSettings}
+            onExportHtmlManual={exportHtmlManual}
             onImportSettings={importSettings}
             onRestorePreImport={restorePreImport}
             onGenerateDemo={generateDemo}

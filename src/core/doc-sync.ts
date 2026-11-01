@@ -353,9 +353,11 @@ export function describeRowLogAsLifelog(
         const rawQ = String(entry.title ?? rawSubject ?? "").trim();
         const qtitle = rawQ ? formatBlockRef(linkOpts?.subjectDocId, rawQ) : "";
         if (String(entry.kind ?? "snippet") === "shopping") {
-            const qty = typeof entry.qty === "number" && entry.qty > 0 ? `数量 ${entry.qty}` : undefined;
+            const cost = entry.price ?? entry.cost;
+            const priceText = cost !== undefined ? `¥${cost}` : undefined;
+            const qty = typeof entry.qty === "number" && entry.qty > 0 && entry.qty !== 1 ? `数量 ${entry.qty}` : undefined;
             lifelogType = "待买清单";
-            detailText = parts(qtitle, qty, note);
+            detailText = parts(qtitle, priceText, qty, note);
             tags = ["#待买"];
         } else {
             const detail = typeof entry.detail === "string" && entry.detail.trim() && entry.detail.trim() !== rawQ ? entry.detail.trim().slice(0, 100) : undefined;
@@ -587,7 +589,8 @@ export function formatDailyJournalMarkdown(input: FormatDailyJournalInput): stri
         const pri = m.priority === "high" ? " · 🔥 高优" : m.priority === "medium" ? " · ⚡ 中优" : m.priority === "low" ? " · 🌱 低优" : "";
         const cat = m.category ? ` · #${m.category}` : "";
         const cyc = m.cycle ? ` · 🔁 ${m.cycle}${m.recurrenceAnchor === "completion" ? "(按完成顺延)" : ""}` : "";
-        memoLines.push(`- [ ] **${m.title}** · 到期 \`${m.dueDate}\`${pri}${cat}${cyc}`);
+        const amt = typeof (m as any).amount === "number" && (m as any).amount > 0 ? ` · 💰 ¥${(m as any).amount}` : "";
+        memoLines.push(`- [ ] **${m.title}** · 到期 \`${m.dueDate}\`${amt}${pri}${cat}${cyc}`);
     }
     const memosSection = memoLines.length > 0
         ? `## 📌 待办备忘与周期事项（${activeMemos.length} 项）\n{: id="${memosH2Id}" custom-lvhome="1"}\n\n${memoLines.join("\n")}\n{: id="${memosBodyId}" custom-lvhome="1"}`

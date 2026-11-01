@@ -28,6 +28,10 @@ export function defaultSettings(): HomeSettings {
         webhookMode: "bark",
         avatar: DEFAULT_AVATAR,
         budgetLimits: {},
+        fuelPresetAmounts: [200, 300, 500],
+        chargePresetAmounts: [30, 50, 100],
+        columnVisibility: {},
+        ledgerSort: {},
     };
 }
 
@@ -186,6 +190,27 @@ export async function loadSettings(plugin: Plugin): Promise<HomeSettings> {
     const budgetLimits = isPlainObject(data.budgetLimits)
         ? Object.fromEntries(Object.entries(data.budgetLimits).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] > 0))
         : defaults.budgetLimits;
+    const fuelPresetAmounts = Array.isArray(data.fuelPresetAmounts)
+        ? data.fuelPresetAmounts.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+        : defaults.fuelPresetAmounts;
+    const chargePresetAmounts = Array.isArray(data.chargePresetAmounts)
+        ? data.chargePresetAmounts.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+        : defaults.chargePresetAmounts;
+    const columnVisibility = isPlainObject(data.columnVisibility)
+        ? Object.fromEntries(
+            Object.entries(data.columnVisibility).filter(
+                (entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].every((c) => typeof c === "string")
+            )
+        )
+        : defaults.columnVisibility;
+    const ledgerSort = isPlainObject(data.ledgerSort)
+        ? Object.fromEntries(
+            Object.entries(data.ledgerSort).filter(
+                (entry): entry is [string, { key: string; asc: boolean }] =>
+                    isPlainObject(entry[1]) && typeof (entry[1] as any).key === "string" && typeof (entry[1] as any).asc === "boolean"
+            )
+        )
+        : defaults.ledgerSort;
     const household = isPlainObject(data.household) ? data.household : undefined;
     const validRoles = Array.isArray(household?.roles)
         ? household.roles.filter((role: unknown): role is MemberRole => typeof role === "string" && MEMBER_ROLES.has(role as MemberRole))
@@ -226,6 +251,10 @@ export async function loadSettings(plugin: Plugin): Promise<HomeSettings> {
         avatar: normalizeAvatarText(data.avatar),
         avatarImage: normalizeAvatarImage(data.avatarImage),
         budgetLimits,
+        fuelPresetAmounts: fuelPresetAmounts.length > 0 ? fuelPresetAmounts : defaults.fuelPresetAmounts,
+        chargePresetAmounts: chargePresetAmounts.length > 0 ? chargePresetAmounts : defaults.chargePresetAmounts,
+        columnVisibility,
+        ledgerSort,
         targetNotebookId: typeof data.targetNotebookId === "string" && data.targetNotebookId ? data.targetNotebookId : undefined,
     };
     lastSerializedSettingsByPlugin.set(plugin, JSON.stringify(result));
@@ -331,6 +360,27 @@ export function normalizeImportedSettings(input: unknown): NormalizedImport {
         webhookMode: data.webhookMode === "ntfy" ? "ntfy" : "bark",
         budgetLimits: isPlainObject(data.budgetLimits)
             ? Object.fromEntries(Object.entries(data.budgetLimits).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] > 0))
+            : {},
+        fuelPresetAmounts: Array.isArray(data.fuelPresetAmounts)
+            ? data.fuelPresetAmounts.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+            : defaults.fuelPresetAmounts,
+        chargePresetAmounts: Array.isArray(data.chargePresetAmounts)
+            ? data.chargePresetAmounts.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+            : defaults.chargePresetAmounts,
+        columnVisibility: isPlainObject(data.columnVisibility)
+            ? Object.fromEntries(
+                Object.entries(data.columnVisibility).filter(
+                    (entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].every((c) => typeof c === "string")
+                )
+            )
+            : {},
+        ledgerSort: isPlainObject(data.ledgerSort)
+            ? Object.fromEntries(
+                Object.entries(data.ledgerSort).filter(
+                    (entry): entry is [string, { key: string; asc: boolean }] =>
+                        isPlainObject(entry[1]) && typeof (entry[1] as any).key === "string" && typeof (entry[1] as any).asc === "boolean"
+                )
+            )
             : {},
     };
     return { settings, droppedModules, repairedMembers };

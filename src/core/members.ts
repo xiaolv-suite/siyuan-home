@@ -192,7 +192,11 @@ export async function addMember(plugin: Plugin, settings: HomeSettings, member: 
             settings.members = previous;
             throw error;
         }
-        const ref = settings.dbRefs.members;
+        let ref = settings.dbRefs.members;
+        if (!ref?.avId && typeof (plugin as any).repairModule === "function") {
+            try { await (plugin as any).repairModule("members"); } catch { /* soft */ }
+            ref = settings.dbRefs.members;
+        }
         const currentMember = settings.members.find((m) => m.id === member.id) ?? member;
         if (ref?.avId && ref.columns) {
             if (!currentMember.avItemId) {
@@ -222,7 +226,11 @@ export async function updateMember(plugin: Plugin, settings: HomeSettings, membe
             settings.members = previous;
             throw error;
         }
-        const ref = settings.dbRefs.members;
+        let ref = settings.dbRefs.members;
+        if (!ref?.avId && typeof (plugin as any).repairModule === "function") {
+            try { await (plugin as any).repairModule("members"); } catch { /* soft */ }
+            ref = settings.dbRefs.members;
+        }
         if (!ref?.avId || !ref.columns) return;
         const target = settings.members.find((m) => m.id === member.id)!;
         if (target.avItemId) {

@@ -50,4 +50,30 @@ describe("core/spotlight 全景生活检索", () => {
         const emergencyCmd = searchSpotlightCommands("> 急救");
         expect(emergencyCmd.some((c) => c.action === "open-emergency")).toBe(true);
     });
+
+    it("支持 #标签 与 !紧急 过滤语法 (CAND-26)", () => {
+        const testItems: SpotlightItem[] = [
+            { rowId: "10", moduleId: "medicine", title: "急救心通口服液", category: "急救", note: "心脏加急备用" },
+            { rowId: "20", moduleId: "stock", title: "日用纸巾", category: "日用品" },
+            { rowId: "30", moduleId: "insurance", title: "车险保单", category: "车务", dueDate: "2026-11-02" }, // 临近
+            { rowId: "40", moduleId: "contracts", title: "普通合同", category: "合同", dueDate: "2029-01-01" }, // 远期
+        ];
+
+        // #标签过滤
+        const dailyItems = searchSpotlight(testItems, "#日用品");
+        expect(dailyItems).toHaveLength(1);
+        expect(dailyItems[0].rowId).toBe("20");
+
+        // !紧急过滤 (含急救关键词或临期到期日)
+        const urgentItems = searchSpotlight(testItems, "!紧急");
+        const urgentIds = urgentItems.map((i) => i.rowId);
+        expect(urgentIds).toContain("10"); // 含急救
+        expect(urgentIds).toContain("30"); // 临期
+        expect(urgentIds).not.toContain("40"); // 远期
+
+        // 组合过滤: #日用品 加文本搜索
+        const combined = searchSpotlight(testItems, "#日用品 纸巾");
+        expect(combined).toHaveLength(1);
+        expect(combined[0].rowId).toBe("20");
+    });
 });

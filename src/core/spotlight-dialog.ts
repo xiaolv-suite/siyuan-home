@@ -138,7 +138,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         const matchedCmds = searchSpotlightCommands(query);
         statusEl.innerHTML = `
             <span>${query ? t("spotlight.resultsCount").replace("${n}", String(matched.length + matchedCmds.length)) : t("spotlight.totalIndexed").replace("${n}", String(allItems.length))}</span>
-            <span style="font-size:11px">${t("spotlight.hint")} · 输入 &gt; 触发命令</span>
+            <span style="font-size:11px">${t("spotlight.hint")}${t("spotlight.cmdTriggerHint")} · ${t("spotlight.filterTagHint")}</span>
         `;
         listEl.innerHTML = "";
 
@@ -153,17 +153,20 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         }
 
         // 渲染匹配的快捷命令项
-        for (const cmd of matchedCmds) {
+        matchedCmds.forEach((cmd, idx) => {
+            const numKey = idx < 9 ? String(idx + 1) : "";
             const card = document.createElement("div");
             card.className = "lv-card lv-spotlight-cmd";
             card.tabIndex = 0;
+            if (numKey) card.setAttribute("data-cmd-num", numKey);
             card.innerHTML = `
                 <div class="lv-spotlight-item-head">
+                    ${numKey ? `<span class="lv-badge lv-badge--xs lv-badge--cmd-num" title="快捷序号 ${numKey}">${numKey}</span>` : ""}
                     <span class="lv-spotlight-icon-item">${uiIcon(CMD_ICONS[cmd.action] ?? "bolt", "", 16)}</span>
                     <b>${escapeHtml(cmd.title)}</b>
                     <span class="lv-caption lv-tx-muted">${escapeHtml(cmd.sub)}</span>
                 </div>
-                <span class="lv-badge lv-badge--accent lv-badge--sm">指令</span>
+                <span class="lv-badge lv-badge--accent lv-badge--sm">${escapeHtml(t("spotlight.cmdBadge"))}</span>
             `;
             const runCmd = () => {
                 dlg.destroy();
@@ -187,11 +190,12 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                     (card.nextElementSibling as HTMLElement | null)?.focus();
                 } else if (e.key === "ArrowUp") {
                     e.preventDefault();
-                    inp.focus();
+                    if (card.previousElementSibling) (card.previousElementSibling as HTMLElement).focus();
+                    else inp.focus();
                 }
             };
             listEl.appendChild(card);
-        }
+        });
 
         for (const item of matched) {
             const card = document.createElement("div");
@@ -291,6 +295,12 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         } else if (e.key === "Enter") {
             e.preventDefault();
             (listEl.firstElementChild as HTMLElement | null)?.click();
+        } else if (inp.value.startsWith(">") && /^[1-9]$/.test(e.key)) {
+            const targetNumCard = listEl.querySelector<HTMLElement>(`[data-cmd-num="${e.key}"]`);
+            if (targetNumCard) {
+                e.preventDefault();
+                targetNumCard.click();
+            }
         }
     };
 }

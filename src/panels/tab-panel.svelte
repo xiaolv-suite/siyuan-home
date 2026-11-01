@@ -99,8 +99,25 @@
             pointerPreparedScreen = target;
         } else pointerPreparedScreen = null;
     }
+    let lastScreenSwitchTime = 0;
+    let pendingSwitchTimer: number | undefined;
+
     function gotoScreen(s: ScreenId, historyMode: "push" | "replace" | "none" = "push") {
         if (screen === s) { pointerPreparedScreen = null; return; }
+        const now = Date.now();
+        if (now - lastScreenSwitchTime < 100) {
+            if (pendingSwitchTimer) window.clearTimeout(pendingSwitchTimer);
+            pendingSwitchTimer = window.setTimeout(() => {
+                pendingSwitchTimer = undefined;
+                gotoScreen(s, historyMode);
+            }, 100 - (now - lastScreenSwitchTime));
+            return;
+        }
+        lastScreenSwitchTime = now;
+        if (pendingSwitchTimer) {
+            window.clearTimeout(pendingSwitchTimer);
+            pendingSwitchTimer = undefined;
+        }
         if (pointerPreparedScreen !== s) saveCurrentScroll();
         pointerPreparedScreen = null;
         if (s !== "ledger") plugin.pendingActivityTarget = undefined;
@@ -161,6 +178,10 @@
             window.removeEventListener("popstate", onPopState);
             restoreTimers.forEach((timer) => window.clearTimeout(timer));
             restoreTimers = [];
+            if (pendingSwitchTimer) {
+                window.clearTimeout(pendingSwitchTimer);
+                pendingSwitchTimer = undefined;
+            }
         };
     });
     function openActivityTarget(target: Omit<ActivityTarget, "requestId">) {

@@ -95,7 +95,7 @@
         <div class="lv-empty" role="status">
             <div class="eic"><UiIcon name="search" size={22} /></div>
             <b>{t("ledger.searchEmpty")}</b>
-            <span>{searchText.trim() ? t("ledger.searchEmptyHint").replace("${q}", searchText.trim()) : (t("ledger.filterEmpty") || "当前筛选条件下暂无匹配记录")}</span>
+            <span>{searchText.trim() ? t("ledger.searchEmptyHint").replace("${q}", searchText.trim()) : t("ledger.filterEmpty")}</span>
             <button type="button" class="b3-button b3-button--outline lv-mt-8" onclick={onClearSearch}>
                 {t("clear")}
             </button>

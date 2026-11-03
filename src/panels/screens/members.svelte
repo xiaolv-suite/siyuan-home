@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Reminder, FamilyMember } from "@/types";
-    import { showMessage, Dialog } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { removeMember } from "@/core/members";
     import { renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";

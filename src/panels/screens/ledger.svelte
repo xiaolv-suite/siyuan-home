@@ -1,7 +1,8 @@
 <script lang="ts">
     import { renderLedgerAll, addDetachedRow, setCell } from "@/core/siyuan";
     import { selectCellContent } from "@/core/avcell";
-    import { showMessage, Dialog } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { localDateKey, parseDate } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";

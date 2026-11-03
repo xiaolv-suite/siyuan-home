@@ -9,6 +9,7 @@ import { formatAsTaskBlock } from "@/core/block-capture";
 import { localDateKey } from "@/core/hub/rule";
 import { setReminderPlanDate, clearReminderPlanDate } from "@/core/hub/runtime-views";
 import { saveRuntime } from "@/core/hub/runtime-store";
+import { homeInline } from "@/libs/notice";
 
 /** 提取规则显示文本 */
 export function getReminderRuleText(ruleKey: string, t: (k: string) => string): string {
@@ -131,11 +132,13 @@ export async function copyReminderAsTaskBlock(
     r: Reminder,
     t: (k: string) => string,
     showMessage: (msg: string, time?: number, type?: string) => void,
+    targetEl?: HTMLElement | null,
 ): Promise<void> {
     const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
     const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
     try {
         await navigator.clipboard.writeText(text);
+        if (targetEl) homeInline(targetEl, t("hub.taskBlockCopied"));
         showMessage(t("hub.taskBlockCopied"), 3000, "info");
     } catch {
         showMessage(t("hub.digestCopyFailed"), 3000, "error");
@@ -167,7 +170,7 @@ export async function copyReminderFamilyNotice(
     r: Reminder,
     t: (k: string) => string,
     showMessage: (msg: string, time?: number, type?: string) => void,
-    options?: { memberName?: string },
+    options?: { memberName?: string; targetEl?: HTMLElement | null },
 ): Promise<void> {
     const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
     const text = formatFamilyNotice(r, {
@@ -177,6 +180,7 @@ export async function copyReminderFamilyNotice(
     });
     try {
         await navigator.clipboard.writeText(text);
+        if (options?.targetEl) homeInline(options.targetEl, t("hub.familyNoticeCopied"));
         showMessage(t("hub.familyNoticeCopied"), 2500, "info");
     } catch {
         showMessage(t("hub.digestCopyFailed"), 3000, "error");

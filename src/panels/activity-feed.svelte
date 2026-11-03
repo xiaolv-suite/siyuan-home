@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
     import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { onDestroy } from "svelte";
     import type { ActivityRecord, ActivitySnapshot } from "@/core/activity";
     import { loadActivitySnapshot } from "@/core/activity";

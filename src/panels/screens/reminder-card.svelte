@@ -1,6 +1,6 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
-    import { showMessage } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
@@ -242,9 +242,9 @@
                 {/if}
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
-                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(async () => {
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={(e) => handleMoreAction(async () => {
                     const { copyReminderFamilyNotice } = await import("@/core/reminders-view-model");
-                    await copyReminderFamilyNotice(r, t, showMessage, { memberName: member?.name });
+                    await copyReminderFamilyNotice(r, t, showMessage, { memberName: member?.name, targetEl: e.currentTarget as HTMLElement });
                 })}>{t("hub.copyFamilyNotice")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" title={isItemPinned ? t("act.unpin") : t("act.pin")}
                     disabled={batchBusy || isBusy} aria-busy={isBusy}

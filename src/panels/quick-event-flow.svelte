@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { localDateKey } from "@/core/hub/rule";
-    import { showMessage } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { renderLedgerAll } from "@/core/siyuan";
     import { saveSettings } from "@/core/settings";
     import { assessBloodPressure, assessBloodGlucose, assessTemperature, resolveDefaultVitalMember } from "@/core/vitals";

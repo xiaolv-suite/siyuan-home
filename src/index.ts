@@ -1,4 +1,4 @@
-import { Plugin, showMessage, openTab } from "siyuan";
+import { Plugin, openTab } from "siyuan";
 import { mount } from "svelte";
 import "./index.scss";
 
@@ -22,6 +22,9 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
+import { lvNotify } from "@/libs/lv-notice-kit";
+import { homeNotify, homeSilent } from "@/libs/notice";
+import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
 const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.192";
@@ -37,6 +40,8 @@ export default class LvHomePlugin extends Plugin {
     private heartbeat: number | undefined;
     /** 所有延迟回调统一登记，确保卸载时没有匿名计时器继续访问插件实例。 */
     private readonly timeoutIds = new Set<number>();
+    /** 小驴全生态统一通知注销回调 (Epoch 7) */
+    private noticeHubCleaner?: () => void;
     /** moduleId → schema 目录（193 波收口为 SCHEMA_CATALOG 单源；UI 按需读取列定义/枚举，与 ensureCoreLedgers 同源） */
     schemaCatalog: Record<string, any> = SCHEMA_CATALOG;
     /** Tab 面板刷新回调（支持多实例，33.1：所有打开的管家面板同步刷新） */
@@ -151,7 +156,7 @@ export default class LvHomePlugin extends Plugin {
         const isFreshInstall = !this.settings.onboarded && this.settings.members.length === 0 && Object.keys(this.settings.dbRefs).length === 0;
         if (isFreshInstall && !this.runtime?.firstRunWelcomed) {
             if (this.runtime) this.runtime.firstRunWelcomed = true;
-            showMessage(this.i18nText("firstRun"), 5000, "info");
+            homeNotify(this.i18nText("firstRun"), 5000, "info");
         }
 
         // 15 组：settings.json 损坏已回退默认 → 明确警告（诊断区可见 settings.json.corrupted.json 标记）
@@ -159,12 +164,14 @@ export default class LvHomePlugin extends Plugin {
             // 269 波：损坏原因就地显示（用户不必翻 marker 文件）；时长 8s→10s 给足阅读时间
             const reason = this.settings.corruptedSettings;
             const detail = typeof reason === "string" ? `（${reason}）` : "";
-            showMessage(this.i18nText("settings.corrupted") + detail, 10000, "error");
+            homeNotify(this.i18nText("settings.corrupted") + detail, 10000, "error");
         }
 
         // B2d 降级定案（kernel.js 无定时器 API）：前端心跳 30min 驱动定时扫描
         this.heartbeat = window.setInterval(() => {
-            this.refreshHub().catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
+            this.refreshHub()
+                .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
+                .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
         }, 30 * 60 * 1000);
 
         // 注册思源原生菜单与事件监听（块菜单、块图标菜单、自定义 URL、AV 属性视图菜单、WS 变更节流同步与休眠唤醒补扫）
@@ -193,6 +200,11 @@ export default class LvHomePlugin extends Plugin {
             markReminderDoneByBlockId: (bId: string) => this.markReminderDoneByBlockId(bId),
             emitHubChanged: () => this.emitHubChanged(),
         });
+
+        // 注册小驴全生态统一通知中心 (Epoch 7 Protocol v1.0.0)
+        try {
+            this.noticeHubCleaner = lvNotify.registerPlugin("siyuan-home");
+        } catch { /* 容错 */ }
     }
 
     /** 布局就绪后：首次引导数据准备 + 智能找回历史台账 + 扫描（不阻塞启动，不强制全量建库） */
@@ -323,13 +335,32 @@ export default class LvHomePlugin extends Plugin {
         this.runtime.scannedAt = scan.scannedAt;
         // 摘要与逾期提示只在全量扫描时评估（PF06 增量扫描的数据是部分的，少报会压制当天真实提醒）
         if (!onlySet) {
+            // 重点到期事项（证件/保单/药品/关键合同）卡片化派发 (lvNotify.card)
+            let priorityCardDelivered = false;
+            try {
+                const priorityRes = deliverPriorityReminderCard({
+                    reminders: scan.reminders,
+                    settings: this.settings,
+                    runtime: this.runtime,
+                    t: (k) => this.i18nText(k),
+                    onOpenReminders: () => this.openRemindersScreen(),
+                    onOpenModule: (m) => this.openModuleTab(m),
+                });
+                priorityCardDelivered = priorityRes.delivered;
+            } catch { /* 优雅降级 */ }
+
             const digest = dailyDigest(scan, this.settings, this.runtime);
             if (digest.shouldNotify) {
                 markNotified(this.runtime);
-                const text = this.i18nText("notify.digest")
-                    .replace("${overdue}", String(digest.overdue))
-                    .replace("${soon}", String(digest.soon));
-                showMessage(text, 6000, "info");
+                if (priorityCardDelivered) {
+                    // 若已弹出重点到期交互卡片，常规摘要自动降级为静默记录入库，彻底杜绝双重弹窗打扰
+                    homeSilent("hub-digest", `每日生活摘要：${digest.overdue} 项逾期，${digest.soon} 项临期`);
+                } else {
+                    const text = this.i18nText("notify.digest")
+                        .replace("${overdue}", String(digest.overdue))
+                        .replace("${soon}", String(digest.soon));
+                    homeNotify(text, 6000, "info");
+                }
             }
             // B3b：逾期事项每日首次发现立即提示（H12：与摘要共用静默判断）
             const { localDateKey } = await import("@/core/hub/rule");
@@ -337,7 +368,9 @@ export default class LvHomePlugin extends Plugin {
             let pushedOverdueAlert = false;
             if (scan.counts.overdue > 0 && !inSilentHours(this.settings, this.runtime) && this.runtime.lastOverdueAlertDate !== today) {
                 this.runtime.lastOverdueAlertDate = today;
-                showMessage(this.i18nText("notify.overdue").replace("${n}", String(scan.counts.overdue)), 6000, "error");
+                if (!priorityCardDelivered) {
+                    homeNotify(this.i18nText("notify.overdue").replace("${n}", String(scan.counts.overdue)), 6000, "error");
+                }
                 pushedOverdueAlert = true;
             }
             // 229 波：Webhook 推送（路线图"下一阶段"）——随摘要/逾期首报两个既定时点外发一次；
@@ -355,7 +388,7 @@ export default class LvHomePlugin extends Plugin {
             const weekly = weeklyPreview(scan, this.settings, this.runtime);
             if (weekly.shouldNotify) {
                 markWeeklyNotified(this.runtime);
-                showMessage(this.i18nText("notify.weekly").replace("${n}", String(weekly.upcoming)), 6000, "info");
+                homeNotify(this.i18nText("notify.weekly").replace("${n}", String(weekly.upcoming)), 6000, "info");
             }
         }
         // H03：显式清理已完成运行态记录（未处理项永不自动删），清理结果随本次落盘
@@ -374,6 +407,8 @@ export default class LvHomePlugin extends Plugin {
         }
         await saveRuntime(this, this.runtime);
         this.lastScanAt = Date.now();
+        // 后台扫描全面静默化：常规扫描结果静默入库，不弹窗打扰用户
+        homeSilent("hub-scan", `管家扫描完成：${scan.counts.overdue} 项逾期，${scan.counts.soon} 项临期（共 ${scan.reminders.length} 项）`);
         performance.mark(`${perfMark}-end`);
         try { performance.measure(perfMark, `${perfMark}-start`, `${perfMark}-end`); } catch { /* PF01 测量标记 */ }
         const todayDue = scan.reminders.filter((r) => r.daysLeft <= 0).length;
@@ -417,7 +452,7 @@ export default class LvHomePlugin extends Plugin {
             const detail = e instanceof Error ? e.message : String(e);
             const message = this.i18nText("hub.cacheSaveFailed").replace("${msg}", detail);
             this.scan = { ...this.scan, stale: true, errors: [...(this.scan.errors ?? []), { moduleId: "runtime", message: detail }] };
-            showMessage(message, 6500, "error");
+            homeNotify(message, 6500, "error");
         }
         this.updateStatusbar(reminders.filter((r) => r.daysLeft <= 0).length);
         this.emitHubChanged();
@@ -639,7 +674,7 @@ export default class LvHomePlugin extends Plugin {
         this.runtime.todaySilent = this.runtime.todaySilent === today ? "" : today;
         try {
             await saveRuntime(this, this.runtime);
-            showMessage(this.i18nText(this.runtime.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff"), 3000, "info");
+            homeNotify(this.i18nText(this.runtime.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff"), 3000, "info");
             await this.notifyHubChanged();
         } catch (e) {
             this.runtime.todaySilent = previous;
@@ -653,7 +688,7 @@ export default class LvHomePlugin extends Plugin {
         this.settings.enabledModules = Array.from(new Set([...this.settings.enabledModules, ...moduleIds]));
         const shouldInitMembers = !this.settings.members || this.settings.members.length === 0;
         // C7c：建库批处理进度提示（先完成 members 等台账建库，再创建初始成员行，确保 avItemId 真实写入不悬空）
-        showMessage(this.i18nText("wiz.provisioning").replace("${n}", String(moduleIds.length)), 4000, "info");
+        homeNotify(this.i18nText("wiz.provisioning").replace("${n}", String(moduleIds.length)), 4000, "info");
         const provisioning = await this.ensureCoreLedgers();
         if (!this.settings.dbRefs?.members?.avId) {
             try { await this.repairModule("members"); } catch { /* soft */ }
@@ -698,11 +733,11 @@ export default class LvHomePlugin extends Plugin {
         // C7c 收尾：建库失败浮出（此前只进诊断区，向导完成后用户无感）
         const failed = provisioning.issues.map(({ moduleId }) => this.i18nText(`module.${moduleId}`));
         if (failed.length > 0) {
-            showMessage(this.i18nText("wiz.provisionIssues")
+            homeNotify(this.i18nText("wiz.provisionIssues")
                 .replace("${n}", String(failed.length))
                 .replace("${modules}", failed.join("、")), 8000, "error");
         } else {
-            showMessage(this.i18nText("wiz.provisioned").replace("${n}", String(moduleIds.length)), 3000, "info");
+            homeNotify(this.i18nText("wiz.provisioned").replace("${n}", String(moduleIds.length)), 3000, "info");
         }
         // Onboarding provisions ledgers and may add member rows. Force the
         // first post-wizard scan so the overview is built from fresh data.
@@ -729,6 +764,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.noticeHubCleaner?.();
+        this.noticeHubCleaner = undefined;
         this.isUnloading = true;
         this.entrypointsController?.dispose();
         this.entrypointsController = undefined;

@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import type { Component } from "svelte";
-    import { showMessage, Dialog } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
     import TabRailNav from "./tab-rail-nav.svelte";

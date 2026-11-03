@@ -8,7 +8,7 @@
     import { parseQuickAdd } from "@/core/quick-add";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
-    import { showMessage } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { formatAsTaskBlock } from "@/core/block-capture";
 
     let { items, t, version, isGuest = false, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn, onLocate, onReschedule }: {

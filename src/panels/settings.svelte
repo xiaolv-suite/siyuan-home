@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { showMessage, Dialog } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { listNotebooks } from "@/core/siyuan";
     import { MODULE_GROUPS, modulesByGroup } from "@/core/modules";

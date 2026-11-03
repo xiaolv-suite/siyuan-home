@@ -5,7 +5,8 @@
     import { saveRuntime } from "@/core/hub/runtime";
     import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
-    import { showMessage, Dialog } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage } from "@/libs/notice";
     import { moduleTone } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";

@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
-    import { lvActivity, type LvActivityRecord, withDocLock } from "@/libs/notice";
+    import { lvActivity, lvEcosystem, type LvActivityRecord, withDocLock } from "@/libs/notice";
     import { homeNotify, homeInline } from "@/libs/notice";
     import type { HomePluginLike } from "@/types/plugin";
 
@@ -20,6 +20,12 @@
     let collapsed = $state(false);
     let copyBtnEl = $state<HTMLButtonElement | undefined>();
     let appendBtnEl = $state<HTMLButtonElement | undefined>();
+
+    const ecosystemStatus = $derived.by(() => {
+        void version;
+        void activities.length;
+        return lvEcosystem.getStatusBadgeText();
+    });
 
     const CATEGORY_MAP: Record<string, { icon: UiIconName; label: string }> = {
         habit: { icon: "checkCircle", label: "打卡" },
@@ -105,6 +111,9 @@
     <div class="lv-activity-head">
         <div class="lv-activity-heading">
             <h2 id="lv-ecosystem-title" class="lv-title-sec">🐴 {t("overview.ecosystemTitle")}</h2>
+            <span class="lv-badge gray lv-ecosystem-badge" style="font-size:11px; padding:2px 8px; border-radius:10px; font-weight:normal; max-width:100%; text-overflow:ellipsis; overflow:hidden;">
+                {ecosystemStatus}
+            </span>
             <span class="lv-sub">{t("overview.ecosystemHint")}</span>
         </div>
         <div class="lv-activity-actions">

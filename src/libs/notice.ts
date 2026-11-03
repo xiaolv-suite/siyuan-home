@@ -22,10 +22,14 @@ import {
     lvSurfaceStack,
     lvAi,
     lvActivity,
+    lvBackup,
+    lvEcosystem,
     type LvActivityRecord,
     type LvAiConfig,
     type LvAiRequestOptions,
     type LvAiResponse,
+    type LvEcosystemFullBackup,
+    type LvEcosystemDiagnostics,
 } from "./lv-notice-kit";
 
 export {
@@ -35,6 +39,8 @@ export {
     lvSurfaceStack,
     lvAi,
     lvActivity,
+    lvBackup,
+    lvEcosystem,
     type CardNoticeOptions,
     type CapsuleNoticeOptions,
     type SilentNoticeOptions,
@@ -45,6 +51,8 @@ export {
     type LvAiConfig,
     type LvAiRequestOptions,
     type LvAiResponse,
+    type LvEcosystemFullBackup,
+    type LvEcosystemDiagnostics,
 };
 
 export interface NoticeOptions extends Partial<CardNoticeOptions> {

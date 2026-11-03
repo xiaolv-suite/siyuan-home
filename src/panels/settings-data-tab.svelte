@@ -2,6 +2,7 @@
     import { showMessage } from "siyuan";
     import { saveSettings } from "@/core/settings";
     import UiIcon from "@/ui/icon.svelte";
+    import { lvBackup, lvEcosystem, homeNotify } from "@/libs/notice";
 
     let {
         plugin,
@@ -39,11 +40,59 @@
 
     let dataSection: "migration" | "trash" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
     let importInput: HTMLInputElement | undefined = $state();
+    let ecoImportInput: HTMLInputElement | undefined = $state();
+    let ecoBackupBusy = $state(false);
     let trashRevision = $state(0);
     const trashItems = $derived.by(() => {
         void trashRevision;
         return plugin.runtime?.trash ?? [];
     });
+
+    async function handleExportEcoFull() {
+        if (ecoBackupBusy) return;
+        ecoBackupBusy = true;
+        try {
+            const bundle = await lvBackup.exportFull();
+            const jsonStr = JSON.stringify(bundle, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `lv-ecosystem-backup-${today}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            homeNotify(t("settings.exportEcoFullOk"), 3000, "info");
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            ecoBackupBusy = false;
+        }
+    }
+
+    async function handleImportEcoFull(e: Event) {
+        const target = e.target as HTMLInputElement;
+        const file = target?.files?.[0];
+        if (!file) return;
+        if (ecoBackupBusy) return;
+        ecoBackupBusy = true;
+        try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const res = await lvBackup.restoreFull(parsed);
+            const msg = t("settings.importEcoFullOk")
+                .replace("${s}", String(res.success.length))
+                .replace("${f}", String(res.failed.length));
+            homeNotify(msg, 4000, res.failed.length > 0 ? "error" : "info");
+            plugin.emitHubChanged?.();
+            plugin.refreshHub?.(undefined, true).catch(() => undefined);
+        } catch (err) {
+            homeNotify(t("settings.importEcoFullFail") + ": " + String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            ecoBackupBusy = false;
+            if (target) target.value = "";
+        }
+    }
 </script>
 
 <div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
@@ -128,6 +177,11 @@
             <input type="file" accept="application/json,.json" class="fn__none"
                 aria-label={t("settings.import")}
                 bind:this={importInput} onchange={(e) => onImportSettings(e)} />
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={handleExportEcoFull}>🐴 {t("settings.exportEcoFull")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={() => ecoImportInput?.click()}>🐴 {t("settings.importEcoFull")}</button>
+            <input type="file" accept="application/json,.json" class="fn__none"
+                aria-label={t("settings.importEcoFull")}
+                bind:this={ecoImportInput} onchange={(e) => handleImportEcoFull(e)} />
             {#if preImportBackupExists}
                 <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
             {/if}
@@ -197,6 +251,27 @@
         </div>
     </div>
 {:else if dataSection === "ecosystem"}
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("overview.ecoStatusBadge")}</div>
+        <div class="lv-ecosystem-status-banner" style="margin-top:8px; padding:10px 14px; background:var(--lv-surface); border:1px solid var(--lv-accent-line); border-radius:var(--lv-r-card); font-size:12.5px; color:var(--lv-tx-1); display:flex; align-items:center; gap:8px;">
+            <UiIcon name="sparkle" size={16} />
+            <b style="color:var(--lv-accent);">{lvEcosystem.getStatusBadgeText()}</b>
+        </div>
+    </div>
+
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.ecoBackupTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.ecoBackupHint")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={ecoBackupBusy} onclick={handleExportEcoFull}>
+                <UiIcon name="archive" size={13} /> {t("settings.exportEcoFull")}
+            </button>
+            <button type="button" class="b3-button b3-button--outline" disabled={ecoBackupBusy} onclick={() => ecoImportInput?.click()}>
+                <UiIcon name="history" size={13} /> {t("settings.importEcoFull")}
+            </button>
+        </div>
+    </div>
+
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.ecoTitle")}</div>
         <div class="lv-setcard__hint">{t("settings.ecoHint")} · {t("settings.ecoPlanned")}</div>

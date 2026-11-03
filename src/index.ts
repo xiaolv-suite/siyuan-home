@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify, lvTicker, lvActivity } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker, lvActivity, lvBackup } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -45,6 +45,8 @@ export default class LvHomePlugin extends Plugin {
     private readonly timeoutIds = new Set<number>();
     /** 小驴全生态统一通知注销回调 (Epoch 7) */
     private noticeHubCleaner?: () => void;
+    /** 全生态联合灾备切面注销器 (Epoch 7 Phase 4) */
+    private backupCleaner?: () => void;
     /** moduleId → schema 目录（193 波收口为 SCHEMA_CATALOG 单源；UI 按需读取列定义/枚举，与 ensureCoreLedgers 同源） */
     schemaCatalog: Record<string, any> = SCHEMA_CATALOG;
     /** Tab 面板刷新回调（支持多实例，33.1：所有打开的管家面板同步刷新） */
@@ -214,6 +216,15 @@ export default class LvHomePlugin extends Plugin {
         // 注册小驴全生态统一通知中心 (Epoch 7 Protocol v1.0.0)
         try {
             this.noticeHubCleaner = lvNotify.registerPlugin("siyuan-home");
+        } catch { /* 容错 */ }
+
+        // 注册全生态一键联合灾备切面 (Epoch 7 Phase 4: lvBackup)
+        try {
+            this.backupCleaner = lvBackup.register(
+                "siyuan-home",
+                async () => this.dumpEcosystemBackupData(),
+                async (data) => this.restoreEcosystemBackupData(data)
+            );
         } catch { /* 容错 */ }
     }
 
@@ -771,6 +782,67 @@ export default class LvHomePlugin extends Plugin {
         await this.refreshHub(undefined, true);
     }
 
+    /**
+     * 导出管家核心灾备数据切面（供 lvBackup 联合灾备调度）
+     * 涵盖：家庭成员档案、启用的模块配置、台账文档/视图/列绑定、日常待办/备忘流水、办结记录等
+     */
+    async dumpEcosystemBackupData(): Promise<Record<string, unknown>> {
+        return {
+            version: PLUGIN_VERSION,
+            exportedAt: new Date().toISOString(),
+            settings: this.settings ? JSON.parse(JSON.stringify(this.settings)) : {},
+            runtime: {
+                memos: this.runtime?.memos ? JSON.parse(JSON.stringify(this.runtime.memos)) : [],
+                handled: this.runtime?.handled ? JSON.parse(JSON.stringify(this.runtime.handled)) : {},
+                handledYear: this.runtime?.handledYear ? JSON.parse(JSON.stringify(this.runtime.handledYear)) : {},
+                handledUntil: this.runtime?.handledUntil ? JSON.parse(JSON.stringify(this.runtime.handledUntil)) : {},
+                monthlyCompletions: this.runtime?.monthlyCompletions ? JSON.parse(JSON.stringify(this.runtime.monthlyCompletions)) : {},
+            },
+            coreLedgers: {
+                members: this.settings?.members ?? [],
+                enabledModules: this.settings?.enabledModules ?? [],
+                dbRefs: this.settings?.dbRefs ?? {},
+            },
+        };
+    }
+
+    /**
+     * 恢复管家灾备切面数据
+     */
+    async restoreEcosystemBackupData(data: Record<string, unknown>): Promise<boolean> {
+        try {
+            if (!data || typeof data !== "object") return false;
+            if (data.settings && typeof data.settings === "object") {
+                const incoming = data.settings as Partial<HomeSettings>;
+                this.settings = { ...this.settings, ...incoming };
+                await saveSettings(this, this.settings);
+            }
+            if (data.runtime && typeof data.runtime === "object") {
+                const rt = data.runtime as any;
+                if (!this.runtime) {
+                    this.runtime = await loadRuntime(this);
+                }
+                if (Array.isArray(rt.memos)) this.runtime.memos = rt.memos;
+                if (rt.handled && typeof rt.handled === "object") {
+                    this.runtime.handled = { ...(this.runtime.handled ?? {}), ...rt.handled };
+                }
+                if (rt.handledYear && typeof rt.handledYear === "object") {
+                    this.runtime.handledYear = { ...(this.runtime.handledYear ?? {}), ...rt.handledYear };
+                }
+                if (rt.handledUntil && typeof rt.handledUntil === "object") {
+                    this.runtime.handledUntil = { ...(this.runtime.handledUntil ?? {}), ...rt.handledUntil };
+                }
+                await saveRuntime(this, this.runtime);
+            }
+            this.emitHubChanged();
+            this.refreshHub(undefined, true).catch(() => undefined);
+            return true;
+        } catch (err) {
+            console.error("[LvHome] restoreEcosystemBackupData failed:", err);
+            return false;
+        }
+    }
+
     /** Tab 面板挂载入口（tab callback 由框架调 addTab 注册的 destroy 之外回调） */
     mountPanel(element: HTMLElement) {
         const unmount = mount(TabPanel, {
@@ -791,6 +863,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.backupCleaner?.();
+        this.backupCleaner = undefined;
         this.noticeHubCleaner?.();
         this.noticeHubCleaner = undefined;
         this.tickerUnsubscribe?.();

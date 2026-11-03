@@ -192,34 +192,36 @@ export async function replaceJournalDocPreservingFolds(
     docId: string,
     markdown: string,
 ): Promise<void> {
-    await enqueueSectionWrite(`doc:${docId}`, async () => {
-        let foldedIds = new Set<string>();
-        let userBlocks: string[] = [];
-        try {
-            const prev = await getBlockKramdown(docId, { retries: 0 });
-            const prevKd = prev?.kramdown ?? "";
-            foldedIds = extractFoldedBlockIds(prevKd);
-            userBlocks = extractUserCustomBlocks(prevKd, docId);
-        } catch {
-            /* 文档初次写入或读取不可用时无需恢复折叠 */
-        }
+    return withDocLock(docId, async () => {
+        await enqueueSectionWrite(`doc:${docId}`, async () => {
+            let foldedIds = new Set<string>();
+            let userBlocks: string[] = [];
+            try {
+                const prev = await getBlockKramdown(docId, { retries: 0 });
+                const prevKd = prev?.kramdown ?? "";
+                foldedIds = extractFoldedBlockIds(prevKd);
+                userBlocks = extractUserCustomBlocks(prevKd, docId);
+            } catch {
+                /* 文档初次写入或读取不可用时无需恢复折叠 */
+            }
 
-        const finalMd = userBlocks.length > 0
-            ? `${markdown.trim()}\n\n${userBlocks.join("\n\n")}`
-            : markdown.trim();
+            const finalMd = userBlocks.length > 0
+                ? `${markdown.trim()}\n\n${userBlocks.join("\n\n")}`
+                : markdown.trim();
 
-        await updateBlock(docId, finalMd, { retries: 0 });
+            await updateBlock(docId, finalMd, { retries: 0 });
 
-        if (foldedIds.size > 0) {
-            for (const blockId of foldedIds) {
-                if (!finalMd.includes(`id="${blockId}"`)) continue;
-                try {
-                    await foldBlock(blockId, { retries: 0 });
-                } catch {
-                    /* ignore single fold failure */
+            if (foldedIds.size > 0) {
+                for (const blockId of foldedIds) {
+                    if (!finalMd.includes(`id="${blockId}"`)) continue;
+                    try {
+                        await foldBlock(blockId, { retries: 0 });
+                    } catch {
+                        /* ignore single fold failure */
+                    }
                 }
             }
-        }
+        });
     });
 }
 

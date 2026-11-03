@@ -37,8 +37,7 @@ export default class LvHomePlugin extends Plugin {
     settings: HomeSettings;
     runtime: HubRuntime;
     scan: ScanResult;
-    private heartbeat: number | undefined;
-    /** 小驴生态全局后台心跳订阅清理器 (Epoch 7 Phase 2) */
+    /** 小驴生态全局后台心跳订阅清理器 (Epoch 7 Phase 2: lvTicker 统一节拍) */
     private tickerUnsubscribe?: () => void;
     /** 零点跨日刷新订阅清理器 */
     private dateCrossUnsubscribe?: () => void;
@@ -172,25 +171,18 @@ export default class LvHomePlugin extends Plugin {
         }
 
         // 接入小驴生态全局后台心跳主时钟 (lvTicker)：失焦自动降频至 60s 节电，对齐后台节拍
-        try {
-            this.tickerUnsubscribe = lvTicker.subscribe("siyuan-home", 30 * 60 * 1000, () => {
-                this.refreshHub()
-                    .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
-                    .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
-            });
-            this.dateCrossUnsubscribe = lvTicker.onDateCross("siyuan-home", (todayKey) => {
-                this.refreshHub(undefined, true)
-                    .then(() => homeSilent("date-cross-refresh", `管家零点跨日自动重算完成：${todayKey}`))
-                    .catch((e) => console.warn("[LvHome] date cross refresh failed:", e));
-            });
-        } catch {
-            // 兼容性降级
-            this.heartbeat = window.setInterval(() => {
-                this.refreshHub()
-                    .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
-                    .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
-            }, 30 * 60 * 1000);
-        }
+        this.tickerUnsubscribe = lvTicker.subscribe("siyuan-home", 30 * 60 * 1000, () => {
+            this.refreshHub()
+                .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
+                .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
+        });
+
+        // 零点跨日精准广播刷新：00:00 准点重算到期事项与待办，免去轮询日期
+        this.dateCrossUnsubscribe = lvTicker.onDateCross("siyuan-home", (todayKey) => {
+            this.refreshHub(undefined, true)
+                .then(() => homeSilent("date-cross-refresh", `管家零点跨日自动重算完成：${todayKey}`))
+                .catch((e) => console.warn("[LvHome] date cross refresh failed:", e));
+        });
 
         // 注册思源原生菜单与事件监听（块菜单、块图标菜单、自定义 URL、AV 属性视图菜单、WS 变更节流同步与休眠唤醒补扫）
         this.contextMenusController = registerPluginContextMenus({
@@ -797,8 +789,6 @@ export default class LvHomePlugin extends Plugin {
         this.entrypointsController = undefined;
         this.authGuardController?.dispose();
         this.authGuardController = undefined;
-        if (this.heartbeat) window.clearInterval(this.heartbeat);
-        this.heartbeat = undefined;
         for (const timer of this.timeoutIds) window.clearTimeout(timer);
         this.timeoutIds.clear();
         this.contextMenusController?.dispose();

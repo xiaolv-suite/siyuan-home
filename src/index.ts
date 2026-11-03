@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad, lvEcosystem } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -885,15 +885,70 @@ export default class LvHomePlugin extends Plugin {
                 homeNotify("已完成待办项批量归档与流水同步", 2500, "info");
                 break;
             }
+            case "AI生活效期智能体检":
             case "全生态数据健康体检与清理": {
-                const diag = lvEcosystem.getDiagnostics();
-                await this.refreshHub(undefined, true);
-                homeNotify(`全生态体检完成：${diag.registeredPlugins.length} 个插件已联结，今日动态 ${diag.todayActivitiesCount} 项`, 3000, "info");
+                await this.runLifeHealthAudit();
                 break;
             }
             default:
                 this.showTab();
                 break;
+        }
+    }
+
+    /**
+     * 运行证件、药品、保单效期全局智能体检洞察 (Epoch 7 Phase 6)
+     */
+    async runLifeHealthAudit(): Promise<void> {
+        await this.refreshHub(undefined, true);
+        const { auditLifeHealthWithAi } = await import("@/core/ai-nlp");
+        const audit = await auditLifeHealthWithAi(this);
+
+        try {
+            const { Dialog } = await import("siyuan");
+            const dlg = new Dialog({
+                title: "🐴 小驴管家 · 生活效期全局 AI 体检报告",
+                content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption lv-report-pre" style="white-space:pre-wrap; line-height:1.6; font-size:12.5px; margin:0;"></pre></div>
+<div class="b3-dialog__action">
+  <button type="button" class="b3-button b3-button--cancel">关闭</button>
+  <button type="button" class="b3-button" id="lv-audit-copy">复制体检报告</button>
+  <button type="button" class="b3-button b3-button--outline" id="lv-audit-journal">写入流水日记</button>
+</div>`,
+                width: "640px",
+            });
+
+            const pre = dlg.element.querySelector("pre");
+            if (pre) pre.textContent = audit.reportText;
+
+            const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
+            if (cancelBtn) cancelBtn.onclick = () => dlg.destroy();
+
+            const copyBtn = dlg.element.querySelector("#lv-audit-copy") as HTMLButtonElement | null;
+            if (copyBtn) {
+                copyBtn.onclick = async () => {
+                    await navigator.clipboard.writeText(audit.reportText);
+                    homeNotify("已复制生活效期全局体检报告", 2500, "info");
+                };
+            }
+
+            const journalBtn = dlg.element.querySelector("#lv-audit-journal") as HTMLButtonElement | null;
+            if (journalBtn) {
+                journalBtn.onclick = async () => {
+                    const docId = this.settings?.dbRefs?.adhoc?.docId;
+                    if (docId) {
+                        const { upsertDocSection } = await import("@/core/doc-sync");
+                        const { withDocLock } = await import("@/libs/notice");
+                        await withDocLock(docId, async () => {
+                            await upsertDocSection(docId, "life-health-audit", audit.reportText);
+                        });
+                        homeNotify("已写入日常流水日记", 2500, "info");
+                    } else {
+                        homeNotify("未找到日常流水日记文档", 3000, "info");
+                    }
+                };
+            }
+        } catch {
+            homeNotify(audit.reportText.slice(0, 100), 5000, "info");
         }
     }
 
@@ -914,7 +969,7 @@ export default class LvHomePlugin extends Plugin {
                 digit: 3,
                 badge: expiring > 0 ? `${expiring} 到期` : undefined,
                 badgeType: "warn",
-                actions: ["快速记录生活备忘事项", "扫描即将到期证件与药品", "批量归档已完成待办项", "全生态数据健康体检与清理"],
+                actions: ["快速记录生活备忘事项", "扫描即将到期证件与药品", "批量归档已完成待办项", "全生态数据健康体检与清理", "AI生活效期智能体检"],
                 onClick: () => this.openDashboard(),
                 onAction: (action) => this.handleQuickAction(action),
             });

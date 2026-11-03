@@ -57,4 +57,6 @@ export interface HomePluginLike extends Plugin {
     /** 时间线点击后的仅内存一次性详情目标，由台账页在真实数据加载后消费。 */
     pendingActivityTarget?: ActivityTarget;
     openActivityTarget?: (target: Omit<ActivityTarget, "requestId">) => void;
+    /** 全局生活效期 AI 智能体检洞察 (Epoch 7 Phase 6) */
+    runLifeHealthAudit?: () => Promise<void>;
 }

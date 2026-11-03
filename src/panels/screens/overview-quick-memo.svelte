@@ -1,6 +1,7 @@
 <script lang="ts">
     import { showMessage } from "siyuan";
     import { parseQuickAdd } from "@/core/quick-add";
+    import { parseQuickEntryWithAi } from "@/core/ai-nlp";
     import { localDateKey } from "@/core/hub/rule";
     import UiIcon from "@/ui/icon.svelte";
 
@@ -18,6 +19,7 @@
     let memoDue = $state("");
     let memoInput: HTMLInputElement | undefined = $state();
     let savingMemo = $state(false);
+    let aiParsing = $state(false);
 
     const isGuest = $derived(Boolean(plugin.runtime?.guestModeActive));
 
@@ -25,6 +27,23 @@
         if (!memoTitle.trim()) return null;
         return parseQuickAdd(memoTitle);
     });
+
+    async function triggerAiParse() {
+        if (aiParsing || !memoTitle.trim() || isGuest) return;
+        aiParsing = true;
+        try {
+            const res = await parseQuickEntryWithAi(memoTitle);
+            if (res.cleanTitle) memoTitle = res.cleanTitle;
+            if (res.dueDate) memoDue = res.dueDate;
+            if (res.isAiParsed) {
+                showMessage(t("memo.aiParseSuccess"), 2500, "info");
+            }
+        } catch {
+            /* soft */
+        } finally {
+            aiParsing = false;
+        }
+    }
 
     async function addMemo() {
         if (savingMemo) return;
@@ -37,18 +56,20 @@
             showMessage(t("memo.titleRequired"), 4000, "info");
             return;
         }
-        // Quick Add Magic：解析日期、优先级、分类标签
-        const parsed = parseQuickAdd(memoTitle);
-        let title = parsed.cleanTitle || memoTitle.trim();
-        let due = memoDue || parsed.dueDate;
-        if (parsed.dueDate && !memoDue) {
-            showMessage(t("memo.dateParsed").replace("${d}", parsed.dueDate), 2500, "info");
-        }
-        if (!title) return;
-        // 默认到期日走本地时区（33.3：禁 toISOString，UTC+8 夜间会偏一天）
-        const d = due || localDateKey(new Date(Date.now() + 3 * 86400000));
+
         savingMemo = true;
         try {
+            // 自然语言智能极速解析（大模型优先，本地规则兜底）
+            const parsed = await parseQuickEntryWithAi(memoTitle);
+            let title = parsed.cleanTitle || memoTitle.trim();
+            let due = memoDue || parsed.dueDate;
+            if (parsed.dueDate && !memoDue) {
+                showMessage(t("memo.dateParsed").replace("${d}", parsed.dueDate), 2500, "info");
+            }
+            if (!title) return;
+            // 默认到期日走本地时区（33.3：禁 toISOString，UTC+8 夜间会偏一天）
+            const d = due || localDateKey(new Date(Date.now() + 3 * 86400000));
+
             await plugin.addMemo(title, d, {
                 priority: parsed.priority,
                 category: parsed.category,
@@ -101,5 +122,8 @@
         {/if}
     {/if}
     <input class="b3-text-field" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} disabled={savingMemo || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
+    <button type="button" class="b3-button b3-button--text" title="AI 极速解析" aria-label="AI 极速解析" disabled={aiParsing || !memoTitle.trim() || isGuest} onclick={() => void triggerAiParse()}>
+        <UiIcon name="sparkle" size={13} />
+    </button>
     <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim() || isGuest} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
 </div>

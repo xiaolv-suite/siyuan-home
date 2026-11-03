@@ -140,6 +140,14 @@
             <button
                 type="button"
                 class="b3-button b3-button--text"
+                onclick={() => void plugin.runLifeHealthAudit?.()}
+                title={t("overview.aiAudit")}
+            >
+                <UiIcon name="sparkle" size={13} /> {t("overview.aiAudit")}
+            </button>
+            <button
+                type="button"
+                class="b3-button b3-button--text"
                 onclick={loadRecords}
                 title={t("activity.refresh")}
             >

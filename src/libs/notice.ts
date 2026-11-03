@@ -20,6 +20,12 @@ import {
     lvTicker,
     withDocLock,
     lvSurfaceStack,
+    lvAi,
+    lvActivity,
+    type LvActivityRecord,
+    type LvAiConfig,
+    type LvAiRequestOptions,
+    type LvAiResponse,
 } from "./lv-notice-kit";
 
 export {
@@ -27,12 +33,18 @@ export {
     lvTicker,
     withDocLock,
     lvSurfaceStack,
+    lvAi,
+    lvActivity,
     type CardNoticeOptions,
     type CapsuleNoticeOptions,
     type SilentNoticeOptions,
     type LvNoticeLevel,
     type LvNoticeAction,
     type LvNoticeSnoozeOption,
+    type LvActivityRecord,
+    type LvAiConfig,
+    type LvAiRequestOptions,
+    type LvAiResponse,
 };
 
 export interface NoticeOptions extends Partial<CardNoticeOptions> {

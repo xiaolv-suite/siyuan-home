@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify, lvTicker } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker, lvActivity } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -606,6 +606,19 @@ export default class LvHomePlugin extends Plugin {
 
     async complete(r: any) {
         await complete(this, r);
+
+        // 待办完成活动广播 (Epoch 7 Phase 3: lvActivity)
+        try {
+            const taskTitle = r?.title || (r?.moduleId ? `事项（${r.moduleId}）` : "家庭事项");
+            lvActivity.record({
+                source: "管家",
+                category: "task",
+                title: `完成待办: ${taskTitle}`,
+                detail: r?.dueDate ? `到期日: ${r.dueDate}` : undefined,
+                linkBlockId: r?.rowId || r?.id,
+            });
+        } catch { /* 零强依赖优雅降级 */ }
+
         // 事务完成联动打卡（Epoch 6 联邦规范）
         try {
             const today = localDateKey(new Date());

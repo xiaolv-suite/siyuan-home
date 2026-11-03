@@ -26,6 +26,7 @@
     import OverviewModuleGrid from "./overview-module-grid.svelte";
     import OverviewBentoGrid from "./overview-bento-grid.svelte";
     import OverviewUpcomingList from "./overview-upcoming-list.svelte";
+    import OverviewEcosystemActivity from "./overview-ecosystem-activity.svelte";
     import { getLunarDisplay } from "@/core/hub/lunar-lazy";
 
     let { plugin, t, onGoto, onCapture, version, initialScanError = "", onRetryScan }: {
@@ -530,6 +531,8 @@
     onUndoPostpone={handleUndoPostpone}
     canUndoPostpone={!!(lastPostponedOverdueMap && Object.keys(lastPostponedOverdueMap).length > 0)}
 />
+
+<OverviewEcosystemActivity {plugin} {t} {version} />
 
 <ActivityFeed {plugin} {t} {version} compact={true} />
 

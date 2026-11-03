@@ -1227,6 +1227,7 @@ export const lvAi = {
 /* ========================================================================= */
 
 let fallbackActivities: LvActivityRecord[] = [];
+const fallbackListeners = new Set<(item: LvActivityRecord) => void>();
 
 function getActivityHub(): LvActivityStreamHub {
     if (typeof window === "undefined") {
@@ -1234,15 +1235,22 @@ function getActivityHub(): LvActivityStreamHub {
             version: PROTOCOL_VERSION,
             record: (item) => {
                 const now = new Date();
-                fallbackActivities.push({
+                const record: LvActivityRecord = {
                     ...item,
                     id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
                     timestamp: now.getTime(),
                     timeStr: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+                };
+                fallbackActivities.push(record);
+                fallbackListeners.forEach((cb) => {
+                    try { cb(record); } catch { /* ignore */ }
                 });
             },
             getTodayRecords: () => [...fallbackActivities],
-            onActivity: () => () => {},
+            onActivity: (cb) => {
+                fallbackListeners.add(cb);
+                return () => fallbackListeners.delete(cb);
+            },
             formatAsMarkdown: () => formatActivityMarkdown(fallbackActivities),
         };
     }

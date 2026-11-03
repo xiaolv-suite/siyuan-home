@@ -24,12 +24,14 @@ import {
     lvActivity,
     lvBackup,
     lvEcosystem,
+    lvLaunchpad,
     type LvActivityRecord,
     type LvAiConfig,
     type LvAiRequestOptions,
     type LvAiResponse,
     type LvEcosystemFullBackup,
     type LvEcosystemDiagnostics,
+    type LvLaunchpadItem,
 } from "./lv-notice-kit";
 
 export {
@@ -41,6 +43,7 @@ export {
     lvActivity,
     lvBackup,
     lvEcosystem,
+    lvLaunchpad,
     type CardNoticeOptions,
     type CapsuleNoticeOptions,
     type SilentNoticeOptions,
@@ -53,6 +56,7 @@ export {
     type LvAiResponse,
     type LvEcosystemFullBackup,
     type LvEcosystemDiagnostics,
+    type LvLaunchpadItem,
 };
 
 export interface NoticeOptions extends Partial<CardNoticeOptions> {

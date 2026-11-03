@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify, lvTicker, lvActivity, lvBackup } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad, lvEcosystem } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -47,6 +47,8 @@ export default class LvHomePlugin extends Plugin {
     private noticeHubCleaner?: () => void;
     /** 全生态联合灾备切面注销器 (Epoch 7 Phase 4) */
     private backupCleaner?: () => void;
+    /** 小驴罗盘注销回调 (Epoch 7 Phase 5: lvLaunchpad) */
+    private launchpadCleaner?: () => void;
     /** moduleId → schema 目录（193 波收口为 SCHEMA_CATALOG 单源；UI 按需读取列定义/枚举，与 ensureCoreLedgers 同源） */
     schemaCatalog: Record<string, any> = SCHEMA_CATALOG;
     /** Tab 面板刷新回调（支持多实例，33.1：所有打开的管家面板同步刷新） */
@@ -226,6 +228,9 @@ export default class LvHomePlugin extends Plugin {
                 async (data) => this.restoreEcosystemBackupData(data)
             );
         } catch { /* 容错 */ }
+
+        // 注册小驴罗盘极速弹射坞入口与二级行动 (Epoch 7 Phase 5: lvLaunchpad)
+        this.registerLaunchpadEntry();
     }
 
     /** 布局就绪后：首次引导数据准备 + 智能找回历史台账 + 扫描（不阻塞启动，不强制全量建库） */
@@ -481,6 +486,7 @@ export default class LvHomePlugin extends Plugin {
         }
         this.updateStatusbar(reminders.filter((r) => r.daysLeft <= 0).length);
         this.emitHubChanged();
+        this.registerLaunchpadEntry();
     }
 
     /**
@@ -843,6 +849,78 @@ export default class LvHomePlugin extends Plugin {
         }
     }
 
+    /**
+     * 小驴罗盘主入口：唤起管家仪表盘
+     */
+    openDashboard() {
+        this.showTab();
+    }
+
+    /**
+     * 获取当前临期/逾期事项总数（7 天内临期与逾期）
+     */
+    getExpiringCount(): number {
+        if (!this.scan?.reminders) return 0;
+        return this.scan.reminders.filter((r: any) => typeof r.daysLeft === "number" && r.daysLeft <= 7).length;
+    }
+
+    /**
+     * 处理小驴罗盘二级快捷行动直达
+     */
+    async handleQuickAction(action: string): Promise<void> {
+        switch (action) {
+            case "快速记录生活备忘事项":
+                this.showTab();
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
+                }
+                break;
+            case "扫描即将到期证件与药品":
+                await this.refreshHub(undefined, true);
+                this.openRemindersScreen();
+                break;
+            case "批量归档已完成待办项": {
+                const { syncDailyJournalDoc } = await import("@/core/doc-sync");
+                await syncDailyJournalDoc(this);
+                homeNotify("已完成待办项批量归档与流水同步", 2500, "info");
+                break;
+            }
+            case "全生态数据健康体检与清理": {
+                const diag = lvEcosystem.getDiagnostics();
+                await this.refreshHub(undefined, true);
+                homeNotify(`全生态体检完成：${diag.registeredPlugins.length} 个插件已联结，今日动态 ${diag.todayActivitiesCount} 项`, 3000, "info");
+                break;
+            }
+            default:
+                this.showTab();
+                break;
+        }
+    }
+
+    /**
+     * 向小驴罗盘登记注册或刷新本插件入口切面
+     */
+    registerLaunchpadEntry(): void {
+        try {
+            this.launchpadCleaner?.();
+            const expiring = this.getExpiringCount();
+            this.launchpadCleaner = lvLaunchpad.register({
+                id: "siyuan-home",
+                name: "管家",
+                fullName: "小驴管家",
+                svgIcon: "icon-lv-home",
+                color: "#10b981",
+                desc: "事项归档 · 效期预警",
+                digit: 3,
+                badge: expiring > 0 ? `${expiring} 到期` : undefined,
+                badgeType: "warn",
+                actions: ["快速记录生活备忘事项", "扫描即将到期证件与药品", "批量归档已完成待办项", "全生态数据健康体检与清理"],
+                onClick: () => this.openDashboard(),
+                onAction: (action) => this.handleQuickAction(action),
+            });
+        } catch { /* 容错降级 */ }
+    }
+
     /** Tab 面板挂载入口（tab callback 由框架调 addTab 注册的 destroy 之外回调） */
     mountPanel(element: HTMLElement) {
         const unmount = mount(TabPanel, {
@@ -863,6 +941,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.launchpadCleaner?.();
+        this.launchpadCleaner = undefined;
         this.backupCleaner?.();
         this.backupCleaner = undefined;
         this.noticeHubCleaner?.();

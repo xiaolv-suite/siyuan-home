@@ -10,6 +10,7 @@ import { selectCellContent } from "./avcell";
 import { localDateKey } from "./hub/rule";
 import { uiIcon } from "@/ui/icons";
 import { createReadTracker, escapeHtml, openModalShell } from "./modal-shell";
+import { homeInline } from "@/libs/notice";
 
 export type LifeDimension = "health_safety" | "finance_contracts" | "daily_efficiency" | "culture_growth";
 export type LifeScoreLevel = "excellent" | "good" | "fair" | "needs_attention";
@@ -402,6 +403,7 @@ export function openLifeIndexDialog(
             const text = formatLifeIndexReportText(report);
             try {
                 await navigator.clipboard.writeText(text);
+                homeInline(copyBtn, t("overview.lifeIndexCopied"));
                 showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
             } catch {
                 showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");

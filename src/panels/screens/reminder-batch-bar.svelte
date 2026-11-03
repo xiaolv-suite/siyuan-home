@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { formatAsTaskBlock } from "@/core/block-capture";
     import { saveRuntime } from "@/core/hub/runtime";
     import UiIcon from "@/ui/icon.svelte";
@@ -73,7 +73,7 @@
         }
     }
 
-    async function batchCopyAsTasks() {
+    async function batchCopyAsTasks(e?: MouseEvent) {
         if (batchBusy) return;
         const selectedList = filtered.filter((r) => selected.has(r.id));
         if (selectedList.length === 0) return;
@@ -86,6 +86,9 @@
             .join("\n");
         try {
             await navigator.clipboard.writeText(text);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.batchTasksCopied").replace("${n}", String(selectedList.length)));
+            }
             showMessage(t("hub.batchTasksCopied").replace("${n}", String(selectedList.length)), 3000, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
@@ -94,7 +97,7 @@
         }
     }
 
-    async function batchCopyBlockRefs() {
+    async function batchCopyBlockRefs(e?: MouseEvent) {
         if (batchBusy) return;
         const selectedList = filtered.filter((r) => selected.has(r.id));
         if (selectedList.length === 0) return;
@@ -104,6 +107,9 @@
             .join("\n");
         try {
             await navigator.clipboard.writeText(refsText);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.batchRefsCopied").replace("${n}", String(selectedList.length)));
+            }
             showMessage(t("hub.batchRefsCopied").replace("${n}", String(selectedList.length)), 3000, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
@@ -190,8 +196,8 @@
     <b class="lv-caption" aria-live="polite" aria-atomic="true">{t("hub.selectedN").replace("${n}", String(selectedCount))}</b>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
     <span class="fn__flex-1"></span>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyAsTasks}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchCopyBlockRefs}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyAsTasks(e)}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyBlockRefs(e)}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}><UiIcon name="check" size={13} /> {t("act.done")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}><UiIcon name="clock" size={13} /> {t("act.snooze7")}</button>

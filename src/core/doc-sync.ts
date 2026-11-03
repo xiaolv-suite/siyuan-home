@@ -23,6 +23,7 @@ import {
 import { ensureNotebook, findLedgerDoc, isDocMissingError, stableAvSeed } from "./provisioner";
 import { normalizeLifelogTime } from "./quick-actions";
 import { loadRowLogs, type LogKind, type RowLog, type RowLogs } from "./rowlog";
+import { withDocLock } from "@/libs/notice";
 import { saveSettings } from "./settings";
 import type { FamilyMember } from "@/types";
 
@@ -112,29 +113,31 @@ export async function upsertDocSection(
     const secId = sectionBlockId(docId, sectionKey);
     const wrapped = `{{{row\n${markdownBody.trim()}\n}}}\n{: id="${secId}" custom-lvhome-sec="${sectionKey}"}`;
 
-    return enqueueSectionWrite(secId, async () => {
-        let exists = knownSectionIds.has(secId);
-        if (!exists) {
-            try {
-                const res = await getBlockKramdown(secId, { retries: 0 });
-                exists = !!res?.id;
-            } catch {
-                exists = false;
+    return withDocLock(docId, () =>
+        enqueueSectionWrite(secId, async () => {
+            let exists = knownSectionIds.has(secId);
+            if (!exists) {
+                try {
+                    const res = await getBlockKramdown(secId, { retries: 0 });
+                    exists = !!res?.id;
+                } catch {
+                    exists = false;
+                }
             }
-        }
-        if (exists) {
-            try {
-                await updateBlock(secId, wrapped, { retries: 0 });
-                knownSectionIds.add(secId);
-                return secId;
-            } catch {
-                knownSectionIds.delete(secId);
+            if (exists) {
+                try {
+                    await updateBlock(secId, wrapped, { retries: 0 });
+                    knownSectionIds.add(secId);
+                    return secId;
+                } catch {
+                    knownSectionIds.delete(secId);
+                }
             }
-        }
-        await appendBlock(docId, wrapped, { retries: 0 });
-        knownSectionIds.add(secId);
-        return secId;
-    });
+            await appendBlock(docId, wrapped, { retries: 0 });
+            knownSectionIds.add(secId);
+            return secId;
+        }),
+    );
 }
 
 /**

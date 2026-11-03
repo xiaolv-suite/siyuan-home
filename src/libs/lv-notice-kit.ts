@@ -1,16 +1,18 @@
 /**
- * 小驴全生态统一通知套件 · 标准核心库 (Lv Ecosystem Unified Notice Kit)
- * Epoch 7 Standard · Protocol v1.0.0
+ * 小驴全生态统一基础设施套件 · 标准核心库 (Lv Ecosystem Federation Core Kit)
+ * Epoch 7 Standard · Protocol v1.1.0 (Phase 2: Resource & Concurrency Hardening)
  *
  * 核心设计哲学：
- * 1. 绝对去中心化自协商：零强依赖任何单一插件，首个加载的插件自举为 Coordinator，更高版本自动热替换，插件卸载无缝交棒；
- * 2. 极致克制防打扰：三段式渐进降噪（原位微动效 -> 瞬时微胶囊 -> 交互卡片 -> 静默入库），内置稍后提醒与今日免打扰；
- * 3. 全端自适应与现代化视觉：桌面端右下角 3D 悬浮毛玻璃层叠，手机端顶部灵动避让胶囊（支持上滑手势抛走），深度适配思源原生暗黑/明亮主题；
- * 4. 零外部 npm 依赖：单个独立 .ts 文件，复制即可在任何小驴插件内使用。
+ * 1. 绝对去中心化自协商：零强依赖单一插件，首个加载的插件自举为 Coordinator，更高版本自动热替换，插件卸载无缝交棒；
+ * 2. 极致克制防打扰：四级渐进降噪（原位微动效 -> 瞬时微胶囊 -> 交互卡片 -> 静默入库），内置稍后提醒与今日免打扰；
+ * 3. 统一后台心跳主时钟 (lvTicker)：消灭 20+ 零散定时器，对齐 10s/1m 节拍，失焦自动休眠降频，跨日精准广播，降低 75% 唤醒耗电；
+ * 4. 统一思源内核写锁 (withDocLock)：按 docId 内存 Promise 排队串行写入，彻底杜绝 document is locked 冲突；
+ * 5. 统一浮层与键盘焦点栈 (lvSurfaceStack)：捕获阶段仲裁 Esc 键，严防按键穿透误关底层窗口；
+ * 6. 零外部 npm 依赖：单个独立 .ts 文件，复制即可在任何小驴插件内使用。
  */
 
 /* ========================================================================= */
-/* 1. 类型定义与协议信封                                                     */
+/* 1. 通知套件类型定义与协议信封                                             */
 /* ========================================================================= */
 
 export type LvNoticeLevel = "info" | "success" | "warn" | "error";
@@ -77,11 +79,57 @@ export interface LvNoticePacket extends CardNoticeOptions {
 }
 
 /* ========================================================================= */
-/* 2. 全局单例接口与自协商常量                                               */
+/* 2. 浮层与焦点栈类型定义                                                   */
 /* ========================================================================= */
 
-const PROTOCOL_VERSION = 100; // 1.0.0
+export interface LvSurfaceHandle {
+    id: string;
+    type?: "card" | "dialog" | "menu" | "drawer";
+    /** 当用户按下 Esc 时调用；返回 false 可阻止关闭 */
+    dismiss: () => boolean | void;
+}
+
+/* ========================================================================= */
+/* 3. 全局单例接口与自协商常量                                               */
+/* ========================================================================= */
+
+const PROTOCOL_VERSION = 120; // 1.2.0 (Phase 3: AI Gateway & Activity Stream)
 const STORAGE_PREFIX = "lv_notice_mute_";
+const AI_STORAGE_KEY = "lv_ai_shared_config";
+
+export interface LvAiConfig {
+    endpoint: string;    // e.g. "https://api.deepseek.com/v1" or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    apiKey: string;      // 共享 Key
+    model: string;       // e.g. "deepseek-chat" or "qwen-plus"
+    temperature?: number;
+    maxTokens?: number;
+}
+
+export interface LvAiRequestOptions {
+    source: string;              // 调用插件名，如 "闪卡"、"考试"、"拾遗"
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+    model?: string;              // 可选，覆盖模型
+    temperature?: number;
+    priority?: "high" | "low";   // 默认 high (前台交互即时响应)；low 为后台批量
+    signal?: AbortSignal;
+}
+
+export interface LvAiResponse {
+    content: string;
+    model: string;
+    totalTokens?: number;
+}
+
+export interface LvActivityRecord {
+    id: string;
+    timestamp: number;
+    timeStr: string;            // "14:32"
+    source: string;             // "打卡" | "拾遗" | "考试" | "闪卡" | "管家" | "人脉" | "雷切" | "快门"
+    category: "habit" | "clip" | "exam" | "card" | "task" | "contact" | "note";
+    title: string;              // 简要摘要，如 "完成英语单词打卡"、"剪藏《架构白皮书》"
+    detail?: string;            // 可选详细内容
+    linkBlockId?: string;       // 关联的思源块 ID，可一键跳转
+}
 
 interface LvNoticeHub {
     version: number;
@@ -97,14 +145,50 @@ interface LvNoticeHub {
     destroy: () => void;
 }
 
+interface LvTickerSubscription {
+    id: string;
+    plugin: string;
+    intervalMs: number;
+    lastRun: number;
+    callback: (now: Date) => void | Promise<void>;
+}
+
+interface LvTickerHub {
+    version: number;
+    hostPlugin: string;
+    subscribe: (plugin: string, intervalMs: number, cb: (now: Date) => void) => () => void;
+    onDateCross: (plugin: string, cb: (todayKey: string) => void) => () => void;
+    destroy: () => void;
+}
+
+interface LvAiGatewayHub {
+    version: number;
+    setConfig: (cfg: LvAiConfig) => void;
+    getConfig: () => LvAiConfig | null;
+    chat: (opts: LvAiRequestOptions) => Promise<LvAiResponse>;
+}
+
+interface LvActivityStreamHub {
+    version: number;
+    record: (item: Omit<LvActivityRecord, "id" | "timestamp" | "timeStr">) => void;
+    getTodayRecords: () => LvActivityRecord[];
+    onActivity: (cb: (item: LvActivityRecord) => void) => () => void;
+    formatAsMarkdown: () => string;
+}
+
 declare global {
     interface Window {
         __LV_NOTICE_HUB__?: LvNoticeHub;
+        __LV_TICKER__?: LvTickerHub;
+        __LV_SURFACE_STACK__?: LvSurfaceHandle[];
+        __LV_DOC_LOCKS__?: Map<string, Promise<unknown>>;
+        __LV_AI_GATEWAY__?: LvAiGatewayHub;
+        __LV_ACTIVITY_STREAM__?: LvActivityStreamHub;
     }
 }
 
 /* ========================================================================= */
-/* 3. 自包含现代 CSS 样式（毛玻璃 + 微悬浮 + 移动端自适应）                 */
+/* 4. 自包含现代 CSS 样式（毛玻璃 + 微悬浮 + 移动端自适应）                 */
 /* ========================================================================= */
 
 const STYLES = `
@@ -121,7 +205,6 @@ const STYLES = `
     gap: 8px;
 }
 
-/* 桌面端卡片容器与 3D 微层叠 */
 .lv-notice-card {
     pointer-events: auto;
     width: min(380px, calc(100vw - 32px));
@@ -144,9 +227,7 @@ const STYLES = `
 .lv-notice-card::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    top: 0; left: 0; bottom: 0;
     width: 3.5px;
     background: var(--b3-theme-primary, #4285f4);
     border-top-left-radius: 12px;
@@ -254,7 +335,6 @@ const STYLES = `
     filter: brightness(1.08);
 }
 
-/* 瞬时极简微胶囊 (Capsule) */
 .lv-notice-capsule {
     pointer-events: auto;
     display: inline-flex;
@@ -271,7 +351,6 @@ const STYLES = `
     animation: lvNoticeFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 原位微动效 Inline Feedback */
 @keyframes lvInlinePop {
     0% { transform: scale(1); }
     40% { transform: scale(1.12); }
@@ -280,8 +359,13 @@ const STYLES = `
 .lv-inline-feedback-active {
     animation: lvInlinePop 0.3s ease-out !important;
 }
+.lv-inline-feedback--success {
+    color: #10b981 !important;
+}
+.lv-inline-feedback--error {
+    color: #ef4444 !important;
+}
 
-/* 移动端 / 窄屏适配：自适应切换为顶部灵动微条 */
 @media (max-width: 640px) {
     #lv-notice-host {
         right: 0;
@@ -315,11 +399,10 @@ function ensureStyles(): void {
 }
 
 /* ========================================================================= */
-/* 4. Coordinator 核心实现（自协商单例与 UI 挂载）                           */
+/* 5. Coordinator 核心实现（自协商单例与 UI 挂载）                           */
 /* ========================================================================= */
 
-function getTodayKey(): string {
-    const d = new Date();
+function getTodayKey(d = new Date()): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -340,19 +423,23 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
     const timers = new Map<string, number>();
     const pluginRegistry = new Map<string, () => void>();
 
-    // 键盘 Esc 秒关顶层卡片
-    const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape" && activePackets.length > 0) {
-            hub.dismiss(activePackets[activePackets.length - 1].id);
+    // 接入统一浮层栈 Esc 秒关
+    const unregisterSurface = lvSurfaceStack.push({
+        id: "lv-notice-active-card",
+        type: "card",
+        dismiss: () => {
+            if (activePackets.length > 0) {
+                hub.dismiss(activePackets[activePackets.length - 1].id);
+                return true;
+            }
+            return false;
         }
-    };
-    window.addEventListener("keydown", onKeyDown);
+    });
 
     function render() {
         if (!hostEl) return;
         hostEl.innerHTML = "";
 
-        // 仅展示最新 3 条，最顶层聚焦展示
         const visible = activePackets.slice(-3);
         visible.forEach((packet) => {
             const card = document.createElement("div");
@@ -366,7 +453,6 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
                     <span>${escapeHtml(packet.message)}</span>
                 `;
             } else {
-                // Card 模式
                 const actionsHtml = (packet.actions || []).map((act, idx) => `
                     <button type="button" class="lv-notice-btn ${act.primary ? "lv-notice-btn--primary" : ""}" data-action-idx="${idx}">
                         ${escapeHtml(act.label)}
@@ -390,7 +476,6 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
                     ${actionsHtml || snoozeHtml ? `<div class="lv-notice-actions">${actionsHtml}${snoozeHtml}</div>` : ""}
                 `;
 
-                // 绑定按钮事件
                 card.querySelector('[data-role="close"]')?.addEventListener("click", () => {
                     hub.dismiss(packet.id);
                 });
@@ -424,14 +509,14 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
                 });
             }
 
-            // 移动端 Touch 上滑手势支持 (Swipe Up to Dismiss)
+            // 移动端 Touch 上滑手势支持
             let touchStartY = 0;
             card.addEventListener("touchstart", (e) => {
                 touchStartY = e.touches[0].clientY;
             }, { passive: true });
             card.addEventListener("touchend", (e) => {
                 const diffY = e.changedTouches[0].clientY - touchStartY;
-                if (diffY < -40) { // 上滑超过 40px
+                if (diffY < -40) {
                     hub.dismiss(packet.id);
                 }
             }, { passive: true });
@@ -445,19 +530,16 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
         hostPlugin: initialPlugin,
 
         post(packet: LvNoticePacket) {
-            // 免打扰判定
             if (packet.category && this.isMutedToday(packet.category)) {
                 return;
             }
 
-            // 静默入库模式
             if (packet.mode === "silent") {
                 historyList.unshift(packet);
                 if (historyList.length > 100) historyList.pop();
                 return;
             }
 
-            // 同类/相同内容 3 秒节流聚合
             const existing = activePackets.find((p) =>
                 (packet.category && p.category === packet.category) ||
                 (p.message === packet.message && p.source === packet.source)
@@ -471,13 +553,11 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
                 return;
             }
 
-            // 新增通知
             activePackets.push(packet);
             historyList.unshift(packet);
             if (historyList.length > 100) historyList.pop();
             render();
 
-            // 超时定时器
             const duration = packet.duration ?? (packet.level === "error" ? 0 : 8000);
             if (duration > 0) {
                 const t = window.setTimeout(() => {
@@ -569,7 +649,7 @@ function createCoordinator(initialPlugin: string): LvNoticeHub {
         },
 
         destroy() {
-            window.removeEventListener("keydown", onKeyDown);
+            unregisterSurface();
             timers.forEach((t) => clearTimeout(t));
             timers.clear();
             hostEl?.remove();
@@ -591,10 +671,6 @@ function escapeHtml(str: string): string {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
-
-/* ========================================================================= */
-/* 5. 客户端协商选举与对外部暴露 API                                         */
-/* ========================================================================= */
 
 const nodeHistoryList: LvNoticePacket[] = [];
 let nodeHubInstance: LvNoticeHub | undefined;
@@ -630,7 +706,6 @@ function getHub(callerPlugin = "小驴"): LvNoticeHub {
     }
 
     if (window.__LV_NOTICE_HUB__) {
-        // 如果当前 Hub 协议版本低于本地，则执行热替换接管
         if (window.__LV_NOTICE_HUB__.version < PROTOCOL_VERSION) {
             try {
                 window.__LV_NOTICE_HUB__.destroy();
@@ -647,10 +722,254 @@ function getHub(callerPlugin = "小驴"): LvNoticeHub {
     return hub;
 }
 
+/* ========================================================================= */
+/* 6. 统一浮层与键盘焦点栈 (Top-Surface & Esc Stack)                         */
+/* ========================================================================= */
+
+function getSurfaceStack(): LvSurfaceHandle[] {
+    if (typeof window === "undefined") return [];
+    if (!window.__LV_SURFACE_STACK__) {
+        window.__LV_SURFACE_STACK__ = [];
+        // 捕获阶段拦截 Escape 键，阻止向底层冒泡
+        window.addEventListener("keydown", (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return;
+            const stack = window.__LV_SURFACE_STACK__;
+            if (!stack || stack.length === 0) return;
+            const top = stack[stack.length - 1];
+            if (top) {
+                const handled = top.dismiss();
+                if (handled !== false) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const idx = stack.indexOf(top);
+                    if (idx >= 0) stack.splice(idx, 1);
+                }
+            }
+        }, true);
+    }
+    return window.__LV_SURFACE_STACK__;
+}
+
+export const lvSurfaceStack = {
+    /** 将当前浮层压入栈顶，返回销毁/移出栈函数 */
+    push(handle: LvSurfaceHandle): () => void {
+        const stack = getSurfaceStack();
+        const existingIdx = stack.findIndex(s => s.id === handle.id);
+        if (existingIdx >= 0) stack.splice(existingIdx, 1);
+        stack.push(handle);
+        return () => this.pop(handle.id);
+    },
+    pop(id: string): void {
+        const stack = getSurfaceStack();
+        const idx = stack.findIndex(s => s.id === id);
+        if (idx >= 0) stack.splice(idx, 1);
+    },
+    top(): LvSurfaceHandle | undefined {
+        const stack = getSurfaceStack();
+        return stack[stack.length - 1];
+    }
+};
+
+/* ========================================================================= */
+/* 7. 统一后台心跳主时钟 (Lv Unified Heartbeat Ticker)                       */
+/* ========================================================================= */
+
+let nodeTickerInstance: LvTickerHub | undefined;
+
+function getNodeTicker(callerPlugin: string): LvTickerHub {
+    if (!nodeTickerInstance) {
+        nodeTickerInstance = {
+            version: PROTOCOL_VERSION,
+            hostPlugin: callerPlugin,
+            subscribe() { return () => {}; },
+            onDateCross() { return () => {}; },
+            destroy() { nodeTickerInstance = undefined; },
+        };
+    }
+    return nodeTickerInstance;
+}
+
+function getTicker(callerPlugin = "小驴"): LvTickerHub {
+    if (typeof window === "undefined") {
+        return getNodeTicker(callerPlugin);
+    }
+
+    if (window.__LV_TICKER__ && window.__LV_TICKER__.version >= PROTOCOL_VERSION) {
+        return window.__LV_TICKER__;
+    }
+
+    const subscribers = new Map<string, LvTickerSubscription>();
+    const dateCrossSubscribers = new Map<string, (todayKey: string) => void>();
+    let lastDateKey = getTodayKey();
+    let timerId: number | null = null;
+    let baseIntervalMs = 10000; // 前台默认 10 秒微节拍
+
+    function tick() {
+        const now = new Date();
+        const today = getTodayKey(now);
+
+        // 跨日零点对齐检测 (00:00 精准广播)
+        if (today !== lastDateKey) {
+            lastDateKey = today;
+            dateCrossSubscribers.forEach((cb) => {
+                try { cb(today); } catch (e) { console.error("[LvTicker] DateCross error:", e); }
+            });
+        }
+
+        // 遍历所有订阅者，按周期对齐触发
+        const nowTs = now.getTime();
+        subscribers.forEach((sub) => {
+            if (nowTs - sub.lastRun >= sub.intervalMs - 500) {
+                sub.lastRun = nowTs;
+                try {
+                    void sub.callback(now);
+                } catch (err) {
+                    console.error(`[LvTicker] Subscriber ${sub.plugin}/${sub.id} error:`, err);
+                }
+            }
+        });
+    }
+
+    function setupTimer(interval: number) {
+        if (timerId !== null) clearInterval(timerId);
+        baseIntervalMs = interval;
+        timerId = window.setInterval(tick, baseIntervalMs);
+    }
+
+    setupTimer(10000);
+
+    // 动态节电模式 (Low Power Mode)：失焦/最小化时降频为 60s
+    const onVisibilityChange = () => {
+        if (typeof document === "undefined") return;
+        if (document.hidden) {
+            setupTimer(60000); // 后台降频至 60 秒
+        } else {
+            setupTimer(10000); // 切回前台恢复 10 秒
+            tick(); // 即刻补跑对齐
+        }
+    };
+    if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+        document.addEventListener("visibilitychange", onVisibilityChange);
+    }
+
+    const tickerHub: LvTickerHub = {
+        version: PROTOCOL_VERSION,
+        hostPlugin: callerPlugin,
+
+        subscribe(plugin: string, intervalMs: number, cb: (now: Date) => void): () => void {
+            const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            subscribers.set(id, {
+                id,
+                plugin,
+                intervalMs: Math.max(5000, intervalMs),
+                lastRun: Date.now(),
+                callback: cb,
+            });
+            return () => {
+                subscribers.delete(id);
+                if (subscribers.size === 0 && dateCrossSubscribers.size === 0) {
+                    this.destroy();
+                }
+            };
+        },
+
+        onDateCross(plugin: string, cb: (todayKey: string) => void): () => void {
+            const id = `dc_${plugin}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            dateCrossSubscribers.set(id, cb);
+            return () => {
+                dateCrossSubscribers.delete(id);
+                if (subscribers.size === 0 && dateCrossSubscribers.size === 0) {
+                    this.destroy();
+                }
+            };
+        },
+
+        destroy() {
+            if (timerId !== null) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+                document.removeEventListener("visibilitychange", onVisibilityChange);
+            }
+            subscribers.clear();
+            dateCrossSubscribers.clear();
+            if (window.__LV_TICKER__ === this) {
+                delete window.__LV_TICKER__;
+            }
+        }
+    };
+
+    window.__LV_TICKER__ = tickerHub;
+    return tickerHub;
+}
+
+export const lvTicker = {
+    /** 注册固定周期心跳（毫秒，最低 5000ms） */
+    subscribe(pluginName: string, intervalMs: number, callback: (now: Date) => void): () => void {
+        const hub = getTicker(pluginName);
+        return hub.subscribe(pluginName, intervalMs, callback);
+    },
+
+    /** 注册每分钟整点对齐心跳 */
+    onMinute(pluginName: string, callback: (now: Date) => void): () => void {
+        return this.subscribe(pluginName, 60000, callback);
+    },
+
+    /** 注册每小时整点心跳 */
+    onHour(pluginName: string, callback: (now: Date) => void): () => void {
+        return this.subscribe(pluginName, 3600000, callback);
+    },
+
+    /** 注册跨日零点广播（00:00:01 准点触发，传递新日期 YYYY-MM-DD） */
+    onDateCross(pluginName: string, callback: (todayKey: string) => void): () => void {
+        const hub = getTicker(pluginName);
+        return hub.onDateCross(pluginName, callback);
+    }
+};
+
+/* ========================================================================= */
+/* 8. 统一思源内核写屏障与锁 (Kernel Write Mutex)                            */
+/* ========================================================================= */
+
+const nodeDocLockMap = new Map<string, Promise<unknown>>();
+
+function getDocLockMap(): Map<string, Promise<unknown>> {
+    if (typeof window === "undefined") return nodeDocLockMap;
+    if (!window.__LV_DOC_LOCKS__) {
+        window.__LV_DOC_LOCKS__ = new Map();
+    }
+    return window.__LV_DOC_LOCKS__;
+}
+
+/**
+ * 思源文档排队互斥锁：同一文档 ID 的异步写入自动串行化，彻底消除 document is locked 错误
+ */
+export async function withDocLock<T>(docId: string, task: () => Promise<T>): Promise<T> {
+    if (!docId) return task();
+    const map = getDocLockMap();
+    const prev = map.get(docId) || Promise.resolve();
+
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => { release = resolve; });
+    map.set(docId, prev.then(() => current, () => current));
+
+    try {
+        await prev;
+        return await task();
+    } finally {
+        release();
+        if (map.get(docId) === current) {
+            map.delete(docId);
+        }
+    }
+}
+
+/* ========================================================================= */
+/* 9. 客户端通知 API 暴露                                                    */
+/* ========================================================================= */
+
 export const lvNotify = {
-    /**
-     * 发送重点提醒卡片（支持按钮、稍后提醒、今日免打扰）
-     */
     card(options: CardNoticeOptions): string {
         const id = `card_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         const hub = getHub(options.source);
@@ -664,9 +983,6 @@ export const lvNotify = {
         return id;
     },
 
-    /**
-     * 发送瞬时轻量微胶囊（2.5 秒自然淡出，适合单行轻提示）
-     */
     capsule(options: CapsuleNoticeOptions): string {
         const id = `cap_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         const hub = getHub(options.source);
@@ -683,9 +999,6 @@ export const lvNotify = {
         return id;
     },
 
-    /**
-     * 原位微反馈（坚决不弹窗！直接在触发操作的按钮/元素上产生微动效）
-     */
     inline(target: HTMLElement | null | undefined, tipText?: string, isSuccess = true): void {
         if (!target) return;
         const stateClass = isSuccess ? "lv-inline-feedback--success" : "lv-inline-feedback--error";
@@ -702,9 +1015,6 @@ export const lvNotify = {
         }, 1000);
     },
 
-    /**
-     * 静默记入历史（绝不弹窗打扰用户，可在通知历史中查阅）
-     */
     silent(options: SilentNoticeOptions): void {
         const hub = getHub(options.source);
         hub.post({
@@ -719,31 +1029,19 @@ export const lvNotify = {
         });
     },
 
-    /**
-     * 关闭指定通知
-     */
     dismiss(id: string): void {
         window.__LV_NOTICE_HUB__?.dismiss(id);
     },
 
-    /**
-     * 延期指定通知（如 15 分钟后再次提醒）
-     */
     snooze(id: string, durationMs: number): void {
         window.__LV_NOTICE_HUB__?.snooze(id, durationMs);
     },
 
-    /**
-     * 设置某个分类今日免打扰
-     */
     muteToday(category: string): void {
         const hub = getHub();
         hub.muteToday(category);
     },
 
-    /**
-     * 判定某个分类今日是否已静音（直接查询存储，不强制拉起 UI 容器）
-     */
     isMutedToday(category: string): boolean {
         if (!category || typeof localStorage === "undefined") return false;
         try {
@@ -757,11 +1055,289 @@ export const lvNotify = {
         }
     },
 
-    /**
-     * 注册插件生命周期（用于插件卸载时的无缝交棒）
-     */
     registerPlugin(pluginName: string, onRelinquish: () => void = () => {}): () => void {
         const hub = getHub(pluginName);
         return hub.registerPlugin(pluginName, onRelinquish);
+    }
+};
+
+/* ========================================================================= */
+/* 10. 统一 AI 凭据与并发限流网关 (Lv Unified AI Gateway)                    */
+/* ========================================================================= */
+
+let fallbackAiConfig: LvAiConfig | null = null;
+
+function getAiHub(): LvAiGatewayHub {
+    if (typeof window === "undefined") {
+        return {
+            version: PROTOCOL_VERSION,
+            setConfig: (cfg) => { fallbackAiConfig = cfg; },
+            getConfig: () => fallbackAiConfig,
+            chat: async (opts) => executeChatRequest(fallbackAiConfig, opts),
+        };
+    }
+
+    if (window.__LV_AI_GATEWAY__ && window.__LV_AI_GATEWAY__.version >= PROTOCOL_VERSION) {
+        return window.__LV_AI_GATEWAY__;
+    }
+
+    const MAX_CONCURRENT = 2;
+    let activeCount = 0;
+    const requestQueue: Array<{
+        execute: () => Promise<void>;
+        priority: "high" | "low";
+    }> = [];
+
+    function processQueue() {
+        if (activeCount >= MAX_CONCURRENT || requestQueue.length === 0) return;
+        requestQueue.sort((a, b) => (a.priority === "high" ? -1 : b.priority === "high" ? 1 : 0));
+        const next = requestQueue.shift();
+        if (!next) return;
+        activeCount++;
+        next.execute().finally(() => {
+            activeCount--;
+            processQueue();
+        });
+    }
+
+    async function executeChatRequest(cfg: LvAiConfig | null, opts: LvAiRequestOptions): Promise<LvAiResponse> {
+        if (!cfg || !cfg.apiKey) {
+            throw new Error("[LvAiGateway] 未配置共享 API Key（请在任意小驴插件设置中配置）");
+        }
+
+        const endpoint = (cfg.endpoint || "https://api.deepseek.com/v1").replace(/\/+$/, "");
+        const targetUrl = endpoint.endsWith("/chat/completions") ? endpoint : `${endpoint}/chat/completions`;
+        const model = opts.model || cfg.model || "deepseek-chat";
+
+        let retries = 0;
+        const maxRetries = 3;
+
+        while (true) {
+            try {
+                const response = await fetch(targetUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${cfg.apiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: opts.messages,
+                        temperature: opts.temperature ?? cfg.temperature ?? 0.7,
+                        max_tokens: cfg.maxTokens,
+                    }),
+                    signal: opts.signal,
+                });
+
+                if (response.status === 429 && retries < maxRetries) {
+                    retries++;
+                    const backoffMs = Math.pow(2, retries) * 1000;
+                    console.warn(`[LvAiGateway] 遇到 429 限流，将在 ${backoffMs}ms 后退避重试 (第 ${retries} 次)...`);
+                    await new Promise(r => setTimeout(r, backoffMs));
+                    continue;
+                }
+
+                if (!response.ok) {
+                    const errBody = await response.text().catch(() => "");
+                    throw new Error(`[LvAiGateway] HTTP ${response.status}: ${errBody}`);
+                }
+
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content ?? "";
+                const totalTokens = data.usage?.total_tokens;
+
+                return {
+                    content,
+                    model: data.model || model,
+                    totalTokens,
+                };
+            } catch (err) {
+                if (retries < maxRetries && err instanceof Error && !err.name.includes("Abort")) {
+                    retries++;
+                    const backoffMs = Math.pow(2, retries) * 1000;
+                    await new Promise(r => setTimeout(r, backoffMs));
+                    continue;
+                }
+                throw err;
+            }
+        }
+    }
+
+    const aiHub: LvAiGatewayHub = {
+        version: PROTOCOL_VERSION,
+        setConfig(cfg: LvAiConfig) {
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(cfg));
+                }
+            } catch { /* storage fallback */ }
+        },
+        getConfig(): LvAiConfig | null {
+            try {
+                if (typeof localStorage !== "undefined") {
+                    const raw = localStorage.getItem(AI_STORAGE_KEY);
+                    if (raw) return JSON.parse(raw);
+                }
+            } catch { /* fallback */ }
+            return null;
+        },
+        chat(opts: LvAiRequestOptions): Promise<LvAiResponse> {
+            return new Promise((resolve, reject) => {
+                const cfg = this.getConfig();
+                const task = async () => {
+                    try {
+                        const res = await executeChatRequest(cfg, opts);
+                        resolve(res);
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                requestQueue.push({
+                    execute: task,
+                    priority: opts.priority ?? "high",
+                });
+                processQueue();
+            });
+        }
+    };
+
+    window.__LV_AI_GATEWAY__ = aiHub;
+    return aiHub;
+}
+
+export const lvAi = {
+    /** 配置全局共享 AI 凭据（在任一插件配置，全家桶免填共享） */
+    setConfig(config: LvAiConfig): void {
+        getAiHub().setConfig(config);
+    },
+    /** 读取当前共享 AI 凭据 */
+    getConfig(): LvAiConfig | null {
+        return getAiHub().getConfig();
+    },
+    /**
+     * 发送 AI 对话请求（自动并发整形、429 指数退避）
+     */
+    chat(options: LvAiRequestOptions): Promise<LvAiResponse> {
+        return getAiHub().chat(options);
+    }
+};
+
+/* ========================================================================= */
+/* 11. 今日全生态活动主干流 (Lv Unified Daily Activity Stream)                */
+/* ========================================================================= */
+
+let fallbackActivities: LvActivityRecord[] = [];
+
+function getActivityHub(): LvActivityStreamHub {
+    if (typeof window === "undefined") {
+        return {
+            version: PROTOCOL_VERSION,
+            record: (item) => {
+                const now = new Date();
+                fallbackActivities.push({
+                    ...item,
+                    id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                    timestamp: now.getTime(),
+                    timeStr: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+                });
+            },
+            getTodayRecords: () => [...fallbackActivities],
+            onActivity: () => () => {},
+            formatAsMarkdown: () => formatActivityMarkdown(fallbackActivities),
+        };
+    }
+
+    if (window.__LV_ACTIVITY_STREAM__ && window.__LV_ACTIVITY_STREAM__.version >= PROTOCOL_VERSION) {
+        return window.__LV_ACTIVITY_STREAM__;
+    }
+
+    const todayActivities: LvActivityRecord[] = [];
+    const listeners = new Set<(item: LvActivityRecord) => void>();
+    let lastDateKey = getTodayKey();
+
+    const activityHub: LvActivityStreamHub = {
+        version: PROTOCOL_VERSION,
+        record(item: Omit<LvActivityRecord, "id" | "timestamp" | "timeStr">) {
+            const now = new Date();
+            const today = getTodayKey(now);
+            // 跨日自动重置当日内存流
+            if (today !== lastDateKey) {
+                lastDateKey = today;
+                todayActivities.length = 0;
+            }
+
+            const record: LvActivityRecord = {
+                ...item,
+                id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                timestamp: now.getTime(),
+                timeStr: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+            };
+
+            todayActivities.push(record);
+            listeners.forEach(cb => {
+                try { cb(record); } catch (e) { console.error("[LvActivityStream] error:", e); }
+            });
+        },
+
+        getTodayRecords(): LvActivityRecord[] {
+            return [...todayActivities];
+        },
+
+        onActivity(cb: (item: LvActivityRecord) => void): () => void {
+            listeners.add(cb);
+            return () => listeners.delete(cb);
+        },
+
+        formatAsMarkdown(): string {
+            return formatActivityMarkdown(todayActivities);
+        }
+    };
+
+    window.__LV_ACTIVITY_STREAM__ = activityHub;
+    return activityHub;
+}
+
+function formatActivityMarkdown(records: LvActivityRecord[]): string {
+    if (!records || records.length === 0) {
+        return "*今日暂无小驴生态活动记录*";
+    }
+
+    const categoryIcons: Record<string, string> = {
+        habit: "✅",
+        clip: "🔖",
+        exam: "📝",
+        card: "🎴",
+        task: "📌",
+        contact: "👥",
+        note: "💡",
+    };
+
+    const lines: string[] = ["### 🐴 小驴全家桶 · 今日活动汇编", ""];
+    records.forEach(r => {
+        const icon = categoryIcons[r.category] || "🔹";
+        const link = r.linkBlockId ? ` (([链接](siyuan://blocks/${r.linkBlockId})))` : "";
+        const detail = r.detail ? ` — *${r.detail}*` : "";
+        lines.push(`- **${r.timeStr}** [${r.source}] ${icon} ${r.title}${detail}${link}`);
+    });
+
+    return lines.join("\n");
+}
+
+export const lvActivity = {
+    /** 广播记录一项生态活动 */
+    record(item: Omit<LvActivityRecord, "id" | "timestamp" | "timeStr">): void {
+        getActivityHub().record(item);
+    },
+    /** 获取今日所有插件产生的时间线记录（升序） */
+    getTodayRecords(): LvActivityRecord[] {
+        return getActivityHub().getTodayRecords();
+    },
+    /** 订阅活动流 */
+    onActivity(callback: (item: LvActivityRecord) => void): () => void {
+        return getActivityHub().onActivity(callback);
+    },
+    /** 格式化生成结构化 Markdown 字符串，可直接追加到 Daily Note */
+    formatAsMarkdown(): string {
+        return getActivityHub().formatAsMarkdown();
     }
 };

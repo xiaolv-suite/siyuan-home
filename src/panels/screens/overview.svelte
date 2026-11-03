@@ -6,7 +6,7 @@
     import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
     import { Dialog } from "siyuan";
-    import { homeNotify as showMessage } from "@/libs/notice";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { moduleTone } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";
@@ -228,11 +228,14 @@
         onGoto("reminders");
     }
 
-    async function copyAsTaskBlock(r: Reminder) {
+    async function copyAsTaskBlock(r: Reminder, e?: MouseEvent) {
         const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
         const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
         try {
             await navigator.clipboard.writeText(text);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.taskBlockCopied"));
+            }
             showMessage(t("hub.taskBlockCopied"), 2500, "info");
         } catch {
             showMessage(t("ledger.copyAsImageFail"), 4000, "error");

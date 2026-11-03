@@ -17,10 +17,16 @@ import {
     type LvNoticeLevel,
     type LvNoticeAction,
     type LvNoticeSnoozeOption,
+    lvTicker,
+    withDocLock,
+    lvSurfaceStack,
 } from "./lv-notice-kit";
 
 export {
     lvNotify,
+    lvTicker,
+    withDocLock,
+    lvSurfaceStack,
     type CardNoticeOptions,
     type CapsuleNoticeOptions,
     type SilentNoticeOptions,

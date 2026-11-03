@@ -8,7 +8,7 @@
     import { parseQuickAdd } from "@/core/quick-add";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
-    import { homeNotify as showMessage } from "@/libs/notice";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { formatAsTaskBlock } from "@/core/block-capture";
 
     let { items, t, version, isGuest = false, onComplete, onAddMemo, onConvert, initialMode, onModeChange, onTogglePin, isPinnedFn, onLocate, onReschedule }: {
@@ -153,7 +153,7 @@
         }
     }
 
-    async function copyDayTasks() {
+    async function copyDayTasks(e?: MouseEvent) {
         if (dayItems.length === 0) return;
         const text = dayItems.map((r) => {
             const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
@@ -161,17 +161,23 @@
         }).join("\n");
         try {
             await navigator.clipboard.writeText(text);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.batchTasksCopied").replace("${n}", String(dayItems.length)));
+            }
             showMessage(t("hub.batchTasksCopied").replace("${n}", String(dayItems.length)), 2500, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
         }
     }
 
-    async function copySingleTask(r: Reminder) {
+    async function copySingleTask(r: Reminder, e?: MouseEvent) {
         const modTitle = t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId;
         const text = formatAsTaskBlock(r.title, r.dueDate, r.rowId || r.id, { moduleName: modTitle });
         try {
             await navigator.clipboard.writeText(text);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.taskBlockCopied"));
+            }
             showMessage(t("hub.taskBlockCopied"), 2500, "info");
         } catch {
             showMessage(t("hub.digestCopyFailed"), 3000, "error");
@@ -357,7 +363,7 @@
         <div class="lv-cal-day-head">
             <b class="lv-title-sec" role="status" aria-live="polite">{selected} · {dayItems.length} {t("cal.itemsUnit")}</b>
             {#if dayItems.length > 0}
-                <button type="button" class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={copyDayTasks}>
+                <button type="button" class="b3-button b3-button--text lv-tx-accent lv-cal-copy-btn" onclick={(e) => copyDayTasks(e)}>
                     <UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}
                 </button>
             {/if}
@@ -395,7 +401,7 @@
                             </div>
                         {/if}
                         <span class="lv-badge {r.level === "overdue" ? "red" : r.level === "soon" ? "orange" : "yellow"}">{r.level === "overdue" ? t("level.overdue") : r.level === "soon" ? t("level.soon") : t("level.lead")}</span>
-                        <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={() => copySingleTask(r)}><UiIcon name="note" size={13} /></button>
+                        <button type="button" class="b3-button b3-button--text" title={t("hub.copyTaskBlock")} aria-label={t("hub.copyTaskBlock")} onclick={(e) => copySingleTask(r, e)}><UiIcon name="note" size={13} /></button>
                         {#if onTogglePin}
                             <button type="button" class="b3-button b3-button--text" title={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} aria-label={isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")} onclick={() => onTogglePin?.(r)}><UiIcon name="bookmark" size={12} /> {isPinnedFn?.(r) ? t("act.unpin") : t("act.pin")}</button>
                         {/if}

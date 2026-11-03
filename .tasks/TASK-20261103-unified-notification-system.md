@@ -95,16 +95,22 @@ function showMessage(message: string, timeout = 3000, type: "info" | "error" = "
 2. **生命周期集成**：
    - 在 `LvHomePlugin.onload` 结尾注册 `lvNotify.registerPlugin("siyuan-home")`；
    - 在 `LvHomePlugin.onunload` 开头注销 `this.noticeHubCleaner?.()`。
-3. **后台扫描全面静默化**：
-   - 心跳扫描、后台定时巡检、常规日记文档同步、全量/增量常规扫描结果全面降级为 `homeSilent`，仅进通知历史，0 弹窗打扰。
-4. **重点到期卡片化**：
+3. **后台常规扫描与备份 100% 静默化**：
+   - 心跳定时巡检（`heartbeat-scan`）、历史台账智能对齐（`ledger-adopt`）、后台流水与日记增量同步（`journal-sync`）、配置导入前自动备份快照（`backup-preimport`）以及全量/增量常规扫描结果全面降级为 `lvNotify.silent`，仅进通知历史，全程 0 弹窗打扰。
+4. **效期提醒卡片化**：
    - 打造 `src/core/hub/priority-reminder-delivery.ts`，精准筛选证件（certs）、保单（insurance）、药品（medicine）及关键合同/车辆等重点事项；
-   - 逾期或 7 天临期使用 `lvNotify.card` 发送 3D 悬浮毛玻璃交互卡片，提供【去处理】快捷按钮、Snooze 稍后提醒（15m/1h）以及【今日跳过】；
+   - 逾期或 7 天临期使用 `lvNotify.card` 发送 3D 悬浮毛玻璃交互卡片，提供【去处理】快捷按钮、Snooze 稍后提醒（15m/1h）以及【今日免打扰/今日跳过】；
    - 重点卡片派发后，常规摘要自动静默入库，彻底杜绝双重弹窗。
-5. **前台操作原位微反馈**：
-   - 提醒视图模型 `copyReminderFamilyNotice` 与 `copyReminderAsTaskBlock` 接入 `homeInline`，复制时按钮产生原位微动效，杜绝 Toast 刷屏。
+5. **复制原位微反馈 (lvNotify.inline)**：
+   - 时间线生活洞察复制（`activity-feed.svelte`）、年度生活指数报告复制（`life-index.ts`）；
+   - 提醒中枢单条/批量复制事项任务块与块引用（`reminders-view-model.ts`、`reminder-batch-bar.svelte`）；
+   - 总览界面复制事项任务块（`overview.svelte`）；
+   - 原生日历视图复制当日事项与单条事项（`calendar.svelte`）；
+   - 台账批量栏复制块引用（`ledger-batch-bar.svelte`）；
+   - 台账详情抽屉复制卡片、Markdown、块引用与任务块（`drawer-actions.ts`）；
+   - 复制时直接在触发按钮上呈现原位微弹反馈，彻底告别 Toast 刷屏。
 6. **门禁全数通过**：
-   - `pnpm run check`：0 错误、0 警告、类型全通、Svelte 5 全通、中英文 2169 键对齐、0 安全漏洞；
+   - `pnpm run check`：0 错误、0 警告、类型全通、Svelte 5 全通、中英文 2,169 键对齐、0 安全漏洞；
    - `pnpm test`：200 个测试套件，1,249 项自动化测试 100% 通过；
    - `pnpm run build`：生产构建正常打包；
    - `node scripts/smoke-test.mjs` & `node scripts/verify-loader-semantics.mjs`：全数通过。

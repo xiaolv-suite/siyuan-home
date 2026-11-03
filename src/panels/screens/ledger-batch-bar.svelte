@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Dialog, showMessage } from "siyuan";
+    import { Dialog } from "siyuan";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import UiIcon from "@/ui/icon.svelte";
 
@@ -122,7 +123,7 @@
         }
     }
 
-    async function batchCopyRefs() {
+    async function batchCopyRefs(e?: MouseEvent) {
         if (!selectedItemIds.length || !ref?.avId) return;
         const nameCol = ref.columns?.name;
         const selectedRows = rows.filter((r) => selectedItemIds.includes(r.itemID));
@@ -133,6 +134,9 @@
         const text = refs.join("\n");
         try {
             await navigator.clipboard.writeText(text);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("spotlight.refCopied"));
+            }
             showMessage(t("spotlight.refCopied"), 2500, "info");
         } catch {
             showMessage(t("ledger.copyAsImageFail"), 4000, "error");
@@ -231,7 +235,7 @@
                 <UiIcon name="users" size={13} /> {t("ledger.batchMember")}
             </button>
         {/if}
-        <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchCopyRefs}>
+        <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={(e) => batchCopyRefs(e)}>
             <UiIcon name="paperclip" size={13} /> {t("ledger.copyBlockRef")}
         </button>
         <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchExportCsv}>

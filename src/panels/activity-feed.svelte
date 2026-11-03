@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Dialog } from "siyuan";
-    import { homeNotify as showMessage } from "@/libs/notice";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { onDestroy } from "svelte";
     import type { ActivityRecord, ActivitySnapshot } from "@/core/activity";
     import { loadActivitySnapshot } from "@/core/activity";
@@ -142,9 +142,11 @@
             const pre = dlg.element.querySelector("pre");
             if (pre) pre.textContent = text;
             (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
-            (dlg.element.querySelector("#lv-insight-copy") as HTMLButtonElement).onclick = async () => {
+            const copyInsightBtn = dlg.element.querySelector("#lv-insight-copy") as HTMLButtonElement;
+            copyInsightBtn.onclick = async () => {
                 try {
                     await navigator.clipboard.writeText(text);
+                    homeInline(copyInsightBtn, t("activity.insightCopy") || "已复制洞察");
                     showMessage(t("overview.lifeIndexCopied"), 2500, "info");
                 } catch {
                     showMessage(t("activity.insightCopyFailed"), 4000, "error");

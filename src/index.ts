@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -38,6 +38,10 @@ export default class LvHomePlugin extends Plugin {
     runtime: HubRuntime;
     scan: ScanResult;
     private heartbeat: number | undefined;
+    /** 小驴生态全局后台心跳订阅清理器 (Epoch 7 Phase 2) */
+    private tickerUnsubscribe?: () => void;
+    /** 零点跨日刷新订阅清理器 */
+    private dateCrossUnsubscribe?: () => void;
     /** 所有延迟回调统一登记，确保卸载时没有匿名计时器继续访问插件实例。 */
     private readonly timeoutIds = new Set<number>();
     /** 小驴全生态统一通知注销回调 (Epoch 7) */
@@ -167,12 +171,26 @@ export default class LvHomePlugin extends Plugin {
             homeNotify(this.i18nText("settings.corrupted") + detail, 10000, "error");
         }
 
-        // B2d 降级定案（kernel.js 无定时器 API）：前端心跳 30min 驱动定时扫描
-        this.heartbeat = window.setInterval(() => {
-            this.refreshHub()
-                .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
-                .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
-        }, 30 * 60 * 1000);
+        // 接入小驴生态全局后台心跳主时钟 (lvTicker)：失焦自动降频至 60s 节电，对齐后台节拍
+        try {
+            this.tickerUnsubscribe = lvTicker.subscribe("siyuan-home", 30 * 60 * 1000, () => {
+                this.refreshHub()
+                    .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
+                    .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
+            });
+            this.dateCrossUnsubscribe = lvTicker.onDateCross("siyuan-home", (todayKey) => {
+                this.refreshHub(undefined, true)
+                    .then(() => homeSilent("date-cross-refresh", `管家零点跨日自动重算完成：${todayKey}`))
+                    .catch((e) => console.warn("[LvHome] date cross refresh failed:", e));
+            });
+        } catch {
+            // 兼容性降级
+            this.heartbeat = window.setInterval(() => {
+                this.refreshHub()
+                    .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
+                    .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
+            }, 30 * 60 * 1000);
+        }
 
         // 注册思源原生菜单与事件监听（块菜单、块图标菜单、自定义 URL、AV 属性视图菜单、WS 变更节流同步与休眠唤醒补扫）
         this.contextMenusController = registerPluginContextMenus({
@@ -213,7 +231,10 @@ export default class LvHomePlugin extends Plugin {
             await this.adoptHistoryLedgers();
             await this.refreshHub(undefined, true);
             if (this.settings?.onboarded && this.app) {
-                import("@/core/doc-sync").then(({ syncRowLogsToSiYuanDocs }) => syncRowLogsToSiYuanDocs(this)).catch(() => undefined);
+                import("@/core/doc-sync").then(({ syncRowLogsToSiYuanDocs }) => {
+                    syncRowLogsToSiYuanDocs(this);
+                    homeSilent("journal-sync", "后台流水与日记文档增量同步完成");
+                }).catch(() => undefined);
             }
         } catch (e) {
             console.warn("[LvHome] initial adopt/scan deferred:", e instanceof Error ? e.message : e);
@@ -249,6 +270,7 @@ export default class LvHomePlugin extends Plugin {
         if (report.adoptedCount > 0) {
             try {
                 await saveSettings(this, this.settings);
+                homeSilent("ledger-adopt", `后台已智能对齐并找回 ${report.adoptedCount} 个历史台账`);
             } catch { /* soft persist */ }
         }
         return report;
@@ -766,6 +788,10 @@ export default class LvHomePlugin extends Plugin {
     onunload() {
         this.noticeHubCleaner?.();
         this.noticeHubCleaner = undefined;
+        this.tickerUnsubscribe?.();
+        this.tickerUnsubscribe = undefined;
+        this.dateCrossUnsubscribe?.();
+        this.dateCrossUnsubscribe = undefined;
         this.isUnloading = true;
         this.entrypointsController?.dispose();
         this.entrypointsController = undefined;

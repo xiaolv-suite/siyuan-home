@@ -9,6 +9,7 @@ import { selectCellContent } from "./avcell";
 import { localDateKey, parseDate } from "./hub/rule";
 import { saveSettings } from "./settings";
 import { saveRuntime } from "./hub/runtime";
+import { homeInline } from "@/libs/notice";
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -87,6 +88,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
             const text = cardRows.map((r) => `${r.label}: ${r.value}`).join("\n");
             try {
                 await navigator.clipboard.writeText(`${cardTitle}\n${text}`);
+                homeInline(copyTextBtn, t("ledger.copyAsTextOk"));
                 showMessageFn(t("ledger.copyAsTextOk"), 2500, "info");
             } catch (e) {
                 showMessageFn(t("ledger.copyAsImageFail") + ` (${errMsg(e)})`, 5000, "error");
@@ -103,6 +105,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
             const text = formatMaskedRecordText(cardTitle, cardRows);
             try {
                 await navigator.clipboard.writeText(text);
+                homeInline(copyMaskedBtn, t("ledger.copyAsMaskedTextOk"));
                 showMessageFn(t("ledger.copyAsMaskedTextOk"), 2500, "info");
             } catch (e) {
                 showMessageFn(t("ledger.copyAsImageFail") + ` (${errMsg(e)})`, 5000, "error");
@@ -118,6 +121,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
             const blockRefText = `((${row.itemID} "${cardTitle}"))`;
             try {
                 await navigator.clipboard.writeText(blockRefText);
+                homeInline(copyRefBtn, t("ledger.blockRefCopied"));
                 showMessageFn(t("ledger.blockRefCopied"), 2500, "info");
             } catch (e) {
                 showMessageFn(String(e), 5000, "error");
@@ -133,6 +137,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
             const taskText = formatAsTaskBlock(cardTitle, undefined, row.itemID);
             try {
                 await navigator.clipboard.writeText(taskText);
+                homeInline(copyTaskBtn, t("ledger.taskBlockCopied"));
                 showMessageFn(t("ledger.taskBlockCopied"), 2500, "info");
             } catch (e) {
                 showMessageFn(String(e), 5000, "error");

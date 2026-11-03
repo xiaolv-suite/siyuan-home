@@ -25,6 +25,8 @@ import {
     lvBackup,
     lvEcosystem,
     lvLaunchpad,
+    lvOmnisearch,
+    lvAutomation,
     type LvActivityRecord,
     type LvAiConfig,
     type LvAiRequestOptions,
@@ -32,6 +34,9 @@ import {
     type LvEcosystemFullBackup,
     type LvEcosystemDiagnostics,
     type LvLaunchpadItem,
+    type LvSearchResultItem,
+    type LvSearchProvider,
+    type LvAutomationRule,
 } from "./lv-notice-kit";
 
 export {
@@ -44,6 +49,8 @@ export {
     lvBackup,
     lvEcosystem,
     lvLaunchpad,
+    lvOmnisearch,
+    lvAutomation,
     type CardNoticeOptions,
     type CapsuleNoticeOptions,
     type SilentNoticeOptions,
@@ -57,6 +64,9 @@ export {
     type LvEcosystemFullBackup,
     type LvEcosystemDiagnostics,
     type LvLaunchpadItem,
+    type LvSearchResultItem,
+    type LvSearchProvider,
+    type LvAutomationRule,
 };
 
 export interface NoticeOptions extends Partial<CardNoticeOptions> {

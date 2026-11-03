@@ -185,14 +185,18 @@ describe("priority-reminder-delivery (重点到期卡片化通知引擎)", () =>
     it("当没有重点临期/逾期事项时，不触发派发", () => {
         vi.spyOn(lvNotify, "isMutedToday").mockReturnValue(false);
         const cardSpy = vi.spyOn(lvNotify, "card");
+        const daytime = new Date("2026-11-03T10:00:00Z");
 
-        const res = deliverPriorityReminderCard({
-            reminders: [mockReminders[3]], // 只有 365 天后的护照
-            settings: mockSettings,
-            runtime: mockRuntime,
-            t,
-            onOpenReminders: vi.fn(),
-        });
+        const res = deliverPriorityReminderCard(
+            {
+                reminders: [mockReminders[3]], // 只有 365 天后的护照
+                settings: mockSettings,
+                runtime: mockRuntime,
+                t,
+                onOpenReminders: vi.fn(),
+            },
+            daytime,
+        );
 
         expect(res.delivered).toBe(false);
         expect(res.reason).toBe("no_priority_items");

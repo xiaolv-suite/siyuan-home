@@ -22,7 +22,7 @@ import { registerPluginEntrypoints, type PluginEntrypointsController, TAB_TYPE }
 import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plugin-auth-guard";
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
-import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad } from "@/libs/lv-notice-kit";
+import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad, lvOmnisearch, lvAutomation, type LvSearchResultItem } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 
@@ -49,6 +49,8 @@ export default class LvHomePlugin extends Plugin {
     private backupCleaner?: () => void;
     /** 小驴罗盘注销回调 (Epoch 7 Phase 5: lvLaunchpad) */
     private launchpadCleaner?: () => void;
+    /** 全生态万物穿透检索注销器 (Epoch 7 Phase 7: lvOmnisearch) */
+    private omnisearchCleaner?: () => void;
     /** moduleId → schema 目录（193 波收口为 SCHEMA_CATALOG 单源；UI 按需读取列定义/枚举，与 ensureCoreLedgers 同源） */
     schemaCatalog: Record<string, any> = SCHEMA_CATALOG;
     /** Tab 面板刷新回调（支持多实例，33.1：所有打开的管家面板同步刷新） */
@@ -231,6 +233,14 @@ export default class LvHomePlugin extends Plugin {
 
         // 注册小驴罗盘极速弹射坞入口与二级行动 (Epoch 7 Phase 5: lvLaunchpad)
         this.registerLaunchpadEntry();
+
+        // 注册全生态万物穿透检索切面 (Epoch 7 Phase 7: lvOmnisearch)
+        try {
+            this.omnisearchCleaner = lvOmnisearch.registerProvider(
+                "siyuan-home",
+                (keyword) => this.searchHomeItems(keyword)
+            );
+        } catch { /* 容错 */ }
     }
 
     /** 布局就绪后：首次引导数据准备 + 智能找回历史台账 + 扫描（不阻塞启动，不强制全量建库） */
@@ -443,6 +453,22 @@ export default class LvHomePlugin extends Plugin {
         try { performance.measure(perfMark, `${perfMark}-start`, `${perfMark}-end`); } catch { /* PF01 测量标记 */ }
         const todayDue = scan.reminders.filter((r) => r.daysLeft <= 0).length;
         this.updateStatusbar(todayDue);
+
+        // 跨插件智能自动化联动 (Epoch 7 Phase 7: lvAutomation)
+        // 扫描到剩余天数 <= 3 天的到期事项时，触发联动
+        const expiringItems = (scan.reminders ?? []).filter((r) => typeof r.daysLeft === "number" && r.daysLeft <= 3);
+        if (expiringItems.length > 0) {
+            for (const item of expiringItems) {
+                try {
+                    await lvAutomation.trigger("siyuan-home", "expiring-item", {
+                        id: item.id,
+                        title: item.title,
+                        dueDate: item.dueDate,
+                    });
+                } catch { /* 容错降级 */ }
+            }
+        }
+
         this.emitHubChanged();
         return scan;
     }
@@ -976,6 +1002,68 @@ export default class LvHomePlugin extends Plugin {
         } catch { /* 容错降级 */ }
     }
 
+    /**
+     * 全生态万物穿透检索切面实现 (Epoch 7 Phase 7: lvOmnisearch)
+     * 支持跨插件全文检索待办事项、证件有效期限、常备药品效期、保险合同保单等
+     */
+    searchHomeItems(keyword: string): LvSearchResultItem[] {
+        const kw = keyword.trim().toLowerCase();
+        if (!kw) return [];
+        const results: LvSearchResultItem[] = [];
+
+        // 1. 待办与快速备忘项
+        const memos = this.runtime?.memos ?? [];
+        for (const m of memos) {
+            if (m.title?.toLowerCase().includes(kw) || (m.category && m.category.toLowerCase().includes(kw))) {
+                const isDone = Boolean(m.doneAt);
+                results.push({
+                    id: `home:memo:${m.id}`,
+                    source: "管家",
+                    category: "待办",
+                    title: m.title,
+                    snippet: m.dueDate ? `到期日: ${m.dueDate}${m.category ? ` · #${m.category}` : ""}` : (m.category ? `#${m.category}` : "生活备忘"),
+                    badge: isDone ? "已办结" : (m.priority === "high" ? "高优" : undefined),
+                    onClick: () => {
+                        this.showTab();
+                    },
+                });
+            }
+        }
+
+        // 2. 证件、药品、保单效期提醒项
+        const reminders = this.scan?.reminders ?? [];
+        const categoryMap: Record<string, string> = {
+            certs: "证件",
+            medicine: "药品",
+            insurance: "保单",
+            contracts: "合同",
+            vehicles: "车辆",
+            adhoc: "待办",
+        };
+
+        for (const r of reminders) {
+            if (r.moduleId === "adhoc" && results.some((item) => item.id.includes(r.id))) continue;
+            if (r.title?.toLowerCase().includes(kw) || r.moduleId?.toLowerCase().includes(kw)) {
+                const cat = categoryMap[r.moduleId] || "效期";
+                const badge = r.daysLeft <= 0 ? "已逾期" : `剩余 ${r.daysLeft} 天`;
+                results.push({
+                    id: `home:rem:${r.id}`,
+                    source: "管家",
+                    category: cat,
+                    title: r.title,
+                    snippet: `到期效期: ${r.dueDate} · ${cat}`,
+                    badge,
+                    linkBlockId: r.rowId || r.id,
+                    onClick: () => {
+                        this.openRemindersScreen();
+                    },
+                });
+            }
+        }
+
+        return results;
+    }
+
     /** Tab 面板挂载入口（tab callback 由框架调 addTab 注册的 destroy 之外回调） */
     mountPanel(element: HTMLElement) {
         const unmount = mount(TabPanel, {
@@ -996,6 +1084,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.omnisearchCleaner?.();
+        this.omnisearchCleaner = undefined;
         this.launchpadCleaner?.();
         this.launchpadCleaner = undefined;
         this.backupCleaner?.();

@@ -106,6 +106,8 @@
 
     function handleTouchStart(e: TouchEvent) {
         if (!isOverdue) return;
+        // 快速连滑防抖锁：该条正在执行顺延（isBusy）时冻结手势，防止动画重叠与重复写入
+        if (isBusy) return;
         const touch = e.touches[0];
         if (!touch) return;
         swipeStartX = touch.clientX;

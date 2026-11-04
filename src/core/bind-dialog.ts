@@ -1,3 +1,4 @@
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 /**
  * 绑定已有思源文档为台账向导弹窗（解耦抽取自 ledger.svelte，促进大文件瘦身）
  */
@@ -70,7 +71,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = "b3-button b3-button--outline lv-bind-candidate-btn";
-                btn.innerHTML = `${uiIcon("note", "", 13)} <span>${r.hpath}</span>`;
+                btn.innerHTML = `${uiIcon("note", "", 13)} <span>${esc(r.hpath)}</span>`;
                 btn.onclick = () => {
                     const inp = dlg.element.querySelector("#lv-bind-doc-input") as HTMLInputElement;
                     if (inp) {

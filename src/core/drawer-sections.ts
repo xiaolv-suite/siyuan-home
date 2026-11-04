@@ -1,3 +1,4 @@
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 /**
  * 台账详情抽屉专属扩展区块（解耦抽取自 ledger.svelte，促进大文件瘦身）
  * 包含：证件换证链 (Certs Renew Chain)、人情转人脉 (Favors to Contacts)、购物转资产 (Shopping to Asset)
@@ -103,7 +104,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
     for (const r of backward) {
         const line = document.createElement("div");
         line.className = "lv-dialog-row-text";
-        line.innerHTML = `${uiIcon("back", "", 12)} <span>${String(cellTextFn(r.cells[ref.columns!.name]))} (${t("ledger.oldCert")})</span>`;
+        line.innerHTML = `${uiIcon("back", "", 12)} <span>${esc(String(cellTextFn(r.cells[ref.columns!.name])))} (${t("ledger.oldCert")})</span>`;
         body.appendChild(line);
     }
     body.appendChild(linkBtn());

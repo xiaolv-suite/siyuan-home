@@ -2,6 +2,7 @@
  * 台账详情抽屉附件预览、下载、思源OCR识别与文件上传引擎（解耦抽取自 ledger.svelte，促进大文件瘦身）
  */
 
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset, compressImageTo300KB } from "./assets";
 import { bindDialogA11y } from "./dialog-a11y";
 import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, uploadAsset } from "./siyuan";
@@ -139,7 +140,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         for (const f of existing) {
             const line = mk("div", isVeh ? "lv-att-row lv-detail-wide" : "lv-att-row");
             const name = mk("span", "lv-att-name");
-            name.innerHTML = `${uiIcon("paperclip", "", 13)} <span> ${f.name ?? f.content ?? "?"}</span>`;
+            name.innerHTML = `${uiIcon("paperclip", "", 13)} <span> ${esc(f.name ?? f.content ?? "?")}</span>`;
             line.appendChild(name);
 
             if (f.content) {

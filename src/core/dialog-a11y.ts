@@ -54,6 +54,9 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
     };
 
     dlg.element?.addEventListener?.("keydown", handleKeydown);
+    if (typeof window !== "undefined") {
+        window.addEventListener("keydown", handleKeydown, true);
+    }
 
     const scheduleFocus = typeof requestAnimationFrame === "function"
         ? requestAnimationFrame
@@ -98,6 +101,9 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
         destroyed = true;
         observer?.disconnect();
         dlg.element?.removeEventListener?.("keydown", handleKeydown);
+        if (typeof window !== "undefined") {
+            window.removeEventListener("keydown", handleKeydown, true);
+        }
         originalDestroy();
         onClose?.();
         restoreFocus();

@@ -1,5 +1,5 @@
 > **内测说明**：小驴管家（Lv Home）功能持续稳健迭代中。欢迎体验并通过交流 QQ 群 **871707735** 反馈建议与功能需求。
-> 当前版本 **v0.5.192** 已通过全仓 198 个测试套件、1,237 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
+> 当前版本 **v0.5.193** 已通过全仓 206 个测试套件、1,273 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.192-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1237%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.193-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ 下载安装](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 使用指南](./docs/FAQ.md) · [📖 术语表](./docs/glossary.md) · [🗺 演进路线图](./ROADMAP.md) · [🌐 English](./README.en.md)

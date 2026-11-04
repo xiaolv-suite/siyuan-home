@@ -353,11 +353,22 @@ async function main() {
 
         // 等待向导建库完成（向导消失并进入面板）
         await page.locator(".lv-onboarding").waitFor({ state: "detached", timeout: 90000 });
-        await sleep(1500);
-        // 若向导完成后自动弹出了快速记录弹层，先按 Escape 收起以便回到总览检视
-        if (await page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']").count()) {
+        await sleep(1000);
+        // 向导完成后可能弹出快速记录弹层，等待其就绪后按 Escape 收起以便回到总览检视
+        const capModalAfterWiz = page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']");
+        try {
+            await capModalAfterWiz.waitFor({ state: "visible", timeout: 6000 });
             await page.keyboard.press("Escape");
-            await sleep(400);
+            await capModalAfterWiz.waitFor({ state: "hidden", timeout: 4000 });
+        } catch {
+            if (await capModalAfterWiz.count()) {
+                await page.keyboard.press("Escape");
+                await sleep(400);
+            }
+        }
+        while ((await page.locator(".lv-modal.open, .b3-dialog--open, .b3-dialog").count()) > 0) {
+            await page.keyboard.press("Escape");
+            await sleep(250);
         }
         const provisionedAfterWiz = await page.evaluate(() => {
             const p = window.siyuan.ws.app.plugins.find((x) => x.name === "siyuan-home");
@@ -1142,7 +1153,16 @@ async function main() {
         assert.equal(Number(rememberedUnitPrice), 8, "记忆引擎应记住上次油价 8.00 元");
         assert.equal(Number(rememberedAmount), 400, "记忆引擎应记住上次加油金额 400 元");
         assert.equal(rememberedIsFull, true, "记忆引擎应记住上次加满状态");
-        await page.keyboard.press("Escape");
+        const quickCap15 = page.locator(".lv-modal.open[aria-labelledby='lv-capture-title']");
+        if (await quickCap15.count()) {
+            const closeBtn = page.locator(".lv-modal.open .lv-sheet-head button.lv-iconbtn, .lv-modal.open button[aria-label*='关闭']").first();
+            if (await closeBtn.isVisible().catch(() => false)) {
+                await closeBtn.click().catch(() => {});
+            } else {
+                await page.keyboard.press("Escape");
+            }
+            await quickCap15.waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
+        }
         await sleep(300);
 
         await page.screenshot({ path: path.join(SHOT_DIR, "15-quick-flows-comprehensive.png") });
@@ -1382,6 +1402,16 @@ async function main() {
             };
         });
 
+        while ((await page.locator(".lv-modal.open, .b3-dialog--open, .b3-dialog").count()) > 0) {
+            const closeBtn = page.locator(".lv-modal.open button[aria-label*='关闭'], .lv-modal.open .lv-sheet-head button.lv-iconbtn").first();
+            if (await closeBtn.isVisible().catch(() => false)) {
+                await closeBtn.click().catch(() => {});
+            } else {
+                await page.keyboard.press("Escape");
+            }
+            await sleep(250);
+        }
+
         // 切回总览首页检视全景家庭卡片与丰富提醒
         await page.locator("#lv-rail-tab-overview").click();
         await sleep(1200);
@@ -1505,6 +1535,7 @@ async function main() {
         const modalFamilyChip = page.locator(".lv-record-modal.open button").filter({ hasText: "一家人一起" }).first();
         assert.equal(await modalFamilyChip.isVisible(), true, "新建台账模态框中应具备「👨‍👩‍👧‍👦 一家人一起」多成员胶囊");
         await page.keyboard.press("Escape");
+        await recordModal.waitFor({ state: "detached", timeout: 2500 }).catch(() => {});
         await sleep(300);
 
         // 4. 切回总览，验证控制台持续 0 异常
@@ -1566,6 +1597,11 @@ async function main() {
         const urgentStatusText = await page.locator("#lv-spotlight-status").innerText();
         assert.equal(Boolean(urgentStatusText), true, "输入 !紧急 过滤条件状态栏应即时响应重算");
         await page.keyboard.press("Escape");
+        await spotlightModal.waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
+        while ((await page.locator(".b3-dialog--open, .b3-dialog").count()) > 0) {
+            await page.keyboard.press("Escape");
+            await sleep(200);
+        }
         await sleep(300);
 
         // 4. CAND-27: 台账列宽鼠标拖拽调整、双击重置与记忆持久化

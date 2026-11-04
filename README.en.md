@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.192** is protected by 198 test suites (1,237 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.193** is protected by 206 test suites (1,273 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,8 +9,8 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.192-blue)](./CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1237%20passed-brightgreen)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.193-blue)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
 
 [⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)

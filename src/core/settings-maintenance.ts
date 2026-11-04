@@ -29,7 +29,7 @@ export function exportSettingsJson(plugin: any, t: (k: string) => string): void 
         a.href = URL.createObjectURL(blob);
         a.download = `siyuan-home-settings-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
-        URL.revokeObjectURL(a.href);
+        setTimeout(() => URL.revokeObjectURL(a.href), 0);
     });
 }
 
@@ -139,7 +139,7 @@ export async function exportDiagnosticsPackage(
             a.href = URL.createObjectURL(blob);
             a.download = `siyuan-home-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("settings.diagExportDone"), 3000, "info");
         } catch (error) {
             showMessageFn(

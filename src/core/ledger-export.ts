@@ -79,7 +79,7 @@ export async function exportLedgerCsv(options: ExportCsvOptions): Promise<void> 
             const moduleTitle = t(`module.${moduleId}`) !== `module.${moduleId}` ? t(`module.${moduleId}`) : moduleId;
             a.download = `小驴管家-${moduleTitle}-${localDateKey(new Date())}.csv`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("ledger.exportCsvDone") || `${moduleTitle} CSV 导出完成`, 2500, "info");
         } catch (e) {
             showMessageFn(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
@@ -120,7 +120,7 @@ export function exportSelectedRowsToCsv(options: {
     const moduleTitle = t(`module.${moduleId}`) !== `module.${moduleId}` ? t(`module.${moduleId}`) : moduleId;
     a.download = `小驴管家-${moduleTitle}-已选${rows.length}项-${localDateKey(new Date())}.csv`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 0);
 }
 
 export interface ExportArchiveManifestOptions {
@@ -194,7 +194,7 @@ export async function exportArchiveManifestFile(options: ExportArchiveManifestOp
         a.href = URL.createObjectURL(blob);
         a.download = `lv-archive-${moduleId}-${new Date().toISOString().slice(0, 10)}.md`;
         a.click();
-        URL.revokeObjectURL(a.href);
+        setTimeout(() => URL.revokeObjectURL(a.href), 0);
         showMessageFn(t("ledger.exportArchiveSuccess").replace("${n}", String(manifest.totalFiles)), 3500, "info");
     } catch (e) {
         showMessageFn(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
@@ -316,7 +316,7 @@ export async function exportLedgerIcsFile(options: ExportIcsOptions): Promise<vo
         a.href = URL.createObjectURL(blob);
         a.download = `lvhome-${moduleId}-${new Date().toISOString().slice(0, 10)}.ics`;
         a.click();
-        URL.revokeObjectURL(a.href);
+        setTimeout(() => URL.revokeObjectURL(a.href), 0);
         showMessageFn(t("ledger.exportIcsDone").replace("${n}", String(count)), 3000, "info");
     } catch (e) {
         showMessageFn(t("ledger.readFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");

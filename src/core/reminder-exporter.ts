@@ -102,7 +102,7 @@ export async function exportReminderIcs(options: ExportReminderIcsOptions): Prom
             a.href = URL.createObjectURL(blob);
             a.download = `lvhome-reminders-${new Date().toISOString().slice(0, 10)}.ics`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("hub.icsDone").replace("${n}", String(list.length)), 3000, "info");
         } catch (e) {
             showMessageFn(t("hub.icsFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");

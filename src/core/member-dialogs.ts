@@ -130,7 +130,7 @@ export function exportMemberVcf(options: ExportMemberVcfOptions): void {
             a.href = URL.createObjectURL(blob);
             a.download = `lvhome-members-${new Date().toISOString().slice(0, 10)}.vcf`;
             a.click();
-            URL.revokeObjectURL(a.href);
+            setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("members.exportVcfDone").replace("${n}", String(members.length)), 3000, "info");
         }).catch((e) => {
             showMessageFn(t("members.exportVcfFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");

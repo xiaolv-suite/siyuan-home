@@ -1,4 +1,4 @@
-import { Plugin, openTab } from "siyuan";
+import { Plugin, openTab, getFrontend } from "siyuan";
 import { mount } from "svelte";
 import "./index.scss";
 
@@ -25,9 +25,10 @@ import type { HomeSettings } from "@/types";
 import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad, lvOmnisearch, lvAutomation, type LvSearchResultItem } from "@/libs/lv-notice-kit";
 import { homeNotify, homeSilent } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
+import { searchMatch } from "@/core/pinyin";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.192";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.193";
 
 /**
  * 小驴管家（Lv Home）
@@ -70,6 +71,8 @@ export default class LvHomePlugin extends Plugin {
     private isUnloading = false;
     /** 思源 UI 同步入口控制器（顶栏、页签、命令面板、状态栏、斜杠指令及存活守护） */
     private entrypointsController?: PluginEntrypointsController;
+    /** 移动端统一罗盘与悬浮球入口清理器 */
+    private mobileEntryCleaner?: () => void;
     /** 内核鉴权失效、权限拦截与会话恢复守护控制器 */
     private authGuardController?: PluginAuthGuardController;
     /** 原生菜单联动控制器（块菜单、块图标菜单、自定义 URL、AV 右键菜单、WS 同步监听） */
@@ -143,8 +146,10 @@ export default class LvHomePlugin extends Plugin {
         });
         this.authGuardController.checkRestoredAuth();
 
-        // DEVICE-07（227 波）：移动前端标识（图标符号与按钮注入已在 registerPluginEntrypoints 中完成）
-        this.entrypointsController.getMobileController()?.ensureMobileTopBarButton();
+        // 移动端入口接入小驴罗盘统一管理（Mobile Spec v1 顶栏+悬浮球收敛）
+        try {
+            this.mobileEntryCleaner = lvLaunchpad.ensureMobileEntry();
+        } catch { /* 容错降级 */ }
 
         // 309 波：页签/顶栏/命令/图标的注册已全部移到 registerEntrypoints()，
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
@@ -538,6 +543,10 @@ export default class LvHomePlugin extends Plugin {
     }
 
     showTab() {
+        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+            this.entrypointsController?.getMobileController()?.openMobilePanel();
+            return;
+        }
         // 已有管家页签时聚焦而非新开（重复点顶栏/命令不再堆叠页签，225 波真机发现）。
         // 前端无公开的"聚焦已开自定义页签"API——走页签头 DOM 事件（与用户点击同源行为）；
         // 多开的旧页签逐个点其关闭钮回收（对象全部是本插件的页签）。
@@ -563,6 +572,10 @@ export default class LvHomePlugin extends Plugin {
      *  日常路径几乎总是"已挂载"），已挂载时经 panelScreenSwitch 直切（2026-10-09 R6 实证修复）。 */
     openRemindersScreen() {
         this.pendingScreen = "reminders";
+        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+            this.entrypointsController?.getMobileController()?.openMobilePanel("reminders");
+            return;
+        }
         this.showTab();
         this.panelScreenSwitch?.("reminders");
     }
@@ -570,6 +583,10 @@ export default class LvHomePlugin extends Plugin {
     /** 导航并打开指定台账模块（如 "assets" | "members" | "medicine" | "vehicle" 等） */
     openModuleTab(moduleId: string) {
         this.pendingScreen = moduleId;
+        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+            this.entrypointsController?.getMobileController()?.openMobilePanel(moduleId);
+            return;
+        }
         this.showTab();
         this.panelScreenSwitch?.(moduleId);
     }
@@ -891,18 +908,37 @@ export default class LvHomePlugin extends Plugin {
     }
 
     /**
-     * 处理小驴罗盘二级快捷行动直达
+     * 处理小驴罗盘二级快捷行动直达（Mobile Spec v1: 手机直办动作）
      */
     async handleQuickAction(action: string): Promise<void> {
+        try {
+            lvLaunchpad.haptic(10);
+        } catch {
+            /* soft */
+        }
         switch (action) {
+            case "记一笔备忘":
             case "快速记录生活备忘事项":
-                this.showTab();
+                if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+                    this.entrypointsController?.getMobileController()?.openMobilePanel("overview");
+                } else {
+                    this.showTab();
+                }
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new CustomEvent("siyuan-home:open-capture"));
                 }
                 break;
+            case "今日清单":
+                this.openRemindersScreen();
+                break;
+            case "逾期扫描":
             case "扫描即将到期证件与药品":
                 await this.refreshHub(undefined, true);
+                this.runtime.hubFilter = "overdue";
+                this.openRemindersScreen();
+                break;
+            case "证件到期速览":
+                this.runtime.hubModuleId = "certs";
                 this.openRemindersScreen();
                 break;
             case "批量归档已完成待办项": {
@@ -932,16 +968,19 @@ export default class LvHomePlugin extends Plugin {
 
         try {
             const { Dialog } = await import("siyuan");
+            const { bindDialogA11y } = await import("@/core/dialog-a11y");
             const dlg = new Dialog({
-                title: "🐴 小驴管家 · 生活效期全局 AI 体检报告",
+                title: `🐴 ${this.i18nText("overview.aiAuditTitle")}`,
                 content: `<div class="b3-dialog__content lv-dialog-scroll-body"><pre class="lv-caption lv-report-pre" style="white-space:pre-wrap; line-height:1.6; font-size:12.5px; margin:0;"></pre></div>
 <div class="b3-dialog__action">
-  <button type="button" class="b3-button b3-button--cancel">关闭</button>
-  <button type="button" class="b3-button" id="lv-audit-copy">复制体检报告</button>
-  <button type="button" class="b3-button b3-button--outline" id="lv-audit-journal">写入流水日记</button>
+  <button type="button" class="b3-button b3-button--cancel">${this.i18nText("cancel") || "关闭"}</button>
+  <button type="button" class="b3-button" id="lv-audit-copy">${this.i18nText("overview.aiAuditCopyBtn")}</button>
+  <button type="button" class="b3-button b3-button--outline" id="lv-audit-journal">${this.i18nText("overview.aiAuditJournalBtn")}</button>
 </div>`,
                 width: "640px",
             });
+
+            bindDialogA11y({ dlg });
 
             const pre = dlg.element.querySelector("pre");
             if (pre) pre.textContent = audit.reportText;
@@ -953,7 +992,7 @@ export default class LvHomePlugin extends Plugin {
             if (copyBtn) {
                 copyBtn.onclick = async () => {
                     await navigator.clipboard.writeText(audit.reportText);
-                    homeNotify("已复制生活效期全局体检报告", 2500, "info");
+                    homeNotify(this.i18nText("overview.aiAuditCopyOk"), 2500, "info");
                 };
             }
 
@@ -967,9 +1006,9 @@ export default class LvHomePlugin extends Plugin {
                         await withDocLock(docId, async () => {
                             await upsertDocSection(docId, "life-health-audit", audit.reportText);
                         });
-                        homeNotify("已写入日常流水日记", 2500, "info");
+                        homeNotify(this.i18nText("overview.aiAuditJournalOk"), 2500, "info");
                     } else {
-                        homeNotify("未找到日常流水日记文档", 3000, "info");
+                        homeNotify(this.i18nText("overview.aiAuditJournalNotFound"), 3000, "info");
                     }
                 };
             }
@@ -979,7 +1018,7 @@ export default class LvHomePlugin extends Plugin {
     }
 
     /**
-     * 向小驴罗盘登记注册或刷新本插件入口切面
+     * 向小驴罗盘登记注册或刷新本插件入口切面（Mobile Spec v1: 4 个手机直办动作）
      */
     registerLaunchpadEntry(): void {
         try {
@@ -995,7 +1034,7 @@ export default class LvHomePlugin extends Plugin {
                 digit: 3,
                 badge: expiring > 0 ? `${expiring} 到期` : undefined,
                 badgeType: "warn",
-                actions: ["快速记录生活备忘事项", "扫描即将到期证件与药品", "批量归档已完成待办项", "全生态数据健康体检与清理", "AI生活效期智能体检"],
+                actions: ["记一笔备忘", "今日清单", "逾期扫描", "证件到期速览"],
                 onClick: () => this.openDashboard(),
                 onAction: (action) => this.handleQuickAction(action),
             });
@@ -1004,7 +1043,7 @@ export default class LvHomePlugin extends Plugin {
 
     /**
      * 全生态万物穿透检索切面实现 (Epoch 7 Phase 7: lvOmnisearch)
-     * 支持跨插件全文检索待办事项、证件有效期限、常备药品效期、保险合同保单等
+     * 支持跨插件全文检索待办事项、证件有效期限、常备药品效期、保险合同保单、家庭成员等手机高频实体
      */
     searchHomeItems(keyword: string): LvSearchResultItem[] {
         const kw = keyword.trim().toLowerCase();
@@ -1014,7 +1053,10 @@ export default class LvHomePlugin extends Plugin {
         // 1. 待办与快速备忘项
         const memos = this.runtime?.memos ?? [];
         for (const m of memos) {
-            if (m.title?.toLowerCase().includes(kw) || (m.category && m.category.toLowerCase().includes(kw))) {
+            const hit = m.title?.toLowerCase().includes(kw) ||
+                (m.category && m.category.toLowerCase().includes(kw)) ||
+                searchMatch(m.title, kw);
+            if (hit) {
                 const isDone = Boolean(m.doneAt);
                 results.push({
                     id: `home:memo:${m.id}`,
@@ -1043,7 +1085,10 @@ export default class LvHomePlugin extends Plugin {
 
         for (const r of reminders) {
             if (r.moduleId === "adhoc" && results.some((item) => item.id.includes(r.id))) continue;
-            if (r.title?.toLowerCase().includes(kw) || r.moduleId?.toLowerCase().includes(kw)) {
+            const hit = r.title?.toLowerCase().includes(kw) ||
+                r.moduleId?.toLowerCase().includes(kw) ||
+                searchMatch(r.title, kw);
+            if (hit) {
                 const cat = categoryMap[r.moduleId] || "效期";
                 const badge = r.daysLeft <= 0 ? "已逾期" : `剩余 ${r.daysLeft} 天`;
                 results.push({
@@ -1056,6 +1101,27 @@ export default class LvHomePlugin extends Plugin {
                     linkBlockId: r.rowId || r.id,
                     onClick: () => {
                         this.openRemindersScreen();
+                    },
+                });
+            }
+        }
+
+        // 3. 家庭成员档案实体 (Mobile Spec v1: 手机高频检索)
+        const members = this.settings?.members ?? [];
+        for (const mem of members) {
+            const hit = mem.name?.toLowerCase().includes(kw) ||
+                (mem.role && mem.role.toLowerCase().includes(kw)) ||
+                searchMatch(mem.name, kw);
+            if (hit) {
+                results.push({
+                    id: `home:member:${mem.id}`,
+                    source: "管家",
+                    category: "成员",
+                    title: mem.name,
+                    snippet: `家庭成员 · ${mem.role || "成员"}${mem.birthday ? ` · 生日 ${mem.birthday}` : ""}`,
+                    badge: "档案",
+                    onClick: () => {
+                        this.openModuleTab("members");
                     },
                 });
             }
@@ -1084,6 +1150,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.mobileEntryCleaner?.();
+        this.mobileEntryCleaner = undefined;
         this.omnisearchCleaner?.();
         this.omnisearchCleaner = undefined;
         this.launchpadCleaner?.();

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { createMobileController } from "@/core/mobile-controller";
 
-describe("mobile-controller (移动端顶栏入口与全屏面板适配器)", () => {
-    it("非移动端环境下安全跳过顶栏注入", () => {
+describe("mobile-controller (移动端全屏面板适配器与下滑关闭手势)", () => {
+    it("非移动端环境下安全调用不抛异常，且旧顶栏注入方法安全 no-op", () => {
         const mockPlugin = { app: {} };
         const ctrl = createMobileController({
             plugin: mockPlugin,
@@ -10,31 +10,26 @@ describe("mobile-controller (移动端顶栏入口与全屏面板适配器)", ()
             isMobileFrontend: false,
         });
 
-        expect(() => ctrl.ensureMobileTopBarButton()).not.toThrow();
+        expect(() => ctrl.ensureMobileTopBarButton?.()).not.toThrow();
         expect(() => ctrl.openMobilePanel()).not.toThrow();
+        expect(ctrl.isOpen()).toBe(false);
+        expect(() => ctrl.closeMobilePanel()).not.toThrow();
         expect(() => ctrl.dispose()).not.toThrow();
     });
 
-    it("移动端环境下顶栏未就绪时触发延迟重试调度", () => {
-        (globalThis as any).document = {
-            getElementById: vi.fn().mockReturnValue(null),
-            querySelectorAll: vi.fn().mockReturnValue([]),
-        };
-        const scheduleTimeout = vi.fn().mockReturnValue(123);
+    it("移动端环境下支持打开全屏面板、检查状态并支持关闭与销毁", () => {
+        const mockPlugin = { app: {}, pendingScreen: "" };
         const ctrl = createMobileController({
-            plugin: {},
+            plugin: mockPlugin,
             t: (k: string) => k,
             isMobileFrontend: true,
-            scheduleTimeout,
         });
 
-        try {
-            ctrl.ensureMobileTopBarButton();
-            // document.getElementById("mobileTopBar") 为 null 时应安排 800ms 重试
-            expect(scheduleTimeout).toHaveBeenCalledWith(expect.any(Function), 800);
-        } finally {
-            delete (globalThis as any).document;
-            ctrl.dispose();
-        }
+        expect(ctrl.isOpen()).toBe(false);
+        ctrl.openMobilePanel("reminders");
+        expect(mockPlugin.pendingScreen).toBe("reminders");
+        ctrl.closeMobilePanel();
+        expect(ctrl.isOpen()).toBe(false);
+        ctrl.dispose();
     });
 });

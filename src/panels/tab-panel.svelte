@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import type { Component } from "svelte";
     import { Dialog } from "siyuan";
-    import { homeNotify as showMessage } from "@/libs/notice";
+    import { homeNotify as showMessage, lvLaunchpad } from "@/libs/notice";
     import AvatarSettings from "./avatar-settings.svelte";
     import ErrorBoundary from "./error-boundary.svelte";
     import TabRailNav from "./tab-rail-nav.svelte";
@@ -399,11 +399,11 @@
         void version;
         return plugin.scan?.reminders?.length ?? plugin.runtime?.cache?.reminders?.length ?? 0;
     });
-    const screens: { id: ScreenId; key: string; icon: UiIconName }[] = [
-        { id: "overview", key: "tab.overview", icon: "home" },
-        { id: "reminders", key: "tab.reminders", icon: "bell" },
-        { id: "ledger", key: "tab.ledger", icon: "archive" },
-        { id: "members", key: "tab.members", icon: "users" },
+    const screens: { id: ScreenId; key: string; mobileKey: string; icon: UiIconName }[] = [
+        { id: "overview", key: "tab.overview", mobileKey: "tab.mobile.today", icon: "home" },
+        { id: "reminders", key: "tab.reminders", mobileKey: "tab.mobile.todo", icon: "bell" },
+        { id: "ledger", key: "tab.ledger", mobileKey: "tab.mobile.assets", icon: "archive" },
+        { id: "members", key: "tab.members", mobileKey: "tab.mobile.mine", icon: "users" },
     ];
 
     // C1b：滑动胶囊（offsetLeft/width + spring，与原型一致）
@@ -568,6 +568,33 @@
         </div>
 
     </div>
+
+    <!-- 移动端统一底部主导航 (Mobile Spec v1: ≤4项 今日/清单/资产/我的，触控高度 ≥44px) -->
+    <nav class="lv-mobile-bottom-nav" aria-label={t("tab.title")}>
+        {#each screens as s (s.id)}
+            <button
+                type="button"
+                id={`lv-mob-tab-${s.id}`}
+                class="lv-mob-nav-item"
+                class:on={screen === s.id}
+                role="tab"
+                aria-selected={screen === s.id}
+                aria-controls={`lv-panel-${s.id}`}
+                onclick={() => {
+                    try { lvLaunchpad.haptic(10); } catch { /* soft */ }
+                    gotoScreen(s.id);
+                }}
+            >
+                <span class="lv-mob-nav-icon">
+                    <UiIcon name={s.icon} size={20} />
+                    {#if s.id === "reminders" && pendingTotal > 0}
+                        <span class="lv-mob-badge">{pendingTotal > 99 ? "99+" : pendingTotal}</span>
+                    {/if}
+                </span>
+                <span class="lv-mob-nav-label">{t(s.mobileKey)}</span>
+            </button>
+        {/each}
+    </nav>
 
     <!-- 267 波：快速记录弹层（常驻挂载——关闭仅收起，草稿保留） -->
     {#if CaptureView}

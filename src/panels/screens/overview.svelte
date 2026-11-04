@@ -6,7 +6,7 @@
     import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
     import { Dialog } from "siyuan";
-    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
+    import { homeNotify as showMessage, homeInline, lvLaunchpad } from "@/libs/notice";
     import { moduleTone } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";
@@ -203,6 +203,15 @@
         return formatLocalTime(at, { hour: "2-digit", minute: "2-digit" }) ?? "—";
     });
     const scopeLabel = $derived(memberFilter ? (members.find((m) => m.id === memberFilter)?.name ?? "?") : t("dash.scopeAll"));
+
+    // 手机端专项：证件/保单临期置顶卡片（Mobile Spec v1: 证件、药品、保单等临期 ≤30 天或已逾期置顶前显）
+    const expiringCertOrInsuranceReminders = $derived.by(() => {
+        void version;
+        return reminders.filter((r: Reminder) =>
+            (r.moduleId === "certs" || r.moduleId === "insurance" || r.moduleId === "contracts" || r.moduleId === "medicine") &&
+            (typeof r.daysLeft === "number" && r.daysLeft <= 30)
+        );
+    });
 
     // 264 波：行数口径（cache.byModule 随扫描快照；version 驱动重算）——模块卡主数字与成员卡统计格
     const statsByModule = $derived.by(() => {
@@ -408,6 +417,60 @@
         onOpenStarterRecord={openStarterRecord}
         onOpenSettings={() => plugin.openSetting()}
     />
+{/if}
+
+{#if expiringCertOrInsuranceReminders.length > 0}
+    <!-- 证件/保单临期置顶特显卡片 (Mobile Spec v1 置顶前显) -->
+    <div class="lv-card lv-expiring-top-card" role="region" aria-label={t("overview.expiringCertsTitle")}>
+        <div class="lv-expiring-head">
+            <span class="lv-expiring-head__title">
+                <UiIcon name="alert" size={15} />
+                <b>{t("overview.expiringCertsTitle")} ({expiringCertOrInsuranceReminders.length})</b>
+            </span>
+            <button
+                type="button"
+                class="b3-button b3-button--text lv-expiring-all-btn"
+                onclick={() => {
+                    try { lvLaunchpad.haptic(10); } catch { /* soft */ }
+                    plugin.runtime.hubModuleId = "certs";
+                    onGoto("reminders");
+                }}
+            >
+                <span>{t("overview.viewAllExpiring")}</span> <UiIcon name="forward" size={11} />
+            </button>
+        </div>
+        <div class="lv-expiring-list">
+            {#each expiringCertOrInsuranceReminders.slice(0, 4) as r (r.id)}
+                <div class="lv-expiring-item">
+                    <div class="lv-expiring-item__info">
+                        <span class="lv-expiring-tag {r.moduleId}">{r.moduleId === "certs" ? "证件" : r.moduleId === "insurance" ? "保单" : r.moduleId === "medicine" ? "药品" : "合同"}</span>
+                        <span class="lv-expiring-title" title={r.title}>{r.title}</span>
+                        {#if r.memberId}
+                            {@const mem = memberOf(r.memberId)}
+                            {#if mem}
+                                <span class="lv-expiring-member">({mem.name})</span>
+                            {/if}
+                        {/if}
+                    </div>
+                    <div class="lv-expiring-item__meta">
+                        <span class="lv-badge {r.daysLeft <= 0 ? 'red' : r.daysLeft <= 7 ? 'orange' : 'amber'}">
+                            {r.daysLeft <= 0 ? (r.daysLeft === 0 ? "今日到期" : `逾期 ${Math.abs(r.daysLeft)} 天`) : `剩 ${r.daysLeft} 天`}
+                        </span>
+                        <button
+                            type="button"
+                            class="lv-btn ghost sm"
+                            onclick={() => {
+                                try { lvLaunchpad.haptic(10); } catch { /* soft */ }
+                                openLedgerFor(r.moduleId);
+                            }}
+                        >
+                            {t("tab.ledger")}
+                        </button>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    </div>
 {/if}
 
 <!-- 首屏核心区：快速记录（日常流水优先 + 随手备忘 + 思源文档实时同步） -->

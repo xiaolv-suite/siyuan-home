@@ -20,7 +20,7 @@ describe("lvLaunchpad (小驴罗盘 · 家族极速弹射坞生态测试)", () =
             digit: 3,
             badge: "2 到期",
             badgeType: "warn",
-            actions: ["快速记录生活备忘事项", "扫描即将到期证件与药品", "批量归档已完成待办项", "全生态数据健康体检与清理"],
+            actions: ["记一笔备忘", "今日清单", "逾期扫描", "证件到期速览"],
             onClick: onClickMock,
             onAction: onActionMock,
         });
@@ -37,8 +37,8 @@ describe("lvLaunchpad (小驴罗盘 · 家族极速弹射坞生态测试)", () =
         found?.onClick();
         expect(onClickMock).toHaveBeenCalledTimes(1);
 
-        found?.onAction?.("快速记录生活备忘事项");
-        expect(onActionMock).toHaveBeenCalledWith("快速记录生活备忘事项");
+        found?.onAction?.("记一笔备忘");
+        expect(onActionMock).toHaveBeenCalledWith("记一笔备忘");
 
         unregister();
         const afterItems = lvLaunchpad.getItems();

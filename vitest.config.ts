@@ -16,5 +16,6 @@ export default defineConfig({
         include: ["tests/**/*.test.ts"],
         // 活体集成测试（tests/live）打真实内核，仅经 vitest.live.config.ts（pnpm run test:live）显式运行
         exclude: ["tests/live/**"],
+        setupFiles: ["tests/setup.ts"],
     },
 });

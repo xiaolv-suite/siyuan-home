@@ -1,6 +1,7 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
     import { homeNotify as showMessage } from "@/libs/notice";
+    import { lvLaunchpad } from "@/libs/lv-notice-kit";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
@@ -224,6 +225,11 @@
         <button type="button" class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
             onRunAction?.(async () => {
                 await plugin.complete(r);
+                try {
+                    lvLaunchpad.haptic(10);
+                } catch {
+                    /* soft */
+                }
                 showMessage(t("hub.batchDone").replace("${n}", "1"), 2500, "info");
             }, r.id);
         }}>{isBusy ? t("ledger.saving") : t("act.done")}</button>

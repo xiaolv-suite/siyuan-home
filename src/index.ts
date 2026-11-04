@@ -667,6 +667,11 @@ export default class LvHomePlugin extends Plugin {
     async complete(r: any) {
         await complete(this, r);
 
+        // 手机端触感反馈 (Mobile Spec v1: 完成待办调 lvLaunchpad.haptic(10))
+        try {
+            lvLaunchpad.haptic(10);
+        } catch { /* 零强依赖优雅降级 */ }
+
         // 待办完成活动广播 (Epoch 7 Phase 3: lvActivity)
         try {
             const taskTitle = r?.title || (r?.moduleId ? `事项（${r.moduleId}）` : "家庭事项");
@@ -707,6 +712,10 @@ export default class LvHomePlugin extends Plugin {
     async batchSnooze(ids: string[], targetDate: string): Promise<Record<string, string | undefined>> {
         const { batchSnooze } = await import("@/core/hub/actions");
         const prev = await batchSnooze(this, ids, targetDate);
+        // 手机端触感反馈 (Mobile Spec v1: 逾期一键批延成功)
+        try {
+            lvLaunchpad.haptic(10);
+        } catch { /* 零强依赖优雅降级 */ }
         await this.notifyHubChanged();
         return prev;
     }

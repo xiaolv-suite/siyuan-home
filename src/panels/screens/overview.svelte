@@ -6,7 +6,8 @@
     import { formatLocalTime } from "@/core/date-display";
     import { memberHue } from "@/core/format";
     import { Dialog } from "siyuan";
-    import { homeNotify as showMessage, homeInline, lvLaunchpad } from "@/libs/notice";
+    import { homeNotify as showMessage, homeInline } from "@/libs/notice";
+    import { lvLaunchpad } from "@/libs/lv-notice-kit";
     import { moduleTone } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";
     import ActivityFeed from "../activity-feed.svelte";
@@ -324,6 +325,11 @@
             try {
                 const prev = await plugin.batchSnooze?.(overdueIds, todayKey);
                 lastPostponedOverdueMap = prev ?? {};
+                try {
+                    lvLaunchpad.haptic(10);
+                } catch {
+                    /* soft */
+                }
                 showMessage(t("dash.overduePostponed").replace("${n}", String(overdueIds.length)), 3500, "info");
             } catch (e) {
                 showMessage(t("ledger.saveFailed").replace("${msg}", errText(e)), 5000, "error");

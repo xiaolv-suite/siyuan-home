@@ -349,6 +349,7 @@ export class SettingUtils {
             case 'number':
                 let numberElement: HTMLInputElement = document.createElement('input');
                 numberElement.type = 'number';
+                numberElement.inputMode = "numeric";
                 numberElement.className = 'b3-text-field fn__flex-center fn__size200';
                 numberElement.value = item.value;
                 itemElement = numberElement;

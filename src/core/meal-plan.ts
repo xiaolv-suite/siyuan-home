@@ -411,6 +411,7 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
             right.style.gap = "4px";
             const servInput = mk("input", "b3-text-field lv-servings-input") as HTMLInputElement;
             servInput.type = "number";
+            servInput.inputMode = "numeric";
             servInput.min = "1";
             servInput.max = "10";
             servInput.value = String(c.servings);

@@ -193,6 +193,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
         meta.textContent = t("ledger.shopExisting").replace("${q}", String(it.qty)).replace("${t2}", String(it.threshold));
         const input = document.createElement("input");
         input.type = "number";
+        input.inputMode = "numeric";
         input.className = "b3-text-field lv-input-time-sm";
         input.min = "1";
         input.value = String(it.suggest);

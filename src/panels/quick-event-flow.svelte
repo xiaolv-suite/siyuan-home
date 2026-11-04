@@ -725,15 +725,15 @@
         {#if vitalMetricType === "bp"}
             <div class="lv-frow">
                 <label for="lv-vital-sys">{t("capture.systolic")} *</label>
-                <input id="lv-vital-sys" class="b3-text-field" type="number" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-sys" class="b3-text-field" type="number" inputMode="numeric" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-dia">{t("capture.diastolic")} *</label>
-                <input id="lv-vital-dia" class="b3-text-field" type="number" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-dia" class="b3-text-field" type="number" inputMode="numeric" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-pulse">{t("capture.pulse")}</label>
-                <input id="lv-vital-pulse" class="b3-text-field" type="number" min="30" max="220" placeholder={t("capture.phPulse")} bind:value={vitalPulse} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-pulse" class="b3-text-field" type="number" inputMode="numeric" min="30" max="220" placeholder={t("capture.phPulse")} bind:value={vitalPulse} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             {#if bpAssessment}
                 <div class="lv-vital-status-pill" class:is-abnormal={bpAssessment.isAbnormal} class:is-elevated={bpAssessment.level === 'elevated'}>
@@ -744,7 +744,7 @@
         {:else if vitalMetricType === "glucose"}
             <div class="lv-frow">
                 <label for="lv-vital-glu">{t("capture.glucoseVal")} *</label>
-                <input id="lv-vital-glu" class="b3-text-field" type="number" min="0" step="0.1" placeholder={t("capture.phGlucose")} bind:value={vitalGlucose} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-glu" class="b3-text-field" type="number" inputMode="numeric" min="0" step="0.1" placeholder={t("capture.phGlucose")} bind:value={vitalGlucose} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
                 <label for="lv-vital-tim">{t("capture.measureTiming")}</label>
@@ -762,12 +762,12 @@
         {:else if vitalMetricType === "weight"}
             <div class="lv-frow">
                 <label for="lv-vital-weight">{t("capture.weightVal")} *</label>
-                <input id="lv-vital-weight" class="b3-text-field" type="number" min="1" max="500" step="0.1" placeholder={t("capture.phWeight")} bind:value={vitalWeight} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-weight" class="b3-text-field" type="number" inputMode="numeric" min="1" max="500" step="0.1" placeholder={t("capture.phWeight")} bind:value={vitalWeight} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
         {:else if vitalMetricType === "temp"}
             <div class="lv-frow">
                 <label for="lv-vital-temp">{t("capture.tempVal")} *</label>
-                <input id="lv-vital-temp" class="b3-text-field" type="number" min="30" max="45" step="0.1" placeholder={t("capture.phTemp")} bind:value={vitalTemp} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
+                <input id="lv-vital-temp" class="b3-text-field" type="number" inputMode="numeric" min="30" max="45" step="0.1" placeholder={t("capture.phTemp")} bind:value={vitalTemp} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             {#if tempAssessment}
                 <div class="lv-vital-status-pill" class:is-abnormal={tempAssessment.isAbnormal} class:is-elevated={tempAssessment.level === 'elevated'}>
@@ -808,7 +808,7 @@
             </div>
             <div class="lv-frow">
                 <label for="lv-chore-points">{t("ledger.chorePoints")}</label>
-                <input id="lv-chore-points" class="b3-text-field" type="number" min="0" step="1" placeholder={t("ledger.chorePointsTip")} bind:value={chorePoints} disabled={saving} />
+                <input id="lv-chore-points" class="b3-text-field" type="number" inputMode="numeric" min="0" step="1" placeholder={t("ledger.chorePointsTip")} bind:value={chorePoints} disabled={saving} />
             </div>
             <div class="lv-frow">
                 <label for="lv-chore-note">{t("field.note")}</label>
@@ -838,7 +838,7 @@
         <div class="lv-frow">
             <label for="lv-shop-price">{t("capture.shopPrice")}</label>
             <div class="lv-col-stretch" style="width: 100%;">
-                <input bind:this={priceInputEl} id="lv-shop-price" class="b3-text-field" type="number" min="0" step="any" placeholder={`¥ (${t("capture.optional")})`} bind:value={quickShopPrice} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
+                <input bind:this={priceInputEl} id="lv-shop-price" class="b3-text-field" type="number" inputMode="numeric" min="0" step="any" placeholder={`¥ (${t("capture.optional")})`} bind:value={quickShopPrice} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
                 <div class="lv-dt-quick-bar" style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
                     {#each [20, 50, 100, 200, 500] as amt}
                         <button type="button" class="b3-chip lv-dt-chip" class:b3-chip--primary={quickShopPrice === amt} onclick={() => { quickShopPrice = amt; }} disabled={saving}>
@@ -852,7 +852,7 @@
             <label for="lv-shop-qty">{t("field.qty")}</label>
             <div class="lv-stepper-row">
                 <button type="button" class="b3-button b3-button--outline lv-step-btn" onclick={() => { if (quickShopQty > 1) quickShopQty--; }} disabled={saving || quickShopQty <= 1}>-</button>
-                <input id="lv-shop-qty" class="b3-text-field lv-stepper-input" type="number" min="1" bind:value={quickShopQty} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
+                <input id="lv-shop-qty" class="b3-text-field lv-stepper-input" type="number" inputMode="numeric" min="1" bind:value={quickShopQty} disabled={saving} onkeydown={onEnter(submitQuickShopping)} />
                 <button type="button" class="b3-button b3-button--outline lv-step-btn" onclick={() => { quickShopQty++; }} disabled={saving}>+</button>
             </div>
         </div>

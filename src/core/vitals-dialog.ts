@@ -43,11 +43,13 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
 
     const val1Inp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     val1Inp.type = "number";
+    val1Inp.inputMode = "numeric";
     val1Inp.placeholder = t("ledger.vitalVal1");
     val1Inp.style.width = "80px";
 
     const val2Inp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     val2Inp.type = "number";
+    val2Inp.inputMode = "numeric";
     val2Inp.placeholder = t("ledger.vitalVal2");
     val2Inp.style.width = "80px";
 

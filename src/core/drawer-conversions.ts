@@ -267,7 +267,7 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                     </label>
                     <label class="lv-form-group">
                         <span class="lv-caption">${t("field.amount")}</span>
-                        <input class="b3-text-field" id="lv-s2a-amount" type="number" value="${draft.amount ?? ""}" />
+                        <input class="b3-text-field" id="lv-s2a-amount" type="number" inputMode="numeric" value="${draft.amount ?? ""}" />
                     </label>
                 </div>
                 <div class="b3-dialog__action">

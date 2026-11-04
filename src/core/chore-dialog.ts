@@ -58,6 +58,7 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
 
     const pointsInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     pointsInp.type = "number";
+    pointsInp.inputMode = "numeric";
     pointsInp.placeholder = t("ledger.chorePoints");
     pointsInp.title = t("ledger.chorePointsTip");
     pointsInp.style.width = "60px";

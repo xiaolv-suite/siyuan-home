@@ -143,14 +143,14 @@
             <div class="lv-setcard__hint">{t("settings.remindersHint")}</div>
             <div class="fn__flex lv-settings__row">
                 <span class="lv-settings__label">{t("settings.notifyHour")}</span>
-                <input class="b3-text-field lv-input-hour" type="number" min="0" max="23" aria-label={t("settings.notifyHour")} bind:value={draftNotifyHour} />
+                <input class="b3-text-field lv-input-hour" type="number" inputMode="numeric" min="0" max="23" aria-label={t("settings.notifyHour")} bind:value={draftNotifyHour} />
                 <span class="lv-caption fn__flex-1">{t("settings.notifyHourHint")}</span>
             </div>
             <div class="fn__flex lv-settings__row">
                 <span class="lv-settings__label">{t("settings.silentHours")}</span>
-                <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
+                <input class="b3-text-field lv-input-time-sm" type="number" inputMode="numeric" min="0" max="23" aria-label={t("settings.silentFromLabel")} bind:value={draftSilentFrom} />
                 <span class="lv-caption lv-arrow-sep" aria-hidden="true"><UiIcon name="forward" size={11} /></span>
-                <input class="b3-text-field lv-input-time-sm" type="number" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
+                <input class="b3-text-field lv-input-time-sm" type="number" inputMode="numeric" min="0" max="23" aria-label={t("settings.silentToLabel")} bind:value={draftSilentTo} />
                 <span class="lv-caption fn__flex-1">{t("settings.silentHoursHint")}</span>
             </div>
             <div class="lv-mt-10">

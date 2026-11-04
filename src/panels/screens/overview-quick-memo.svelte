@@ -22,7 +22,7 @@
     let savingMemo = $state(false);
     let aiParsing = $state(false);
 
-    type SyntaxMode = "none" | "date" | "priority" | "category";
+    type SyntaxMode = "none" | "date" | "priority" | "category" | "amount";
     let activeSyntaxMode = $state<SyntaxMode>("none");
 
     const DATE_CHIPS = ["明天", "后天", "下周一", "+3天", "+7天", "今天"];
@@ -32,6 +32,7 @@
         { label: "低", value: "低", p: "low" },
     ];
     const CATEGORY_CHIPS = ["家庭", "工作", "健康", "财务", "购物", "车辆"];
+    const AMOUNT_CHIPS = ["10", "20", "50", "100", "200", "500", "1000"];
 
     const isGuest = $derived(Boolean(plugin.runtime?.guestModeActive));
 
@@ -44,18 +45,19 @@
         if (!memoInput) return;
         const pos = memoInput.selectionStart ?? memoTitle.length;
         const before = memoTitle.slice(0, pos);
-        const match = before.match(/(?:^|\s)([@!#])([^\s@!#]*)$/);
+        const match = before.match(/(?:^|\s)([@!#$])([^\s@!#$]*)$/);
         if (match) {
             const sym = match[1];
             if (sym === "@") activeSyntaxMode = "date";
             else if (sym === "!") activeSyntaxMode = "priority";
             else if (sym === "#") activeSyntaxMode = "category";
+            else if (sym === "$") activeSyntaxMode = "amount";
         } else {
             activeSyntaxMode = "none";
         }
     }
 
-    function insertSyntaxChip(prefix: "@" | "!" | "#", val: string) {
+    function insertSyntaxChip(prefix: "@" | "!" | "#" | "$", val: string) {
         try {
             lvLaunchpad.haptic(10);
         } catch {
@@ -66,7 +68,7 @@
         const before = memoTitle.slice(0, pos);
         const after = memoTitle.slice(pos);
 
-        const regex = new RegExp(`(?:^|\\s)\\${prefix}[^\\s@!#]*$`);
+        const regex = new RegExp(`(?:^|\\s)\\${prefix}[^\\s@!#$]*$`);
         const match = before.match(regex);
         let newBefore = before;
         if (match) {
@@ -87,7 +89,7 @@
         });
     }
 
-    function openSyntaxPicker(mode: "date" | "priority" | "category") {
+    function openSyntaxPicker(mode: "date" | "priority" | "category" | "amount") {
         try {
             lvLaunchpad.haptic(10);
         } catch {
@@ -95,7 +97,7 @@
         }
         activeSyntaxMode = mode;
         if (!memoInput) return;
-        const symbol = mode === "date" ? "@" : mode === "priority" ? "!" : "#";
+        const symbol = mode === "date" ? "@" : mode === "priority" ? "!" : mode === "category" ? "#" : "$";
         const pos = memoInput.selectionStart ?? memoTitle.length;
         const before = memoTitle.slice(0, pos);
         const after = memoTitle.slice(pos);
@@ -254,6 +256,13 @@
                     #{chip}
                 </button>
             {/each}
+        {:else if activeSyntaxMode === "amount"}
+            <span class="lv-syntax-tag active"><UiIcon name="money" size={12} /> $金额:</span>
+            {#each AMOUNT_CHIPS as chip (chip)}
+                <button type="button" class="lv-syntax-chip amount" onclick={() => insertSyntaxChip("$", chip)}>
+                    ¥{chip}
+                </button>
+            {/each}
         {:else}
             <!-- 默认语法快速唤出按钮 -->
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("date")}>
@@ -264,6 +273,9 @@
             </button>
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("category")}>
                 <UiIcon name="bookmark" size={12} /> <span>#分类</span>
+            </button>
+            <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("amount")}>
+                <UiIcon name="money" size={12} /> <span>$金额</span>
             </button>
         {/if}
     </div>

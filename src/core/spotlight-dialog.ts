@@ -68,6 +68,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                     <span class="lv-spotlight-icon">${uiIcon("search", "", 16)}</span>
                     <input class="b3-text-field lv-spotlight-input" id="lv-spotlight-input"
                         placeholder="${t("spotlight.placeholder") || "输入生活记录、物品、证件、存放位置或备注..."}" />
+                    <button type="button" class="lv-iconbtn lv-spotlight-close-btn" id="lv-spotlight-close" aria-label="${t("close") || "关闭"}" title="${t("close") || "关闭"}">✕</button>
                 </div>
                 <div id="lv-spotlight-status" class="lv-caption lv-tx-muted lv-dialog-topbar">
                     <span>${t("spotlight.loading") || "正在索引家庭数据..."}</span>
@@ -81,6 +82,10 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     const inp = dlg.element.querySelector("#lv-spotlight-input") as HTMLInputElement;
     const statusEl = dlg.element.querySelector("#lv-spotlight-status") as HTMLElement;
     const listEl = dlg.element.querySelector("#lv-spotlight-list") as HTMLElement;
+    const closeBtn = dlg.element.querySelector("#lv-spotlight-close") as HTMLButtonElement | null;
+    if (closeBtn) {
+        closeBtn.onclick = () => dlg.destroy();
+    }
 
     bindDialogA11y({
         dlg,

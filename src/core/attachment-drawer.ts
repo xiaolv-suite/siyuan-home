@@ -2,10 +2,11 @@
  * 台账详情抽屉附件预览、下载、思源OCR识别与文件上传引擎（解耦抽取自 ledger.svelte，促进大文件瘦身）
  */
 
-import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset } from "./assets";
+import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset, compressImageTo300KB } from "./assets";
 import { bindDialogA11y } from "./dialog-a11y";
 import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, uploadAsset } from "./siyuan";
 import { confirm } from "@/libs/dialog";
+import { lvLaunchpad } from "@/libs/lv-notice-kit";
 import { uiIcon } from "@/ui/icons";
 
 const mk = (t: string, c = "", s = "") => {
@@ -256,5 +257,52 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         };
 
         body.appendChild(uploadBtn);
+
+        // 移动端/证件专项：拍照留存直起相机拍摄并压缩 ≤300KB
+        if (active === "certs") {
+            const cameraBtn = document.createElement("button");
+            cameraBtn.type = "button";
+            cameraBtn.className = "b3-button b3-button--outline lv-att-camera-btn";
+            cameraBtn.textContent = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
+
+            const cameraInput = document.createElement("input");
+            cameraInput.type = "file";
+            cameraInput.accept = "image/*";
+            cameraInput.setAttribute("capture", "environment");
+            cameraInput.style.display = "none";
+            cameraBtn.onclick = () => cameraInput.click();
+
+            cameraInput.onchange = async () => {
+                const files = Array.from(cameraInput.files ?? []);
+                if (files.length === 0) return;
+                cameraBtn.disabled = true;
+                try {
+                    const rawFile = files[0];
+                    const compressed = await compressImageTo300KB(rawFile);
+                    const { name, path } = await uploadAsset(compressed, "/assets/siyuan-home/", {
+                        idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${compressed.name}:${compressed.size}`,
+                        retries: 1,
+                    });
+                    const appended = [...existing, { name, content: path }];
+                    await setCell(ref.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
+                        idempotencyKey: `ledger:detail-photo-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
+                        retries: 1,
+                    });
+                    try {
+                        lvLaunchpad.haptic(10);
+                    } catch {
+                        /* soft */
+                    }
+                    showMessageFn(t("certs.photoSaved") || "证件照片已拍照并压缩留存（≤300KB）", 4000, "info");
+                    if (onUploadSuccess) await onUploadSuccess();
+                } catch (e) {
+                    showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");
+                } finally {
+                    cameraBtn.disabled = false;
+                }
+            };
+
+            body.appendChild(cameraBtn);
+        }
     }
 }

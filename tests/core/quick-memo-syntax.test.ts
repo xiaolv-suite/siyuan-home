@@ -43,4 +43,29 @@ describe("quick-memo-syntax (手机端快速备忘语法提示条与点选插入
         const r4 = insertSyntaxChip("去体检", "", "@", "后天");
         expect(r4).toBe("去体检 @后天 ");
     });
+
+    it("第 4 类金额语法支持：输入 $ 触发常用金额 chips 并能被 parseQuickAdd 精确识别为记账金额", () => {
+        function insertSyntaxChip(before: string, after: string, prefix: "@" | "!" | "#" | "$", val: string): string {
+            const regex = new RegExp(`(?:^|\\s)\\${prefix}[^\\s@!#$]*$`);
+            const match = before.match(regex);
+            let newBefore = before;
+            if (match) {
+                const startIdx = before.lastIndexOf(prefix);
+                newBefore = before.slice(0, startIdx) + `${prefix}${val} `;
+            } else {
+                const needSpace = before.length > 0 && !before.endsWith(" ");
+                newBefore = before + (needSpace ? " " : "") + `${prefix}${val} `;
+            }
+            return newBefore + after;
+        }
+
+        // 场景：输入 "修车 $" 点选 "500"
+        const inserted = insertSyntaxChip("修车 $", "", "$", "500");
+        expect(inserted).toBe("修车 $500 ");
+
+        const parsed = parseQuickAdd(inserted);
+        expect(parsed.cleanTitle).toBe("修车");
+        expect(parsed.amount).toBe(500);
+        expect(parsed.amountToken).toBe("$500");
+    });
 });

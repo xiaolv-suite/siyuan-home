@@ -280,6 +280,7 @@
     }
 
     async function createRow() {
+        handleNewRecordNameBlur();
         if (!ref?.avId || saving || identityPending || duplicateConfirmPending) return;
         if (plugin.runtime?.guestModeActive) {
             showMessage(t("guest.writeBlocked"), 4000, "info");

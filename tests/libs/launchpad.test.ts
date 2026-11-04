@@ -14,7 +14,7 @@ describe("lvLaunchpad (小驴罗盘 · 家族极速弹射坞生态测试)", () =
             id: "siyuan-home-test",
             name: "管家",
             fullName: "小驴管家",
-            svgIcon: "icon-lv-home",
+            svgIcon: "iconLvHome",
             color: "#10b981",
             desc: "事项归档 · 效期预警",
             digit: 3,

@@ -1037,7 +1037,7 @@ export default class LvHomePlugin extends Plugin {
                 id: "siyuan-home",
                 name: "管家",
                 fullName: "小驴管家",
-                svgIcon: "icon-lv-home",
+                svgIcon: "iconLvHome",
                 color: "#10b981",
                 desc: "事项归档 · 效期预警",
                 digit: 3,

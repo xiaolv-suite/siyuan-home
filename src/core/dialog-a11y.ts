@@ -67,6 +67,41 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
             dlg.element?.querySelectorAll?.<HTMLButtonElement>("button:not([type])").forEach((btn) => {
                 btn.type = "button";
             });
+            // 自动绑定所有取消/关闭按钮，杜绝无点击行为的假关闭钮
+            const cancels = dlg.element?.querySelectorAll?.<HTMLButtonElement>(
+                ".b3-button--cancel, [data-type='cancel'], [data-role='close'], .lv-modal-close"
+            );
+            cancels?.forEach((btn) => {
+                if (!btn.getAttribute("data-lv-close-bound")) {
+                    btn.setAttribute("data-lv-close-bound", "1");
+                    btn.addEventListener("click", () => dlg.destroy());
+                }
+            });
+
+            // 移动端 Esc-only 强制关闭面保障（真机教训：手机无 Esc 键且思源 Dialog 默认无关闭叉号）
+            if (typeof document !== "undefined" && dlg.element) {
+                const isMobile = Boolean(
+                    (window as any)?.siyuan?.config?.system?.isMobile ||
+                    document.body?.classList?.contains("body--mobile") ||
+                    (typeof window !== "undefined" && window.innerWidth <= 640)
+                );
+                if (isMobile) {
+                    const hasClose = dlg.element.querySelector(
+                        ".b3-button--cancel, [data-type='cancel'], .lv-modal-close, .lv-mobile-close, .lv-dialog-mobile-close-btn, [aria-label*='关闭'], [aria-label*='close']"
+                    );
+                    if (!hasClose) {
+                        const header = dlg.element.querySelector(".b3-dialog__header") || dlg.element.querySelector(".b3-dialog__container") || dlg.element;
+                        const closeBtn = document.createElement("button");
+                        closeBtn.type = "button";
+                        closeBtn.className = "lv-dialog-mobile-close-btn";
+                        closeBtn.setAttribute("aria-label", "关闭");
+                        closeBtn.setAttribute("title", "关闭");
+                        closeBtn.innerHTML = "✕";
+                        closeBtn.onclick = () => dlg.destroy();
+                        header.appendChild(closeBtn);
+                    }
+                }
+            }
         } catch { /* soft */ }
     };
     normalizeButtons();

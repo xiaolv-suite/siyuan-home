@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { assetHref, downloadAsset, isEncryptedNotebookAsset, isImageAsset, safeDownloadName } from "@/core/assets";
+import { assetHref, downloadAsset, isEncryptedNotebookAsset, isImageAsset, safeDownloadName, compressImageTo300KB } from "@/core/assets";
 
 describe("assetHref", () => {
     it("resolves kernel relative paths on the supplied origin", () => {
@@ -85,5 +85,11 @@ describe("downloadAsset", () => {
             { name: "missing.pdf", content: "assets/siyuan-home/missing.pdf" },
             { origin: "https://notes.example/", fetchImpl },
         )).rejects.toThrow("HTTP 404");
+    });
+
+    it("compressImageTo300KB 在文件小于等于 300KB 时原样返回", async () => {
+        const smallFile = new File(["dummy content"], "cert.png", { type: "image/png" });
+        const res = await compressImageTo300KB(smallFile);
+        expect(res).toBe(smallFile);
     });
 });

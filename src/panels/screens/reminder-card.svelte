@@ -96,6 +96,79 @@
 
     const hasTargetDoc = $derived(r.moduleId === "adhoc" || !!plugin.settings?.dbRefs?.[r.moduleId]?.docId);
 
+    // 移动端/逾期项左滑手势（Mobile Spec v1: 顺延 1 天 / 顺延 1 周 / 明天再说）
+    const isOverdue = $derived(r.level === "overdue" || (typeof r.daysLeft === "number" && r.daysLeft <= 0));
+    let swipeOffset = $state(0);
+    let isSwiping = $state(false);
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let isHorizontalSwipe = false;
+
+    function handleTouchStart(e: TouchEvent) {
+        if (!isOverdue) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        swipeStartX = touch.clientX;
+        swipeStartY = touch.clientY;
+        isHorizontalSwipe = false;
+        isSwiping = false;
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+        if (!isOverdue) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const dx = touch.clientX - swipeStartX;
+        const dy = touch.clientY - swipeStartY;
+
+        if (!isHorizontalSwipe && !isSwiping) {
+            if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                isHorizontalSwipe = true;
+                isSwiping = true;
+            } else if (Math.abs(dy) > 10) {
+                return;
+            }
+        }
+
+        if (isHorizontalSwipe) {
+            if (dx < 0) {
+                swipeOffset = Math.max(-210, dx);
+            } else if (swipeOffset < 0) {
+                swipeOffset = Math.min(0, swipeOffset + dx);
+            }
+        }
+    }
+
+    function handleTouchEnd() {
+        if (!isOverdue || !isHorizontalSwipe) return;
+        isSwiping = false;
+        if (swipeOffset < -60) {
+            swipeOffset = -190;
+            try {
+                lvLaunchpad.haptic(10);
+            } catch {
+                /* soft */
+            }
+        } else {
+            swipeOffset = 0;
+        }
+    }
+
+    async function quickSnooze(days: number, label: string) {
+        try {
+            lvLaunchpad.haptic(10);
+        } catch {
+            /* soft */
+        }
+        const { localDateKey, addDays } = await import("@/core/hub/rule");
+        const targetDate = localDateKey(addDays(new Date(), days));
+        swipeOffset = 0;
+        onRunAction?.(async () => {
+            await plugin.batchSnooze?.([r.id], targetDate);
+            showMessage(t("dash.overduePostponed").replace("${n}", "1") + ` (${label})`, 2500, "info");
+        }, r.id);
+    }
+
     function handleToggleKeydown(e: KeyboardEvent) {
         if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
             if (!moreOpen && e.key === "ArrowDown") {
@@ -139,7 +212,26 @@
 
 <svelte:window onclick={() => { if (moreOpen) moreOpen = false; }} />
 
-<div class="lv-rem {r.level}" class:lv-rem--batch={batchMode && viewMode === "list" && filter !== "handled"} out:fade={{ duration: 150 }}>
+<div class="lv-rem-swipe-container" class:has-swipe={isOverdue}>
+    {#if isOverdue}
+        <div class="lv-rem-swipe-actions" aria-label="快捷顺延操作">
+            <button type="button" class="lv-swipe-chip day1" onclick={() => quickSnooze(1, "顺延1天")}>顺延 1 天</button>
+            <button type="button" class="lv-swipe-chip week1" onclick={() => quickSnooze(7, "顺延1周")}>顺延 1 周</button>
+            <button type="button" class="lv-swipe-chip tmrw" onclick={() => quickSnooze(1, "明天再说")}>明天再说</button>
+        </div>
+    {/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="lv-rem {r.level}"
+        class:lv-rem--batch={batchMode && viewMode === "list" && filter !== "handled"}
+        class:is-swiping={isSwiping}
+        style={isOverdue && swipeOffset !== 0 ? `transform: translateX(${swipeOffset}px); transition: ${isSwiping ? 'none' : 'transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1)'};` : undefined}
+        ontouchstart={handleTouchStart}
+        ontouchmove={handleTouchMove}
+        ontouchend={handleTouchEnd}
+        ontouchcancel={handleTouchEnd}
+        out:fade={{ duration: 150 }}
+    >
     {#if batchMode && viewMode === "list" && filter !== "handled"}
         <input type="checkbox" class="b3-checkbox lv-batch-chk" aria-label={`${t("hub.select")}: ${r.title}`}
             checked={isSelected} disabled={batchBusy} onchange={() => onToggleSelect?.(r.id)} />
@@ -307,4 +399,5 @@
             {/if}
         </div>
     {/if}
+</div>
 </div>

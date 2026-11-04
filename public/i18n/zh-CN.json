@@ -2001,6 +2001,8 @@
     "overview.shareCardDownloaded": "长图下载已开始！",
     "overview.expiringCertsTitle": "证件与保单临期速览",
     "overview.viewAllExpiring": "查看全部",
+    "certs.capturePhoto": "拍照留存",
+    "certs.photoSaved": "证件照片已拍照并压缩留存（≤300KB）",
     "capture.keepContext": "批量录入：保留成员/日期/位置/分类",
     "capture.frequentModules": "常用分类",
     "capture.presetToday": "今天",

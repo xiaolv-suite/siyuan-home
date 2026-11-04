@@ -170,3 +170,65 @@ export async function downloadAsset(asset: AssetRef, options: DownloadAssetOptio
         URL.revokeObjectURL(objectUrl);
     }
 }
+
+/**
+ * 将拍摄或选取的图片压缩至 ≤300KB（Mobile Spec v1 证件拍照留存轻量规范）
+ */
+export async function compressImageTo300KB(file: File): Promise<File> {
+    if (file.size <= 300 * 1024) return file;
+    if (typeof document === "undefined" || !file.type.startsWith("image/")) return file;
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1600;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+                resolve(file);
+                return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            let quality = 0.82;
+            const tryCompress = (q: number) => {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    if (blob.size <= 300 * 1024 || q <= 0.4) {
+                        const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+                        const compressedFile = new File([blob], newName, { type: "image/jpeg" });
+                        resolve(compressedFile);
+                    } else {
+                        tryCompress(q - 0.15);
+                    }
+                }, "image/jpeg", q);
+            };
+
+            tryCompress(quality);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(file);
+        };
+        img.src = url;
+    });
+}

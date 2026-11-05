@@ -77,6 +77,7 @@ export function renderEditableFormFields(options: RenderEditableFormFieldsOption
 
         if (col.key === "contact" && control instanceof HTMLInputElement && hasContactsBridge && onPickContact) {
             const pick = document.createElement("button");
+            pick.type = "button";
             pick.className = "b3-button b3-button--outline lv-btn-text-sm";
             pick.textContent = t("ledger.pickContact");
             pick.onclick = () => onPickContact((picked) => { control.value = picked; });

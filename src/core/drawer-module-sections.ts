@@ -18,6 +18,8 @@ import {
     renderSocialRetirementSection,
 } from "./drawer-domain-sections";
 
+const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 export interface RenderModuleSpecificSectionsOptions {
     body: HTMLElement;
     active: string;
@@ -117,7 +119,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "moves", e)); },
-            format: (e) => `${e.date} · ${e.from} ${uiIcon("forward", "", 12)} ${e.to}`,
+            format: (e) => `${e.date} · ${esc(e.from)} ${uiIcon("forward", "", 12)} ${esc(e.to)}`,
         });
     } else if (active === "shopping") {
         (async () => {
@@ -176,7 +178,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "prices", e)); },
-            format: (e) => `${e.date} · ${formatAmount(Number(e.price))}${e.channel ? ` · ${e.channel}` : ""}`,
+            format: (e) => `${e.date} · ${formatAmount(Number(e.price))}${e.channel ? ` · ${esc(e.channel)}` : ""}`,
         });
     } else if (active === "chores") {
         const { addChoreRotationSectionImpl } = await import("./chore-dialog");
@@ -199,7 +201,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "transfers", e)); },
-            format: (e) => `${e.date} · ${e.from} ${uiIcon("forward", "", 12)} ${e.to}`,
+            format: (e) => `${e.date} · ${esc(e.from)} ${uiIcon("forward", "", 12)} ${esc(e.to)}`,
         });
         await renderSchoolingStageSection({ body, row, ref, t, cellTextFn });
     } else if (active === "house") {
@@ -237,7 +239,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "checks", e)); },
-            format: (e) => `${e.date} · ${e.result}`,
+            format: (e) => `${e.date} · ${esc(e.result)}`,
         });
     } else if (active === "media") {
         await addRowLogSection({
@@ -254,7 +256,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "loans", e)); },
-            format: (e) => `${e.date} · ${t("ledger.loanTo")} ${e.to}${e.back ? ` · ${e.back} ${t("ledger.loanReturned")}` : ` · ${t("ledger.loanOut")}`}`,
+            format: (e) => `${e.date} · ${t("ledger.loanTo")} ${esc(e.to)}${e.back ? ` · ${e.back} ${t("ledger.loanReturned")}` : ` · ${t("ledger.loanOut")}`}`,
         });
     } else if (active === "parenting") {
         await renderParentingFeedingSection({ body, row, ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn });

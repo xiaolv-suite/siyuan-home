@@ -2633,7 +2633,7 @@
 
   .lv-seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: var(--lv-r-2, 8px); border: 1px solid var(--lv-line, #e2e8f0); background: var(--lv-surface-2, #f8fafc); color: var(--lv-tx, #1e293b); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 130ms ease;
     &:hover { border-color: var(--lv-accent, #0d9488); background: var(--lv-surface, #ffffff); }
-    &.active { background: var(--lv-accent, #0d9488); color: #ffffff; border-color: var(--lv-accent, #0d9488); box-shadow: 0 1px 3px rgba(13, 148, 136, 0.25); } }
+    &.active { background: var(--lv-accent, #0d9488); color: var(--b3-theme-on-primary, var(--lv-on-accent, #ffffff)); border-color: var(--lv-accent, #0d9488); box-shadow: 0 1px 3px rgba(13, 148, 136, 0.25); } }
   .lv-pill-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .lv-pill-chip { cursor: pointer; padding: 0 9px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; border-radius: 999px; user-select: none; }
   .lv-member-chip-all { font-weight: 600; }

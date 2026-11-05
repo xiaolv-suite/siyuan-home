@@ -177,7 +177,7 @@ export function exportOfflineHtmlManual(plugin: any, t: (k: string) => string, s
     a.href = url;
     a.download = `siyuan-home-manual-${new Date().toISOString().slice(0, 10)}.html`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 
     if (showMessageFn) {
         showMessageFn(t("settings.exportHtmlManualDone"), 3000, "info");

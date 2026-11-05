@@ -61,7 +61,7 @@
             a.href = url;
             a.download = `lv-ecosystem-backup-${today}.json`;
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 0);
             homeNotify(t("settings.exportEcoFullOk"), 3000, "info");
         } catch (err) {
             homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");

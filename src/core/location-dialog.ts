@@ -150,6 +150,7 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
                 const safeOwner = it.memberName ? ` · ${String(it.memberName).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}` : "";
                 left.innerHTML = `<b>${safeName}</b>${copyTag}<span class="lv-caption" style="margin-left:6px">${modLabel(it.moduleId)}${safeOwner}</span>`;
                 const gotoBtn = document.createElement("button");
+                gotoBtn.type = "button";
                 gotoBtn.className = "b3-button b3-button--text lv-btn-text-sm";
                 gotoBtn.innerHTML = `${t("ledger.openDoc")} ${uiIcon("forward", "", 12)}`;
                 gotoBtn.onclick = () => {

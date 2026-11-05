@@ -280,7 +280,10 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
     dateInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) save.click(); });
     row2.append(l2, dateInput);
-    const save = document.createElement("button"); save.className = "b3-button"; save.textContent = t("save");
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "b3-button";
+    save.textContent = t("save");
     const err = document.createElement("span"); err.className = "lv-caption lv-tx-danger"; err.setAttribute("role", "alert");
     let saving = false;
     save.addEventListener("click", async () => {
@@ -309,7 +312,10 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
             saving = false;
         }
     });
-    const cancel = document.createElement("button"); cancel.className = "b3-button b3-button--cancel"; cancel.textContent = t("cancel");
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "b3-button b3-button--cancel";
+    cancel.textContent = t("cancel");
     cancel.addEventListener("click", () => dlg.destroy());
     const action = document.createElement("div"); action.className = "b3-dialog__action"; action.append(err, cancel, save);
     box.append(row1, row2, action);

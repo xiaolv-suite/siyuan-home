@@ -47,6 +47,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
 
     const linkBtn = () => {
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "b3-button b3-button--outline lv-att-upload-btn";
         btn.textContent = t("ledger.linkNew");
         btn.onclick = () => {
@@ -60,6 +61,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
             for (const r of rows) {
                 if (r.itemID === row.itemID) continue;
                 const b = document.createElement("button");
+                b.type = "button";
                 b.className = "b3-button b3-button--text fn__block fn__text-left";
                 const exp = ref.columns!.expiry ? cellTextFn(r.cells[ref.columns!.expiry]) : "";
                 b.textContent = `${String(cellTextFn(r.cells[ref.columns!.name]))}${exp && exp !== "—" ? ` · ${exp}` : ""}`;
@@ -98,7 +100,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
     for (const id of forward) {
         const line = document.createElement("div");
         line.className = "lv-dialog-row-text";
-        line.innerHTML = `${uiIcon("forward", "", 12)} <span>${nameOf(id)} (${t("ledger.newCert")})</span>`;
+        line.innerHTML = `${uiIcon("forward", "", 12)} <span>${esc(nameOf(id))} (${t("ledger.newCert")})</span>`;
         body.appendChild(line);
     }
     for (const r of backward) {
@@ -136,6 +138,7 @@ export function renderFavorsSyncSection(options: FavorsSyncSectionOptions): void
     body.appendChild(head);
 
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = synced ? t("ec15.again") : t("ec15.record");
 
@@ -231,6 +234,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
             const text = document.createElement("span");
             text.innerHTML = format(e);
             const del = document.createElement("button");
+            del.type = "button";
             del.className = "b3-button b3-button--text lv-btn-text-sm";
             del.textContent = t("delete");
             del.onclick = async () => {
@@ -296,6 +300,7 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         form.appendChild(inp);
     }
     const addBtn = document.createElement("button");
+    addBtn.type = "button";
     addBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
     addBtn.textContent = addLabel;
     addBtn.onclick = async () => {

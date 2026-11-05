@@ -118,12 +118,13 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
     (dlg.element.querySelector("#lv-rewards-close") as HTMLButtonElement).onclick = () => dlg.destroy();
     bindDialogA11y({ dlg });
 
+    const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     if (report.members.length === 0 || report.totalPointsAll === 0) {
         listEl.innerHTML = `<div class="ft__on-surface fn__text-center">${t("ledger.rewardsEmpty")}</div>`;
     } else {
         listEl.innerHTML = report.members.map((m) => {
-            const choresText = m.unsettledChores.length > 0 ? `${t("ledger.rewardsChoresPending")}: ${m.unsettledChores.join("、")}` : t("ledger.rewardsAllSettled");
-            return `<div class="lv-metric-item lv-favor-person-row"><div class="lv-broken-link-row__left"><b>${memberNameOf(m.memberId)}</b><span class="lv-caption">${choresText}</span></div><div class="lv-dialog-row__right"><b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:16px">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div></div></div>`;
+            const choresText = m.unsettledChores.length > 0 ? `${t("ledger.rewardsChoresPending")}: ${m.unsettledChores.map(esc).join("、")}` : t("ledger.rewardsAllSettled");
+            return `<div class="lv-metric-item lv-favor-person-row"><div class="lv-broken-link-row__left"><b>${esc(memberNameOf(m.memberId))}</b><span class="lv-caption">${choresText}</span></div><div class="lv-dialog-row__right"><b class="lv-num lv-metric-val" style="color:var(--lv-data-accent);font-size:16px">${m.unsettledPoints}</b> <span class="lv-caption">分 (¥${m.settleableAmount})</span><div class="lv-caption">${t("ledger.rewardsTotalEarned")}: ${m.totalEarned}</div></div></div>`;
         }).join("");
     }
 

@@ -212,7 +212,7 @@
             {#each visibleLeadRules as lr (lr.key)}
                 <div class="fn__flex lv-settings__row" style={enabledIds.has(lr.moduleId) ? "" : "opacity:.55"}>
                     <span class="lv-settings__label-wide">{t(`module.${lr.moduleId}`)} · {t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}</span>
-                    <input class="b3-text-field lv-input-hour" type="number" min="0" max="3650"
+                    <input class="b3-text-field lv-input-hour" type="number" inputMode="numeric" min="0" max="3650"
                         aria-label={`${t(`module.${lr.moduleId}`)} · ${t(`rule.${lr.ruleKey}`) !== `rule.${lr.ruleKey}` ? t(`rule.${lr.ruleKey}`) : lr.ruleKey}`}
                         placeholder={String(lr.def)}
                         bind:value={draftLeads[lr.key]} />

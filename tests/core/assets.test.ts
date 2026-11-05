@@ -65,6 +65,7 @@ describe("downloadAsset", () => {
             { name: "护照.pdf", content: "assets/siyuan-home/passport.pdf" },
             { origin: "https://notes.example/", fetchImpl, documentRef },
         );
+        await new Promise((r) => setTimeout(r, 0));
 
         expect(fetchImpl).toHaveBeenCalledWith("https://notes.example/assets/siyuan-home/passport.pdf", {
             credentials: "same-origin", signal: expect.any(AbortSignal),

@@ -19,6 +19,8 @@ const mk = (tag: string, cls = "", text = "") => {
     return el;
 };
 
+const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 export interface RenderHouseWarrantySectionOptions {
     body: HTMLElement;
     row: any;
@@ -144,9 +146,9 @@ export async function renderFoodDietarySection(options: RenderFoodDietarySection
                 const alertEl = mk("div", isAllergy ? "lv-domain-danger" : "lv-domain-warn");
                 const ic = isAllergy ? "alert" : "info";
                 const msg = isAllergy
-                    ? `${t("ledger.foodAllergyAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem)}${c.detail ? ` (${c.detail})` : ""}`
-                    : t("ledger.foodDislikeAlert").replace("${member}", c.memberName).replace("${item}", c.matchedItem);
-                alertEl.innerHTML = `<span>${uiIcon(ic, "", 13)} <b>${c.memberName}</b>：${msg}</span>`;
+                    ? `${t("ledger.foodAllergyAlert").replace("${member}", esc(c.memberName)).replace("${item}", esc(c.matchedItem))}${c.detail ? ` (${esc(c.detail)})` : ""}`
+                    : t("ledger.foodDislikeAlert").replace("${member}", esc(c.memberName)).replace("${item}", esc(c.matchedItem));
+                alertEl.innerHTML = `<span>${uiIcon(ic, "", 13)} <b>${esc(c.memberName)}</b>：${msg}</span>`;
                 contentWrap.append(alertEl);
             }
         }
@@ -388,7 +390,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                 if (conflict) {
                     const alertLine = document.createElement("div");
                     alertLine.className = "lv-domain-danger";
-                    alertLine.innerHTML = `<span>${uiIcon("alert", "", 13)} ${t("ledger.feedingAllergyConflict").replace("${food}", conflict.name)}${conflict.reaction ? `（${conflict.reaction}）` : ""}</span>`;
+                    alertLine.innerHTML = `<span>${uiIcon("alert", "", 13)} ${t("ledger.feedingAllergyConflict").replace("${food}", esc(conflict.name))}${conflict.reaction ? `（${esc(conflict.reaction)}）` : ""}</span>`;
                     contentWrap.append(alertLine);
                 }
             } catch { /* soft */ }
@@ -398,13 +400,14 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
             const actionRow = document.createElement("div");
             actionRow.className = "lv-domain-action-row";
             const addAllergyBtn = document.createElement("button");
+            addAllergyBtn.type = "button";
             addAllergyBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
             addAllergyBtn.innerHTML = `${uiIcon("add", "", 13)} ${t("ledger.recordAllergyToHealth")}`;
             addAllergyBtn.onclick = () => {
                 const adlg = new DialogCls({
                     title: t("ledger.recordAllergyTitle"),
                     content: `<div class="b3-dialog__content lv-dialog-col">
-                        <p class="lv-caption" style="margin:0">${t("ledger.recordAllergyIntro").replace("${food}", foodName)}</p>
+                        <p class="lv-caption" style="margin:0">${t("ledger.recordAllergyIntro").replace("${food}", esc(foodName))}</p>
                         <input class="b3-text-field" id="lv-allergy-reaction" placeholder="${t("ledger.recordAllergyReactionPlaceholder")}" style="width:100%" />
                     </div>
                     <div class="b3-dialog__action">

@@ -30,6 +30,14 @@ export function createMobileController(options: MobileControllerOptions): Mobile
     let isDisposed = false;
 
     const closeMobilePanel = (): void => {
+        if (mobileDialogUnmount) {
+            try {
+                mobileDialogUnmount();
+            } catch {
+                /* soft cleanup */
+            }
+            mobileDialogUnmount = undefined;
+        }
         if (mobileDialog) {
             try {
                 mobileDialog.destroy();

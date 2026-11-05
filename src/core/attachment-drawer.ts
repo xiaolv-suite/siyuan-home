@@ -175,6 +175,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     line.appendChild(encryptedHint);
                 } else if (isImageAsset(f.content)) {
                     const ocr = document.createElement("button");
+                    ocr.type = "button";
                     ocr.className = "b3-button b3-button--text lv-att-btn";
                     ocr.textContent = t("ledger.ocrOpen");
                     ocr.onclick = async () => {
@@ -204,6 +205,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         }
 
         const uploadBtn = document.createElement("button");
+        uploadBtn.type = "button";
         uploadBtn.className = `b3-button b3-button--outline lv-att-upload-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
         uploadBtn.textContent = t("ledger.upload");
 
@@ -276,10 +278,13 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
             cameraInput.onchange = async () => {
                 const files = Array.from(cameraInput.files ?? []);
                 if (files.length === 0) return;
+                const defaultLabel = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
                 cameraBtn.disabled = true;
+                cameraBtn.textContent = `⏳ ${t("certs.compressing") || "压缩处理中..."}`;
                 try {
                     const rawFile = files[0];
                     const compressed = await compressImageTo300KB(rawFile);
+                    cameraBtn.textContent = `☁️ ${t("certs.uploading") || "上传保存中..."}`;
                     const { name, path } = await uploadAsset(compressed, "/assets/siyuan-home/", {
                         idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${compressed.name}:${compressed.size}`,
                         retries: 1,
@@ -300,6 +305,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");
                 } finally {
                     cameraBtn.disabled = false;
+                    cameraBtn.textContent = defaultLabel;
                 }
             };
 

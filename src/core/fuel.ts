@@ -358,7 +358,11 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
             empty.className = "lv-empty lv-dialog-empty";
             const title = document.createElement("b"); title.textContent = t("fuel.noVehicles");
             const hint = document.createElement("span"); hint.className = "lv-caption"; hint.style.display = "block"; hint.textContent = t("fuel.noVehiclesHint");
-            const add = document.createElement("button"); add.className = "b3-button"; add.style.marginTop = "8px"; add.innerHTML = `${uiIcon("add", "", 12)} <span>${t("fuel.addVehicle")}</span>`;
+            const add = document.createElement("button");
+            add.type = "button";
+            add.className = "b3-button";
+            add.style.marginTop = "8px";
+            add.innerHTML = `${uiIcon("add", "", 12)} <span>${t("fuel.addVehicle")}</span>`;
             add.onclick = () => { dlg.destroy(); onOpenNewRecord?.(); };
             empty.append(title, hint, add);
             body.appendChild(empty);
@@ -434,6 +438,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
             });
 
             const action = document.createElement("button");
+            action.type = "button";
             action.className = "b3-button b3-button--text lv-dialog-link";
             action.innerHTML = `<span>${t("fuel.openVehicle")}</span> ${uiIcon("forward", "", 12)}`;
             action.onclick = () => { dlg.destroy(); onOpenVehicleDetail?.(vehicle); };
@@ -444,6 +449,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
         if (calculatedVehicleStats.length >= 2) {
             const comparison = compareVehiclesCost(calculatedVehicleStats);
             if (comparison && comparison.bestCostVehicle && comparison.savingsPerKm !== undefined && comparison.savingsPerKm > 0) {
+                const escBest = String(comparison.bestCostVehicle).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
                 const banner = document.createElement("div");
                 banner.className = "lv-card lv-dialog-card";
                 banner.style.marginBottom = "12px";
@@ -451,7 +457,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
                 banner.style.borderColor = "var(--lv-ok)";
                 const yearly = Math.round(comparison.savingsPerKm * 10000);
                 banner.innerHTML = `<span style="color:var(--lv-ok);font-size:12.5px;font-weight:600;">🚗⚡ ${t("fuel.compareSavings")
-                    .replace("${best}", comparison.bestCostVehicle)
+                    .replace("${best}", escBest)
                     .replace("${diff}", String(comparison.savingsPerKm))
                     .replace("${pct}", String(comparison.savingsPct))
                     .replace("${yearly}", String(yearly))}</span>`;

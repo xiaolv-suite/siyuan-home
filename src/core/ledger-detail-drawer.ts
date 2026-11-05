@@ -224,6 +224,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     const mask = col.key === "x_cert_id_number" ? maskIdNumber(full) : maskCredentialNumber(full);
                     v.textContent = mask;
                     const reveal = document.createElement("button");
+                    reveal.type = "button";
                     reveal.className = "b3-button b3-button--text lv-btn-text-sm";
                     reveal.textContent = t("ledger.idNumberShow");
                     let shown = false;
@@ -233,6 +234,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                         reveal.textContent = shown ? t("ledger.idNumberHide") : t("ledger.idNumberShow");
                     };
                     const copy = document.createElement("button");
+                    copy.type = "button";
                     copy.className = "b3-button b3-button--text lv-btn-text-sm";
                     copy.textContent = t("ledger.idNumberCopy");
                     copy.onclick = async () => {
@@ -249,6 +251,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     const member = memberBid ? (plugin.settings.members ?? []).find((m: any) => m.avItemId === memberBid) : undefined;
                     if (parsedId?.ok && parsedId.birth && member && !member.birthday && !member.lunarBirthday) {
                         const birthFill = document.createElement("button");
+                        birthFill.type = "button";
                         birthFill.className = "b3-button b3-button--text lv-btn-text-sm";
                         birthFill.textContent = t("ledger.idBirthFill").replace("${birth}", parsedId.birth);
                         birthFill.onclick = async () => {
@@ -449,6 +452,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             quick.appendChild(label);
             for (const action of ["fuel", "charging", "maintenance"] as const) {
                 const button = document.createElement("button");
+                button.type = "button";
                 button.className = "b3-button b3-button--outline";
                 button.textContent = t(`vehicle.quick.${action}`);
                 button.onclick = () => requestVehicleAction(action);

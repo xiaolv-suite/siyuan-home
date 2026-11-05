@@ -296,6 +296,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
 
                 if (it.status !== "given") {
                     const recordBtn = document.createElement("button");
+                    recordBtn.type = "button";
                     recordBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
                     recordBtn.innerHTML = `${uiIcon("add", "", 13)} ${t("ledger.recordVaccineDose")}`;
                     recordBtn.onclick = () => {

@@ -157,6 +157,7 @@
     }
 
     async function quickSnooze(days: number, label: string) {
+        if (isBusy) return;
         try {
             lvLaunchpad.haptic(10);
         } catch {
@@ -217,9 +218,9 @@
 <div class="lv-rem-swipe-container" class:has-swipe={isOverdue}>
     {#if isOverdue}
         <div class="lv-rem-swipe-actions" aria-label="快捷顺延操作">
-            <button type="button" class="lv-swipe-chip day1" onclick={() => quickSnooze(1, "顺延1天")}>顺延 1 天</button>
-            <button type="button" class="lv-swipe-chip week1" onclick={() => quickSnooze(7, "顺延1周")}>顺延 1 周</button>
-            <button type="button" class="lv-swipe-chip tmrw" onclick={() => quickSnooze(1, "明天再说")}>明天再说</button>
+            <button type="button" class="lv-swipe-chip day1" disabled={isBusy} onclick={() => quickSnooze(1, "顺延1天")}>顺延 1 天</button>
+            <button type="button" class="lv-swipe-chip week1" disabled={isBusy} onclick={() => quickSnooze(7, "顺延1周")}>顺延 1 周</button>
+            <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy} onclick={() => quickSnooze(1, "明天再说")}>明天再说</button>
         </div>
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->

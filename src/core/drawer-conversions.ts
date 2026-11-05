@@ -36,6 +36,7 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
     if (!name || name === "—") return;
 
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = t("ledger.rxToMedicine");
 
@@ -105,6 +106,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
     const qty = qtyRaw !== "—" && qtyRaw !== "" && Number.isFinite(Number(qtyRaw)) && Number(qtyRaw) > 0 ? Number(qtyRaw) : 1;
 
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = t("ledger.stockIn");
 
@@ -231,6 +233,7 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
     if (!name || name === "—") return;
 
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn lv-ml-6";
     btn.textContent = t("ledger.shoppingToAsset");
 

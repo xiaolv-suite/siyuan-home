@@ -87,10 +87,12 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
         closeBtn.onclick = () => dlg.destroy();
     }
 
+    let isClosed = false;
     bindDialogA11y({
         dlg,
         defaultFocus: inp,
         onClose: () => {
+            isClosed = true;
             if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
         },
     });
@@ -137,6 +139,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     });
 
     await Promise.all(loadPromises);
+    if (isClosed) return;
 
     const renderResults = (query: string) => {
         const matched = searchSpotlight(allItems, query, 30);
@@ -222,6 +225,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             rightOps.className = "lv-spotlight-item__ops";
 
             const copyRef = document.createElement("button");
+            copyRef.type = "button";
             copyRef.className = "b3-button b3-button--text lv-badge--sm lv-tx-muted";
             copyRef.title = `${t("ledger.copyBlockRef")} ((id "title")) (Alt+C)`;
             copyRef.textContent = t("spotlight.copyRef");

@@ -2002,6 +2002,8 @@
     "overview.expiringCertsTitle": "Expiring Documents & Policies",
     "overview.viewAllExpiring": "View All",
     "certs.capturePhoto": "Capture Photo",
+    "certs.compressing": "Compressing...",
+    "certs.uploading": "Uploading...",
     "certs.photoSaved": "Certificate photo captured & compressed (≤300KB)",
     "capture.keepContext": "Batch Entry: retain member/date/location/category",
     "capture.frequentModules": "Frequent",

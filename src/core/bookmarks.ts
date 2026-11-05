@@ -281,6 +281,7 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
 
             if (item.url && (item.url.startsWith("http://") || item.url.startsWith("https://"))) {
                 const testBtn = document.createElement("button");
+                testBtn.type = "button";
                 testBtn.className = "b3-button b3-button--text";
                 testBtn.textContent = t("ledger.bookmarksOpenTest");
                 testBtn.onclick = () => window.open(item.url, "_blank");

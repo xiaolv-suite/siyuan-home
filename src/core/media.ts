@@ -7,6 +7,8 @@ import type { AvRow } from "@/core/siyuan";
 import { uiIcon } from "@/ui/icons";
 import { bindDialogA11y } from "./dialog-a11y";
 
+const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 export type MediaCategory = "movie" | "tv" | "variety" | "book" | "comic" | "novel";
 export type MediaStatus = "wishlist" | "consuming" | "done" | "dropped";
 
@@ -357,7 +359,7 @@ export function openMediaReportDialog(options: MediaReportDialogOptions): void {
                 item.className = "lv-metric-item lv-dialog-row";
                 const catLabel = t(`field.category.opt.${it.category}`) !== `field.category.opt.${it.category}` ? t(`field.category.opt.${it.category}`) : it.category;
                 const dateStr = it.date ? ` · ${it.date}` : "";
-                item.innerHTML = `<span style="font-weight:500">${it.name} <span class="lv-caption">(${catLabel}${dateStr})</span></span><b class="lv-num" style="color:var(--lv-warn);display:inline-flex;align-items:center;gap:3px">${it.rating} ${uiIcon("star", "", 12)}</b>`;
+                item.innerHTML = `<span style="font-weight:500">${esc(it.name)} <span class="lv-caption">(${catLabel}${dateStr})</span></span><b class="lv-num" style="color:var(--lv-warn);display:inline-flex;align-items:center;gap:3px">${it.rating} ${uiIcon("star", "", 12)}</b>`;
                 sec.appendChild(item);
             }
             body.appendChild(sec);

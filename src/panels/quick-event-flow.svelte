@@ -595,6 +595,7 @@
                     id="lv-unit-price"
                     class="b3-text-field"
                     type="number"
+                    inputMode="numeric"
                     min="0"
                     step="0.01"
                     placeholder={fuelingKind === "fuel" ? t("capture.phUnitPrice") : t("capture.phChargeUnitPrice")}
@@ -611,6 +612,7 @@
                         id="lv-fuel-amount"
                         class="b3-text-field"
                         type="number"
+                        inputMode="numeric"
                         min="0"
                         step="any"
                         placeholder={t("capture.phAmount")}
@@ -643,6 +645,7 @@
                     id="lv-fuel-liters"
                     class="b3-text-field"
                     type="number"
+                    inputMode="numeric"
                     min="0"
                     step="any"
                     required
@@ -681,6 +684,7 @@
                         id="lv-fuel-mileage"
                         class="b3-text-field"
                         type="number"
+                        inputMode="numeric"
                         min="0"
                         required
                         placeholder={t("capture.phMileage")}

@@ -1189,7 +1189,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-
     padding: 0 4px;
     border-radius: 999px;
     background: var(--b3-theme-error, #ef4444);
-    color: #fff;
+    color: var(--b3-theme-on-error, #fff);
     font-size: 10px;
     font-weight: 700;
     line-height: 16px;

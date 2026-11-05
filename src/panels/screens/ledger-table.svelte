@@ -217,10 +217,14 @@
             });
             menu.addItem({
                 label: t("ledger.copyBlockRef"),
-                click: () => {
+                click: async () => {
                     const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail");
-                    void navigator.clipboard.writeText(`((${r.itemID} '${rowName}'))`);
-                    showMessage(t("spotlight.refCopied"), 2500, "info");
+                    try {
+                        await navigator.clipboard.writeText(`((${r.itemID} '${rowName}'))`);
+                        showMessage(t("spotlight.refCopied"), 2500, "info");
+                    } catch (err) {
+                        showMessage(t("ledger.copyAsImageFail") + ` (${err instanceof Error ? err.message : String(err)})`, 4000, "error");
+                    }
                 },
             });
             if (onCopyRowMarkdown) {

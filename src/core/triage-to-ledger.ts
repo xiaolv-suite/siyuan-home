@@ -64,7 +64,10 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     const dateInput = document.createElement("input"); dateInput.className = "b3-text-field"; dateInput.type = "date"; dateInput.value = r.dueDate;
     row3.append(l3, dateInput);
 
-    const ok = document.createElement("button"); ok.className = "b3-button"; ok.textContent = t("triage.create");
+    const ok = document.createElement("button");
+    ok.type = "button";
+    ok.className = "b3-button";
+    ok.textContent = t("triage.create");
     const err = document.createElement("span"); err.className = "lv-caption lv-tx-danger"; err.setAttribute("role", "alert");
 
     let operationKey = (() => {

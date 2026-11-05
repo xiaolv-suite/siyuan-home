@@ -427,6 +427,7 @@ export function renderDrawerDocTemplates(options: RenderDrawerDocTemplatesOption
     for (const tp of tplList) {
         const label = t(tp.nameKey) !== tp.nameKey ? t(tp.nameKey) : tp.key;
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "b3-button b3-button--outline lv-att-upload-btn";
         btn.textContent = `${t("ledger.genDoc")} · ${label}`;
         btn.onclick = async () => {

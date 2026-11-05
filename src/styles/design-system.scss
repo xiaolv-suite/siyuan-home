@@ -2348,6 +2348,11 @@
       transform: scale(0.92);
     }
 
+    &.stale {
+      background: rgba(249, 115, 22, 0.16);
+      color: #ea580c;
+    }
+
     &.day1 {
       background: rgba(245, 158, 11, 0.15);
       color: #d97706;
@@ -2361,6 +2366,24 @@
     &.tmrw {
       background: rgba(16, 185, 129, 0.15);
       color: #059669;
+    }
+  }
+
+  .lv-stale-decompose-badge {
+    cursor: pointer;
+    background: var(--b3-theme-warning-lighter, rgba(249, 115, 22, 0.12));
+    color: var(--b3-theme-warning, #ea580c);
+    border: 1px solid rgba(249, 115, 22, 0.35);
+    font-weight: 600;
+    transition: all 120ms ease;
+    touch-action: manipulation;
+
+    &:hover {
+      background: var(--b3-theme-warning-light, rgba(249, 115, 22, 0.22));
+      transform: translateY(-1px);
+    }
+    &:active {
+      transform: scale(0.96);
     }
   }
 

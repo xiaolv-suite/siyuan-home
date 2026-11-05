@@ -96,6 +96,8 @@ export interface HubRuntime {
     snoozed: Record<string, string>;
     /** 累计推迟次数：提醒 id → 次数（>=3 次触发微步骤拆解提示） */
     snoozeCounts?: Record<string, number>;
+    /** 顽固事项微步骤拆解记录：提醒 id → 拆解信息 */
+    decomposedReminders?: Record<string, { at: string; steps?: string[] }>;
     /** 计划处理日（§17/284波 双日期）：提醒 id → 计划处理日 (yyyy-MM-dd)；与客观 deadline 分离 */
     planDates: Record<string, string>;
     /** 忽略：提醒 id → true（可在提醒页恢复） */
@@ -262,23 +264,36 @@ export function applyRuntime(
     const todayZero = parseLocal(todayKey);
     for (const r of derived) {
         if (isHiddenByHandled(rt, r, today)) continue;
-        const count = rt.snoozeCounts?.[r.id] ?? r.snoozeCount;
+        const count = rt.snoozeCounts?.[r.id] ?? r.postponeCount ?? r.snoozeCount;
+        const isDecomposed = Boolean(rt.decomposedReminders?.[r.id]);
         const snoozeDate = rt.snoozed[r.id];
         if (snoozeDate) {
             // snooze 未到 → 隐藏；已到 → 显示为"延后日"事项，按延后日距今分级（H06）
             if (todayKey < snoozeDate) continue;
             const daysLeft = Math.round((parseLocal(snoozeDate) - todayZero) / 86400000);
             const level: ReminderLevel = daysLeft < 0 ? "overdue" : "soon";
-            out.push({ ...r, dueDate: snoozeDate, daysLeft, level, ...(count !== undefined ? { snoozeCount: count } : {}) });
+            out.push({
+                ...r,
+                dueDate: snoozeDate,
+                daysLeft,
+                level,
+                ...(count !== undefined ? { snoozeCount: count, postponeCount: count } : {}),
+                ...(isDecomposed ? { decomposed: true } : {}),
+            });
             continue;
         }
-        out.push(count !== undefined ? { ...r, snoozeCount: count } : r);
+        out.push({
+            ...r,
+            ...(count !== undefined ? { snoozeCount: count, postponeCount: count } : {}),
+            ...(isDecomposed ? { decomposed: true } : {}),
+        });
     }
     for (const m of rt.memos ?? []) {
         if (m.doneAt) continue; // 已办备忘不进活跃列表（已处理视图可见可恢复）
         const memoReminderId = `adhoc::${m.id}`;
         if (rt.muted[memoReminderId]) continue; // 忽略的备忘隐藏（可在已处理视图恢复）
-        const memoSnoozeCount = rt.snoozeCounts?.[memoReminderId] ?? m.snoozeCount;
+        const memoSnoozeCount = rt.snoozeCounts?.[memoReminderId] ?? (m as any).postponeCount ?? m.snoozeCount;
+        const isMemoDecomposed = Boolean(rt.decomposedReminders?.[memoReminderId] || (m as any).decomposed);
         const snoozeDate = rt.snoozed[memoReminderId];
         if (snoozeDate && todayKey < snoozeDate) continue; // 延后未到期 → 隐藏
         const effectiveDue = snoozeDate || m.dueDate;
@@ -297,7 +312,8 @@ export function applyRuntime(
             ...(m.priority ? { priority: m.priority } : {}),
             ...(m.category ? { tag: m.category } : {}),
             ...(m.recurrenceAnchor ? { recurrenceAnchor: m.recurrenceAnchor } : {}),
-            ...(memoSnoozeCount !== undefined ? { snoozeCount: memoSnoozeCount } : {}),
+            ...(memoSnoozeCount !== undefined ? { snoozeCount: memoSnoozeCount, postponeCount: memoSnoozeCount } : {}),
+            ...(isMemoDecomposed ? { decomposed: true } : {}),
         });
     }
     return out.sort((a, b) => a.daysLeft - b.daysLeft || a.dueDate.localeCompare(b.dueDate));

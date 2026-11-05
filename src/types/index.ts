@@ -126,6 +126,10 @@ export interface Reminder {
     recurrenceAnchor?: "due" | "completion";
     /** 累计被推迟/顺延次数（>=3 次触发反拖延微步骤拆解提示） */
     snoozeCount?: number;
+    /** 累计被顺延/推迟次数（与 snoozeCount 同步，>=3 次触发微拆解提示） */
+    postponeCount?: number;
+    /** 事项已完成 5 分钟微步骤拆解标记 */
+    decomposed?: boolean;
     /** 优先级标记（Quick Add !高/!中/!低 识别） */
     priority?: "high" | "medium" | "low";
     /** 分类标签（Quick Add #分类 识别） */

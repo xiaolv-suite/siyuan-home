@@ -65,7 +65,14 @@ export function normalizeReminder(value: unknown): Reminder | undefined {
     if (typeof value.lunar === "boolean") reminder.lunar = value.lunar;
     if (typeof value.autoRenew === "boolean") reminder.autoRenew = value.autoRenew;
     if (value.recurrenceAnchor === "due" || value.recurrenceAnchor === "completion") reminder.recurrenceAnchor = value.recurrenceAnchor;
-    if (typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount)) reminder.snoozeCount = value.snoozeCount;
+    if (typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount)) {
+        reminder.snoozeCount = value.snoozeCount;
+        reminder.postponeCount = value.snoozeCount;
+    } else if (typeof value.postponeCount === "number" && Number.isFinite(value.postponeCount)) {
+        reminder.postponeCount = value.postponeCount;
+        reminder.snoozeCount = value.postponeCount;
+    }
+    if (typeof value.decomposed === "boolean") reminder.decomposed = value.decomposed;
     if (value.priority === "high" || value.priority === "medium" || value.priority === "low") reminder.priority = value.priority;
     if (typeof value.tag === "string") reminder.tag = value.tag;
     return reminder;
@@ -87,7 +94,9 @@ export function normalizeMemo(value: unknown): AdhocMemo | undefined {
         ...(typeof value.category === "string" ? { category: value.category } : {}),
         ...(value.recurrenceAnchor === "due" || value.recurrenceAnchor === "completion" ? { recurrenceAnchor: value.recurrenceAnchor } : {}),
         ...(typeof value.cycle === "string" ? { cycle: value.cycle } : {}),
-        ...(typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount) ? { snoozeCount: value.snoozeCount } : {}),
+        ...(typeof value.snoozeCount === "number" && Number.isFinite(value.snoozeCount) ? { snoozeCount: value.snoozeCount, postponeCount: value.snoozeCount } : {}),
+        ...(typeof (value as any).postponeCount === "number" && Number.isFinite((value as any).postponeCount) ? { postponeCount: (value as any).postponeCount, snoozeCount: (value as any).postponeCount } : {}),
+        ...((value as any).decomposed ? { decomposed: true } : {}),
     };
 }
 
@@ -201,6 +210,11 @@ export async function loadRuntime(plugin: Plugin): Promise<HubRuntime> {
         cache: normalizeCache(data.cache),
         snoozed: stringRecord(data.snoozed),
         snoozeCounts: numberRecord(data.snoozeCounts),
+        decomposedReminders: isPlainObject(data.decomposedReminders)
+            ? Object.fromEntries(
+                Object.entries(data.decomposedReminders).filter(([, v]) => isPlainObject(v) && typeof (v as any).at === "string")
+            )
+            : undefined,
         planDates: stringRecord(data.planDates),
         muted: booleanRecord(data.muted),
         handledYear: numberRecord(data.handledYear),
@@ -287,6 +301,7 @@ export function semanticRuntimeFingerprint(rt: HubRuntime): string {
         } : undefined,
         snoozed: rt.snoozed,
         snoozeCounts: rt.snoozeCounts,
+        decomposedReminders: rt.decomposedReminders,
         planDates: rt.planDates,
         muted: rt.muted,
         handledYear: rt.handledYear,

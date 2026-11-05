@@ -5,6 +5,7 @@
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
+    import { isStaleTask } from "@/core/micro-decomposition";
     import type { Reminder } from "@/types";
 
     let {
@@ -95,6 +96,23 @@
     }
 
     const hasTargetDoc = $derived(r.moduleId === "adhoc" || !!plugin.settings?.dbRefs?.[r.moduleId]?.docId);
+    const isStale = $derived(isStaleTask(r));
+
+    async function openDecompositionModal() {
+        swipeOffset = 0;
+        try {
+            lvLaunchpad.haptic(10);
+        } catch {
+            /* soft */
+        }
+        const { openMicroDecompositionDialog } = await import("@/core/micro-decomposition-dialog");
+        openMicroDecompositionDialog({
+            plugin,
+            reminder: r,
+            t,
+            showMessageFn: showMessage,
+        });
+    }
 
     // 移动端/逾期项左滑手势（Mobile Spec v1: 顺延 1 天 / 顺延 1 周 / 明天再说）
     const isOverdue = $derived(r.level === "overdue" || (typeof r.daysLeft === "number" && r.daysLeft <= 0));
@@ -218,6 +236,9 @@
 <div class="lv-rem-swipe-container" class:has-swipe={isOverdue}>
     {#if isOverdue}
         <div class="lv-rem-swipe-actions" aria-label="快捷顺延操作">
+            {#if isStale}
+                <button type="button" class="lv-swipe-chip stale" disabled={isBusy} onclick={() => void openDecompositionModal()}>🧩 拆解</button>
+            {/if}
             <button type="button" class="lv-swipe-chip day1" disabled={isBusy} onclick={() => quickSnooze(1, "顺延1天")}>顺延 1 天</button>
             <button type="button" class="lv-swipe-chip week1" disabled={isBusy} onclick={() => quickSnooze(7, "顺延1周")}>顺延 1 周</button>
             <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy} onclick={() => quickSnooze(1, "明天再说")}>明天再说</button>
@@ -278,6 +299,17 @@
                 </span>
             {/if}
             {r.title}{r.ruleKey === "reciprocate" ? ` · ${t("rule.reciprocate")}` : ""}
+            {#if isStale}
+                <button
+                    type="button"
+                    class="lv-plan-badge lv-stale-decompose-badge"
+                    title={t("stale.badgeTooltip")}
+                    aria-label={t("stale.badgeTooltip")}
+                    onclick={(e) => { e.stopPropagation(); void openDecompositionModal(); }}
+                >
+                    🧩 {t("stale.badgeLabel")}
+                </button>
+            {/if}
             {#if plan.hasPlan}
                 <button type="button" class="lv-plan-badge lv-plan-badge-btn" class:is-planned-now={plan.isPlannedNow}
                     title={`${t("hub.planDateLabel")}: ${plan.planDate} (${t("hub.editPlanDate")})`}
@@ -389,7 +421,14 @@
             {#if (r.snoozeCount ?? 0) >= 3}
                 <div class="lv-rem-summary__item">
                     <span class="label">{t("hub.snoozeHeavyBadge")}:</span>
-                    <span class="lv-tx-warn">{t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}</span>
+                    <span class="lv-tx-warn" style="display: inline-flex; align-items: center; gap: 8px;">
+                        {t("hub.snoozeHeavyHint").replace("${n}", String(r.snoozeCount))}
+                        {#if isStale}
+                            <button type="button" class="b3-button b3-button--outline lv-btn-text-sm" onclick={() => void openDecompositionModal()}>
+                                🧩 {t("stale.badgeLabel") || "待拆解"}
+                            </button>
+                        {/if}
+                    </span>
                 </div>
             {/if}
             {#if hasTargetDoc}

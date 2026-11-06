@@ -46,6 +46,12 @@ export const simpleDialog = (args: {
         height: args.height,
         destroyCallback: args.callback
     });
+    // 点击遮罩背景快速关闭
+    dialog.element.addEventListener("click", (e) => {
+        if (e.target === dialog.element || (e.target as HTMLElement).classList?.contains("b3-dialog__scrim")) {
+            dialog.destroy();
+        }
+    });
     dialog.element.querySelector(".dialog-content").appendChild(args.ele);
     return {
         dialog,

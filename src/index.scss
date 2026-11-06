@@ -700,8 +700,36 @@
         color: var(--lv-tx);
         box-shadow: var(--lv-shadow-3);
         border: 1px solid var(--lv-line);
+        animation: lv-home-dialog-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        will-change: transform, opacity;
     }
-    .b3-dialog__header { font-size: 16px; font-weight: 600; color: var(--lv-tx); }
+    .b3-dialog__header {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--lv-tx);
+        .b3-dialog__close {
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            padding: 6px;
+            border-radius: 6px;
+            color: var(--b3-theme-on-surface);
+            opacity: 0.7;
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            box-sizing: border-box;
+
+            &:hover {
+                opacity: 1;
+                background: var(--b3-theme-surface-light, rgba(128, 128, 128, 0.12));
+                color: var(--b3-theme-on-surface);
+                transform: scale(1.05);
+            }
+
+            &:active {
+                transform: scale(0.95);
+            }
+        }
+    }
     .b3-dialog__content { color: var(--lv-tx); line-height: 1.6; background: var(--lv-surface); }
     .b3-dialog__action {
         background: var(--lv-surface);
@@ -766,6 +794,17 @@
         color: var(--lv-tx);
         font-size: 12.5px;
         line-height: 1.5;
+    }
+}
+
+@keyframes lv-home-dialog-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.96) translateY(-4px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
     }
 }
 

@@ -73,6 +73,8 @@ export default class LvHomePlugin extends Plugin {
     private entrypointsController?: PluginEntrypointsController;
     /** 移动端统一罗盘与悬浮球入口清理器 */
     private mobileEntryCleaner?: () => void;
+    /** 全局遮罩点击即关清理器 */
+    private scrimClickCleaner?: () => void;
     /** 内核鉴权失效、权限拦截与会话恢复守护控制器 */
     private authGuardController?: PluginAuthGuardController;
     /** 原生菜单联动控制器（块菜单、块图标菜单、自定义 URL、AV 右键菜单、WS 同步监听） */
@@ -150,6 +152,20 @@ export default class LvHomePlugin extends Plugin {
         try {
             this.mobileEntryCleaner = lvLaunchpad.ensureMobileEntry();
         } catch { /* 容错降级 */ }
+
+        // 全局遮罩点击即关（Backdrop Scrim Click-to-Dismiss · 对齐管家全弹窗人体工程学）
+        const onHomeScrimClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (target && target.classList?.contains("b3-dialog__scrim")) {
+                const dialogEl = target.closest(".b3-dialog");
+                if (dialogEl && dialogEl.querySelector('[id^="lv-"], .lv-home, .dialog-content')) {
+                    const closeBtn = dialogEl.querySelector<HTMLElement>(".b3-dialog__close, [data-action='close'], .b3-button--cancel");
+                    if (closeBtn) closeBtn.click();
+                }
+            }
+        };
+        window.addEventListener("click", onHomeScrimClick, true);
+        this.scrimClickCleaner = () => window.removeEventListener("click", onHomeScrimClick, true);
 
         // 309 波：页签/顶栏/命令/图标的注册已全部移到 registerEntrypoints()，
         // 在 onload 的首个 await 之前同步完成（宿主装配窗口内）——此处不再重复登记。
@@ -1159,6 +1175,8 @@ export default class LvHomePlugin extends Plugin {
     }
 
     onunload() {
+        this.scrimClickCleaner?.();
+        this.scrimClickCleaner = undefined;
         this.mobileEntryCleaner?.();
         this.mobileEntryCleaner = undefined;
         this.omnisearchCleaner?.();

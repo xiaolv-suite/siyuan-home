@@ -38,6 +38,24 @@
         note: { icon: "note", label: "速记" },
     };
 
+    const ECOSYSTEM_SIBLINGS: Array<{
+        id: string;
+        name: string;
+        fullName: string;
+        color: string;
+        desc: string;
+        bridgeName: string;
+        svgIcon: string;
+    }> = [
+        { id: "siyuan-checkin", name: "打卡", fullName: "小驴打卡", color: "#8b5cf6", desc: "习惯追踪与时间沉淀", bridgeName: "siyuanCheckin", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' },
+        { id: "siyuan-contacts", name: "人脉", fullName: "小驴人脉", color: "#3b82f6", desc: "社交网络与交往纪实", bridgeName: "LvContacts", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>' },
+        { id: "siyuan-speed-switch", name: "雷切", fullName: "小驴雷切", color: "#06b6d4", desc: "切屏画板与命令中心", bridgeName: "siyuanSpeedSwitch", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>' },
+        { id: "siyuan-lv-cards", name: "闪卡", fullName: "小驴闪卡", color: "#f59e0b", desc: "FSRS 记忆与间隔复习", bridgeName: "siyuanCards", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' },
+        { id: "siyuan-exam", name: "考试", fullName: "小驴考试", color: "#10b981", desc: "题库测验与错题复盘", bridgeName: "siyuanExam", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>' },
+        { id: "siyuan-glean", name: "拾遗", fullName: "小驴拾遗", color: "#ec4899", desc: "稍后阅读与灵感归流", bridgeName: "siyuanGlean", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>' },
+        { id: "xiaolv-common", name: "常用", fullName: "小驴常用", color: "#f97316", desc: "常用动作与模板热插", bridgeName: "xiaolvCommon", svgIcon: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>' },
+    ];
+
     function loadRecords() {
         try {
             activities = lvActivity.getTodayRecords();
@@ -45,8 +63,43 @@
             activities = [];
         }
         try {
-            const all = lvLaunchpad.getItems();
-            launchpadItems = all.filter((it) => it.state !== "hidden" && it.id !== "siyuan-home");
+            const registered = lvLaunchpad.getItems().filter((it) => it.state !== "hidden" && it.id !== "siyuan-home");
+            const regMap = new Map(registered.map((r) => [r.id, r]));
+            const merged: LvLaunchpadItem[] = [];
+
+            for (const sib of ECOSYSTEM_SIBLINGS) {
+                const existing = regMap.get(sib.id);
+                if (existing) {
+                    merged.push(existing);
+                } else {
+                    const host = typeof window !== "undefined" ? (window as any)[sib.bridgeName] : null;
+                    const isOnline = Boolean(host);
+                    merged.push({
+                        id: sib.id,
+                        name: sib.name,
+                        fullName: sib.fullName,
+                        color: sib.color,
+                        desc: sib.desc,
+                        svgIcon: sib.svgIcon,
+                        badge: isOnline ? "就绪" : undefined,
+                        badgeType: isOnline ? "success" : undefined,
+                        onClick: () => {
+                            if (host && typeof host.openSwitcher === "function") {
+                                host.openSwitcher();
+                            } else if (host && typeof host.openWorkbench === "function") {
+                                host.openWorkbench();
+                            } else if (host && typeof host.practice === "function") {
+                                host.practice();
+                            } else if (host && typeof host.openHub === "function") {
+                                host.openHub();
+                            } else {
+                                homeNotify(isOnline ? `${sib.fullName} 已就绪` : `未检测到 ${sib.fullName} 运行实例`, 2000, isOnline ? "info" : "error");
+                            }
+                        },
+                    });
+                }
+            }
+            launchpadItems = merged;
         } catch {
             launchpadItems = [];
         }

@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
-    import { lvActivity, lvEcosystem, type LvActivityRecord, withDocLock } from "@/libs/notice";
+    import { lvActivity, lvEcosystem, lvLaunchpad, type LvActivityRecord, type LvLaunchpadItem, withDocLock } from "@/libs/notice";
     import { homeNotify, homeInline } from "@/libs/notice";
     import type { HomePluginLike } from "@/types/plugin";
 
@@ -17,6 +17,7 @@
     } = $props();
 
     let activities = $state<LvActivityRecord[]>([]);
+    let launchpadItems = $state<LvLaunchpadItem[]>([]);
     let collapsed = $state(false);
     let copyBtnEl = $state<HTMLButtonElement | undefined>();
     let appendBtnEl = $state<HTMLButtonElement | undefined>();
@@ -42,6 +43,12 @@
             activities = lvActivity.getTodayRecords();
         } catch {
             activities = [];
+        }
+        try {
+            const all = lvLaunchpad.getItems();
+            launchpadItems = all.filter((it) => it.state !== "hidden" && it.id !== "siyuan-home");
+        } catch {
+            launchpadItems = [];
         }
     }
 
@@ -167,6 +174,30 @@
 
     {#if !collapsed}
         <div class="lv-activity-body">
+            {#if launchpadItems.length > 0}
+                <div class="lv-launchpad-strip" role="group" aria-label="小驴生态矩阵">
+                    {#each launchpadItems as item (item.id)}
+                        <button
+                            type="button"
+                            class="lv-launchpad-chip"
+                            title={`${item.fullName} · ${item.desc || ""}`}
+                            onclick={() => {
+                                if (typeof item.onClick === "function") {
+                                    void item.onClick();
+                                }
+                            }}
+                        >
+                            <span class="lv-launchpad-chip-dot" style="background-color: {item.color || 'var(--b3-theme-primary)'};"></span>
+                            <span class="lv-launchpad-chip-name">{item.name}</span>
+                            {#if item.badge}
+                                <span class="lv-launchpad-chip-badge" class:is-warn={item.badgeType === "warn"} class:is-error={item.badgeType === "error"} class:is-success={item.badgeType === "success"}>
+                                    {item.badge}
+                                </span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
             {#if activities.length === 0}
                 <div class="lv-card lv-activity-list">
                     <div class="lv-activity-state" style="padding:16px; justify-content:center; text-align:center; flex-direction:column; min-height:72px;">
@@ -220,3 +251,63 @@
         </div>
     {/if}
 </section>
+
+<style>
+    .lv-launchpad-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 4px 0 10px;
+    }
+    .lv-launchpad-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--lv-surface, var(--b3-theme-surface));
+        border: 1px solid var(--lv-line, var(--b3-border-color));
+        color: var(--lv-tx-1, var(--b3-theme-on-surface));
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .lv-launchpad-chip:hover {
+        background: var(--lv-surface-hover, var(--b3-theme-background-hover));
+        border-color: var(--lv-accent, var(--b3-theme-primary));
+        transform: translateY(-1px);
+    }
+    .lv-launchpad-chip-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .lv-launchpad-chip-name {
+        font-size: 11.5px;
+    }
+    .lv-launchpad-chip-badge {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: var(--b3-theme-surface-lighter, rgba(125, 125, 125, 0.15));
+        color: var(--lv-tx-2, var(--b3-theme-on-surface-light));
+        font-weight: normal;
+    }
+    .lv-launchpad-chip-badge.is-warn {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    .lv-launchpad-chip-badge.is-error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    .lv-launchpad-chip-badge.is-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+</style>

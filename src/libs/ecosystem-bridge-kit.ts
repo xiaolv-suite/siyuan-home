@@ -1,9 +1,9 @@
 /**
  * 小驴全生态跨插件联邦 SDK（零外部依赖，直接复制到各插件工程内使用）
- * Lv Ecosystem Federation SDK · Epoch 6 Standard
+ * Lv Ecosystem Federation SDK · Epoch 7 Standard
  *
  * 适用插件：
- * 1. siyuan-quickgate (小驴快门)
+ * 1. siyuan-exoskeleton (思源外骨骼 · 桌面宿主)
  * 2. siyuan-checkin   (小驴打卡)
  * 3. siyuan-contacts  (小驴人脉)
  * 4. siyuan-home      (小驴管家)
@@ -259,16 +259,21 @@ export interface CommonBridgeApi {
     favorites(): Promise<ActionResult<CommonSnippet[]>>;
 }
 
-// --- ⑨ 小驴快门 (siyuan-quickgate) ---
-export interface QuickGateBridgeApi {
+// --- ⑨ 思源雷切命令画板 / 思源外骨骼 ---
+// --- ⑨ 思源雷切命令画板 / 思源外骨骼 ---
+export interface SpeedSwitchCommandBridgeApi {
     readonly protocol: number;
-    readonly capabilities: readonly string[];
-    whenReady(): Promise<boolean>;
+    readonly capabilities?: readonly string[];
+    whenReady?(): Promise<boolean>;
     hasCapability?(name: string): boolean;
-    ping(): Promise<ActionResult<{ name: string; version: string }>>;
-    listCommands(plugin?: string): Promise<ActionResult<unknown[]>>;
-    runCommand(plugin: string, command: string): Promise<ActionResult<unknown>>;
+    ping?(): Promise<ActionResult<{ name: string; version: string }>>;
+    listCommands?(plugin?: string): Promise<ActionResult<unknown[]>>;
+    runCommand?(plugin: string, command: string): Promise<ActionResult<unknown>>;
+    openCommandPalette?(focusSearch?: boolean): void;
+    getEditorContext?(): ActionResult<{ blockId: string; docId: string; selectedText: string }>;
 }
+/** @deprecated 已退役，兼容旧类型别名 */
+export type QuickGateBridgeApi = SpeedSwitchCommandBridgeApi;
 
 // --- ⑩ Task Horizon 任务视界 (siyuan-plugin-task-horizon) ---
 export interface TaskHorizonItem {
@@ -344,7 +349,7 @@ export const BRIDGE_ALIASES = Object.freeze({
     exam: ["siyuanExam", "lvExam", "xiaolvExam"],
     cards: ["siyuanCards", "lvCards", "xiaolvCards"],
     common: ["siyuanCommon", "lvCommon", "xiaolvCommon"],
-    quickgate: ["siyuanQuickgate", "lvQuickgate", "xiaolvQuickgate"],
+    quickgate: ["siyuanSpeedSwitch", "xiaolvSpeedSwitch", "xiaolvRaikiri", "lvRaikiri"],
     taskHorizon: ["siyuanTaskHorizon", "taskHorizon"],
 } as const);
 

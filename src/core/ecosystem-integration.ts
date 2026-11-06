@@ -39,6 +39,7 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
     let examStatsHandler: ((e: Event) => void) | undefined;
     let cardsReviewedHandler: ((e: Event) => void) | undefined;
     let checkinEventHandler: (() => void) | undefined;
+    let checkinOccasionCompletedHandler: ((e: Event) => void) | undefined;
     let taskHorizonCompletedHandler: ((e: Event) => void) | undefined;
     const speedSwitchDisposers: Array<() => void> = [];
     let speedSwitchRetry: number | undefined;
@@ -49,7 +50,7 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
     const pullCheckinSummary = async (): Promise<void> => {
         try {
             const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;
-            const checkin = (w.siyuanCheckin || w.xiaolvCheckin || w.lvCheckin) as {
+            const checkin = (w.siyuanCheckin || w.LvCheckin || w.xiaolvCheckin || w.lvCheckin) as {
                 whenReady: () => Promise<boolean>;
                 getStrengthSummary: (o?: { windowDays?: number }) => { items: { itemId: string; name: string; score: number }[]; windowDays: number };
             } | undefined;
@@ -233,6 +234,22 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
             window.addEventListener(evt, checkinEventHandler);
         }
 
+        // 联动小驴打卡：纪念日/事项打卡完成双向同步
+        checkinOccasionCompletedHandler = (e: Event) => {
+            const detail = (e as CustomEvent).detail as Record<string, unknown> | undefined;
+            if (!detail) return;
+            const targetBlockId = detail.blockId || detail.contextBlockId || detail.id;
+            if (targetBlockId) {
+                void markReminderDoneByBlockId(String(targetBlockId));
+            }
+            if (Date.now() - lastCheckinPull >= WS_RESCAN_MIN_MS) {
+                lastCheckinPull = Date.now();
+                void pullCheckinSummary();
+            }
+            emitHubChanged();
+        };
+        window.addEventListener("checkin:occasion-completed", checkinOccasionCompletedHandler);
+
         // 联动 Task Horizon：监听任务完成事件
         taskHorizonCompletedHandler = (e: Event) => {
             const detail = (e as CustomEvent).detail as Record<string, unknown> | undefined;
@@ -267,6 +284,7 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
                         window.removeEventListener(evt, checkinEventHandler);
                     }
                 }
+                if (checkinOccasionCompletedHandler) window.removeEventListener("checkin:occasion-completed", checkinOccasionCompletedHandler);
                 if (taskHorizonCompletedHandler) window.removeEventListener("tm:task-completed", taskHorizonCompletedHandler);
                 if (speedSwitchRetry !== undefined) {
                     window.clearTimeout(speedSwitchRetry);

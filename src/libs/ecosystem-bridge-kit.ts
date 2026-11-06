@@ -341,16 +341,16 @@ export interface TaskHorizonBridgeApi {
 /* ========================================================================= */
 
 export const BRIDGE_ALIASES = Object.freeze({
-    checkin: ["siyuanCheckin", "lvCheckin", "xiaolvCheckin"],
-    contacts: ["siyuanContacts", "lvContacts", "xiaolvContacts"],
-    home: ["siyuanHome", "lvHome", "xiaolvHome"],
-    raikiri: ["siyuanSpeedSwitch", "lvRaikiri", "xiaolvSpeedSwitch"],
-    glean: ["siyuanGlean", "lvGlean", "xiaolvGlean"],
-    exam: ["siyuanExam", "lvExam", "xiaolvExam"],
-    cards: ["siyuanCards", "lvCards", "xiaolvCards"],
-    common: ["siyuanCommon", "lvCommon", "xiaolvCommon"],
+    checkin: ["siyuanCheckin", "LvCheckin", "lvCheckin", "xiaolvCheckin"],
+    contacts: ["LvContacts", "lvContacts", "xiaolvContacts", "siyuanContacts"],
+    home: ["LvHome", "lvHome", "xiaolvHome", "siyuanHome"],
+    raikiri: ["siyuanSpeedSwitch", "xiaolvSpeedSwitch", "xiaolvRaikiri", "lvRaikiri"],
+    glean: ["siyuanGlean", "xiaolvGlean", "lvGlean", "LvGlean"],
+    exam: ["LvExam", "siyuanExam", "xiaolvExam", "lvExam"],
+    cards: ["xiaolvCards", "lvCards", "LvCards", "siyuanCards"],
+    common: ["xiaolvCommon", "LvCommon", "lvCommon", "siyuanCommon"],
     quickgate: ["siyuanSpeedSwitch", "xiaolvSpeedSwitch", "xiaolvRaikiri", "lvRaikiri"],
-    taskHorizon: ["siyuanTaskHorizon", "taskHorizon"],
+    taskHorizon: ["TaskHorizon", "taskHorizon", "siyuanTaskHorizon"],
 } as const);
 
 /* ========================================================================= */

@@ -5,6 +5,7 @@
  */
 import * as rl from "./rowlog";
 import { summarizeVitals, type VitalReading, type VitalType } from "./vitals";
+import { localDateKey } from "./hub/rule";
 
 const mk = (t: string, c = "", s = "") => {
     const el = document.createElement(t);
@@ -39,7 +40,7 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
     const dateInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     dateInp.type = "date";
     dateInp.style.width = "125px";
-    dateInp.value = new Date().toISOString().slice(0, 10);
+    dateInp.value = localDateKey();
 
     const val1Inp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     val1Inp.type = "number";

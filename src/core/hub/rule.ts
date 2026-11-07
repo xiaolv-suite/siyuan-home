@@ -108,7 +108,7 @@ export function parseDate(v?: string | number): Date | undefined {
 }
 
 /** 本地时区 yyyy-MM-dd（决策 33.3：禁止 toISOString） */
-export function localDateKey(d: Date): string {
+export function localDateKey(d: Date = new Date()): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");

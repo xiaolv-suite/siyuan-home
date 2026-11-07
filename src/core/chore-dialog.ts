@@ -5,6 +5,7 @@
  */
 import * as rl from "./rowlog";
 import { nextAssignee, buildChoreHistory } from "./chores";
+import { localDateKey } from "./hub/rule";
 import type { AvCellLike } from "./avcell";
 
 const mk = (t: string, c = "", s = "") => {
@@ -49,7 +50,7 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
     const dateInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     dateInp.type = "date";
     dateInp.style.width = "130px";
-    dateInp.value = new Date().toISOString().slice(0, 10);
+    dateInp.value = localDateKey();
 
     const noteInp = mk("input", "b3-text-field lv-select-sm") as HTMLInputElement;
     noteInp.placeholder = t("ledger.choreNote");
@@ -71,7 +72,7 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
     let logs: rl.RowLogs = {};
     const render = () => {
         const completions = readCompletions(logs) as unknown as Parameters<typeof buildChoreHistory>[0];
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localDateKey();
         const assignee = nextAssignee(roster, completions, today);
         const history = buildChoreHistory(completions, roster);
 

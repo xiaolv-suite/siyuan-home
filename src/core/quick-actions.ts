@@ -7,6 +7,7 @@
  */
 import type { EnergyKind, EnergyRecord } from "./fuel";
 import type { VitalReading } from "./vitals";
+import { localDateKey } from "./hub/rule";
 
 export interface QuickFuelingInput {
     date: string; // YYYY-MM-DD
@@ -119,7 +120,7 @@ export function validateVitalInput(input: Partial<QuickVitalInput>): Array<"syst
 
 /** 构建加油/充电流水（EnergyRecord，与车辆抽屉录入同结构） */
 export function buildFuelingLog(input: QuickFuelingInput): EnergyRecord {
-    const date = input.date || new Date().toISOString().slice(0, 10);
+    const date = input.date || localDateKey();
     const at = composeLifelogIsoAt(date, input.time);
     const record: EnergyRecord & { time?: string } = {
         kind: input.kind,
@@ -141,7 +142,7 @@ export function buildFuelingLog(input: QuickFuelingInput): EnergyRecord {
 
 /** 构建生理指标读数（VitalReading[]，与健康抽屉录入同结构；血压附带脉搏时额外记一条心率） */
 export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
-    const date = input.date || new Date().toISOString().slice(0, 10);
+    const date = input.date || localDateKey();
     const at = composeLifelogIsoAt(date, input.time);
     const time = input.time ? normalizeLifelogTime(input.time, at) : undefined;
     const note = input.note?.trim() || undefined;
@@ -181,7 +182,7 @@ export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
 
 /** 构建家务打卡记录（chexecs，与家务轮换抽屉同结构；积分结算按 points 汇总） */
 export function buildChoreLog(input: QuickChoreInput): Record<string, unknown> {
-    const date = input.date || new Date().toISOString().slice(0, 10);
+    const date = input.date || localDateKey();
     const at = composeLifelogIsoAt(date, input.time);
     const record: Record<string, unknown> = {
         date,

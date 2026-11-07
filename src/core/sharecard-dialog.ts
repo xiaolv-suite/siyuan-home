@@ -178,6 +178,10 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
             showMessageFn(t("overview.shareCardDownloaded"), 3000, "info");
         };
     } catch {
-        previewEl.innerHTML = `<pre class="lv-report-pre">${plainText}</pre>`;
+        previewEl.innerHTML = "";
+        const pre = document.createElement("pre");
+        pre.className = "lv-report-pre";
+        pre.textContent = plainText;
+        previewEl.appendChild(pre);
     }
 }

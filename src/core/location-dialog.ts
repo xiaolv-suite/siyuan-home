@@ -5,7 +5,7 @@
  * 独立于页面存在，避免页面膨胀。
  */
 import { modalWarningHtml } from "./modal-shell";
-import { buildLocationIndex, searchLocations, formatLocationIndexText, type LocationRowInput } from "./location-index";
+import { buildLocationIndex, searchLocations, formatLocationIndexText, formatLocationBreadcrumbTag, type LocationRowInput } from "./location-index";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { uiIcon } from "@/ui/icons";
@@ -138,7 +138,8 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
             const head = document.createElement("div");
             head.className = "lv-dialog-row lv-domain-title lv-tx-accent";
             head.style.marginBottom = "6px";
-            head.innerHTML = `<span>${uiIcon("mapPin", "", 13)} ${loc}</span><span class="lv-caption">${list.length} 件</span>`;
+            const safeBreadcrumb = formatLocationBreadcrumbTag(loc).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            head.innerHTML = `<span>${uiIcon("mapPin", "", 13)} ${safeBreadcrumb}</span><span class="lv-caption">${list.length} 件</span>`;
             grp.appendChild(head);
             for (const it of list) {
                 const line = document.createElement("div");

@@ -73,7 +73,7 @@ export const ECOSYSTEM_EVENTS = Object.freeze({
     COMMON_CREATED: "xiaolv:common:item-created",
     COMMON_UPDATED: "xiaolv:common:item-updated",
     COMMON_DELETED: "xiaolv:common:item-deleted",
-    // 雷切（吸收命令面板）
+    // 快门
     RAIKIRI_COMMAND_EXECUTED: "lv-raikiri:command-executed",
     RAIKIRI_DATA_CHANGED: "lv-raikiri:data-changed",
     // 联盟伙伴：Task Horizon (任务视界)
@@ -110,6 +110,16 @@ export interface CheckinBatchResult {
     usedFallbackTime?: boolean;
 }
 
+export interface CheckinOccasionItem {
+    id: string;
+    name: string;
+    date: string;
+    category?: string;
+    enabled: boolean;
+    priority?: string;
+    time?: string;
+}
+
 export interface CheckinBridgeApi {
     readonly protocol: "siyuan-checkin";
     readonly version: number;
@@ -119,6 +129,8 @@ export interface CheckinBridgeApi {
     recordEventsBatch(inputs: CheckinBatchInput[]): Promise<CheckinBatchResult[]>;
     getStreaks(itemIds?: string[]): Record<string, { current: number; longest: number }>;
     getStrengthSummary?(): unknown;
+    queryOccasions?(options?: { category?: string; includeDisabled?: boolean }): CheckinOccasionItem[];
+    completeOccasion?(id: string, occurrenceDate: string, completed: boolean): Promise<boolean>;
 }
 
 // --- ② 小驴人脉 (siyuan-contacts) ---
@@ -509,50 +521,170 @@ export function registerRaikiriModuleSafely(options: RaikiriHomeModuleOptions): 
 }
 
 /**
- * 将大额合同、保单条款或家电说明书安全推入小驴拾遗渐进阅读流（Issue #128 中枢建议）
+ * 订阅生态广播事件（返回自动退订函数，卸载时调用）
  */
-export async function pushToGleanReadingSafely(options: {
-    docId?: string;
-    blockId?: string;
-    title: string;
-    module: string;
-    summary?: string;
-}): Promise<{ mode: "bridge" | "clipboard"; text: string }> {
-    const fallbackText = `📖 【渐进阅读切片 · ${options.title}】\n* 来源：小驴管家 · ${options.module}\n${options.docId ? `* 关联文档：((${options.docId} '${options.title}'))\n` : ""}${options.summary ? `* 要点摘要：${options.summary}\n` : ""}* 渐进建议：每日消化 1~2 个条款切片，厘清权益与免责条款。`;
-
-    if (typeof window === "undefined") {
-        return { mode: "clipboard", text: fallbackText };
+export function subscribeEcosystemEvent<T = Record<string, unknown>>(
+    eventName: string,
+    handler: (detail: EcosystemEventEnvelope<T>) => void
+): () => void {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
+        return () => {};
     }
-
-    const glean = getBridgeSafely<any>("glean");
-    if (glean && typeof glean.ingestClip === "function") {
+    const listener = (evt: Event) => {
         try {
-            await glean.ingestClip({
-                title: options.title,
-                docId: options.docId,
-                blockId: options.blockId,
-                tags: ["管家资产", options.module],
-                summary: options.summary,
-            });
-            return { mode: "bridge", text: fallbackText };
-        } catch {
-            /* 回退 */
+            const custom = evt as CustomEvent<EcosystemEventEnvelope<T>>;
+            if (custom.detail) handler(custom.detail);
+        } catch (e) {
+            console.error(`[小驴生态联邦] 处理事件 ${eventName} 异常:`, e);
         }
-    }
+    };
+    window.addEventListener(eventName, listener);
+    return () => {
+        window.removeEventListener(eventName, listener);
+    };
+}
 
-    try {
-        window.dispatchEvent(new CustomEvent("lv-glean:add-clip", {
-            detail: {
-                title: options.title,
-                docId: options.docId,
-                blockId: options.blockId,
-                tags: ["管家资产", options.module],
-                summary: options.summary,
-            },
-        }));
-    } catch {
-        /* soft */
+/**
+ * 监听 Task Horizon 任务完成事件 (tm:task-completed 及兼容事件名 task-horizon:task-completed)
+ * 返回注销清理函数
+ */
+export function onTaskHorizonCompleted(
+    listener: (detail: TaskHorizonCompletedEventDetail) => void
+): () => void {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
+        return () => {};
     }
+    const recentKeys = new Set<string>();
+    const handler = (evt: Event) => {
+        try {
+            const custom = evt as CustomEvent<TaskHorizonCompletedEventDetail & {taskId?: string}>;
+            const raw = custom.detail;
+            if (!raw) return;
+            const blockId = String(raw.blockId || raw.id || raw.taskId || "");
+            const dedupeKey = String(raw.operationId || `${blockId}:${raw.completedAt || ""}`);
+            if (dedupeKey && recentKeys.has(dedupeKey)) return;
+            if (dedupeKey) {
+                recentKeys.add(dedupeKey);
+                if (recentKeys.size > 256) {
+                    const oldest = recentKeys.values().next().value;
+                    if (oldest) recentKeys.delete(oldest);
+                }
+            }
+            listener({...raw, id: String(raw.id || blockId), blockId});
+        } catch (e) {
+            console.error("[小驴生态联邦] 处理 Task Horizon 完成事件异常:", e);
+        }
+    };
+    window.addEventListener("tm:task-completed", handler);
+    window.addEventListener("task-horizon:task-completed", handler);
+    return () => {
+        window.removeEventListener("tm:task-completed", handler);
+        window.removeEventListener("task-horizon:task-completed", handler);
+    };
+}
 
-    return { mode: glean ? "bridge" : "clipboard", text: fallbackText };
+/**
+ * T-2022：探测宿主窗口是否已加载 Task Horizon 公共接口
+ */
+export function isTaskHorizonAvailable(): boolean {
+    const bridge = getBridgeSafely<TaskHorizonBridgeApi>("taskHorizon");
+    return Boolean(bridge && bridge.protocol === "task-horizon");
+}
+
+/**
+ * T-2022：安全拉取 Task Horizon 今日待办列表（有界超时，未安装或未就绪时优雅返回空数组）
+ */
+export async function fetchTaskHorizonTodayTasks(limit = 8): Promise<TaskHorizonItem[]> {
+    const capped = Math.max(1, Math.min(20, Math.round(limit) || 8));
+    return await callBridge<TaskHorizonBridgeApi, TaskHorizonItem[]>(
+        "taskHorizon",
+        "tasks.query",
+        async (bridge) => {
+            if (typeof bridge.queryTasks === "function") {
+                const res = await bridge.queryTasks({date: "today", scope: "all", limit: capped, includeCompleted: false});
+                return Array.isArray(res?.tasks) ? res.tasks : [];
+            }
+            if (typeof bridge.getTodayTasks === "function") {
+                const tasks = await bridge.getTodayTasks();
+                return Array.isArray(tasks) ? tasks.slice(0, capped) : [];
+            }
+            return [];
+        },
+        () => [],
+        2000,
+    );
+}
+
+/**
+ * T-2022：通过 Task Horizon 公共接口安全切换任务完成状态
+ */
+export async function setTaskHorizonTaskDoneSafely(blockId: string, done: boolean): Promise<boolean> {
+    if (!blockId) return false;
+    return await callBridge<TaskHorizonBridgeApi, boolean>(
+        "taskHorizon",
+        "tasks.status.write",
+        async (bridge) => {
+            if (typeof bridge.setTaskStatus !== "function") return false;
+            const options = typeof bridge.getStatusOptions === "function" ? bridge.getStatusOptions() : [];
+            let targetStatus = done ? "done" : "todo";
+            if (Array.isArray(options) && options.length) {
+                const matched = done
+                    ? options.find((opt) => opt.id === "done" || opt.marker.toUpperCase() === "X")
+                    : options.find((opt) => opt.id === "todo" || opt.marker === " ");
+                if (matched?.id) targetStatus = matched.id;
+            }
+            return (await bridge.setTaskStatus(blockId, targetStatus)) === true;
+        },
+        () => false,
+        2500,
+    );
+}
+
+/**
+ * T-2022：一键唤起 Task Horizon 指定视图（calendar / kanban / timeline / list 等）
+ */
+export async function openTaskHorizonViewSafely(
+    viewType: "list" | "checklist" | "timeline" | "kanban" | "calendar" | "whiteboard" = "calendar",
+): Promise<boolean> {
+    return await callBridge<TaskHorizonBridgeApi, boolean>(
+        "taskHorizon",
+        "views.open",
+        async (bridge) => {
+            if (typeof bridge.openView !== "function") return false;
+            await bridge.openView(viewType);
+            return true;
+        },
+        () => false,
+        3000,
+    );
+}
+
+/**
+ * 安全查询小驴打卡事项簿列表（支持按分类筛选，如 birthday/anniversary/expense/subscription 等）
+ */
+export async function queryCheckinOccasionsSafely(options?: { category?: string; includeDisabled?: boolean }): Promise<CheckinOccasionItem[]> {
+    return await callBridge<CheckinBridgeApi, CheckinOccasionItem[]>(
+        "checkin",
+        "occasions.read",
+        (bridge) => {
+            if (typeof bridge.queryOccasions !== "function") return [];
+            return bridge.queryOccasions(options) || [];
+        },
+        () => []
+    );
+}
+
+/**
+ * 安全完成小驴打卡指定事项
+ */
+export async function completeCheckinOccasionSafely(id: string, occurrenceDate: string, completed = true): Promise<boolean> {
+    return await callBridge<CheckinBridgeApi, boolean>(
+        "checkin",
+        "occasions.complete",
+        async (bridge) => {
+            if (typeof bridge.completeOccasion !== "function") return false;
+            return await bridge.completeOccasion(id, occurrenceDate, completed);
+        },
+        () => false
+    );
 }

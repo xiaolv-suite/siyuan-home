@@ -2,7 +2,7 @@
  * CSV 导出纯逻辑单测（第八十四轮）：RFC 4180 转义、BOM/CRLF、组装。
  */
 import { describe, it, expect } from "vitest";
-import { csvEscape, buildCsv } from "@/core/csv";
+import { csvEscape, buildCsv, neutralizeFormula } from "@/core/csv";
 
 describe("csv.csvEscape", () => {
     it("普通值不加引号；含逗号/引号/换行任一则整体加引号", () => {
@@ -12,6 +12,20 @@ describe("csv.csvEscape", () => {
         expect(csvEscape("行1\n行2")).toBe('"行1\n行2"');
         expect(csvEscape("回车\r\n测试")).toBe('"回车\r\n测试"');
         expect(csvEscape("")).toBe("");
+    });
+
+    it("电子表格公式注入防御 (OWASP CSV Injection Defense)", () => {
+        expect(neutralizeFormula("=cmd|' /C calc'!A0")).toBe("'=cmd|' /C calc'!A0");
+        expect(neutralizeFormula("@SUM(A1:B10)")).toBe("'@SUM(A1:B10)");
+        expect(neutralizeFormula("+cmd")).toBe("'+cmd");
+        expect(neutralizeFormula("-evil")).toBe("'-evil");
+        // 合法纯数值不中和
+        expect(neutralizeFormula("-100")).toBe("-100");
+        expect(neutralizeFormula("+50.5")).toBe("+50.5");
+        expect(neutralizeFormula("300")).toBe("300");
+        // csvEscape 综合表现
+        expect(csvEscape("=1+1")).toBe("'=1+1");
+        expect(csvEscape("=cmd,test")).toBe("\"'=cmd,test\"");
     });
 });
 

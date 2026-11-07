@@ -62,10 +62,12 @@ export function sectionBlockId(docId: string, sectionKey: string): string {
 function enqueueSectionWrite<T>(key: string, task: () => Promise<T>): Promise<T> {
     const prev = sectionWriteChains.get(key) ?? Promise.resolve();
     const next = prev.then(task);
-    sectionWriteChains.set(
-        key,
-        next.catch(() => undefined),
-    );
+    const cleanup = next.catch(() => undefined).finally(() => {
+        if (sectionWriteChains.get(key) === cleanup) {
+            sectionWriteChains.delete(key);
+        }
+    });
+    sectionWriteChains.set(key, cleanup);
     return next;
 }
 

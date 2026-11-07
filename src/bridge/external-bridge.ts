@@ -64,6 +64,7 @@ export function dispatchHomeChangedEvent(detail: Omit<HomeChangedEventDetail, "p
             occurredAt: detail.occurredAt || new Date().toISOString(),
             ...detail,
         };
+        window.dispatchEvent(new CustomEvent("lv-home:data-changed", { detail: fullDetail }));
         window.dispatchEvent(new CustomEvent("lv-home:changed", { detail: fullDetail }));
     } catch {
         // fail-soft

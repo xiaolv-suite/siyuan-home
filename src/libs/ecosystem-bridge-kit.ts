@@ -45,7 +45,40 @@ export interface EcosystemEventEnvelope<T = Record<string, unknown>> {
     idempotencyKey: string;
 }
 
-export const ECOSYSTEM_EVENTS = Object.freeze({});
+export const ECOSYSTEM_EVENTS = Object.freeze({
+    // 打卡
+    CHECKIN_RECORDED: "checkin:event-recorded",
+    CHECKIN_DELETED: "checkin:event-deleted",
+    // 人脉
+    CONTACTS_INTERACTION: "lv-contacts:interaction-logged",
+    CONTACTS_PERSON_CREATED: "lv-contacts:person-created",
+    CONTACTS_DATA_CHANGED: "lv-contacts:data-changed",
+    // 管家
+    HOME_DATA_CHANGED: "lv-home:data-changed",
+    // 雷切
+    RAIKIRI_NAVIGATED: "lv-raikiri:navigated",
+    // 拾遗
+    GLEAN_DATA_CHANGED: "lv-glean:data-changed",
+    GLEAN_STATUS_CHANGED: "lv-glean:clip-status-changed",
+    // 考试
+    EXAM_SESSION_ENDED: "lv-exam:session-ended",
+    EXAM_WRONGBOOK_CHANGED: "lv-exam:wrongbook-changed",
+    EXAM_STATS: "lv-exam:stats",
+    // 闪卡
+    CARDS_REVIEWED: "lv-cards:reviewed",
+    CARDS_INCREMENTAL_EXTRACT: "lv-cards:incremental-extract",
+    // 任务视界 (Task Horizon) 联动
+    HORIZON_ACTION_CREATED: "horizon:action-created",
+    // 常用
+    COMMON_CREATED: "xiaolv:common:item-created",
+    COMMON_UPDATED: "xiaolv:common:item-updated",
+    COMMON_DELETED: "xiaolv:common:item-deleted",
+    // 雷切（吸收命令面板）
+    RAIKIRI_COMMAND_EXECUTED: "lv-raikiri:command-executed",
+    RAIKIRI_DATA_CHANGED: "lv-raikiri:data-changed",
+    // 联盟伙伴：Task Horizon (任务视界)
+    TASK_COMPLETED: "tm:task-completed",
+} as const);
 
 /* ========================================================================= */
 /* 3. 各插件公开桥类型定义 (Public Bridge Interfaces)                        */

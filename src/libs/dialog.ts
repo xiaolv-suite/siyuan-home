@@ -8,6 +8,7 @@
  */
 import { Dialog, confirm as siyuanConfirm } from "siyuan";
 import { Component, mount, unmount } from "svelte";
+import { lvSurfaceStack } from "./lv-notice-kit";
 
 /**
  * 具有最高堆叠层级的确认弹窗，彻底杜绝被前置抽屉或已有模态框遮挡在后面。
@@ -39,23 +40,52 @@ export const simpleDialog = (args: {
     width?: string, height?: string,
     callback?: () => void;
 }) => {
+    let closed = false;
+    const surfaceId = `dialog_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const popSurface = lvSurfaceStack.push({
+        id: surfaceId,
+        type: "dialog",
+        dismiss: () => {
+            if (closed) return false;
+            closed = true;
+            dialog.destroy();
+            return true;
+        },
+    });
+
     const dialog = new Dialog({
         title: args.title,
         content: `<div class="dialog-content" style="display: flex; height: 100%;"/>`,
         width: args.width,
         height: args.height,
-        destroyCallback: args.callback
+        destroyCallback: () => {
+            if (!closed) {
+                closed = true;
+                popSurface();
+            }
+            args.callback?.();
+        }
     });
     // 点击遮罩背景快速关闭
     dialog.element.addEventListener("click", (e) => {
         if (e.target === dialog.element || (e.target as HTMLElement).classList?.contains("b3-dialog__scrim")) {
-            dialog.destroy();
+            if (!closed) {
+                closed = true;
+                popSurface();
+                dialog.destroy();
+            }
         }
     });
     dialog.element.querySelector(".dialog-content").appendChild(args.ele);
     return {
         dialog,
-        close: dialog.destroy.bind(dialog)
+        close: () => {
+            if (!closed) {
+                closed = true;
+                popSurface();
+                dialog.destroy();
+            }
+        }
     };
 }
 

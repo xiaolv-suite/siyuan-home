@@ -832,6 +832,7 @@
 }
 
 :root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
+body.body--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
 html.dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog),
 body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog) {
     @include design-system.dark-surfaces;

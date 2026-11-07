@@ -3496,6 +3496,9 @@
 }
 
 :root[data-theme-mode="dark"] .lv-home,
+html[data-theme-mode="dark"] .lv-home,
+body[data-theme-mode="dark"] .lv-home,
+body.body--dark .lv-home,
 html.dark .lv-home,
 body.theme--dark .lv-home {
   @include dark-surfaces;

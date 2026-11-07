@@ -148,3 +148,23 @@ export function formatLocationIndexText(
     if (index.missing > 0) lines.push(`另有 ${index.missing} 条记录尚未填写存放位置。`);
     return lines.join("\n").trimEnd();
 }
+
+/**
+ * 将层级位置字符串解析为规范面包屑路径列表（支持 /、>、-、反斜杠、全角破折号）
+ */
+export function parseLocationBreadcrumbs(location: string | undefined): string[] {
+    const s = norm(location);
+    if (!s || s === "（未填写）") return [];
+    return s
+        .split(/[/>\-—–\\>]+/g)
+        .map((p) => p.trim())
+        .filter(Boolean);
+}
+
+/**
+ * 格式化为美观的层级面包屑胶囊文本（如 "主卧 › 顶层衣柜 › 02收纳箱"）
+ */
+export function formatLocationBreadcrumbTag(location: string | undefined): string {
+    const parts = parseLocationBreadcrumbs(location);
+    return parts.length > 1 ? parts.join(" › ") : (norm(location) || "（未填写）");
+}

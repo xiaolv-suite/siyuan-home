@@ -3,6 +3,8 @@ import {
     buildLocationIndex,
     searchLocations,
     formatLocationIndexText,
+    parseLocationBreadcrumbs,
+    formatLocationBreadcrumbTag,
     type LocationRowInput,
 } from "@/core/location-index";
 
@@ -88,6 +90,25 @@ describe("core/location-index 存放位置索引（313 波，G4）", () => {
 
         it("空索引给出空态文案", () => {
             expect(formatLocationIndexText(buildLocationIndex([]))).toBe("暂无已填写存放位置的记录。");
+        });
+    });
+
+    describe("parseLocationBreadcrumbs & formatLocationBreadcrumbTag", () => {
+        it("规范解析多级路径符号并格式化为面包屑", () => {
+            const loc = "主卧 / 衣柜 / 抽屉2";
+            expect(parseLocationBreadcrumbs(loc)).toEqual(["主卧", "衣柜", "抽屉2"]);
+            expect(formatLocationBreadcrumbTag(loc)).toBe("主卧 › 衣柜 › 抽屉2");
+        });
+
+        it("兼容破折号与箭头分隔符", () => {
+            const loc = "客厅 > 电视柜 - 左侧收纳盒";
+            expect(parseLocationBreadcrumbs(loc)).toEqual(["客厅", "电视柜", "左侧收纳盒"]);
+            expect(formatLocationBreadcrumbTag(loc)).toBe("客厅 › 电视柜 › 左侧收纳盒");
+        });
+
+        it("单级位置保持原样", () => {
+            expect(formatLocationBreadcrumbTag("书房保险箱")).toBe("书房保险箱");
+            expect(formatLocationBreadcrumbTag("")).toBe("（未填写）");
         });
     });
 });

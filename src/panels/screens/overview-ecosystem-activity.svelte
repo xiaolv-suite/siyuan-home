@@ -84,7 +84,11 @@
                         badge: isOnline ? "就绪" : undefined,
                         badgeType: isOnline ? "success" : undefined,
                         onClick: () => {
-                            if (host && typeof host.openSwitcher === "function") {
+                            if (host && typeof host.open === "function") {
+                                host.open();
+                            } else if (host && typeof host.openDefaultEntry === "function") {
+                                host.openDefaultEntry();
+                            } else if (host && typeof host.openSwitcher === "function") {
                                 host.openSwitcher();
                             } else if (host && typeof host.openWorkbench === "function") {
                                 host.openWorkbench();

@@ -86,7 +86,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
     // 启动前排查并清除任何残留的历史顶栏与状态栏节点，确保全局唯一
     if (typeof document !== "undefined") {
         const staleIcons = document.querySelectorAll(
-            '#toolbar [data-id="siyuan-home-topbar"], #toolbar [id*="siyuan-home"], #toolbar [aria-label*="小驴管家"], #toolbar [aria-label*="Lv Home"]',
+            '#toolbar [data-id="siyuan-home-topbar"], #toolbar [id^="plugin_siyuan-home"], #toolbar [aria-label="小驴管家"], #toolbar [aria-label="Lv Home"]',
         );
         staleIcons.forEach((el) => el.remove());
         const staleStatus = document.querySelectorAll('#status .lv-statusbar, .lv-statusbar');
@@ -161,7 +161,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
             if (isDisposed) return;
             // 自动排重守护：查找 toolbar 中所有属于管家的按钮
             const icons = toolbar.querySelectorAll(
-                '[data-id="siyuan-home-topbar"], [id*="siyuan-home"], [aria-label*="小驴管家"], [aria-label*="Lv Home"]',
+                '[data-id="siyuan-home-topbar"], [id^="plugin_siyuan-home"], [aria-label="小驴管家"], [aria-label="Lv Home"]',
             );
             if (icons.length > 1) {
                 // 如果发现多个同名图标，自动清理多余的，严格只保留 1 个！
@@ -181,7 +181,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
                 topBarReviveTimer = undefined;
                 if (isDisposed) return;
                 const checkAgain = toolbar.querySelectorAll(
-                    '[data-id="siyuan-home-topbar"], [id*="siyuan-home"], [aria-label*="小驴管家"], [aria-label*="Lv Home"]',
+                    '[data-id="siyuan-home-topbar"], [id^="plugin_siyuan-home"], [aria-label="小驴管家"], [aria-label="Lv Home"]',
                 );
                 if (checkAgain.length > 0) {
                     for (let i = 1; i < checkAgain.length; i++) checkAgain[i].remove();
@@ -336,7 +336,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
         topBarEl = undefined;
         if (typeof document !== "undefined") {
             const staleIcons = document.querySelectorAll(
-                '#toolbar [data-id="siyuan-home-topbar"], #toolbar [id*="siyuan-home"], #toolbar [aria-label*="小驴管家"], #toolbar [aria-label*="Lv Home"]',
+                '#toolbar [data-id="siyuan-home-topbar"], #toolbar [id^="plugin_siyuan-home"], #toolbar [aria-label="小驴管家"], #toolbar [aria-label="Lv Home"]',
             );
             staleIcons.forEach((el) => el.remove());
         }

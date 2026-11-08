@@ -78,27 +78,41 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
                 }
             });
 
-            // 移动端 Esc-only 强制关闭面保障（真机教训：手机无 Esc 键且思源 Dialog 默认无关闭叉号）
-            if (typeof document !== "undefined" && dlg.element) {
-                const isMobile = Boolean(
-                    (window as any)?.siyuan?.config?.system?.isMobile ||
-                    document.body?.classList?.contains("body--mobile") ||
-                    (typeof window !== "undefined" && window.innerWidth <= 640)
-                );
-                if (isMobile) {
-                    const hasClose = dlg.element.querySelector(
-                        ".b3-button--cancel, [data-type='cancel'], .lv-modal-close, .lv-mobile-close, .lv-dialog-mobile-close-btn, [aria-label*='关闭'], [aria-label*='close']"
+            // 顶栏 44x44 关闭按钮与移动端 Esc-only 强制关闭面保障（真机教训：手机无 Esc 键且思源 Dialog 默认无关闭叉号或过小）
+            if (typeof document !== "undefined" && dlg.element && typeof document.createElement === "function") {
+                const header = dlg.element.querySelector?.(".b3-dialog__header");
+                const existingHeaderClose = header?.querySelector?.(".lv-dialog-mobile-close-btn, .b3-dialog__close, .lv-modal-close")
+                    || dlg.element.querySelector?.(".b3-dialog__close");
+                if (header && !existingHeaderClose) {
+                    const closeBtn = document.createElement("button");
+                    closeBtn.type = "button";
+                    closeBtn.className = "lv-dialog-mobile-close-btn";
+                    closeBtn.setAttribute("aria-label", "关闭");
+                    closeBtn.setAttribute("title", "关闭");
+                    closeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+                    closeBtn.onclick = () => dlg.destroy();
+                    header.appendChild(closeBtn);
+                } else {
+                    const isMobile = Boolean(
+                        (window as any)?.siyuan?.config?.system?.isMobile ||
+                        document.body?.classList?.contains?.("body--mobile") ||
+                        (typeof window !== "undefined" && window.innerWidth <= 640)
                     );
-                    if (!hasClose) {
-                        const header = dlg.element.querySelector(".b3-dialog__header") || dlg.element.querySelector(".b3-dialog__container") || dlg.element;
-                        const closeBtn = document.createElement("button");
-                        closeBtn.type = "button";
-                        closeBtn.className = "lv-dialog-mobile-close-btn";
-                        closeBtn.setAttribute("aria-label", "关闭");
-                        closeBtn.setAttribute("title", "关闭");
-                        closeBtn.innerHTML = "✕";
-                        closeBtn.onclick = () => dlg.destroy();
-                        header.appendChild(closeBtn);
+                    if (isMobile) {
+                        const hasClose = dlg.element.querySelector(
+                            ".b3-button--cancel, [data-type='cancel'], .lv-modal-close, .lv-mobile-close, .lv-dialog-mobile-close-btn, [aria-label*='关闭'], [aria-label*='close']"
+                        );
+                        if (!hasClose) {
+                            const container = dlg.element.querySelector(".b3-dialog__container") || dlg.element;
+                            const closeBtn = document.createElement("button");
+                            closeBtn.type = "button";
+                            closeBtn.className = "lv-dialog-mobile-close-btn";
+                            closeBtn.setAttribute("aria-label", "关闭");
+                            closeBtn.setAttribute("title", "关闭");
+                            closeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+                            closeBtn.onclick = () => dlg.destroy();
+                            container.appendChild?.(closeBtn);
+                        }
                     }
                 }
             }

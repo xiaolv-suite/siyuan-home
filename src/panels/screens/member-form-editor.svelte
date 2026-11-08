@@ -19,6 +19,7 @@
         t,
         onSaved,
         onCancel,
+        onPickAvatar,
     }: {
         editorOpen?: boolean;
         editId?: string | null;
@@ -32,6 +33,7 @@
         t: (k: string) => string;
         onSaved?: () => Promise<void>;
         onCancel?: () => void;
+        onPickAvatar?: () => void;
     } = $props();
 
     let nameInput: HTMLInputElement | undefined = $state();
@@ -76,13 +78,17 @@
 
     $effect(() => {
         if (editorOpen) {
-            requestAnimationFrame(() => nameInput?.focus());
+            requestAnimationFrame(() => {
+                document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+                nameInput?.focus();
+            });
         } else {
             nameError = false;
         }
     });
 
     export function focusName() {
+        document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
         nameInput?.focus();
     }
 
@@ -191,6 +197,7 @@
             <h2 id="lv-member-editor-title">{editId ? t("members.editing") : t("add")}</h2>
             <p>{editId ? t("members.editing") : t("settings.membersHint")}</p>
         </div>
+        <button type="button" class="lv-iconbtn lv-member-editor-close" aria-label={t("cancel")} title={t("cancel")} onclick={cancelEdit} disabled={memberSaving}><UiIcon name="close" size={16} /></button>
     </div>
     <div class="lv-member-editor-fields">
         <div class="lv-member-field">
@@ -238,6 +245,15 @@
             <textarea id="lv-member-notes-input" class="b3-text-field" rows="2" bind:value={notes} aria-label={t("members.notes")} disabled={memberSaving}></textarea>
         </div>
         <div class="lv-member-editor-actions">
+            {#if editId && onPickAvatar}
+                <button type="button" class="b3-button b3-button--outline lv-btn-text-sm"
+                    title={t("members.uploadAvatar")}
+                    aria-label={t("members.uploadAvatar")}
+                    onclick={onPickAvatar}
+                    disabled={memberSaving}>
+                    <UiIcon name="camera" size={12} /> {t("field.avatar")}
+                </button>
+            {/if}
             {#if editId}
                 {@const editingMember = (plugin.settings?.members ?? []).find((m: any) => m.id === editId)}
                 {@const contactMatch = editingMember?.contactSnapshot?.match(/\[(.*?)\]$/)}
@@ -247,9 +263,9 @@
                         onclick={() => plugin.showTabDocs?.(contactMatch[1])}>
                         <UiIcon name="link" size={12} /> {t("members.openContactDoc")}
                     </button>
-                    <span class="fn__flex-1"></span>
                 {/if}
             {/if}
+            <span class="fn__flex-1"></span>
             {#if editorOpen}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
             {/if}

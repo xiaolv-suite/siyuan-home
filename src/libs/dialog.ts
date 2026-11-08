@@ -77,15 +77,31 @@ export const simpleDialog = (args: {
         }
     });
     dialog.element.querySelector(".dialog-content").appendChild(args.ele);
+    const closeDialog = () => {
+        if (!closed) {
+            closed = true;
+            popSurface();
+            dialog.destroy();
+        }
+    };
+    try {
+        const header = dialog.element?.querySelector?.(".b3-dialog__header");
+        const existingClose = header?.querySelector?.(".lv-dialog-mobile-close-btn, .b3-dialog__close")
+            || dialog.element?.querySelector?.(".b3-dialog__close");
+        if (header && !existingClose && typeof document !== "undefined" && typeof document.createElement === "function") {
+            const closeBtn = document.createElement("button");
+            closeBtn.type = "button";
+            closeBtn.className = "lv-dialog-mobile-close-btn";
+            closeBtn.setAttribute("aria-label", "关闭");
+            closeBtn.setAttribute("title", "关闭");
+            closeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+            closeBtn.onclick = closeDialog;
+            header.appendChild(closeBtn);
+        }
+    } catch { /* soft */ }
     return {
         dialog,
-        close: () => {
-            if (!closed) {
-                closed = true;
-                popSurface();
-                dialog.destroy();
-            }
-        }
+        close: closeDialog
     };
 }
 
@@ -99,11 +115,12 @@ export const svelteDialog = (args: {
 }) => {
     let container = document.createElement('div')
     container.style.display = 'contents';
+    let closeRef: () => void = () => {};
 
     // 内部处理 mount
     let componentInstance = mount(args.component, {
         target: container,
-        props: args.props || {}
+        props: { ...(args.props || {}), onClose: () => closeRef() }
     });
 
     const { dialog, close } = simpleDialog({
@@ -115,6 +132,7 @@ export const svelteDialog = (args: {
             if (args.callback) args.callback();
         }
     });
+    closeRef = close;
 
     return {
         component: componentInstance,

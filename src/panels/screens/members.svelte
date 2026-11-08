@@ -450,6 +450,10 @@
     {t}
     onSaved={handleMemberSaved}
     onCancel={cancelEdit}
+    onPickAvatar={editId ? () => {
+        const target = members.find((m) => m.id === editId);
+        if (target) pickAvatar(target);
+    } : undefined}
 />
 
 {#if members.length === 0 && !editorOpen}

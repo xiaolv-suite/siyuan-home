@@ -441,18 +441,21 @@
                     {#each tableKeys as k (k)}
                         {@const colWidth = currentModuleColWidths[k]}
                         {@const v = r.cells?.[ref?.columns?.[k]]}
-                        <td class="lv-num" class:lv-tx-danger={(k === "expiry" || k === "due") && tone === "danger"} class:lv-tx-warn={(k === "expiry" || k === "due") && tone === "warn"}
+                        {@const cellVal = cellText(v, k)}
+                        <td class="lv-num" data-label={resolveFieldLabel(k)} data-col={k}
+                            class:is-empty-cell={!cellVal || cellVal === "—"}
+                            class:lv-tx-danger={(k === "expiry" || k === "due") && tone === "danger"} class:lv-tx-warn={(k === "expiry" || k === "due") && tone === "warn"}
                             style={colWidth ? `width:${colWidth}px;min-width:${colWidth}px;max-width:${colWidth}px;overflow:hidden;text-overflow:ellipsis` : undefined}>
                             {#if k === "qty" || k === "stock_qty"}
                                 <div class="lv-qty-stepper">
                                     <button type="button" class="lv-qty-btn"
                                         title={t("ledger.quickDec")} aria-label={t("ledger.quickDec")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, -1); }}><UiIcon name="minus" size={10} /></button>
-                                    <span class="lv-cell-center-min">{cellText(v, k)}</span>
+                                    <span class="lv-cell-center-min">{cellVal}</span>
                                     <button type="button" class="lv-qty-btn"
                                         title={t("ledger.quickInc")} aria-label={t("ledger.quickInc")} onclick={(e) => { e.stopPropagation(); onAdjustQty(r, k, 1); }}><UiIcon name="add" size={10} /></button>
                                 </div>
                             {:else}
-                                {cellText(v, k)}
+                                {cellVal}
                             {/if}
                         </td>
                     {/each}

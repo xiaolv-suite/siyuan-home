@@ -166,7 +166,15 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
             err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
         }).finally(() => { if (!identityPending) ok.disabled = false; });
     });
-    box.append(row1, rowM, row2, row3, err, ok);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "b3-button b3-button--cancel";
+    cancel.textContent = t("cancel");
+    cancel.addEventListener("click", () => dlg.destroy());
+    const action = document.createElement("div");
+    action.className = "b3-dialog__action";
+    action.append(cancel, ok);
+    box.append(row1, rowM, row2, row3, err, action);
     bindDialogA11y({ dlg, defaultFocus: nameInput });
     nameInput.focus();
 }

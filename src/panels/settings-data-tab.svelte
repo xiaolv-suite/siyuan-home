@@ -129,9 +129,9 @@
         <div class="lv-setcard__title">{t("settings.energyPresetsTitle")}</div>
         <div class="lv-setcard__hint">{t("settings.energyPresetsHint")}</div>
         <div class="lv-mt-10" style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label style="min-width: 120px; font-size: 13px;" for="lv-set-fuel-presets">{t("settings.fuelPresets")}:</label>
-                <input id="lv-set-fuel-presets" class="b3-text-field fn__flex-1"
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <label style="min-width: 100px; font-size: 13px;" for="lv-set-fuel-presets">{t("settings.fuelPresets")}:</label>
+                <input id="lv-set-fuel-presets" class="b3-text-field fn__flex-1" style="min-width: 120px;"
                     value={(plugin.settings?.fuelPresetAmounts ?? [200, 300, 500]).join(", ")}
                     onchange={async (e) => {
                         const vals = (e.currentTarget as HTMLInputElement).value
@@ -147,9 +147,9 @@
                     }}
                 />
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label style="min-width: 120px; font-size: 13px;" for="lv-set-charge-presets">{t("settings.chargePresets")}:</label>
-                <input id="lv-set-charge-presets" class="b3-text-field fn__flex-1"
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <label style="min-width: 100px; font-size: 13px;" for="lv-set-charge-presets">{t("settings.chargePresets")}:</label>
+                <input id="lv-set-charge-presets" class="b3-text-field fn__flex-1" style="min-width: 120px;"
                     value={(plugin.settings?.chargePresetAmounts ?? [30, 50, 100]).join(", ")}
                     onchange={async (e) => {
                         const vals = (e.currentTarget as HTMLInputElement).value

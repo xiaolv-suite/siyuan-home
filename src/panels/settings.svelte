@@ -34,10 +34,23 @@
         saveData?: (name: string, data: unknown) => Promise<void>;
     }
 
-    let { plugin, settings }: {
+    let { plugin, settings, onClose }: {
         plugin: IHomePluginLike;
         settings: HomeSettings;
+        onClose?: () => void;
     } = $props();
+
+    let settingsRootEl: HTMLElement | undefined = $state();
+    function handleCloseSettings() {
+        if (onClose) {
+            onClose();
+            return;
+        }
+        const dlg = settingsRootEl?.closest(".b3-dialog");
+        const closeBtn = dlg?.querySelector<HTMLElement>(".b3-dialog__close, .lv-dialog-mobile-close-btn, [data-type='cancel']");
+        if (closeBtn) closeBtn.click();
+        else dlg?.remove();
+    }
 
     let notebookList = $state<Array<{ id: string; name: string }>>([]);
     $effect(() => {
@@ -416,7 +429,7 @@
     };
 </script>
 
-<div class="lv-home lv-settings">
+<div class="lv-home lv-settings" bind:this={settingsRootEl}>
     <!-- 左侧主分类；模块和提醒等复杂页面在右侧继续细分。 -->
     <nav class="lv-setnav" aria-label={t("settingsTitle")} inert={saving || migrationBusy || demoBusy}>
         <div class="lv-setnav__brand"><span class="lv-setnav__brand-mark" aria-hidden="true"><UiIcon name="home" size={16} /></span><div><b>{t("butler")}</b><span>LV HOME</span></div></div>
@@ -432,6 +445,7 @@
                 <span class="lv-setnav__icon" aria-hidden="true"><UiIcon name={a.icon} size={15} /></span>{t(a.labelKey)}
             </button>
         {/each}
+        <button type="button" class="lv-iconbtn lv-settings-close-btn" aria-label={t("close")} title={t("close")} onclick={handleCloseSettings}><UiIcon name="close" size={16} /></button>
     </nav>
 
     <div class="lv-setpane" aria-busy={saving || migrationBusy || demoBusy} inert={saving || migrationBusy || demoBusy}>

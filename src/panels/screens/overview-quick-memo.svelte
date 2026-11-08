@@ -169,6 +169,7 @@
             memoTitle = "";
             memoDue = "";
             activeSyntaxMode = "none";
+            showMessage(t("memo.added"), 2500, "info");
         } catch (e) {
             showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
         } finally {
@@ -227,37 +228,37 @@
             {/if}
         {/if}
         <input class="b3-text-field lv-memo-date" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} disabled={savingMemo || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-        <button type="button" class="b3-button b3-button--text" title="AI 极速解析" aria-label="AI 极速解析" disabled={aiParsing || !memoTitle.trim() || isGuest} onclick={() => void triggerAiParse()}>
+        <button type="button" class="b3-button b3-button--text" title={t("memo.aiParse")} aria-label={t("memo.aiParse")} disabled={aiParsing || !memoTitle.trim() || isGuest} onclick={() => void triggerAiParse()}>
             <UiIcon name="sparkle" size={13} />
         </button>
         <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim() || isGuest} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
     </div>
 
     <!-- 手机键盘语法提示条 (Mobile Spec v1: 快速备忘 @日期 / !优先级 / #分类 chips) -->
-    <div class="lv-syntax-bar" role="toolbar" aria-label="快捷语法条">
+    <div class="lv-syntax-bar" role="toolbar" aria-label={t("memo.syntaxToolbar")}>
         {#if activeSyntaxMode === "date"}
-            <span class="lv-syntax-tag active"><UiIcon name="calendar" size={12} /> @日期:</span>
+            <span class="lv-syntax-tag active"><UiIcon name="calendar" size={12} /> {t("memo.syntaxDate")}:</span>
             {#each DATE_CHIPS as chip (chip)}
                 <button type="button" class="lv-syntax-chip date" onclick={() => insertSyntaxChip("@", chip)}>
                     {chip}
                 </button>
             {/each}
         {:else if activeSyntaxMode === "priority"}
-            <span class="lv-syntax-tag active"><UiIcon name="alert" size={12} /> !优先级:</span>
+            <span class="lv-syntax-tag active"><UiIcon name="alert" size={12} /> {t("memo.syntaxPriority")}:</span>
             {#each PRIORITY_CHIPS as chip (chip.value)}
                 <button type="button" class="lv-syntax-chip priority {chip.p}" onclick={() => insertSyntaxChip("!", chip.value)}>
                     !{chip.label}
                 </button>
             {/each}
         {:else if activeSyntaxMode === "category"}
-            <span class="lv-syntax-tag active"><UiIcon name="bookmark" size={12} /> #分类:</span>
+            <span class="lv-syntax-tag active"><UiIcon name="bookmark" size={12} /> {t("memo.syntaxCategory")}:</span>
             {#each CATEGORY_CHIPS as chip (chip)}
                 <button type="button" class="lv-syntax-chip category" onclick={() => insertSyntaxChip("#", chip)}>
                     #{chip}
                 </button>
             {/each}
         {:else if activeSyntaxMode === "amount"}
-            <span class="lv-syntax-tag active"><UiIcon name="money" size={12} /> $金额:</span>
+            <span class="lv-syntax-tag active"><UiIcon name="money" size={12} /> {t("memo.syntaxAmount")}:</span>
             {#each AMOUNT_CHIPS as chip (chip)}
                 <button type="button" class="lv-syntax-chip amount" onclick={() => insertSyntaxChip("$", chip)}>
                     ¥{chip}
@@ -266,16 +267,16 @@
         {:else}
             <!-- 默认语法快速唤出按钮 -->
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("date")}>
-                <UiIcon name="calendar" size={12} /> <span>@日期</span>
+                <UiIcon name="calendar" size={12} /> <span>{t("memo.syntaxDate")}</span>
             </button>
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("priority")}>
-                <UiIcon name="alert" size={12} /> <span>!优先级</span>
+                <UiIcon name="alert" size={12} /> <span>{t("memo.syntaxPriority")}</span>
             </button>
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("category")}>
-                <UiIcon name="bookmark" size={12} /> <span>#分类</span>
+                <UiIcon name="bookmark" size={12} /> <span>{t("memo.syntaxCategory")}</span>
             </button>
             <button type="button" class="lv-syntax-guide-btn" onclick={() => openSyntaxPicker("amount")}>
-                <UiIcon name="money" size={12} /> <span>$金额</span>
+                <UiIcon name="money" size={12} /> <span>{t("memo.syntaxAmount")}</span>
             </button>
         {/if}
     </div>

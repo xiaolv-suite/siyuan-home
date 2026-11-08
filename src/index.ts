@@ -148,9 +148,9 @@ export default class LvHomePlugin extends Plugin {
         });
         this.authGuardController.checkRestoredAuth();
 
-        // 移动端入口接入小驴罗盘统一管理（Mobile Spec v1 顶栏+悬浮球收敛）
+        // 全端入口接入小驴罗盘统一管理（Protocol v1.7.5 Unified Entry 顶栏+悬浮球收敛）
         try {
-            this.mobileEntryCleaner = lvLaunchpad.ensureMobileEntry();
+            this.mobileEntryCleaner = lvLaunchpad.ensureUnifiedEntry();
         } catch { /* 容错降级 */ }
 
         // 全局遮罩点击即关（Backdrop Scrim Click-to-Dismiss · 对齐管家全弹窗人体工程学）
@@ -1060,6 +1060,7 @@ export default class LvHomePlugin extends Plugin {
                 badge: expiring > 0 ? `${expiring} 到期` : undefined,
                 badgeType: "warn",
                 actions: ["记一笔备忘", "今日清单", "逾期扫描", "证件到期速览"],
+                topBarElement: (this as any).topBarElement,
                 onClick: () => this.openDashboard(),
                 onAction: (action) => this.handleQuickAction(action),
             });

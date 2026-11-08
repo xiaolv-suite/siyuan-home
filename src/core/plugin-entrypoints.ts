@@ -142,6 +142,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
     }
 
     let topBarEl: HTMLElement | undefined = plugin.addTopBar(createTopBarOptions());
+    (plugin as any).topBarElement = topBarEl;
     let topBarObserver: MutationObserver | undefined;
     let topBarReviveTimer: number | undefined;
     let isDisposed = false;

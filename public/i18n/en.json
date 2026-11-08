@@ -2095,6 +2095,7 @@
     "spotlight.refCopied": "Block reference copied",
     "spotlight.cmdTriggerHint": " · Type > for commands",
     "spotlight.cmdBadge": "Command",
+    "spotlight.cmdNumTip": "Shortcut ${n}",
     "spotlight.filterTagHint": "Supports #tag filtering",
     "spotlight.filterUrgentHint": "Type !urgent for imminent high-priority items",
     "ledger.shopWriteToLedger": "🛒 Add to Shopping Ledger",

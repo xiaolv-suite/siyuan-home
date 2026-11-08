@@ -6,6 +6,7 @@
 import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./spotlight";
 import { showMessage } from "siyuan";
 import { ensurePinyin } from "./pinyin";
+import { formatLocationBreadcrumbTag } from "./location-index";
 import { uiIcon, moduleUiIcon, type UiIconName } from "@/ui/icons";
 import { bindDialogA11y } from "./dialog-a11y";
 
@@ -169,7 +170,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             if (numKey) card.setAttribute("data-cmd-num", numKey);
             card.innerHTML = `
                 <div class="lv-spotlight-item-head">
-                    ${numKey ? `<span class="lv-badge lv-badge--xs lv-badge--cmd-num" title="快捷序号 ${numKey}">${numKey}</span>` : ""}
+                    ${numKey ? `<span class="lv-badge lv-badge--xs lv-badge--cmd-num" title="${escapeHtml(t("spotlight.cmdNumTip").replace("${n}", numKey))}">${numKey}</span>` : ""}
                     <span class="lv-spotlight-icon-item">${uiIcon(CMD_ICONS[cmd.action] ?? "bolt", "", 16)}</span>
                     <b>${escapeHtml(cmd.title)}</b>
                     <span class="lv-caption lv-tx-muted">${escapeHtml(cmd.sub)}</span>
@@ -252,7 +253,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
 
             const metaParts: string[] = [];
             if (item.memberName) metaParts.push(`<span>${uiIcon("users", "", 11)} ${escapeHtml(item.memberName)}</span>`);
-            if (item.location) metaParts.push(`<span>${uiIcon("mapPin", "", 11)} ${escapeHtml(item.location)}</span>`);
+            if (item.location) metaParts.push(`<span>${uiIcon("mapPin", "", 11)} ${escapeHtml(formatLocationBreadcrumbTag(item.location))}</span>`);
             if (item.dueDate) metaParts.push(`<span>${uiIcon("calendar", "", 11)} ${escapeHtml(item.dueDate)}</span>`);
             if (item.amount !== undefined) metaParts.push(`<span>${uiIcon("money", "", 11)} ¥${item.amount}</span>`);
             if (item.note) metaParts.push(`<span>${uiIcon("note", "", 11)} ${escapeHtml(item.note.slice(0, 24))}</span>`);

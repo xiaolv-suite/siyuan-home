@@ -2095,6 +2095,7 @@
     "spotlight.refCopied": "已复制思源块引用",
     "spotlight.cmdTriggerHint": " · 输入 > 触发命令",
     "spotlight.cmdBadge": "指令",
+    "spotlight.cmdNumTip": "快捷序号 ${n}",
     "spotlight.filterTagHint": "支持 #标签 过滤",
     "spotlight.filterUrgentHint": "输入 !紧急 筛选临期高优事项",
     "ledger.shopWriteToLedger": "🛒 一键写入采购台账",

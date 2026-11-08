@@ -362,6 +362,31 @@
 
     // 322波：总览主屏一键直达全模块「📍 东西放哪了」存放位置速查
     const openLocationIndexModal = () => showLocationSearch({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
+
+    async function copyDailyHomeBoard(e?: MouseEvent) {
+        try {
+            const { formatDailyHomeBoardMarkdown } = await import("@/core/reminder-digest");
+            const boardItems = allReminders.map((r: Reminder) => ({
+                id: r.id,
+                moduleId: r.moduleId,
+                title: r.title,
+                dueDate: r.dueDate,
+                daysLeft: r.daysLeft,
+                level: r.level,
+                location: (r as any).location,
+            }));
+            const md = formatDailyHomeBoardMarkdown(boardItems, {
+                label: (mid) => (t(`module.${mid}`) !== `module.${mid}` ? t(`module.${mid}`) : mid),
+            });
+            await navigator.clipboard.writeText(md);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("overview.copyDailyBoardDone"));
+            }
+            showMessage(t("overview.copyDailyBoardDone"), 3000, "info");
+        } catch {
+            showMessage(t("ledger.copyAsImageFail"), 3000, "error");
+        }
+    }
 </script>
 
 {#if !onboarded}
@@ -396,6 +421,7 @@
             <button type="button" class="lv-btn lv-hero-action-btn lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={15} />{t("dash.heroOpen")}</button>
             <button type="button" class="lv-btn ghost sm" onclick={() => void openJournalDoc()} title={t("capture.openJournalDoc")}><UiIcon name="note" size={14} />{t("capture.openJournalDoc")}</button>
             <div class="lv-hero-tools-group" role="group" aria-label={t("dash.quickTools")}>
+                <button type="button" class="lv-btn ghost sm" onclick={(e) => void copyDailyHomeBoard(e)} title={t("overview.dailyBoard")}><UiIcon name="home" size={14} />{t("overview.dailyBoard")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
                 <button type="button" class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>

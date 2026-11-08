@@ -64,6 +64,26 @@ describe("reminder-batch-bar (提醒主屏多选批量操作条)", () => {
         expect(taskBlocks[0]).toContain("证件");
     });
 
+    it("批量转换为 Bento 风格每日生活备忘看板 Markdown", async () => {
+        const { formatDailyHomeBoardMarkdown } = await import("@/core/reminder-digest");
+        const boardItems = mockReminders.map((r) => ({
+            id: r.id,
+            moduleId: r.moduleId,
+            title: r.title,
+            dueDate: r.dueDate,
+            daysLeft: r.daysLeft,
+            level: r.level,
+        }));
+        const md = formatDailyHomeBoardMarkdown(boardItems, {
+            date: "2026-11-20",
+            label: (mid) => mid === "certs" ? "证件" : "车辆",
+        });
+        expect(md).toContain("> 🏠 **今日家庭生活备忘与到期预警 · 2026-11-20**");
+        expect(md).toContain("待处理: **2** 项");
+        expect(md).toContain("护照换发");
+        expect(md).toContain("车辆年检");
+    });
+
     it("批量推入今日排期 batchPushRemindersToTodayPlan", () => {
         const runtime = {
             planDates: {},

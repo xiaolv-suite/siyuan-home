@@ -118,6 +118,38 @@
         }
     }
 
+    async function batchCopyDailyBoard(e?: MouseEvent) {
+        if (batchBusy) return;
+        const selectedList = filtered.filter((r) => selected.has(r.id));
+        const targetList = selectedList.length > 0 ? selectedList : filtered;
+        if (targetList.length === 0) return;
+        batchBusy = true;
+        try {
+            const { formatDailyHomeBoardMarkdown } = await import("@/core/reminder-digest");
+            const boardItems = targetList.map((r) => ({
+                id: r.id,
+                moduleId: r.moduleId,
+                title: r.title,
+                dueDate: r.dueDate,
+                daysLeft: r.daysLeft,
+                level: r.level,
+                location: (r as any).location,
+            }));
+            const md = formatDailyHomeBoardMarkdown(boardItems, {
+                label: (mid) => (t(`module.${mid}`) !== `module.${mid}` ? t(`module.${mid}`) : mid),
+            });
+            await navigator.clipboard.writeText(md);
+            if (e?.currentTarget) {
+                homeInline(e.currentTarget as HTMLElement, t("hub.dailyBoardCopied"));
+            }
+            showMessage(t("hub.dailyBoardCopied"), 3000, "info");
+        } catch {
+            showMessage(t("hub.digestCopyFailed"), 3000, "error");
+        } finally {
+            batchBusy = false;
+        }
+    }
+
     async function batchPlanToday() {
         if (batchBusy || selected.size === 0) return;
         batchBusy = true;
@@ -197,6 +229,7 @@
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy} onclick={selectAllFiltered}>{t("hub.selectAll")}</button>
     <span class="fn__flex-1"></span>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyAsTasks(e)}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyDailyBoard(e)}><UiIcon name="home" size={13} /> {t("hub.batchCopyDailyBoard")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyBlockRefs(e)}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}><UiIcon name="check" size={13} /> {t("act.done")}</button>

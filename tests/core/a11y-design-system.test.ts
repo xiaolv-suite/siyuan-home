@@ -121,6 +121,14 @@ describe('Design System A11y & High-Contrast Contracts (Epoch 5)', () => {
     expect(indexContent).toContain('@container lv-home (max-width: 400px)');
   });
 
+  it('移动端全屏宿主声明 .b3-dialog__body/.b3-dialog__content 单层滚动与底部避让契约', () => {
+    expect(indexContent).toMatch(/\.b3-dialog__body,\s*\.b3-dialog__content/);
+    expect(indexContent).toContain('var(--lv-vv-h, 100dvh)');
+    expect(indexContent).toContain('data-keyboard-open="true"');
+    expect(scssContent).toContain('@container lv-home (max-width: 680px)');
+    expect(scssContent).toContain('calc(74px + env(safe-area-inset-bottom, 0px))');
+  });
+
   it('主视图与交互面板按钮消除操作系统依赖的字符 Emoji 与符号 (+, ＋, ✕, ↺, ●)', () => {
     const filesToCheck = [
       '../../src/panels/settings.svelte',

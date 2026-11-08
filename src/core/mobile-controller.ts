@@ -27,9 +27,18 @@ export function createMobileController(options: MobileControllerOptions): Mobile
 
     let mobileDialog: Dialog | undefined;
     let mobileDialogUnmount: (() => void) | undefined;
+    let mobileViewportCleanup: (() => void) | undefined;
     let isDisposed = false;
 
     const closeMobilePanel = (): void => {
+        if (mobileViewportCleanup) {
+            try {
+                mobileViewportCleanup();
+            } catch {
+                /* soft cleanup */
+            }
+            mobileViewportCleanup = undefined;
+        }
         if (mobileDialogUnmount) {
             try {
                 mobileDialogUnmount();
@@ -73,6 +82,14 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             width: "100vw",
             height: "100dvh",
             destroyCallback: () => {
+                if (mobileViewportCleanup) {
+                    try {
+                        mobileViewportCleanup();
+                    } catch {
+                        /* 已清理 */
+                    }
+                    mobileViewportCleanup = undefined;
+                }
                 if (mobileDialogUnmount) {
                     try {
                         mobileDialogUnmount();
@@ -85,13 +102,49 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             },
         });
 
-        const host = dialog.element.querySelector(".lv-mobile-host") as HTMLElement;
+        const host = dialog.element?.querySelector?.(".lv-mobile-host") as HTMLElement | undefined;
         if (!host) {
-            dialog.destroy();
+            dialog.destroy?.();
             return;
         }
 
         dialog.element.classList.add("b3-dialog--lvmobile");
+
+        // visualViewport 动态高度与软键盘自适应监听
+        if (typeof window !== "undefined") {
+            let baseHeight = Math.max(window.innerHeight || 0, window.visualViewport?.height || 0);
+            const syncViewport = () => {
+                const vv = window.visualViewport;
+                const currentH = Math.round(vv ? vv.height : (window.innerHeight || 0));
+                if (currentH > baseHeight) {
+                    baseHeight = currentH;
+                }
+                if (currentH > 0) {
+                    dialog.element.style.setProperty("--lv-vv-h", `${currentH}px`);
+                    host.style.setProperty("--lv-vv-h", `${currentH}px`);
+                }
+                const refHeight = Math.max(baseHeight, window.innerHeight || 0);
+                const keyboardOpen = refHeight > 0 && refHeight - currentH > 110;
+                if (keyboardOpen) {
+                    dialog.element.setAttribute("data-keyboard-open", "true");
+                    host.setAttribute("data-keyboard-open", "true");
+                } else {
+                    dialog.element.removeAttribute("data-keyboard-open");
+                    host.removeAttribute("data-keyboard-open");
+                }
+            };
+
+            syncViewport();
+            const vv = window.visualViewport;
+            vv?.addEventListener("resize", syncViewport);
+            vv?.addEventListener("scroll", syncViewport);
+            window.addEventListener("resize", syncViewport, { passive: true });
+            mobileViewportCleanup = () => {
+                vv?.removeEventListener("resize", syncViewport);
+                vv?.removeEventListener("scroll", syncViewport);
+                window.removeEventListener("resize", syncViewport);
+            };
+        }
 
         // 下滑手势关闭支持（Mobile Spec v1 统一手势规范：下拉超过 80px 关坞）
         let touchStartY = 0;
@@ -112,8 +165,10 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             const deltaY = touch.clientY - touchStartY;
             const deltaX = Math.abs(touch.clientX - touchStartX);
             if (deltaY > 20 && deltaY > deltaX * 1.5) {
-                const scrollEl = host.querySelector(".lv-home") as HTMLElement;
-                if (!scrollEl || scrollEl.scrollTop <= 0) {
+                const stageEl = host.querySelector(".lv-main-stage") as HTMLElement | null;
+                const homeEl = host.querySelector(".lv-home") as HTMLElement | null;
+                const scrollTop = (stageEl?.scrollTop ?? 0) + (homeEl?.scrollTop ?? 0);
+                if (scrollTop <= 0) {
                     isSwipingDown = true;
                 }
             }

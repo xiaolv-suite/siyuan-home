@@ -38,4 +38,19 @@ describe("mobile-controller (移动端全屏面板适配器与下滑关闭手势
         expect(typeof lvLaunchpad.haptic).toBe("function");
         expect(() => lvLaunchpad.haptic(10)).not.toThrow();
     });
+
+    it("移动端全屏宿主挂载时支持切屏回调分派，销毁时安全清理监听器", () => {
+        const panelScreenSwitch = vi.fn();
+        const mockPlugin = { app: {}, pendingScreen: "", panelScreenSwitch };
+        const ctrl = createMobileController({
+            plugin: mockPlugin,
+            t: (k: string) => k,
+            isMobileFrontend: true,
+        });
+        ctrl.openMobilePanel("overview");
+        expect(mockPlugin.pendingScreen).toBe("overview");
+        expect(panelScreenSwitch).toHaveBeenCalledWith("overview");
+        ctrl.closeMobilePanel();
+        expect(ctrl.isOpen()).toBe(false);
+    });
 });

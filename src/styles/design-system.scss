@@ -2899,6 +2899,24 @@
   .lv-hub-view-toggle { flex: 0 0 auto; padding: 2px; .lv-tabs__item { min-height: 28px; padding: 4px 10px; font-size: 12px; } }
   .lv-btn-chip.is-filtered, .lv-hub-actions .is-active { color: var(--lv-accent); border-color: var(--lv-accent-line); background: var(--lv-accent-soft); font-weight: 550; }
   .lv-save-view-btn { font-size: 12px; padding: 2px 8px; color: var(--lv-accent); }
+  // 手机端抽屉控件默认在桌面宽屏隐藏或平铺
+  .lv-hub-mobile-quick-status,
+  .lv-hub-mobile-drawer-btn,
+  .lv-member-more-toggle,
+  .lv-hero-tools-toggle,
+  .lv-ledger-mobile-filter-btn {
+    display: none;
+  }
+  .lv-hub-collapsible-drawer,
+  .lv-member-secondary-tools,
+  .lv-hero-tools-drawer {
+    display: contents;
+  }
+  .lv-member-primary-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
 
   @container lv-home (max-width: 860px) {
     .lv-quick-flow-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -3279,20 +3297,24 @@
   }
 
   @container lv-home (max-width: 480px) {
-    .lv-bento-side { grid-template-columns: 1fr; }
-    .lv-focus-card { gap: 10px; padding: 14px; }
-    .lv-memo, .lv-person { padding: 14px; }
+    .lv-bento-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lv-focus-card { gap: 8px; padding: 10px 12px; }
+    .lv-memo, .lv-person { padding: 12px 14px; }
     .lv-tabbar {
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-areas: "brand actions" "tabs tabs";
-      gap: 8px 10px;
-      padding: 8px 10px;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
+      gap: 6px;
+      padding: calc(4px + env(safe-area-inset-top, 0px)) 10px 4px;
+      margin-bottom: 0;
     }
     .lv-hubstatus { display: none; }
     .lv-tabbar-actions { justify-self: end; gap: 2px; }
-    .lv-tabbar-actions .lv-iconbtn { width: 32px; height: 32px; }
+    .lv-tabbar-actions .lv-iconbtn { width: 32px; height: 32px; min-width: 32px; min-height: 32px; }
     .lv-tabs__item { padding: 4px 6px; font-size: 12px; flex: 1; }
-    .lv-tabbar > .lv-tabs { width: 100%; }
+    .lv-tabbar > .lv-tabs { display: none !important; }
     .lv-rem { grid-template-columns: 34px minmax(0, 1fr); }
     .lv-rem.lv-rem--batch { grid-template-columns: 30px 34px minmax(0, 1fr); }
     .lv-rem.lv-rem--batch > .b3-checkbox { grid-column: 1; grid-row: 1; align-self: start; margin-top: 4px; }
@@ -3308,13 +3330,516 @@
     .lv-empty { padding-inline: 16px; }
     .lv-start-guide__steps { grid-template-columns: 1fr; }
     .lv-onboarding .lv-wiz__actions--split .lv-btn.primary { flex: 1 1 100%; }
-    .lv-batch-bar { bottom: 8px; padding: 4px 10px; gap: 5px; font-size: 11px; .b3-button { padding: 2px 6px; font-size: 11px; } }
+    .lv-batch-bar { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); z-index: 120; padding: 4px 10px; gap: 5px; font-size: 11px; .b3-button { padding: 2px 6px; font-size: 11px; } }
     .lv-hub-batchbar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
     .lv-pulse-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; overflow-x: visible; }
     .lv-pulse-pill { min-width: 0; padding: 8px 2px; }
     .lv-expiring-item { padding: 6px; gap: 6px; }
     .lv-expiring-item__info { min-width: 0; flex: 1 1 auto; }
     .lv-expiring-item__meta { flex: 0 0 auto; gap: 4px; }
+  }
+
+  // ── 手机端 / 窄面板（<=680px）紧凑顶栏、四大主屏首屏精简与底部浮层避让 ──
+  @mixin mobile-compact-680 {
+    // 1. 紧凑单行 48px 顶栏（绝不折行）
+    .lv-tabbar {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      min-height: 48px !important;
+      padding: calc(4px + env(safe-area-inset-top, 0px)) 10px 4px !important;
+      margin-bottom: 6px !important;
+      gap: 6px !important;
+    }
+    .lv-tabbar > .lv-tabs,
+    .lv-tabbar > .fn__flex-1,
+    .lv-tabbar > .lv-hubstatus {
+      display: none !important;
+    }
+    .lv-appbrand {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      gap: 6px;
+      height: 34px;
+    }
+    .lv-appbrand-sep,
+    .lv-appbrand-t span {
+      display: none !important;
+    }
+    .lv-appbrand .lv-logo {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+      border-radius: 8px;
+      flex: none;
+    }
+    .lv-appbrand-t b {
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lv-tabbar-actions {
+      display: inline-flex !important;
+      align-items: center;
+      flex-wrap: nowrap !important;
+      flex: 0 0 auto;
+      gap: 2px;
+      height: 34px;
+      margin-left: auto;
+      .lv-iconbtn {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        min-height: 34px !important;
+        padding: 0;
+      }
+    }
+
+    // 2A. 提醒中枢首屏精简：紧凑统计胶囊条（<=34px）+ 筛选与操作抽屉化
+    .lv-hub-hero {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: nowrap !important;
+      min-height: 32px;
+      max-height: 34px;
+      padding: 4px 10px !important;
+      margin: 0 0 6px !important;
+      gap: 8px !important;
+      border-radius: var(--lv-r-2);
+      .lv-hub-eyebrow,
+      .lv-hero-lead {
+        display: none !important;
+      }
+      .lv-hero-copy {
+        flex: 0 1 auto !important;
+        width: auto !important;
+        min-width: 0;
+        h1 {
+          font-size: 15px !important;
+          margin: 0 !important;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      .lv-hero-tools {
+        width: auto !important;
+        margin: 0 !important;
+        flex: 0 0 auto;
+      }
+      .lv-hub-summary {
+        border-radius: 999px;
+        box-shadow: none;
+        .lv-hub-summary__item {
+          flex-direction: row;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
+          padding: 2px 9px;
+          span { font-size: 11px; }
+          b { font-size: 13px; line-height: 1; }
+        }
+      }
+    }
+    .lv-hub-controls {
+      margin-bottom: 8px !important;
+    }
+    .lv-hub-bar-card {
+      padding: 6px 8px !important;
+    }
+    .lv-hub-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .lv-hub-view-toggle {
+      height: 30px;
+      .lv-tabs__item {
+        min-height: 26px !important;
+        height: 26px !important;
+        padding: 0 8px !important;
+        font-size: 12px !important;
+      }
+    }
+    .lv-hub-mobile-quick-status {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 4px;
+      .lv-chip {
+        padding: 3px 9px;
+        font-size: 12px;
+        min-height: 28px;
+      }
+    }
+    .lv-hub-mobile-drawer-btn {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      min-height: 30px !important;
+      height: 30px;
+      padding: 0 8px;
+      font-size: 12px;
+      border-radius: 8px;
+      &.is-active {
+        color: var(--lv-accent);
+        border-color: var(--lv-accent-line);
+        background: var(--lv-accent-soft);
+      }
+    }
+    .lv-hub-collapsible-drawer {
+      display: none !important;
+      &.is-open {
+        display: flex !important;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        flex-basis: 100%;
+        padding-top: 8px;
+        margin-top: 4px;
+        border-top: 1px solid var(--lv-line);
+      }
+      .lv-hub-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        width: 100%;
+        .b3-select {
+          max-width: none;
+          width: 100%;
+          min-height: 34px;
+          font-size: 12px;
+        }
+        .lv-btn-chip {
+          grid-column: 1 / -1;
+          justify-content: center;
+          min-height: 32px;
+        }
+      }
+      .lv-hub-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        width: 100%;
+        margin-left: 0;
+        .b3-button {
+          width: 100%;
+          justify-content: center;
+          min-height: 32px;
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+      }
+    }
+
+    // 2B. 成员页首屏精简：单行标题+计数，工具栏收进 [更多操作]
+    .lv-members-screen {
+      gap: 8px !important;
+    }
+    .lv-members-hero {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: nowrap !important;
+      min-height: 34px;
+      padding: 4px 10px !important;
+      margin: 0 !important;
+      gap: 8px !important;
+      border-radius: var(--lv-r-2);
+      .lv-hero-lead {
+        display: none !important;
+      }
+      .lv-hero-copy {
+        flex: 0 1 auto !important;
+        width: auto !important;
+        h1 {
+          font-size: 15px !important;
+          margin: 0 !important;
+          line-height: 1.2;
+        }
+      }
+      .lv-members-tools-wrap {
+        width: auto !important;
+        margin: 0 !important;
+        gap: 10px;
+      }
+      .lv-members-hero-count {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 4px;
+        b { font-size: 15px; }
+        span { font-size: 11px; }
+      }
+    }
+    .lv-member-tools {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin: 0 0 4px !important;
+      > .fn__flex-1 {
+        display: none !important;
+      }
+      .lv-member-primary-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        width: 100%;
+        order: 1;
+        .lv-btn,
+        .b3-button {
+          min-height: 32px;
+          height: 32px;
+          padding: 0 10px;
+          font-size: 12px;
+        }
+      }
+      .lv-member-more-toggle {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        &.is-active {
+          color: var(--lv-accent);
+          border-color: var(--lv-accent-line);
+          background: var(--lv-accent-soft);
+        }
+      }
+      .lv-member-secondary-tools {
+        display: none !important;
+        order: 2;
+        &.is-open {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+          width: 100%;
+          padding: 8px;
+          background: var(--lv-surface);
+          border: 1px solid var(--lv-line);
+          border-radius: var(--lv-r-2);
+          .b3-button {
+            width: 100%;
+            justify-content: center;
+            font-size: 12px;
+            min-height: 32px;
+            padding: 4px 8px;
+          }
+        }
+      }
+    }
+
+    // 2C. 今日总览首屏精简：2x2 紧凑双列网格 + 快捷工具折叠
+    .lv-hero--compact {
+      padding: 10px 12px !important;
+      margin: 0 0 8px !important;
+      gap: 6px !important;
+      h1 {
+        font-size: 16px !important;
+        margin: 2px 0 0;
+      }
+      .lv-hero-lead {
+        font-size: 11.5px;
+        margin-top: 2px;
+        line-height: 1.35;
+      }
+      .lv-hero-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center;
+        gap: 6px !important;
+        margin-top: 8px !important;
+        width: 100%;
+        .lv-hero-capture-btn,
+        .lv-hero-open {
+          flex: 1 1 auto;
+          grid-column: auto;
+          width: auto;
+          min-height: 34px !important;
+          height: 34px !important;
+          padding: 0 10px !important;
+          font-size: 12.5px !important;
+          justify-content: center;
+        }
+        .lv-hero-tools-toggle {
+          display: inline-flex !important;
+          flex: 0 0 auto;
+          width: auto !important;
+          min-height: 34px !important;
+          height: 34px !important;
+          padding: 0 10px !important;
+          font-size: 12px !important;
+          &.is-active {
+            color: var(--lv-accent);
+            border-color: var(--lv-accent-line);
+            background: var(--lv-accent-soft);
+          }
+        }
+        .lv-hero-tools-drawer {
+          display: none !important;
+          &.is-open {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
+            flex-basis: 100%;
+            padding-top: 6px;
+            border-top: 1px dashed var(--lv-line);
+            .lv-hero-tools-group {
+              display: contents;
+            }
+            .lv-btn {
+              width: 100%;
+              justify-content: center;
+              min-height: 32px;
+              font-size: 12px;
+            }
+          }
+        }
+      }
+    }
+    .lv-bento-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+      margin: 0 0 8px !important;
+    }
+    .lv-bento-card--hero {
+      grid-column: 1 / -1;
+      min-height: 0 !important;
+      padding: 8px 12px !important;
+      .lv-bento-hero-title {
+        font-size: 13.5px;
+        margin: 2px 0;
+      }
+      .lv-bento-hero-footer {
+        margin-top: 4px;
+      }
+    }
+    .lv-bento-side {
+      grid-column: 1 / -1;
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    .lv-focus-card {
+      padding: 8px 10px !important;
+      gap: 6px !important;
+      .lv-focus-num {
+        font-size: 17px;
+      }
+      .lv-focus-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+      }
+    }
+    .lv-quick-hub {
+      padding: 8px 10px !important;
+      gap: 6px !important;
+      margin-bottom: 8px !important;
+      .lv-quick-hub__title-wrap .lv-sub {
+        display: none;
+      }
+    }
+
+    // 2D. 资产台账首屏精简：默认单行 [模块下拉] [搜索] [+ 新增] [筛选 ▾]
+    .lv-ledger-toolbar {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      gap: 6px !important;
+      padding: 6px 8px !important;
+      margin: 0 0 8px !important;
+      > .fn__flex-1 {
+        display: none !important;
+      }
+      > .lv-ledger-mod-select {
+        order: 1 !important;
+        flex: 0 1 112px !important;
+        min-width: 80px !important;
+        min-height: 34px !important;
+        padding: 4px 6px !important;
+        font-size: 12px !important;
+      }
+      > .lv-search-box {
+        order: 2 !important;
+        flex: 1 1 80px !important;
+        min-width: 68px !important;
+        .lv-search-input {
+          width: 100%;
+          min-height: 34px !important;
+          padding: 4px 24px 4px 8px !important;
+          font-size: 12px !important;
+        }
+      }
+      > .lv-ledger-new-btn {
+        order: 3 !important;
+        flex: 0 0 auto !important;
+        min-height: 34px !important;
+        height: 34px;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+      }
+      > .lv-ledger-mobile-filter-btn {
+        order: 4 !important;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto !important;
+        min-height: 34px !important;
+        height: 34px;
+        padding: 0 8px !important;
+        font-size: 12px !important;
+        &.is-active {
+          color: var(--lv-accent);
+          border-color: var(--lv-accent-line);
+          background: var(--lv-accent-soft);
+        }
+      }
+      &:not(.is-mobile-filter-open) > :is(.lv-density-btn, .lv-col-vis-details, .lv-open-doc-btn, .lv-ledger-more) {
+        display: none !important;
+      }
+      &.is-mobile-filter-open > :is(.lv-density-btn, .lv-col-vis-details, .lv-open-doc-btn, .lv-ledger-more) {
+        order: 5 !important;
+        flex: 1 1 auto;
+        min-height: 32px;
+        font-size: 12px;
+      }
+    }
+    .lv-filter-bar:not(.is-mobile-filter-open) {
+      display: none !important;
+    }
+    .lv-filter-bar.is-mobile-filter-open {
+      display: flex !important;
+      margin: 0 0 8px !important;
+      gap: 4px;
+    }
+
+    // 3. 底部悬浮条统一避让底栏（64px + safe-area）
+    .lv-batch-bar,
+    .lv-ledger-more__menu,
+    .lv-hub-batchbar {
+      bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+      z-index: 120 !important;
+    }
+  }
+
+  @container lv-home (max-width: 680px) {
+    @include mobile-compact-680;
+  }
+
+  @media (max-width: 680px) {
+    @include mobile-compact-680;
   }
 }
 

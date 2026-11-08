@@ -35,6 +35,7 @@
     // svelte-ignore state_referenced_locally
     const session = panelSession(plugin);
     let homeEl: HTMLElement;
+    let mainStageEl: HTMLElement;
     let restoreTimers: number[] = [];
     let pointerPreparedScreen: ScreenId | null = null;
     // In Svelte 5 runes mode a capitalized component reference is dynamic by
@@ -71,7 +72,10 @@
         }
     }
     function saveCurrentScroll() {
-        if (homeEl && isScreen(screen)) session.scrollTop[screen] = homeEl.scrollTop;
+        if (!isScreen(screen)) return;
+        const stageTop = mainStageEl?.scrollTop ?? 0;
+        const homeTop = homeEl?.scrollTop ?? 0;
+        session.scrollTop[screen] = stageTop > 0 ? stageTop : homeTop;
     }
     function restoreScroll(target: ScreenId) {
         const top = session.scrollTop[target] ?? 0;
@@ -80,7 +84,10 @@
         // focused tab button into view while the new screen is mounted.
         restoreTimers.forEach((timer) => window.clearTimeout(timer));
         restoreTimers = [];
-        const apply = () => { if (homeEl) homeEl.scrollTop = top; };
+        const apply = () => {
+            if (homeEl) homeEl.scrollTop = top;
+            if (mainStageEl) mainStageEl.scrollTop = top;
+        };
         requestAnimationFrame(() => {
             apply();
             requestAnimationFrame(() => {
@@ -489,7 +496,7 @@
         />
 
         <!-- 2. 中间主工作台 -->
-        <div class="lv-main-stage">
+        <div class="lv-main-stage" bind:this={mainStageEl}>
             <header class="lv-tabbar">
                 <div class="lv-appbrand">
                     <span class="lv-logo" aria-hidden="true"><UiIcon name="home" size={19} className="lv-logo-mark" /></span>

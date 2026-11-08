@@ -30,6 +30,8 @@
         onImportFromContacts?: () => void;
         onToggleEditor: () => void;
     } = $props();
+
+    let mobileToolsOpen = $state(false);
 </script>
 
 <div class="lv-hero lv-members-hero">
@@ -50,26 +52,42 @@
 </div>
 
 <div class="lv-member-tools">
-    <button type="button" class="b3-button b3-button--outline" onclick={onReassign} disabled={membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
-        {reassignBusy ? t("ledger.saving") : t("members.reassign")}
-    </button>
-    <button type="button" class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
-        {exportingVcf ? t("ledger.saving") : t("members.exportVcf")}
-    </button>
-    {#if membersDocId && onOpenMembersDoc}
-        <button type="button" class="b3-button b3-button--outline" onclick={onOpenMembersDoc} title={t("members.openLedger")}>
-            <UiIcon name="folder" size={14} /> {t("members.openLedger")}
+    <div id="lv-member-secondary-tools" class="lv-member-secondary-tools" class:is-open={mobileToolsOpen}>
+        <button type="button" class="b3-button b3-button--outline" onclick={onReassign} disabled={membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
+            {reassignBusy ? t("ledger.saving") : t("members.reassign")}
         </button>
-    {/if}
-    {#if hasContactsBridge && onImportFromContacts}
-        <button type="button" class="b3-button b3-button--outline" onclick={onImportFromContacts} title={t("members.importFromContacts")}>
-            <UiIcon name="link" size={14} /> {t("members.importFromContacts")}
+        <button type="button" class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
+            {exportingVcf ? t("ledger.saving") : t("members.exportVcf")}
         </button>
-    {/if}
+        {#if membersDocId && onOpenMembersDoc}
+            <button type="button" class="b3-button b3-button--outline" onclick={onOpenMembersDoc} title={t("members.openLedger")}>
+                <UiIcon name="folder" size={14} /> {t("members.openLedger")}
+            </button>
+        {/if}
+        {#if hasContactsBridge && onImportFromContacts}
+            <button type="button" class="b3-button b3-button--outline" onclick={onImportFromContacts} title={t("members.importFromContacts")}>
+                <UiIcon name="link" size={14} /> {t("members.importFromContacts")}
+            </button>
+        {/if}
+    </div>
     <span class="fn__flex-1"></span>
-    <button type="button" class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
-        aria-expanded={editorOpen} aria-controls="lv-member-editor"
-        onclick={onToggleEditor}>
-        {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}
-    </button>
+    <div class="lv-member-primary-actions">
+        <button type="button" class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
+            aria-expanded={editorOpen} aria-controls="lv-member-editor"
+            onclick={onToggleEditor}>
+            {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}
+        </button>
+        <button
+            type="button"
+            class="b3-button b3-button--outline lv-member-more-toggle"
+            class:is-active={mobileToolsOpen}
+            aria-expanded={mobileToolsOpen}
+            aria-controls="lv-member-secondary-tools"
+            onclick={() => (mobileToolsOpen = !mobileToolsOpen)}
+        >
+            <UiIcon name="moreHorizontal" size={14} />
+            <span>{t("ledger.moreActions")}</span>
+            <UiIcon name={mobileToolsOpen ? "chevronUp" : "chevronDown"} size={12} />
+        </button>
+    </div>
 </div>

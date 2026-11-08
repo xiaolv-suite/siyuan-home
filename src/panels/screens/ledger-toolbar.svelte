@@ -80,6 +80,10 @@
 
     let ledgerMoreDetails: HTMLDetailsElement | undefined = $state();
     let colVisDetails: HTMLDetailsElement | undefined = $state();
+    let mobileFilterOpen = $state(false);
+    const activeLedgerFilterCount = $derived(
+        (filterMemberId ? 1 : 0) + (filterCategory ? 1 : 0) + (tableDensity === "compact" ? 1 : 0),
+    );
 
     const resolveFieldLabel = (k: string) => {
         if (fieldLabel) return fieldLabel(k);
@@ -166,9 +170,9 @@
 
 <svelte:window onpointerdowncapture={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
 
-<div class="lv-toolbar lv-ledger-toolbar">
+<div class="lv-toolbar lv-ledger-toolbar" class:is-mobile-filter-open={mobileFilterOpen}>
     {#if ledgers.length > 0}
-        <select class="b3-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger")}>
+        <select class="b3-select lv-ledger-mod-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger")}>
             {#each groupedLedgers as g (g.groupId)}
                 <optgroup label={g.groupLabel}>
                     {#each g.modules as l (l.id)}
@@ -241,7 +245,21 @@
             title={t("ledger.openDoc")} onclick={() => plugin.showTabDocs(ref?.docId)}>
             <UiIcon name="folder" size={13} /> <span>{t("ledger.openDoc")}</span>
         </button>
-        <button type="button" class="lv-btn primary" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
+        <button type="button" class="lv-btn primary lv-ledger-new-btn" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
+        <button
+            type="button"
+            class="b3-button b3-button--outline lv-ledger-mobile-filter-btn"
+            class:is-active={mobileFilterOpen || activeLedgerFilterCount > 0}
+            aria-expanded={mobileFilterOpen}
+            onclick={() => (mobileFilterOpen = !mobileFilterOpen)}
+        >
+            <UiIcon name="filter" size={13} />
+            <span>{t("hub.mobileFilter") !== "hub.mobileFilter" ? t("hub.mobileFilter") : "筛选"}</span>
+            {#if activeLedgerFilterCount > 0}
+                <span class="lv-badge blue lv-badge--xs">{activeLedgerFilterCount}</span>
+            {/if}
+            <UiIcon name={mobileFilterOpen ? "chevronUp" : "chevronDown"} size={12} />
+        </button>
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <details class="lv-ledger-more" bind:this={ledgerMoreDetails} onkeydown={handleMoreKeydown}>
             <summary class="b3-button b3-button--outline">{t("ledger.moreActions")}</summary>
@@ -286,7 +304,7 @@
 </div>
 
 {#if pinnedLedgers.length > 1 || (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
-    <div class="lv-filter-bar">
+    <div class="lv-filter-bar" class:is-mobile-filter-open={mobileFilterOpen}>
         {#if pinnedLedgers.length > 1}
             <div class="lv-ledger-pinned-bar lv-filter-pill-group">
                 <span class="lv-caption lv-pinned-icon"><UiIcon name="bookmark" size={13} /></span>

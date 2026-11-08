@@ -71,6 +71,7 @@
 
     let showLedgerQuickChips = $state(false);
     let showPulseStrip = $state(false);
+    let showHeroQuickTools = $state(false);
 
     const onboarded = $derived.by(() => {
         void version;
@@ -419,13 +420,27 @@
                 <button type="button" class="lv-btn primary lv-hero-capture-btn" onclick={() => openQuickEvent()}><UiIcon name="bolt" size={16} />{t("dash.quickRecord")}</button>
             {/if}
             <button type="button" class="lv-btn lv-hero-action-btn lv-hero-open" onclick={() => onGoto("reminders")}><UiIcon name="clock" size={15} />{t("dash.heroOpen")}</button>
-            <button type="button" class="lv-btn ghost sm" onclick={() => void openJournalDoc()} title={t("capture.openJournalDoc")}><UiIcon name="note" size={14} />{t("capture.openJournalDoc")}</button>
-            <div class="lv-hero-tools-group" role="group" aria-label={t("dash.quickTools")}>
-                <button type="button" class="lv-btn ghost sm" onclick={(e) => void copyDailyHomeBoard(e)} title={t("overview.dailyBoard")}><UiIcon name="home" size={14} />{t("overview.dailyBoard")}</button>
-                <button type="button" class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
-                <button type="button" class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
-                <button type="button" class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
-                <button type="button" class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
+            <button
+                type="button"
+                class="lv-btn lv-hero-action-btn lv-hero-tools-toggle"
+                class:is-active={showHeroQuickTools}
+                aria-expanded={showHeroQuickTools}
+                aria-controls="lv-hero-tools-drawer"
+                onclick={() => (showHeroQuickTools = !showHeroQuickTools)}
+            >
+                <UiIcon name="menu" size={14} />
+                <span>{t("dash.quickTools")}</span>
+                <UiIcon name={showHeroQuickTools ? "chevronUp" : "chevronDown"} size={12} />
+            </button>
+            <div id="lv-hero-tools-drawer" class="lv-hero-tools-drawer" class:is-open={showHeroQuickTools}>
+                <button type="button" class="lv-btn ghost sm" onclick={() => void openJournalDoc()} title={t("capture.openJournalDoc")}><UiIcon name="note" size={14} />{t("capture.openJournalDoc")}</button>
+                <div class="lv-hero-tools-group" role="group" aria-label={t("dash.quickTools")}>
+                    <button type="button" class="lv-btn ghost sm" onclick={(e) => void copyDailyHomeBoard(e)} title={t("overview.dailyBoard")}><UiIcon name="home" size={14} />{t("overview.dailyBoard")}</button>
+                    <button type="button" class="lv-btn ghost sm" onclick={openLocationIndexModal} title={t("ledger.locSearch")}><UiIcon name="mapPin" size={14} />{t("ledger.locSearch")}</button>
+                    <button type="button" class="lv-btn ghost sm" onclick={openLifeIndexModal} title={t("overview.lifeIndex")}><UiIcon name="shield" size={14} />{t("overview.lifeIndex")}</button>
+                    <button type="button" class="lv-btn ghost sm" onclick={openEmergencyCardModal} title={t("overview.emergencyCard")}><UiIcon name="alert" size={14} />{t("overview.emergencyCard")}</button>
+                    <button type="button" class="lv-btn ghost sm" onclick={openShareCardModal} title={t("overview.shareCard")}><UiIcon name="camera" size={14} />{t("overview.shareCard")}</button>
+                </div>
             </div>
         </div>
     </div>

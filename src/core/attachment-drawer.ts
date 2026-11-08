@@ -283,10 +283,20 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 cameraBtn.textContent = `⏳ ${t("certs.compressing") || "压缩处理中..."}`;
                 try {
                     const rawFile = files[0];
-                    const compressed = await compressImageTo300KB(rawFile);
+                    let targetFile = rawFile;
+                    let isCompressed = false;
+                    try {
+                        const compressed = await compressImageTo300KB(rawFile);
+                        if (compressed) {
+                            targetFile = compressed;
+                            isCompressed = true;
+                        }
+                    } catch {
+                        targetFile = rawFile;
+                    }
                     cameraBtn.textContent = `☁️ ${t("certs.uploading") || "上传保存中..."}`;
-                    const { name, path } = await uploadAsset(compressed, "/assets/siyuan-home/", {
-                        idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${compressed.name}:${compressed.size}`,
+                    const { name, path } = await uploadAsset(targetFile, "/assets/siyuan-home/", {
+                        idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${targetFile.name}:${targetFile.size}`,
                         retries: 1,
                     });
                     const appended = [...existing, { name, content: path }];
@@ -299,7 +309,10 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     } catch {
                         /* soft */
                     }
-                    showMessageFn(t("certs.photoSaved") || "证件照片已拍照并压缩留存（≤300KB）", 4000, "info");
+                    const successTip = isCompressed && targetFile.size <= 300 * 1024
+                        ? (t("certs.photoSaved") || "证件照片已拍照并压缩留存（≤300KB）")
+                        : (t("ledger.uploadDone") || "已保存原始照片");
+                    showMessageFn(successTip, 4000, "info");
                     if (onUploadSuccess) await onUploadSuccess();
                 } catch (e) {
                     showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");

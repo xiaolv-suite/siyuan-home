@@ -629,7 +629,7 @@
 
 <OverviewEcosystemActivity {plugin} {t} {version} />
 
-<ActivityFeed {plugin} {t} {version} compact={true} />
+<ActivityFeed {plugin} {t} {version} compact={true} initialCollapsed={true} />
 
 <OverviewModuleGrid
     {plugin}

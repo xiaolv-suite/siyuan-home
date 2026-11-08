@@ -8,13 +8,14 @@
     import UiIcon from "@/ui/icon.svelte";
 
     let {
-        plugin, t, version, memberId, compact = false,
+        plugin, t, version, memberId, compact = false, initialCollapsed = false,
     }: {
         plugin: HomePluginLike;
         t: (key: string) => string;
         version?: number;
         memberId?: string;
         compact?: boolean;
+        initialCollapsed?: boolean;
     } = $props();
 
     let snapshot = $state<ActivitySnapshot | undefined>();
@@ -24,7 +25,8 @@
     let query = $state("");
     let moduleFilter = $state("all");
     let page = $state(1);
-    let collapsed = $state(false);
+    // svelte-ignore state_referenced_locally
+    let collapsed = $state(initialCollapsed);
     let showFilterTools = $state(false);
     let loadedVersion = $state<number | undefined>();
     let activeController: AbortController | undefined;

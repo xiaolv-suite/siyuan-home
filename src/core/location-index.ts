@@ -387,3 +387,82 @@ export function formatLocationTreeText(
 
     return lines.join("\n").trimEnd();
 }
+
+/**
+ * 将层级位置渲染为符合思源原生 Protyle 规范的空气感微胶囊 HTML 标签（Tag Pill）
+ */
+export function renderLocationCapsuleHtml(location: string | undefined): string {
+    const parts = parseLocationBreadcrumbs(location);
+    if (parts.length === 0) {
+        return `<span class="b3-chip b3-chip--secondary b3-chip--small">（未填写位置）</span>`;
+    }
+
+    const segmentsHtml = parts
+        .map((p, idx) => {
+            const sep = idx > 0 ? `<span class="lv-chip-sep" style="opacity: 0.4; margin: 0 2px;">›</span>` : "";
+            return `${sep}<span class="lv-chip-node">${escapeHtmlText(p)}</span>`;
+        })
+        .join("");
+
+    return `<span class="b3-chip b3-chip--secondary b3-chip--small lv-location-pill" title="${escapeHtmlText(parts.join(" › "))}" style="display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 8px; font-size: 12px; gap: 2px;"><svg style="width: 12px; height: 12px; opacity: 0.6; margin-right: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>${segmentsHtml}</span>`;
+}
+
+function escapeHtmlText(str: string): string {
+    return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+export interface SiblingLocationResult {
+    location: string;
+    breadcrumbs: string[];
+    siblings: LocationEntry[];
+}
+
+/**
+ * 同一空间位置关联检索器：
+ * 给定目标物品 rowId，查找并聚合所有与它存放在同一具体位置（或同一储物格）的其他物品。
+ * 典型应用：在物品详情抽屉中一键回答“这格抽屉里还放了什么”。
+ */
+export function findSiblingItemsInSameLocation(
+    targetRowId: string,
+    rows: LocationRowInput[]
+): SiblingLocationResult | null {
+    if (!targetRowId || !Array.isArray(rows) || rows.length === 0) return null;
+
+    const targetRow = rows.find(r => r && r.rowId === targetRowId);
+    if (!targetRow || !norm(targetRow.location)) return null;
+
+    const targetLoc = norm(targetRow.location);
+    const targetParts = parseLocationBreadcrumbs(targetLoc);
+    const targetCanonical = targetParts.join(" › ");
+
+    const siblings: LocationEntry[] = [];
+    for (const r of rows) {
+        if (!r || r.rowId === targetRowId || !norm(r.name)) continue;
+        const loc = norm(r.location);
+        const parts = parseLocationBreadcrumbs(loc);
+        if (parts.length > 0 && parts.join(" › ") === targetCanonical) {
+            siblings.push({
+                rowId: r.rowId,
+                moduleId: r.moduleId,
+                name: norm(r.name),
+                location: loc,
+                source: r.source ?? "location",
+                ...(r.memberName ? { memberName: r.memberName } : {}),
+                ...(r.hint ? { hint: r.hint } : {}),
+            });
+        }
+    }
+
+    siblings.sort((a, b) => a.moduleId.localeCompare(b.moduleId) || a.name.localeCompare(b.name));
+
+    return {
+        location: targetCanonical,
+        breadcrumbs: targetParts,
+        siblings,
+    };
+}

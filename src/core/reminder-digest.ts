@@ -5,6 +5,8 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
+import { parseLocationBreadcrumbs } from "./location-index";
+
 export interface DigestReminder {
     id: string;
     moduleId: string;
@@ -183,4 +185,71 @@ export function formatDigestMarkdown(
 
     lines.push("---", "*由小驴管家自动生成 · 数据全部保存在本地思源工作空间*");
     return lines.join("\n");
+}
+
+export interface DailyHomeBoardItem extends DigestReminder {
+    location?: string;
+}
+
+export interface DailyHomeBoardOptions {
+    date?: string; // YYYY-MM-DD
+    label?: (moduleId: string) => string;
+}
+
+/**
+ * 格式化生成符合思源原生 Callout 规范的高级 Bento 风格每日生活备忘看板 Markdown
+ * 结构对齐日记每日自律成就卡，带有红黄绿状态灯、模块徽标、空间拓扑胶囊与原生 IAL 属性。
+ */
+export function formatDailyHomeBoardMarkdown(
+    reminders: readonly DailyHomeBoardItem[],
+    options: DailyHomeBoardOptions = {}
+): string {
+    const today = options.date || new Date().toISOString().slice(0, 10);
+    const label = options.label || ((m) => m);
+
+    const list = (reminders || []).filter(r => r && r.id);
+    const overdueList = list.filter(r => r.level === "overdue");
+    const soonList = list.filter(r => r.level === "soon");
+    const leadList = list.filter(r => r.level === "lead");
+
+    const counts = {
+        total: list.length,
+        overdue: overdueList.length,
+        soon: soonList.length,
+        lead: leadList.length,
+    };
+
+    const lines: string[] = [
+        `> 🏠 **今日家庭生活备忘与到期预警 · ${today}**`,
+        `> 待处理: **${counts.total}** 项 (🔴 逾期: **${counts.overdue}** · 🟠 7天内: **${counts.soon}** · 🟡 预警期: **${counts.lead}**)`,
+        `>`,
+    ];
+
+    if (list.length === 0) {
+        lines.push(`> 🟢 今日无待处理到期事项，家庭生活井井有条！`);
+    } else {
+        // 按紧急度顺序排列：逾期 -> 7天内 -> 预警期
+        const sortedList = [...list].sort((a, b) => {
+            const orderA = a.level === "overdue" ? 0 : (a.level === "soon" ? 1 : 2);
+            const orderB = b.level === "overdue" ? 0 : (b.level === "soon" ? 1 : 2);
+            return orderA - orderB || a.daysLeft - b.daysLeft || a.title.localeCompare(b.title);
+        });
+
+        for (const item of sortedList) {
+            const badgeIcon = item.level === "overdue" ? "🔴" : (item.level === "soon" ? "🟠" : "🟡");
+            const whenText = item.daysLeft < 0
+                ? `已逾期 ${Math.abs(item.daysLeft)} 天`
+                : (item.daysLeft === 0 ? "今天到期" : `剩 ${item.daysLeft} 天`);
+
+            const modTag = `\`${label(item.moduleId)}\``;
+            const locParts = item.location ? parseLocationBreadcrumbs(item.location) : [];
+            const locTag = locParts.length > 0 ? ` \`📍 ${locParts.join(" › ")}\`` : "";
+            const ial = `{: custom-type="home-reminder" custom-home-id="${item.id}" custom-home-due="${item.dueDate}" custom-home-level="${item.level}" }`;
+
+            lines.push(`> - [ ] ${badgeIcon} **${item.title}** ${modTag}${locTag} (${whenText} · ${item.dueDate}) ${ial}`);
+        }
+    }
+
+    lines.push(`{: custom-type="home-alert-board" custom-home-summary="true" }`);
+    return lines.join("\n") + "\n";
 }

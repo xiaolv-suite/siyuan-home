@@ -180,4 +180,104 @@ describe("ledger-detail-drawer (台账行详情抽屉完整驱动引擎)", () =>
             else delete (globalThis as any).document;
         }
     });
+
+    it("当行包含存放位置字段时，安全渲染同处空间速查按钮", async () => {
+        const mockRow = {
+            itemID: "row-detail-loc",
+            cells: {
+                c_name: { type: "text", text: { content: "护照原件" } },
+                c_loc: { type: "text", text: { content: "主卧 › 大衣柜 › 顶层文件箱" } },
+            },
+        };
+
+        const createdElements: any[] = [];
+        const originalDoc = (globalThis as any).document;
+        (globalThis as any).document = {
+            createElement: vi.fn().mockImplementation((tag: string) => {
+                const el: any = {
+                    tagName: tag.toUpperCase(),
+                    className: "",
+                    style: {},
+                    dataset: {},
+                    innerHTML: "",
+                    textContent: "",
+                    appendChild: vi.fn(),
+                    append: vi.fn(),
+                    addEventListener: vi.fn(),
+                    removeEventListener: vi.fn(),
+                    setAttribute: vi.fn(),
+                    getAttribute: vi.fn(),
+                    removeAttribute: vi.fn(),
+                    classList: { add: vi.fn(), toggle: vi.fn(), contains: vi.fn().mockReturnValue(false) },
+                };
+                createdElements.push(el);
+                return el;
+            }),
+        };
+
+        class TestDialog {
+            element = {
+                querySelector: vi.fn().mockImplementation(() => ({
+                    onclick: vi.fn(),
+                    appendChild: vi.fn(),
+                    append: vi.fn(),
+                    classList: { add: vi.fn(), toggle: vi.fn(), contains: vi.fn() },
+                })),
+                querySelectorAll: vi.fn().mockReturnValue([]),
+                classList: { add: vi.fn(), toggle: vi.fn() },
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            };
+            destroy = vi.fn();
+            constructor(_opts: any) {}
+        }
+
+        try {
+            await openLedgerDetailDrawer({
+                row: mockRow,
+                ref: {
+                    avId: "av-detail",
+                    columns: { name: "c_name", location: "c_loc" },
+                },
+                active: "certs",
+                plugin: {
+                    settings: { dbRefs: {}, members: [] },
+                    schemaCatalog: {
+                        certs: {
+                            columns: [
+                                { key: "name", name: "名称", type: "text" },
+                                { key: "location", name: "存放位置", type: "text" },
+                            ],
+                        },
+                    },
+                    runtime: {},
+                },
+                t: (k: string) => k,
+                DialogCls: TestDialog as any,
+                showMessageFn: vi.fn(),
+                renderLedgerAllFn: vi.fn().mockResolvedValue({
+                    complete: true,
+                    rows: [
+                        mockRow,
+                        {
+                            itemID: "row-detail-sibling",
+                            cells: {
+                                c_name: { type: "text", text: { content: "港澳通行证" } },
+                                c_loc: { type: "text", text: { content: "主卧 › 大衣柜 › 顶层文件箱" } },
+                            },
+                        },
+                    ],
+                }),
+                cellTextFn: (cell: any) => cell?.text?.content || "",
+                openNewRecordFn: vi.fn(),
+                onReload: vi.fn().mockResolvedValue(undefined),
+            });
+
+            const siblingBtn = createdElements.find((el) => el.innerHTML?.includes("ledger.locSiblings"));
+            expect(siblingBtn).toBeDefined();
+        } finally {
+            if (originalDoc !== undefined) (globalThis as any).document = originalDoc;
+            else delete (globalThis as any).document;
+        }
+    });
 });

@@ -5,7 +5,15 @@
  * 独立于页面存在，避免页面膨胀。
  */
 import { modalWarningHtml } from "./modal-shell";
-import { buildLocationIndex, searchLocations, formatLocationIndexText, formatLocationBreadcrumbTag, type LocationRowInput } from "./location-index";
+import {
+    buildLocationIndex,
+    searchLocations,
+    formatLocationIndexText,
+    renderLocationCapsuleHtml,
+    buildLocationTree,
+    formatLocationTreeText,
+    type LocationRowInput,
+} from "./location-index";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { uiIcon } from "@/ui/icons";
@@ -97,6 +105,7 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
 <div class="b3-dialog__action">
   <span class="lv-caption fn__flex-1" id="lv-loc-total"></span>
   <button class="b3-button b3-button--cancel" id="lv-loc-close">${t("close")}</button>
+  <button class="b3-button b3-button--outline" id="lv-loc-copy-tree">${t("ledger.locCopyTree")}</button>
   <button class="b3-button" id="lv-loc-copy">${t("ledger.locCopy")}</button>
 </div>`,
         width: "600px",
@@ -138,8 +147,9 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
             const head = document.createElement("div");
             head.className = "lv-dialog-row lv-domain-title lv-tx-accent";
             head.style.marginBottom = "6px";
-            const safeBreadcrumb = formatLocationBreadcrumbTag(loc).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            head.innerHTML = `<span>${uiIcon("mapPin", "", 13)} ${safeBreadcrumb}</span><span class="lv-caption">${list.length} 件</span>`;
+            head.style.alignItems = "center";
+            const capsuleHtml = renderLocationCapsuleHtml(loc);
+            head.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px">${capsuleHtml}</span><span class="lv-caption">${list.length} 件</span>`;
             grp.appendChild(head);
             for (const it of list) {
                 const line = document.createElement("div");
@@ -171,6 +181,20 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
         if (!q) { renderList(inputs); return; }
         renderList(searchLocations(inputs, q));
     };
+
+    const copyTreeBtn = dlg.element.querySelector("#lv-loc-copy-tree") as HTMLButtonElement | null;
+    if (copyTreeBtn) {
+        copyTreeBtn.onclick = async () => {
+            const tree = buildLocationTree(inputs);
+            const text = formatLocationTreeText(tree, modLabel);
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessageFn(t("ledger.locTreeCopied"), 2500, "info");
+            } catch {
+                showMessageFn(t("ledger.shopCopyFailed"), 4000, "error");
+            }
+        };
+    }
 
     (dlg.element.querySelector("#lv-loc-copy") as HTMLButtonElement).onclick = async () => {
         const text = formatLocationIndexText(index, modLabel);

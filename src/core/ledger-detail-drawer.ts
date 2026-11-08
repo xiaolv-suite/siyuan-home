@@ -294,6 +294,43 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 v.dataset.lvEditable = "true";
             }
             line.append(v);
+
+            // 物品存放位置专项：同处空间关联速查
+            if ((col.key === "location" || col.key === "copy_location" || col.key === "store_place") && cell) {
+                const rawLoc = cellTextFn(cell, col.key);
+                if (rawLoc && rawLoc !== "—" && !v.classList.contains("is-empty")) {
+                    const siblingBtn = document.createElement("button");
+                    siblingBtn.type = "button";
+                    siblingBtn.className = "b3-button b3-button--text lv-btn-text-sm";
+                    siblingBtn.innerHTML = `${uiIcon("mapPin", "", 12)} ${t("ledger.locSiblings")}`;
+                    siblingBtn.onclick = async () => {
+                        try {
+                            const { findSiblingItemsInSameLocation } = await import("./location-index");
+                            const res = await renderLedgerAllFn(ref.avId!);
+                            const nameCol = ref.columns?.name;
+                            const locCol = ref.columns?.[col.key];
+                            if (!nameCol || !locCol) return;
+                            const inputs = res.rows.map((r) => ({
+                                rowId: r.itemID,
+                                moduleId: active,
+                                name: cellTextFn(r.cells[nameCol], "name"),
+                                location: cellTextFn(r.cells[locCol], col.key),
+                            })).filter((it) => it.name && it.location);
+                            const match = findSiblingItemsInSameLocation(row.itemID, inputs);
+                            if (match && match.siblings.length > 0) {
+                                const siblingNames = match.siblings.map((s) => s.name).join("、");
+                                showMessageFn(`${match.location} 存放的其他物品 (${match.siblings.length}): ${siblingNames}`, 5000, "info");
+                            } else {
+                                showMessageFn(t("ledger.locNoSiblings"), 3000, "info");
+                            }
+                        } catch {
+                            showMessageFn(t("ledger.locNoSiblings"), 3000, "info");
+                        }
+                    };
+                    line.append(siblingBtn);
+                }
+            }
+
             body.appendChild(line);
             cardRows.push({ key: col.key, label: colLabel(col), value: v.classList.contains("is-empty") ? "—" : String(v.textContent) });
         }

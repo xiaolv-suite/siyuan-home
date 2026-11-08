@@ -20,10 +20,10 @@
     </svg>
 {:else}
     <svg class={`lv-ui-icon lv-ui-icon--custom ${className}`} width={size} height={size} viewBox="0 0 24 24"
-        style={`width:${size}px!important;height:${size}px!important;`}
+        style={`width:${size}px!important;height:${size}px!important;fill:none!important;stroke:currentColor!important;`}
         fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
         aria-hidden={label ? undefined : "true"} aria-label={label} role={label ? "img" : undefined} focusable="false">
-        <path d={path}></path>
+        <path d={path} fill="none"></path>
     </svg>
 {/if}
 

@@ -1178,6 +1178,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-
 
 .b3-dialog--lvmobile {
     padding: 0 !important;
+    .b3-dialog { padding: 0 !important; }
     .b3-dialog__scrim { background: var(--b3-theme-background); }
     // Dialog 自带标题栏与关闭叉号会与面板内的品牌栏重复；关闭入口由面板顶栏提供，
     // 强制彻底隐藏宿主自带的 header 与浮动 close 按钮，确保移动端沉浸且无重叠。
@@ -1702,9 +1703,9 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]), .b3-dialog:has(.lv-home), .b3-
 // 针对详情抽屉、分析图表、急救卡、换证链等硬编码像素宽度的弹窗，
 // 在 ≤640px 移动视口下强制自适应贴合视口，避免横向截断（排除全屏主宿主 .b3-dialog--lvmobile）。
 @media (max-width: 640px) {
-    .b3-dialog:not(.b3-dialog--lvmobile):has([id^="lv-"]),
-    .b3-dialog:not(.b3-dialog--lvmobile):has(.lv-home),
-    .b3-dialog:not(.b3-dialog--lvmobile):has(#lv-detail-body) {
+    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):has([id^="lv-"]),
+    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):has(.lv-home),
+    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):has(#lv-detail-body) {
         padding: 6px !important;
         .b3-dialog__container {
             width: calc(100vw - 12px) !important;

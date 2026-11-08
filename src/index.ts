@@ -1,5 +1,5 @@
 import { Plugin, openTab, getFrontend } from "siyuan";
-import { mount } from "svelte";
+import { mount, unmount } from "svelte";
 import "./index.scss";
 
 import TabPanel from "@/panels/tab-panel.svelte";
@@ -133,7 +133,13 @@ export default class LvHomePlugin extends Plugin {
             setPendingScreen: (s) => { this.pendingScreen = s; },
             getPanelScreenSwitch: () => this.panelScreenSwitch,
             scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
-            mountTab: (element) => mount(TabPanel, { target: element, props: { plugin: this } }) as () => void,
+            mountTab: (element) => {
+                const inst = mount(TabPanel, { target: element, props: { plugin: this } });
+                return () => {
+                    if (typeof inst === "function") (inst as () => void)();
+                    else if (inst) void unmount(inst);
+                };
+            },
         });
 
         this.settings = await loadSettings(this);
@@ -558,8 +564,16 @@ export default class LvHomePlugin extends Plugin {
         });
     }
 
+    private isMobileView(): boolean {
+        if (typeof getFrontend === "function") {
+            const fe = getFrontend();
+            if (fe === "mobile" || fe === "browser-mobile") return true;
+        }
+        return Boolean(typeof lvLaunchpad?.isMobileFrontend === "function" && lvLaunchpad.isMobileFrontend());
+    }
+
     showTab() {
-        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+        if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel();
             return;
         }
@@ -588,7 +602,7 @@ export default class LvHomePlugin extends Plugin {
      *  日常路径几乎总是"已挂载"），已挂载时经 panelScreenSwitch 直切（2026-10-09 R6 实证修复）。 */
     openRemindersScreen() {
         this.pendingScreen = "reminders";
-        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+        if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel("reminders");
             return;
         }
@@ -599,7 +613,7 @@ export default class LvHomePlugin extends Plugin {
     /** 导航并打开指定台账模块（如 "assets" | "members" | "medicine" | "vehicle" 等） */
     openModuleTab(moduleId: string) {
         this.pendingScreen = moduleId;
-        if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+        if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel(moduleId);
             return;
         }
@@ -944,7 +958,7 @@ export default class LvHomePlugin extends Plugin {
         switch (action) {
             case "记一笔备忘":
             case "快速记录生活备忘事项":
-                if (typeof getFrontend === "function" && (getFrontend() === "mobile" || getFrontend() === "browser-mobile")) {
+                if (this.isMobileView()) {
                     this.entrypointsController?.getMobileController()?.openMobilePanel("overview");
                 } else {
                     this.showTab();

@@ -1,5 +1,5 @@
 import { Dialog } from "siyuan";
-import { mount } from "svelte";
+import { mount, unmount } from "svelte";
 import { lvLaunchpad } from "@/libs/notice";
 
 export interface MobileControllerOptions {
@@ -66,8 +66,12 @@ export function createMobileController(options: MobileControllerOptions): Mobile
         }
         if (typeof document === "undefined" || isDisposed) return;
         if (mobileDialog) {
-            // 宿主已打开时直接切屏聚焦，不重复弹层
-            return;
+            if (mobileDialog.element && mobileDialog.element.isConnected === false) {
+                closeMobilePanel();
+            } else {
+                // 宿主已打开时直接切屏聚焦，不重复弹层
+                return;
+            }
         }
 
         try {
@@ -109,6 +113,7 @@ export function createMobileController(options: MobileControllerOptions): Mobile
         }
 
         dialog.element.classList.add("b3-dialog--lvmobile");
+        dialog.element.querySelector?.(".b3-dialog")?.classList.add("b3-dialog--lvmobile");
 
         // visualViewport 动态高度与软键盘自适应监听
         if (typeof window !== "undefined") {
@@ -196,7 +201,7 @@ export function createMobileController(options: MobileControllerOptions): Mobile
 
         import("@/panels/tab-panel.svelte").then(({ default: TabPanel }) => {
             if (!mobileDialog) return;
-            mobileDialogUnmount = mount(TabPanel, {
+            const inst = mount(TabPanel, {
                 target: host,
                 props: {
                     plugin,
@@ -209,7 +214,11 @@ export function createMobileController(options: MobileControllerOptions): Mobile
                         closeMobilePanel();
                     },
                 },
-            }) as () => void;
+            });
+            mobileDialogUnmount = () => {
+                if (typeof inst === "function") (inst as () => void)();
+                else if (inst) void unmount(inst);
+            };
         }).catch((e) => console.warn("[LvHome] mobile panel mount failed:", e));
 
         mobileDialog = dialog;

@@ -86,8 +86,7 @@ export const simpleDialog = (args: {
     };
     try {
         const header = dialog.element?.querySelector?.(".b3-dialog__header");
-        const existingClose = header?.querySelector?.(".lv-dialog-mobile-close-btn, .b3-dialog__close")
-            || dialog.element?.querySelector?.(".b3-dialog__close");
+        const existingClose = header?.querySelector?.(".lv-dialog-mobile-close-btn, .b3-dialog__close");
         if (header && !existingClose && typeof document !== "undefined" && typeof document.createElement === "function") {
             const closeBtn = document.createElement("button");
             closeBtn.type = "button";

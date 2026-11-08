@@ -5,6 +5,8 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
+import { calculateNextRecurrenceDate, localDateKey, parseDate, differenceInCalendarDays } from "./hub/rule";
+
 export interface ChoreRotationMember {
     /** 成员 id（settings.members[].id） */
     id: string;
@@ -209,4 +211,51 @@ export function formatChoreHistoryText(
         }
     }
     return lines.join("\n");
+}
+
+export interface ChoreRecurrenceInput {
+    /** 计划到期日（YYYY-MM-DD，若为空则以 completionDate 为基底） */
+    dueDate?: string;
+    /** 周期描述（如 "14d", "30天", "1m", "week", "month", "quarter", "year"） */
+    cycle: string;
+    /** 循环锚点基准：due=固定计划日递延；completion=实际完成日递延（默认 completion） */
+    recurrenceAnchor?: "due" | "completion";
+}
+
+export interface ChoreRecurrenceAdvanceResult {
+    /** 下一次到期日（YYYY-MM-DD） */
+    nextDueDate: string;
+    /** 采用的循环基准 */
+    anchorUsed: "due" | "completion";
+    /** 相对本次完成日的跨度天数 */
+    daysFromCompletion: number;
+}
+
+/**
+ * 推进周期任务的下一次到期日（对标 Tasks.org / Todoist 双重循环锚点模型）：
+ * - anchor="completion"（默认）：按实际完成日推延，适合家务清洁、汽车保养、滤芯更换等物理消耗类任务，防止拖延后立即重复触发；
+ * - anchor="due"：按预定计划到期日推延，适合房贷还款、物业缴费、账单结算等日历固定日期类任务。
+ */
+export function advanceChoreRecurrence(
+    input: ChoreRecurrenceInput,
+    completionDate: string
+): ChoreRecurrenceAdvanceResult {
+    const anchor = input.recurrenceAnchor ?? "completion";
+    const compDate = parseDate(completionDate) ?? new Date();
+    const dueDate = parseDate(input.dueDate) ?? compDate;
+
+    const nextDate = calculateNextRecurrenceDate(dueDate, input.cycle, {
+        anchor,
+        completionDate: compDate,
+        today: compDate,
+    });
+
+    const nextDueDateStr = localDateKey(nextDate);
+    const daysFromCompletion = differenceInCalendarDays(nextDate, compDate);
+
+    return {
+        nextDueDate: nextDueDateStr,
+        anchorUsed: anchor,
+        daysFromCompletion,
+    };
 }

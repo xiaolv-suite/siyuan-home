@@ -156,7 +156,7 @@ export function parseLocationBreadcrumbs(location: string | undefined): string[]
     const s = norm(location);
     if (!s || s === "（未填写）") return [];
     return s
-        .split(/[/>\-—–\\>]+/g)
+        .split(/[/>\-—–\\>›»→]+/gu)
         .map((p) => p.trim())
         .filter(Boolean);
 }
@@ -167,4 +167,223 @@ export function parseLocationBreadcrumbs(location: string | undefined): string[]
 export function formatLocationBreadcrumbTag(location: string | undefined): string {
     const parts = parseLocationBreadcrumbs(location);
     return parts.length > 1 ? parts.join(" › ") : (norm(location) || "（未填写）");
+}
+
+export interface LocationTreeNode {
+    /** 当前层级路径段名称（如 "衣柜"） */
+    segment: string;
+    /** 规范化完整层级路径（如 "主卧 › 衣柜"） */
+    fullPath: string;
+    /** 深度层级（1 = 顶级空间，2 = 二级家具/区域，3 = 三级抽屉/收纳盒等） */
+    depth: number;
+    /** 该节点及其全部子孙节点包含的物品总数 */
+    totalCount: number;
+    /** 直接存放在当前空间层级的物品 */
+    directEntries: LocationEntry[];
+    /** 下级子空间节点列表 */
+    children: LocationTreeNode[];
+}
+
+/**
+ * 构建多层级空间拓扑树（Location Spatial Topology Tree）
+ * 将各台账行的存放位置字符串按多级分隔符切分并组装为树形空间模型，支持按空间层级聚合与折叠。
+ */
+export function buildLocationTree(
+    rows: LocationRowInput[],
+    options: { defaultMissingLabel?: string } = {}
+): LocationTreeNode[] {
+    const missingLabel = options.defaultMissingLabel ?? "（未填写）";
+    // 根映射表：第一层空间名称 -> 树节点构造辅助结构
+    type MutableNode = {
+        segment: string;
+        fullPath: string;
+        depth: number;
+        directEntries: LocationEntry[];
+        childMap: Map<string, MutableNode>;
+    };
+
+    const rootMap = new Map<string, MutableNode>();
+
+    for (const r of rows ?? []) {
+        if (!r) continue;
+        const name = norm(r.name);
+        if (!name) continue;
+
+        const rawLoc = norm(r.location);
+        const parts = parseLocationBreadcrumbs(rawLoc);
+        const segments = parts.length > 0 ? parts : [missingLabel];
+
+        const entry: LocationEntry = {
+            rowId: r.rowId,
+            moduleId: r.moduleId,
+            name,
+            location: rawLoc || missingLabel,
+            source: r.source ?? "location",
+            ...(r.memberName ? { memberName: r.memberName } : {}),
+            ...(r.hint ? { hint: r.hint } : {}),
+        };
+
+        // 沿层级逐级下钻
+        let currentMap = rootMap;
+        let cumulativePath: string[] = [];
+
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            cumulativePath.push(seg);
+            const pathStr = cumulativePath.join(" › ");
+            const depth = i + 1;
+
+            let node = currentMap.get(seg);
+            if (!node) {
+                node = {
+                    segment: seg,
+                    fullPath: pathStr,
+                    depth,
+                    directEntries: [],
+                    childMap: new Map<string, MutableNode>(),
+                };
+                currentMap.set(seg, node);
+            }
+
+            // 若到达最后一段，则将物品挂载为当前节点的直接条目
+            if (i === segments.length - 1) {
+                node.directEntries.push(entry);
+            }
+
+            currentMap = node.childMap;
+        }
+    }
+
+    // 递归转换与计算 totalCount
+    function finalize(node: MutableNode): LocationTreeNode {
+        const children = [...node.childMap.values()]
+            .map(finalize)
+            .sort((a, b) => b.totalCount - a.totalCount || a.segment.localeCompare(b.segment));
+
+        const directCount = node.directEntries.length;
+        const childrenCount = children.reduce((acc, c) => acc + c.totalCount, 0);
+
+        // 组内直接条目按模块和名称稳定排序
+        node.directEntries.sort((a, b) => a.moduleId.localeCompare(b.moduleId) || a.name.localeCompare(b.name));
+
+        return {
+            segment: node.segment,
+            fullPath: node.fullPath,
+            depth: node.depth,
+            totalCount: directCount + childrenCount,
+            directEntries: node.directEntries,
+            children,
+        };
+    }
+
+    return [...rootMap.values()]
+        .map(finalize)
+        .sort((a, b) => {
+            // 未填写的特殊项排在最末
+            if (a.segment === missingLabel) return 1;
+            if (b.segment === missingLabel) return -1;
+            return b.totalCount - a.totalCount || a.segment.localeCompare(b.segment);
+        });
+}
+
+/**
+ * 根据前缀路径在拓扑树中检索对应子树空间节点（例如 query "主卧" 或 "主卧 › 衣柜"）
+ */
+export function queryLocationSubtree(
+    roots: LocationTreeNode[],
+    targetPath: string
+): LocationTreeNode | null {
+    const parts = parseLocationBreadcrumbs(targetPath);
+    if (parts.length === 0) return null;
+    const needle = parts.join(" › ");
+    const lastSeg = parts[parts.length - 1];
+
+    function search(node: LocationTreeNode): LocationTreeNode | null {
+        if (node.fullPath === needle || (parts.length === 1 && node.segment === lastSeg)) {
+            return node;
+        }
+        for (const child of node.children) {
+            const found = search(child);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    for (const r of roots) {
+        const found = search(r);
+        if (found) return found;
+    }
+    return null;
+}
+
+export interface FlatLocationItem {
+    segment: string;
+    fullPath: string;
+    depth: number;
+    totalCount: number;
+    directCount: number;
+}
+
+/**
+ * 将空间拓扑树展平为带缩进的大纲扁平列表，便于下拉选择器（picker）与过滤侧栏渲染
+ */
+export function flattenLocationTree(roots: LocationTreeNode[]): FlatLocationItem[] {
+    const result: FlatLocationItem[] = [];
+
+    function traverse(node: LocationTreeNode) {
+        result.push({
+            segment: node.segment,
+            fullPath: node.fullPath,
+            depth: node.depth,
+            totalCount: node.totalCount,
+            directCount: node.directEntries.length,
+        });
+        for (const child of node.children) {
+            traverse(child);
+        }
+    }
+
+    for (const root of roots) {
+        traverse(root);
+    }
+    return result;
+}
+
+/**
+ * 格式化空间拓扑树为可复制的 ASCII 树形大纲文本
+ */
+export function formatLocationTreeText(
+    roots: LocationTreeNode[],
+    label: (moduleId: string) => string = (m) => m
+): string {
+    if (!roots || roots.length === 0) return "暂无空间拓扑数据。";
+
+    const lines: string[] = ["🏡 家庭物品存放位置空间拓扑树", ""];
+
+    function renderNode(node: LocationTreeNode, prefix: string, isLast: boolean, isRoot: boolean) {
+        const marker = isRoot ? "" : (isLast ? "└── " : "├── ");
+        lines.push(`${prefix}${marker}${node.segment} (${node.totalCount} 件)`);
+
+        const nextPrefix = isRoot ? "" : (prefix + (isLast ? "    " : "│   "));
+
+        // 打印直接挂载在该位置下的物品
+        for (const e of node.directEntries) {
+            const owner = e.memberName ? ` · ${e.memberName}` : "";
+            const hint = e.hint ? ` · ${e.hint}` : "";
+            lines.push(`${nextPrefix}  • ${e.name}（${label(e.moduleId)}${owner}）${hint}`);
+        }
+
+        // 递归打印子空间
+        for (let i = 0; i < node.children.length; i++) {
+            const child = node.children[i];
+            const childIsLast = (i === node.children.length - 1);
+            renderNode(child, nextPrefix, childIsLast, false);
+        }
+    }
+
+    for (let i = 0; i < roots.length; i++) {
+        renderNode(roots[i], "", i === roots.length - 1, true);
+    }
+
+    return lines.join("\n").trimEnd();
 }

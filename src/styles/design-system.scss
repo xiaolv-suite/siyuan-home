@@ -1368,6 +1368,12 @@
   @media (max-width: 768px), (pointer: coarse) {
     .lv-qty-stepper { gap: 8px; }
     .lv-qty-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+    .lv-table .lv-table-open,
+    .lv-table--compact .lv-table-open {
+      min-width: 44px !important;
+      min-height: 44px !important;
+      padding: 6px !important;
+    }
   }
 
   &.lv-scroll-locked { overflow: hidden !important; }

@@ -4812,6 +4812,9 @@ body.theme--dark .lv-home {
       .lv-hero-stat-num { font-size: 20px !important; }
       .lv-members-hero-count b { font-size: 20px !important; }
       .lv-life-score, .lv-rewards-score { font-size: 20px !important; }
+      :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .b3-text-field, .b3-select) {
+        font-size: 16px !important;
+      }
       .lv-modal, .lv-sheet, .lv-drawer {
         border-radius: 0 !important;
         width: 100vw !important;

@@ -1360,6 +1360,27 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
     }
 }
 
+@media (max-width: 680px) {
+    .lv-home .lv-mobile-bottom-nav {
+        display: flex;
+    }
+    .lv-home .lv-tabbar > .lv-tabs {
+        display: none !important;
+    }
+    .lv-home .lv-main-stage {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.lv-keyboard-open .lv-mobile-bottom-nav,
+[data-keyboard-open="true"] .lv-mobile-bottom-nav {
+    display: none !important;
+}
+.lv-keyboard-open .lv-main-stage,
+[data-keyboard-open="true"] .lv-main-stage {
+    padding-bottom: 12px !important;
+}
+
 .lv-metric-item {
     padding: 8px;
     background: var(--lv-surface-2);

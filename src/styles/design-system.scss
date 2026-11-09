@@ -3427,9 +3427,13 @@
       align-items: center;
       flex-wrap: nowrap !important;
       flex: 0 0 auto;
-      gap: 2px;
+      gap: 4px;
       height: 34px;
       margin-left: auto;
+      /* 手机端保留搜索、隐私盾与关闭按钮，隐藏与首屏/底部“我的”重复的快捷记录与设置图标 */
+      .lv-rail-dup ~ .lv-rail-dup {
+        display: none !important;
+      }
       .lv-iconbtn {
         width: 34px !important;
         height: 34px !important;
@@ -3680,9 +3684,12 @@
 
     // 2C. 今日总览首屏精简：2x2 紧凑双列网格 + 快捷工具折叠
     .lv-hero--compact {
-      padding: 10px 12px !important;
+      padding: 8px 12px !important;
       margin: 0 0 8px !important;
-      gap: 6px !important;
+      gap: 4px !important;
+      .lv-hero-meta {
+        display: none !important;
+      }
       h1 {
         font-size: 16px !important;
         margin: 2px 0 0;
@@ -3787,8 +3794,31 @@
       padding: 8px 10px !important;
       gap: 6px !important;
       margin-bottom: 8px !important;
-      .lv-quick-hub__title-wrap .lv-sub {
-        display: none;
+      .lv-quick-hub__head {
+        flex-wrap: nowrap !important;
+      }
+      .lv-quick-hub__title-wrap .lv-sub,
+      .lv-quick-hub__doc-btn {
+        display: none !important;
+      }
+      .lv-quick-flow-grid {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        gap: 6px !important;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+        &::-webkit-scrollbar {
+          display: none;
+        }
+      }
+      .lv-flow-btn {
+        flex: 0 0 auto !important;
+        min-height: 32px !important;
+        padding: 4px 10px !important;
+      }
+      &:not(:focus-within) .lv-syntax-bar {
+        display: none !important;
       }
     }
 

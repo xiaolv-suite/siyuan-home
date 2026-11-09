@@ -67,6 +67,7 @@
     /** Stable per submission.  Retries after a timeout reuse the same key so
      * the kernel's idempotency cache cannot create a second detached row. */
     let saveOperationKey = $state<string | undefined>();
+    let rowIdentity = $state.raw<import("@/core/siyuan").DetachedRowIdentity | undefined>();
 
     function nextSaveOperationKey(): string {
         try { return `capture:${crypto.randomUUID()}`; }
@@ -335,6 +336,7 @@
                 pendingModuleId,
                 hadIdentityPending,
                 saveOperationKey,
+                rowIdentity: rowIdentity ??= { avID: "", desiredItemID: "", before: [], submitted: false },
                 t,
                 fieldLabel,
                 modLabel,
@@ -342,6 +344,7 @@
             });
 
             if (!result.success) {
+                if (result.pendingModuleId) pendingModuleId = result.pendingModuleId;
                 if (result.fieldErrors) fieldErrors = result.fieldErrors;
                 if (result.error) saveError = result.error;
                 if (result.identityPending) identityPending = true;
@@ -387,6 +390,7 @@
             pendingRowId = undefined;
             pendingModuleId = undefined;
             saveOperationKey = undefined;
+            rowIdentity = undefined;
         } catch (e) {
             const messageKey = pendingRowId ? "capture.partialFailed" : "capture.failed";
             saveError = t(messageKey).replace("${msg}", e instanceof Error ? e.message : String(e));
@@ -413,6 +417,7 @@
         pendingRowId = undefined;
         pendingModuleId = undefined;
         saveOperationKey = undefined;
+        rowIdentity = undefined;
         identityPending = false;
         saveError = "";
         showDiscardConfirm = false;

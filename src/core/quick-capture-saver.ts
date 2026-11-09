@@ -1,5 +1,5 @@
 import { showMessage } from "siyuan";
-import { addDetachedRow, setCell, renderLedgerAll, RowIdentityPendingError } from "@/core/siyuan";
+import { addDetachedRow, setCell, RowIdentityPendingError, type DetachedRowIdentity } from "@/core/siyuan";
 import { saveRuntime } from "@/core/hub/runtime";
 import { captureCellValue, validateCaptureInput } from "@/core/capture";
 import type { ColumnDef } from "@/core/schema";
@@ -13,6 +13,7 @@ export interface ExecuteQuickCaptureSaveOptions {
     pendingModuleId?: string;
     hadIdentityPending?: boolean;
     saveOperationKey: string;
+    rowIdentity?: DetachedRowIdentity;
     t: (k: string) => string;
     fieldLabel: (field: ColumnDef) => string;
     modLabel: (mod: string) => string;
@@ -51,6 +52,7 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
         pendingModuleId,
         hadIdentityPending,
         saveOperationKey,
+        rowIdentity,
         t,
         fieldLabel,
         modLabel,
@@ -127,25 +129,13 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
     }
 
     let itemID = pendingRowId;
-    if (!itemID && hadIdentityPending) {
-        try {
-            const ledger = await renderLedgerAll(r.avId, 50);
-            const nameCol = r.columns?.name;
-            if (nameCol) {
-                const matched = ledger.rows.find((row: any) => {
-                    const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
-                    return val === title;
-                });
-                if (matched) {
-                    itemID = matched.itemID;
-                }
-            }
-        } catch { /* soft reconciliation */ }
-    }
-
     if (!itemID) {
         try {
-            itemID = await addDetachedRow(r.avId, title, { idempotencyKey: `${saveOperationKey}:row` });
+            if (hadIdentityPending && !rowIdentity?.submitted) throw new RowIdentityPendingError([]);
+            itemID = await addDetachedRow(r.avId, title, {
+                idempotencyKey: `${saveOperationKey}:row`,
+                ...(rowIdentity ? { rowIdentity } : {}),
+            });
         } catch (e) {
             if (e instanceof RowIdentityPendingError) {
                 return {

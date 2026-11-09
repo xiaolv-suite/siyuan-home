@@ -1,7 +1,8 @@
 /**
  * 隔离式全真实浏览器自用走查脚本（支持 --keep 保留独立工作区与内核，支持 --headed 打开可视 Chrome 窗口）：
  *
- * 1. 自动在系统临时目录创建全新独立思源工作区，拷贝 dist/ 生产包，开启集市信任并注册 petals.json，
+ * 1. 默认在 D:\思源插件配套\测试工作区\.isolated-workspaces 创建独立思源工作区，其他平台回退系统临时目录，
+ *    拷贝 dist/ 生产包，开启集市信任并注册 petals.json，
  *    在随机空闲回环端口（31000–51000）拉起独立 SiYuan-Kernel.exe（绝不触碰 6806 主实例与真实笔记）；
  * 2. 启动真实 Chrome / Chromium 浏览器访问 /stage/build/desktop/，像真实重度家庭用户一样走完 12 步全场景闭环：
  *    引导建库 ➔ 成员（含农历生日）➔ 开启扩展模块 ➔ 证件录入/掩码/零依赖QR解码 ➔ 车辆建档与快捷加油能耗闭环 ➔
@@ -38,9 +39,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function resolveIsolatedRoot() {
     if (process.env.TEST_ISOLATED_ROOT) return path.resolve(process.env.TEST_ISOLATED_ROOT);
-    const repoParent = path.resolve(REPO, "..");
     if (process.platform === "win32" && fs.existsSync("D:\\")) {
-        return path.join(repoParent.startsWith("D:\\") ? repoParent : "D:\\思源插件", ".isolated-workspaces");
+        return path.join("D:\\思源插件配套", "测试工作区", ".isolated-workspaces");
     }
     return os.tmpdir();
 }

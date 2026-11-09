@@ -444,7 +444,9 @@ export function renderDrawerDocTemplates(options: RenderDrawerDocTemplatesOption
                 const title = sanitizeDocTitle(`${vars.name} · ${label} · ${vars.date}`);
                 confirm(t("ledger.genDoc"), t("ledger.genDocConfirm").replace("${title}", title), async () => {
                     try {
-                        const docId = await createDocWithMd(notebook, `/${title}`, renderTemplate(file, vars));
+                        const rawRoot = String(plugin.settings?.rootPath || "/02-小驴管家").trim().replace(/\/+$/, "");
+                        const targetHPath = rawRoot ? `${rawRoot}/05-成长与其它/生成文书/${title}` : `/${title}`;
+                        const docId = await createDocWithMd(notebook, targetHPath, renderTemplate(file, vars));
                         showMessageFn(t("ledger.genDocDone").replace("${title}", title), 3000, "info");
                         dlg.destroy();
                         plugin.showTabDocs?.(docId);

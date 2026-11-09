@@ -4792,3 +4792,35 @@ body.theme--dark .lv-home {
     .lv-record-foot > :is(.lv-btn, .b3-button) { min-height: var(--lv-control-lg); }
   }
 }
+
+@media (max-width: 680px) {
+  .b3-dialog__container:has(.lv-home) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+
+    .lv-home {
+      .lv-hero-stat-num { font-size: 20px !important; }
+      .lv-members-hero-count b { font-size: 20px !important; }
+      .lv-life-score, .lv-rewards-score { font-size: 20px !important; }
+      .lv-modal, .lv-sheet, .lv-drawer {
+        border-radius: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+      }
+      .lv-sheet-body, .lv-record-section {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+      .lv-sheet-foot, .lv-record-foot {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      }
+    }
+  }
+}

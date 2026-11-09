@@ -55,7 +55,7 @@ export const simpleDialog = (args: {
 
     const dialog = new Dialog({
         title: args.title,
-        content: `<div class="dialog-content" style="display: flex; height: 100%;"/>`,
+        content: `<div class="dialog-content" style="display: flex; flex-direction: column; align-items: stretch; width: 100%; height: 100%; min-width: 0; min-height: 0; box-sizing: border-box;"/>`,
         width: args.width,
         height: args.height,
         destroyCallback: () => {
@@ -85,6 +85,12 @@ export const simpleDialog = (args: {
         }
     };
     try {
+        dialog.element?.classList?.add?.("lv-home-dialog");
+        dialog.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-dialog");
+        const outerClose = dialog.element?.querySelector?.(".b3-dialog__container > .b3-dialog__close") as HTMLElement | SVGElement | null;
+        if (outerClose && outerClose.style) {
+            outerClose.style.setProperty("display", "none", "important");
+        }
         const header = dialog.element?.querySelector?.(".b3-dialog__header");
         const existingClose = header?.querySelector?.(".lv-dialog-mobile-close-btn, .b3-dialog__close");
         if (header && !existingClose && typeof document !== "undefined" && typeof document.createElement === "function") {

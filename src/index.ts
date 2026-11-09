@@ -1172,11 +1172,11 @@ export default class LvHomePlugin extends Plugin {
 
     /** Tab 面板挂载入口（tab callback 由框架调 addTab 注册的 destroy 之外回调） */
     mountPanel(element: HTMLElement) {
-        const unmount = mount(TabPanel, {
+        const inst = mount(TabPanel, {
             target: element,
             props: { plugin: this },
         });
-        return unmount;
+        return () => { void unmount(inst); };
     }
 
     openSetting() {

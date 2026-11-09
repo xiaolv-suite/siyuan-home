@@ -1054,7 +1054,7 @@
   .lv-mod-doc-btn { margin-left: auto; padding: 2px 5px; min-height: 24px; color: var(--lv-tx-3); &:hover { color: var(--lv-accent); } }
   .lv-scan-hint { margin: 8px 2px; }
   .lv-card-center-pad { display: flex; justify-content: center; padding: 12px; }
-  .lv-rem { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; position: relative;
+  .lv-rem { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; position: relative; z-index: 2; background: var(--lv-surface, #ffffff);
     border-bottom: 1px solid var(--lv-line); transition: background var(--lv-t-fast) var(--lv-ease);
     &:last-child { border-bottom: none; }
     &::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
@@ -2354,8 +2354,15 @@
     gap: 6px;
     padding: 0 8px;
     z-index: 1;
-    background: var(--b3-theme-surface-lighter, rgba(0, 0, 0, 0.04));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+    background: var(--lv-surface-2, #f8fafc);
     border-radius: var(--lv-r-2, 10px);
+    &.is-revealed {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 
   .lv-swipe-chip {
@@ -3406,7 +3413,8 @@
       height: 34px;
     }
     .lv-appbrand-sep,
-    .lv-appbrand-t span {
+    .lv-appbrand-t span,
+    .lv-appbrand .lv-avatar-wrap {
       display: none !important;
     }
     .lv-appbrand .lv-logo {
@@ -3506,11 +3514,38 @@
     }
     .lv-hub-view-toggle {
       height: 30px;
+      margin: 0 !important;
       .lv-tabs__item {
         min-height: 26px !important;
         height: 26px !important;
         padding: 0 8px !important;
         font-size: 12px !important;
+      }
+    }
+    .lv-rem {
+      grid-template-columns: 32px minmax(0, 1fr) auto !important;
+      padding: 10px 12px !important;
+      gap: 6px 10px !important;
+      .lv-rem-when {
+        grid-column: 3 !important;
+        grid-row: 1;
+        margin-left: 0 !important;
+        text-align: right !important;
+        align-self: start;
+      }
+      .lv-rem-ops {
+        grid-column: 2 / -1 !important;
+        display: flex !important;
+        flex-wrap: wrap;
+        gap: 6px !important;
+        justify-content: flex-start;
+        > .b3-button,
+        .lv-rem-more-toggle {
+          min-height: 30px !important;
+          height: 30px !important;
+          padding: 0 10px !important;
+          font-size: 12px !important;
+        }
       }
     }
     .lv-hub-mobile-quick-status {

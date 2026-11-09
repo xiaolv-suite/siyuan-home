@@ -235,7 +235,7 @@
 
 <div class="lv-rem-swipe-container" class:has-swipe={isOverdue}>
     {#if isOverdue}
-        <div class="lv-rem-swipe-actions" aria-label="快捷顺延操作">
+        <div class="lv-rem-swipe-actions" class:is-revealed={swipeOffset < 0} aria-label="快捷顺延操作" aria-hidden={swipeOffset === 0 ? "true" : undefined}>
             {#if isStale}
                 <button type="button" class="lv-swipe-chip stale" disabled={isBusy} onclick={() => void openDecompositionModal()}>🧩 拆解</button>
             {/if}

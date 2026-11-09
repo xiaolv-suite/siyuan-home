@@ -161,6 +161,8 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                 });
                 if (res.mode === "bridge") {
                     showMessageFn(t("ledger.pushToGleanSuccess"), 3500, "info");
+                } else if (res.state === "unknown") {
+                    showMessageFn(t("ledger.pushToGleanUnknown"), 5000, "error");
                 } else {
                     await navigator.clipboard.writeText(res.text);
                     showMessageFn(t("ledger.pushToGleanFallback"), 3500, "info");

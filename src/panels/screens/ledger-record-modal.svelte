@@ -77,6 +77,7 @@
     let identityPending = $state(false);
     let pendingItemID = $state<string | null>(null);
     let recordOperationKey = $state<string | null>(null);
+    let rowIdentity = $state.raw<import("@/core/siyuan").DetachedRowIdentity | undefined>(undefined);
     let duplicateConfirmPending = $state(false);
 
     let wasOpen = false;
@@ -246,7 +247,7 @@
         lastCertificateCategory = "";
         certificateFiles = {};
         uploadedCertificateFiles = {};
-        saveError = ""; validationAttempted = false; identityPending = false; pendingItemID = null; recordOperationKey = null;
+        saveError = ""; validationAttempted = false; identityPending = false; pendingItemID = null; recordOperationKey = null; rowIdentity = undefined;
     }
 
     function applyLedgerTemplate(tpl: any) {
@@ -318,7 +319,7 @@
         }
         const dupName = String(form.name ?? "").trim();
         const nameKey = ref.columns?.name;
-        if (dupName && !pendingItemID && nameKey) {
+        if (dupName && !pendingItemID && !rowIdentity?.submitted && nameKey) {
             const dupCount = rows.filter((r) => String(r.cells?.[nameKey]?.text?.content ?? "").trim() === dupName).length;
             if (dupCount > 0) {
                 duplicateConfirmPending = true;
@@ -337,6 +338,11 @@
     async function doCreateRow() {
         if (!ref?.avId || saving) return;
         const hadIdentityPending = identityPending;
+        if (!recordOperationKey) {
+            try { recordOperationKey = `ledger:${crypto.randomUUID()}`; }
+            catch { recordOperationKey = `ledger:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
+        }
+        rowIdentity ??= { avID: ref.avId, desiredItemID: "", before: [], submitted: false };
         identityPending = false;
         saving = true;
         saveError = "";
@@ -356,6 +362,7 @@
                 pendingItemID,
                 hadIdentityPending,
                 recordOperationKey,
+                rowIdentity,
                 t,
             });
 
@@ -382,7 +389,6 @@
                 }
             }
         } catch (e) {
-            recordOperationKey = null;
             if (e instanceof RowIdentityPendingError) {
                 identityPending = true;
                 saveError = t("ledger.savePending");

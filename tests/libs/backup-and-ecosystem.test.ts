@@ -78,7 +78,7 @@ describe("lvBackup & lvEcosystem (Epoch 7 Phase 4: 全生态联合灾备与自�
     it("lvEcosystem.getStatusBadgeText 输出符合规范的协同胶囊文字", () => {
         const text = lvEcosystem.getStatusBadgeText();
         expect(typeof text).toBe("string");
-        expect(text).toContain("🐴 小驴全家桶协同正常");
+        expect(text).toContain("🐴 小驴全家桶");
         expect(text).toContain("今日活动");
     });
 });

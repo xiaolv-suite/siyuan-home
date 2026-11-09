@@ -2074,6 +2074,7 @@
     "ledger.pushToGlean": "Push to Glean Reading",
     "ledger.pushToGleanSuccess": "Pushed to Glean queue for incremental digestion",
     "ledger.pushToGleanFallback": "Copied reading slice to clipboard",
+    "ledger.pushToGleanUnknown": "Delivery is unconfirmed. Check Glean before retrying to avoid duplicate capture.",
     "ledger.recordContactInteraction": "Record to Contacts",
     "ledger.contactInteractionRecorded": "Interaction recorded in LvContacts timeline!",
     "ledger.contactInteractionFailed": "Failed to record to Contacts, check plugin status",

@@ -4,7 +4,7 @@
  * 解耦自 ledger-record-modal.svelte，实现表现层与事务持久化彻底分离
  */
 
-import { addDetachedRow, setCell, renderLedgerAll } from "./siyuan";
+import { addDetachedRow, setCell, RowIdentityPendingError, type DetachedRowIdentity } from "./siyuan";
 import { selectCellValue } from "./avcell";
 import { smartExtractFieldsFromTitle } from "./block-capture";
 
@@ -75,6 +75,7 @@ export interface SaveLedgerRecordOptions {
     pendingItemID?: string | null;
     hadIdentityPending?: boolean;
     recordOperationKey?: string | null;
+    rowIdentity?: DetachedRowIdentity;
     t: (k: string) => string;
 }
 
@@ -103,6 +104,7 @@ export async function executeLedgerRecordSave(options: SaveLedgerRecordOptions):
         pendingItemID: initialPendingID = null,
         hadIdentityPending = false,
         recordOperationKey: initialOpKey = null,
+        rowIdentity,
         t,
     } = options;
 
@@ -117,26 +119,13 @@ export async function executeLedgerRecordSave(options: SaveLedgerRecordOptions):
     }
 
     let itemID = initialPendingID;
-    if (!itemID && hadIdentityPending) {
-        try {
-            const all = await renderLedgerAll(ref.avId, 50);
-            const nameCol = ref.columns?.name;
-            const title = String(form.name ?? "").trim();
-            if (nameCol && title) {
-                const matched = all.rows.find((row: any) => {
-                    const val = String(row.cells?.[nameCol]?.text?.content ?? row.cells?.[nameCol]?.block?.content ?? "").trim();
-                    return val === title;
-                });
-                if (matched) {
-                    itemID = matched.itemID;
-                }
-            }
-        } catch { /* soft reconciliation */ }
-    }
+    // Legacy drafts without an operation witness cannot safely be adopted.
+    if (!itemID && hadIdentityPending && !rowIdentity?.submitted) throw new RowIdentityPendingError([]);
 
     if (!itemID) {
         itemID = await addDetachedRow(ref.avId, String(form.name ?? "").trim() || t("ledger.unnamed"), {
             idempotencyKey: `${recordOperationKey}:row`,
+            ...(rowIdentity ? { rowIdentity } : {}),
         });
     }
 

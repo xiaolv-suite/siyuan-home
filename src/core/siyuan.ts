@@ -235,6 +235,13 @@ export async function primaryRowItemIDs(avID: string, pageSize = 200, options?: 
  * 新行身份未确认（D02）：行已提交到内核，但无法唯一确定 itemID。
  * 调用方必须提示"已提交待确认"并避免诱导重复创建，不得静默当作成功或失败重试。
  */
+export interface DetachedRowIdentity {
+    avID: string;
+    desiredItemID: string;
+    before: string[];
+    submitted: boolean;
+}
+
 export class RowIdentityPendingError extends Error {
     readonly candidates: string[];
     constructor(candidates: string[]) {
@@ -274,18 +281,34 @@ function rowIDsFromAddResponse(d: any): string[] {
  * 3) 短轮询对比加行前后 render row 集合（退避等待内核 SQLite 异步事务写入）；
  * 4) 确认到目标行或唯一新增行即刻返回，消除假性待确认死锁。
  */
-export async function addDetachedRow(avID: string, content: string, options?: RequestOptions): Promise<string> {
+export async function addDetachedRow(avID: string, content: string, options?: RequestOptions & { rowIdentity?: DetachedRowIdentity }): Promise<string> {
     const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
+    const identity = options?.rowIdentity;
+    if (identity?.submitted) {
+        if (identity.avID !== avID || !identity.desiredItemID) throw new RowIdentityPendingError([]);
+        // A later retry must prove the original client identity. Names and a
+        // newly unique row are not proof: another window may have created it.
+        let current: string[];
+        try { current = await renderRowIDs(avID, queryOptions); }
+        catch { throw new RowIdentityPendingError([]); }
+        if (current.includes(identity.desiredItemID) && !identity.before.includes(identity.desiredItemID)) return identity.desiredItemID;
+        throw new RowIdentityPendingError(current.filter((id) => !identity.before.includes(id)));
+    }
     const before = new Set(await renderRowIDs(avID, queryOptions));
-    const desiredItemID = newSiYuanId();
-    const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : list.length === 1 ? list[0] : "";
+    const desiredItemID = identity?.desiredItemID || newSiYuanId();
+    if (identity) Object.assign(identity, { avID, desiredItemID, before: [...before] });
+    const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : !identity && list.length === 1 ? list[0] : "";
     let d: any;
     try {
+        if (identity) identity.submitted = true;
         d = await post<any>("/api/av/addAttributeViewBlocks", {
             avID, blockID: "", srcs: [{ blockID: "", content, isDetached: true, itemID: desiredItemID, id: desiredItemID }],
         }, { ...options, retries: 0 });
     } catch (error) {
-        if (!isWriteResultUnknown(error)) throw error;
+        if (!isWriteResultUnknown(error)) {
+            if (identity) identity.submitted = false;
+            throw error;
+        }
         // The add may have committed before the response was lost. Reconcile
         // against a fresh render without reusing the caller's aborted signal.
         const recoveryOptions = { timeoutMs: options?.timeoutMs, retries: 0, idempotencyKey: undefined };
@@ -301,8 +324,13 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         }
     }
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
-    const hitResp = findHit(fromResponse);
-    if (hitResp) return hitResp;
+    // A unique ID in this add request's own response is direct identity
+    // evidence, including kernels that allocate their own row ID.
+    const hitResp = findHit(fromResponse) || (fromResponse.length === 1 ? fromResponse[0] : "");
+    if (hitResp) {
+        if (identity) identity.desiredItemID = hitResp;
+        return hitResp;
+    }
 
     // 块索引异步重建：梯级短轮询检测新行（应对忙碌实例或 SQLite 异步写入），直到新行出现在视图中
     let added: string[] = [];

@@ -2074,6 +2074,7 @@
     "ledger.pushToGlean": "推入拾遗渐进阅读",
     "ledger.pushToGleanSuccess": "已推入小驴拾遗长文阅读流，每日渐进消化条款",
     "ledger.pushToGleanFallback": "已复制渐进阅读条款切片，可在小驴拾遗或笔记中粘贴",
+    "ledger.pushToGleanUnknown": "推送结果待确认，请先在拾遗中核对，避免重复收录",
     "ledger.recordContactInteraction": "沉淀为人脉互动",
     "ledger.contactInteractionRecorded": "已沉淀至小驴人脉互动时间线！",
     "ledger.contactInteractionFailed": "沉淀至人脉失败，请确认小驴人脉插件状态",

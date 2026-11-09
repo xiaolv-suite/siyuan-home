@@ -12,6 +12,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "test:ecosystem:reliability": "node --test tests/ecosystem-reliability.test.cjs",
     "dev": "run-p dev:app dev:kernel",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:meta": "node scripts/check-meta.mjs",

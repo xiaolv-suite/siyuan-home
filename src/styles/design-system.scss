@@ -1365,6 +1365,10 @@
     &:hover { background: var(--lv-surface); color: var(--lv-accent); box-shadow: var(--lv-shadow-1); }
     &:active { transform: scale(0.88); }
   }
+  @media (max-width: 768px), (pointer: coarse) {
+    .lv-qty-stepper { gap: 8px; }
+    .lv-qty-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  }
 
   &.lv-scroll-locked { overflow: hidden !important; }
 

@@ -23,7 +23,56 @@ import {
 } from "./siyuan";
 
 export const DEFAULT_NOTEBOOK_NAME = "🏠 小驴管家";
+export const DEFAULT_HUB_ROOT_PATH = "/02-小驴管家";
 export const DOC_TITLE_PREFIX = "台账 · ";
+
+/** 31 个模块在「一树八脉」统一小驴空间下的 5 大领域分类目录映射 */
+export const MODULE_CATEGORY_FOLDER: Record<string, string> = {
+    members: "01-家庭与健康",
+    certs: "01-家庭与健康",
+    health: "01-家庭与健康",
+    medicine: "01-家庭与健康",
+    social: "01-家庭与健康",
+    pets: "01-家庭与健康",
+    insurance: "02-财务与保障",
+    "assets-real": "02-财务与保障",
+    "assets-virtual": "02-财务与保障",
+    contracts: "02-财务与保障",
+    memberships: "02-财务与保障",
+    shopping: "02-财务与保障",
+    allowance: "02-财务与保障",
+    stock: "03-空间与物品",
+    house: "03-空间与物品",
+    chores: "03-空间与物品",
+    food: "03-空间与物品",
+    address: "03-空间与物品",
+    bookmarks: "03-空间与物品",
+    snippets: "03-空间与物品",
+    vehicles: "04-出行与生活",
+    transit: "04-出行与生活",
+    "travel-plan": "04-出行与生活",
+    "travel-booking": "04-出行与生活",
+    "travel-packing": "04-出行与生活",
+    "travel-log": "04-出行与生活",
+    favors: "04-出行与生活",
+    parenting: "05-成长与其它",
+    schooling: "05-成长与其它",
+    exams: "05-成长与其它",
+    media: "05-成长与其它",
+};
+
+export function getModuleCategoryFolder(moduleId?: string): string {
+    return (moduleId && MODULE_CATEGORY_FOLDER[moduleId]) || "05-成长与其它";
+}
+
+export function isXiaoLvHubNotebookName(name: string | undefined): boolean {
+    if (!name) return false;
+    return (
+        name.includes("小驴空间") ||
+        name.includes("小驴笔记本") ||
+        name.includes("小驴生态统一测试空间")
+    );
+}
 
 export {
     type DuplicateFinding,
@@ -135,7 +184,11 @@ export async function ensureNotebook(preferred?: string, defaultNotebookId?: str
         }
     }
 
-    // 3. 第三优先级：默认笔记本名称 "🏠 小驴管家"
+    // 3. 第三优先级：优先复用统一生态笔记本（🐴 小驴空间 / 小驴生态统一测试空间），其次为默认笔记本名称 "🏠 小驴管家"
+    if (!preferred || isSiYuanId(preferred)) {
+        const hubHit = notebooks.find((nb) => !nb.closed && isXiaoLvHubNotebookName(nb.name));
+        if (hubHit) return hubHit.id;
+    }
     const name = isSiYuanId(preferred) || !preferred ? DEFAULT_NOTEBOOK_NAME : preferred;
     const hit = byName(name);
     if (hit) {
@@ -160,9 +213,18 @@ export async function ensureNotebook(preferred?: string, defaultNotebookId?: str
     }
 }
 
-/** 台账文档 hpath（笔记本内一级文档） */
-export function ledgerHPath(titleI18n: string): string {
-    return `/${DOC_TITLE_PREFIX}${titleI18n}`;
+/** 台账文档 hpath（支持一树八脉 rootPath + 5 大分类子目录，未配置 rootPath 时兼容笔记本内一级文档） */
+export function ledgerHPath(
+    titleI18n: string,
+    opts?: { rootPath?: string; moduleId?: string; grouped?: boolean },
+): string {
+    const rawRoot = opts?.rootPath ? opts.rootPath.trim().replace(/\/+$/, "") : "";
+    if (!rawRoot) {
+        return `/${DOC_TITLE_PREFIX}${titleI18n}`;
+    }
+    const normalizedRoot = rawRoot.startsWith("/") ? rawRoot : `/${rawRoot}`;
+    const groupSegment = opts?.grouped !== false && opts?.moduleId ? `/${getModuleCategoryFolder(opts.moduleId)}` : "";
+    return `${normalizedRoot}${groupSegment}/${DOC_TITLE_PREFIX}${titleI18n}`;
 }
 
 export function stableAvSeed(moduleId: string, docId: string): string {
@@ -190,10 +252,11 @@ export interface FoundLedgerDoc {
 export async function findLedgerDoc(notebookId: string, hpath: string, moduleId?: string): Promise<FoundLedgerDoc | null> {
     try {
         const escapedHpath = hpath.replace(/'/g, "''");
+        const leafSegment = `/${hpath.split("/").filter(Boolean).pop() || ""}`.replace(/'/g, "''");
         const escapedBox = notebookId.replace(/'/g, "''");
-        // 1. 指定笔记本内精确匹配或子层级路径匹配（支持用户将台账放在子目录中）
+        // 1. 指定笔记本内精确匹配或子层级路径匹配（支持用户将台账放在子目录或 5 大分类夹中）
         const rows = await sql<{ id: string; box: string; updated: string }>(
-            `SELECT id, box, updated FROM blocks WHERE type='d' AND box='${escapedBox}' AND (hpath='${escapedHpath}' OR hpath LIKE '%${escapedHpath}') ORDER BY updated DESC LIMIT 5`,
+            `SELECT id, box, updated FROM blocks WHERE type='d' AND box='${escapedBox}' AND (hpath='${escapedHpath}' OR hpath LIKE '%${escapedHpath}' OR hpath='${leafSegment}' OR hpath LIKE '%${leafSegment}') ORDER BY updated DESC LIMIT 5`,
         );
         if (rows.length === 1) return { id: rows[0].id, box: rows[0].box || notebookId };
         if (rows.length > 1) {
@@ -472,7 +535,17 @@ export async function provisionModule(
     }
     try {
         const notebookId = await ensureNotebook(existing?.notebook, settings.targetNotebookId);
-        const hpath = ledgerHPath(titleI18n);
+        let effectiveRootPath = settings.rootPath?.trim() || "";
+        if (!effectiveRootPath) {
+            try {
+                const nbs = await listNotebooks();
+                const nb = nbs.find((n) => n.id === notebookId);
+                if (nb && isXiaoLvHubNotebookName(nb.name)) {
+                    effectiveRootPath = DEFAULT_HUB_ROOT_PATH;
+                }
+            } catch { /* ignore */ }
+        }
+        const hpath = ledgerHPath(titleI18n, effectiveRootPath ? { rootPath: effectiveRootPath, moduleId } : undefined);
         const found = await findLedgerDoc(notebookId, hpath, moduleId);
         if (found) {
             const actualNotebookId = found.box || notebookId;

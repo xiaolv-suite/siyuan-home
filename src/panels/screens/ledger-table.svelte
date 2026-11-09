@@ -328,7 +328,8 @@
         void ledgerScrollTop;
         void ledgerViewportHeight;
         const total = visibleRows.length;
-        if (total <= 80) return { start: 0, end: total };
+        const isNarrowMobile = typeof window !== "undefined" && window.innerWidth <= 680;
+        if (total <= 80 || isNarrowMobile) return { start: 0, end: total };
         const tableTop = Math.round(cachedTableTop);
         const scrollTop = Math.round(ledgerScrollTop);
         const first = Math.max(0, Math.floor((scrollTop - tableTop) / virtualRowHeight) - VIRTUAL_OVERSCAN);

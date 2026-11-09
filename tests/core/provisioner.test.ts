@@ -481,4 +481,15 @@ describe("healColumnMapping (列 ID 失效与幽灵列实时自愈)", () => {
         expect(healedKey).not.toBe("20261023150723-h79zcxg");
         expect(plugin.settings.dbRefs.vehicles.columns.energy_type).toBe(healedKey);
     });
+
+    it("一树八脉：命中统一小驴空间笔记本或配置 rootPath 时，自动按 5 大领域分类挂载至 /02-小驴管家/<分类>/台账 · <模块名>", async () => {
+        const s = fakeKernel();
+        const hubId = "20260922071742-jk1kjb0";
+        s.notebooks = [{ id: hubId, name: "🐴 小驴空间", closed: false }];
+        const st = { ...defaultSettings(), dbRefs: {} };
+        const res = await provisionModule(st, "certs", schema, "证件管理", opts);
+        expect(res.created).toBe(true);
+        expect(res.dbRef.notebook).toBe(hubId);
+        expect(s.docCreated).toEqual(["/02-小驴管家/01-家庭与健康/台账 · 证件管理"]);
+    });
 });

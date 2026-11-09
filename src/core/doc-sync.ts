@@ -694,7 +694,11 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
             || plugin.settings.dbRefs?.members?.notebook
             || plugin.settings.dbRefs?.certs?.notebook;
         const notebookId = await ensureNotebook(preferredNb, plugin.settings.targetNotebookId);
-        const found = await findLedgerDoc(notebookId, DAILY_JOURNAL_HPATH, "adhoc");
+        const rawRoot = typeof plugin.settings?.rootPath === "string" ? plugin.settings.rootPath.trim().replace(/\/+$/, "") : "";
+        const targetJournalHPath = rawRoot
+            ? `${rawRoot.startsWith("/") ? rawRoot : `/${rawRoot}`}${DAILY_JOURNAL_HPATH}`
+            : DAILY_JOURNAL_HPATH;
+        const found = await findLedgerDoc(notebookId, targetJournalHPath, "adhoc");
         if (found?.id) {
             plugin.settings.dbRefs.adhoc = {
                 ...existing,
@@ -706,8 +710,8 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
         }
 
         const initMd = `> 🏠 **小驴管家 · ${DAILY_JOURNAL_TITLE}（LifeLog 标准时间线）**\n`;
-        const docId = await createDocWithMd(notebookId, DAILY_JOURNAL_HPATH, initMd, {
-            idempotencyKey: `provision:doc:adhoc:${notebookId}:${DAILY_JOURNAL_HPATH}`,
+        const docId = await createDocWithMd(notebookId, targetJournalHPath, initMd, {
+            idempotencyKey: `provision:doc:adhoc:${notebookId}:${targetJournalHPath}`,
             retries: 0,
         });
         plugin.settings.dbRefs.adhoc = {

@@ -197,6 +197,8 @@ export interface HomeSettings {
     budgetLimits?: Record<string, number>;
     /** 用户自选的台账建账目标笔记本 ID（未设定则使用或创建默认笔记本） */
     targetNotebookId?: string;
+    /** 统一小驴空间下的管家台账根路径（如 "/02-小驴管家"） */
+    rootPath?: string;
     /** 快捷补能预设面额列表（元，默认 [200, 300, 500]） */
     fuelPresetAmounts?: number[];
     /** 快捷充电预设面额列表（元，默认 [30, 50, 100]） */

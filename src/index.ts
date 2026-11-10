@@ -1,4 +1,4 @@
-import { Plugin, openTab, getFrontend } from "siyuan";
+import { Plugin, openTab, openMobileFileById, getFrontend } from "siyuan";
 import { mount, unmount } from "svelte";
 import "./index.scss";
 
@@ -626,6 +626,18 @@ export default class LvHomePlugin extends Plugin {
         const resolvedDocId = docId ?? this.settings.dbRefs[this.activeLedger]?.docId;
         const primaryTarget = resolvedDocId ?? blockId;
         if (!primaryTarget) return;
+
+        // 手机端：分流调用 openMobileFileById 并主动收起全屏管家面板，露出底层文档
+        if (this.isMobileView()) {
+            if (typeof openMobileFileById === "function") {
+                openMobileFileById(this.app, primaryTarget);
+            }
+            try {
+                this.entrypointsController?.getMobileController()?.closeMobilePanel();
+            } catch { /* soft close */ }
+            return;
+        }
+
         openTab({
             app: this.app,
             doc: {

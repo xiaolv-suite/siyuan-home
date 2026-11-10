@@ -151,10 +151,27 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             };
         }
 
-        // 下滑手势关闭支持（Mobile Spec v1 统一手势规范：下拉超过 80px 关坞）
+        // 下滑手势关闭支持（Mobile Spec v1 统一手势规范：仅限顶栏/把手区下拉，严防输入与内容滚动误触）
         let touchStartY = 0;
         let touchStartX = 0;
         let isSwipingDown = false;
+        let isValidHeaderStart = false;
+
+        const isInputInteracting = (target: EventTarget | null): boolean => {
+            if (dialog.element.getAttribute("data-keyboard-open") === "true") return true;
+            if (typeof document !== "undefined" && document.activeElement) {
+                const tag = document.activeElement.tagName?.toLowerCase();
+                if (tag === "input" || tag === "textarea" || tag === "select" || document.activeElement.getAttribute("contenteditable") === "true") {
+                    return true;
+                }
+            }
+            if (target instanceof HTMLElement) {
+                if (target.closest("input, textarea, select, [contenteditable='true'], .lv-modal, .lv-sheet, .lv-drawer, .lv-record-modal, .b3-dialog, form")) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
         const onTouchStart = (e: TouchEvent) => {
             const touch = e.touches[0];
@@ -162,36 +179,56 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             touchStartY = touch.clientY;
             touchStartX = touch.clientX;
             isSwipingDown = false;
+
+            // 守卫 1：表单输入、软键盘弹起或在次级弹窗内，绝对严禁启动整页关闭手势
+            if (isInputInteracting(e.target)) {
+                isValidHeaderStart = false;
+                return;
+            }
+
+            // 守卫 2：手势必须起始于顶栏/把手操作区（.b3-dialog__header, .lv-header, .lv-mobile-topbar, .lv-sheet-handle），杜绝内容列表滚动误判
+            const targetEl = e.target as HTMLElement | null;
+            isValidHeaderStart = Boolean(targetEl?.closest?.(".b3-dialog__header, .lv-header, .lv-mobile-topbar, .lv-sheet-handle, .lv-tab-header"));
         };
 
         const onTouchMove = (e: TouchEvent) => {
+            if (!isValidHeaderStart) return;
             const touch = e.touches[0];
             if (!touch) return;
+            if (isInputInteracting(e.target)) {
+                isValidHeaderStart = false;
+                isSwipingDown = false;
+                return;
+            }
             const deltaY = touch.clientY - touchStartY;
             const deltaX = Math.abs(touch.clientX - touchStartX);
-            if (deltaY > 20 && deltaY > deltaX * 1.5) {
-                const stageEl = host.querySelector(".lv-main-stage") as HTMLElement | null;
-                const homeEl = host.querySelector(".lv-home") as HTMLElement | null;
-                const scrollTop = (stageEl?.scrollTop ?? 0) + (homeEl?.scrollTop ?? 0);
-                if (scrollTop <= 0) {
-                    isSwipingDown = true;
-                }
+            // 严格要求：纯下拉、垂直位移至少是水平位移的 2 倍
+            if (deltaY > 30 && deltaY > deltaX * 2) {
+                isSwipingDown = true;
             }
         };
 
         const onTouchEnd = (e: TouchEvent) => {
-            if (!isSwipingDown) return;
-            const touch = e.changedTouches[0];
-            if (!touch) return;
-            const deltaY = touch.clientY - touchStartY;
-            if (deltaY > 80) {
-                try {
-                    lvLaunchpad.haptic(10);
-                } catch {
-                    /* soft */
-                }
-                closeMobilePanel();
+            if (!isValidHeaderStart || !isSwipingDown) {
+                isValidHeaderStart = false;
+                isSwipingDown = false;
+                return;
             }
+            const touch = e.changedTouches[0];
+            if (touch && !isInputInteracting(e.target)) {
+                const deltaY = touch.clientY - touchStartY;
+                const deltaX = Math.abs(touch.clientX - touchStartX);
+                // 下拉位移超过 100px 且为纯垂直下拉
+                if (deltaY > 100 && deltaY > deltaX * 2) {
+                    try {
+                        lvLaunchpad.haptic(10);
+                    } catch {
+                        /* soft */
+                    }
+                    closeMobilePanel();
+                }
+            }
+            isValidHeaderStart = false;
             isSwipingDown = false;
         };
 

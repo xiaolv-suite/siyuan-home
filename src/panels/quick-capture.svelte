@@ -1,7 +1,7 @@
 <script lang="ts">
     // 267 波：快速记录弹层（原型 .sheet 生产化）——480px 中央弹层，schema.capture 列集驱动，
     // 未建库自动建库（triage 同链路）。常驻挂载：关闭仅收起弹层，草稿保留到下次打开（对齐原型）。
-    import { homeNotify as showMessage } from "@/libs/notice";
+    import { homeNotify as showMessage, lvNotify, lvLaunchpad } from "@/libs/notice";
     import { tick } from "svelte";
     import { getCaptureFields } from "@/core/capture";
     import { getGroupedModules, moduleIcon } from "@/core/modules";
@@ -387,6 +387,15 @@
                 valuesByModule = { ...valuesByModule, [moduleId]: {} };
                 open = false;
             }
+            try {
+                lvLaunchpad.haptic(10);
+                lvNotify.capsule({
+                    source: "小驴管家",
+                    message: continueAfter ? "已记入台账，可继续记录下一笔" : "记账成功，已实时入账",
+                    level: "success",
+                    duration: 2200
+                });
+            } catch { /* soft */ }
             pendingRowId = undefined;
             pendingModuleId = undefined;
             saveOperationKey = undefined;

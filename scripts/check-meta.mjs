@@ -1,0 +1,59 @@
+// 元数据一致性校验（33.5）—— node scripts/check-meta.mjs
+// 交叉核对 package.json 与 plugin.json 的 name/version，并确认关键文件存在。
+import { readFileSync, existsSync } from "node:fs";
+
+const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+const plugin = JSON.parse(readFileSync("plugin.json", "utf8"));
+const errors = [];
+
+if (pkg.name !== plugin.name) {
+    errors.push(`name mismatch: package.json "${pkg.name}" vs plugin.json "${plugin.name}"（集市硬性要求一致）`);
+}
+if (pkg.version !== plugin.version) {
+    errors.push(`version mismatch: package.json "${pkg.version}" vs plugin.json "${plugin.version}"`);
+}
+for (const codeFile of ["src/index.ts", "src/core/ecosystem-integration.ts"]) {
+    if (existsSync(codeFile)) {
+        const src = readFileSync(codeFile, "utf8");
+        const m = src.match(/PLUGIN_VERSION\s*=\s*typeof __PLUGIN_VERSION__[\s\S]*?:\s*"([^"]+)"/);
+        if (m && m[1] !== pkg.version) {
+            errors.push(`version mismatch: ${codeFile} fallback "${m[1]}" vs package.json "${pkg.version}"`);
+        }
+    }
+}
+if (plugin.displayName?.default && plugin.displayName["zh-CN"] === undefined) {
+    errors.push("plugin.json displayName 缺 zh-CN");
+}
+// R05：author/url 一致性——模板占位符未替换是最常见根因（40 轮实测）
+if (plugin.author === "lvdaoguan" || plugin.author === "YOUR_NAME") {
+    errors.push(`plugin.json author is template placeholder "${plugin.author}" — replace with actual GitHub username`);
+}
+if (plugin.url?.includes("lvdaoguan")) {
+    errors.push(`plugin.json url contains template placeholder "lvdaoguan" — replace with actual repo URL`);
+}
+if (pkg.author && plugin.author && pkg.author !== plugin.author) {
+    errors.push(`author mismatch: package.json "${pkg.author}" vs plugin.json "${plugin.author}"`);
+}
+if (plugin.url && !plugin.url.startsWith("https://github.com/")) {
+    errors.push(`plugin.json url should be a GitHub HTTPS URL: "${plugin.url}"`);
+}
+for (const f of ["src/index.ts", "plugin.json", "icon.png", "preview.png", "README.md", "README.en.md", "LICENSE", "public/i18n/zh-CN.json", "public/i18n/en.json"]) {
+    if (!existsSync(f)) errors.push(`missing file: ${f}`);
+}
+if (plugin.disabledInPublish === false) {
+    console.log("note: disabledInPublish=false —— 集市上架已启用（当前阶段应保持 true，除非你决定上架）");
+}
+
+// zip 产物体积门禁（23 组：<10MB）
+const zipPath = "package.zip";
+if (existsSync(zipPath)) {
+    const mb = readFileSync(zipPath).length / 1024 / 1024;
+    if (mb > 10) errors.push(`package.zip too large: ${mb.toFixed(2)} MB (limit 10MB)`);
+    else console.log(`package.zip OK: ${mb.toFixed(2)} MB`);
+}
+
+if (errors.length) {
+    console.error("metadata errors:\n" + errors.map((e) => " - " + e).join("\n"));
+    process.exit(1);
+}
+console.log(`metadata OK: ${pkg.name} v${pkg.version}`);

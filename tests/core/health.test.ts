@@ -1,0 +1,141 @@
+/**
+ * 深度健康检查单测（第一百零四波）：未建库/完整读取/不完整读取/schema 缺列/读取异常 五态。
+ * mock 走 setTransport（同 siyuan-read.test 模式）。
+ */
+import { describe, it, expect, beforeEach } from "vitest";
+import { runHealthCheck, type HealthReport } from "@/core/health";
+import { setTransport } from "@/core/siyuan";
+
+type Handler = (endpoint: string, payload: any) => any;
+let handler: Handler = () => ({ code: 0, msg: "", data: {} });
+
+beforeEach(() => {
+    setTransport(async (endpoint: string, payload: any) => handler(endpoint, payload) as any);
+});
+
+const settings = {
+    enabledModules: ["certs", "health", "ghost"],
+    dbRefs: {
+        certs: { avId: "av-c", docId: "d1", columns: { name: "k1", expiry: "k2" } },
+        health: { avId: "av-h", docId: "d2", columns: { name: "k1" } },
+        // ghost：启用但未建库
+    },
+} as any;
+
+const catalog = {
+    certs: { columns: [{ key: "name" }, { key: "expiry" }, { key: "renewed_to" }] }, // renewed_to 建库时缺失
+    health: { columns: [{ key: "name" }] },
+    ghost: { columns: [] },
+};
+
+describe("health.runHealthCheck", () => {
+    it("成功响应缺少 view → 记录读取错误并继续检查其他模块", async () => {
+        handler = (endpoint, payload) => {
+            if (endpoint === "/api/query/sql") return { code: 0, msg: "", data: [{ id: "d1" }] };
+            if (endpoint === "/api/av/renderAttributeView") return {
+                code: 0, msg: "", data: payload.id === "av-c" ? {} : {
+                    view: { columns: [], rows: [], rowCount: 0 },
+                },
+            };
+            throw new Error(`unexpected endpoint: ${endpoint}`);
+        };
+        const report = await runHealthCheck(settings, catalog);
+        const byId = Object.fromEntries(report.modules.map((m) => [m.moduleId, m]));
+        expect(byId.certs).toMatchObject({ ok: false });
+        expect(byId.certs.error).toContain("malformed ledger response");
+        expect(byId.certs.complete).toBeUndefined();
+        expect(byId.health).toMatchObject({ ok: true, rows: 0, complete: true });
+        expect(report.modules).toHaveLength(3);
+    });
+
+    it("五态：未建库 / 完整 / 不完整 / 缺列 / 读取异常", async () => {
+        handler = (endpoint, payload) => {
+            if (endpoint === "/api/query/sql") {
+                // 文档存在性预检（§15/201 波）：d1 在索引、d2 缺失（回收站/删除）
+                return { code: 0, msg: "", data: String(payload.stmt).includes("'d1'") ? [{ id: "d1" }] : [] };
+            }
+            if (endpoint === "/api/av/renderAttributeView") {
+                if (payload.id === "av-c") {
+                    // page≥2 返回空（renderLedgerAll 翻页越界即止）→ 保持"不完整读"语义（N7 前：>50 行；此处 rowCount=5 模拟）
+                    if (payload.page) return { code: 0, msg: "", data: { view: { columns: [], rowCount: 5, rows: [] } } };
+                    return { code: 0, msg: "", data: { view: { columns: [], rowCount: 5, rows: [{ id: "r1", cells: [] }, { id: "r2", cells: [] }] } } };
+                }
+                if (payload.id === "av-h") {
+                    return { code: 0, msg: "", data: { view: { columns: [], rowCount: 1, rows: [{ id: "r9", cells: [] }] } } };
+                }
+                throw new Error("boom");
+            }
+            return { code: 0, msg: "", data: {} };
+        };
+        const report: HealthReport = await runHealthCheck(settings, catalog);
+        expect(report.at).toBeTruthy();
+        const byId = Object.fromEntries(report.modules.map((m) => [m.moduleId, m]));
+
+        expect(byId.ghost).toMatchObject({ moduleId: "ghost", ok: false, error: "not provisioned" });
+        expect(byId.certs).toMatchObject({ moduleId: "certs", ok: false, rows: 2, complete: false, missingColumns: ["renewed_to"] });
+        expect(byId.certs.error).toContain("2/5");
+        // d2 不在索引（回收站/删除）→ 明确的文档缺失指引，而非与其他内核错误混作一团
+        expect(byId.health).toMatchObject({ moduleId: "health", ok: false });
+        expect(byId.health.error).toContain("deleted or in trash");
+    });
+
+    it("文档存在 → 正常读取路径（sql 预检命中）", async () => {
+        handler = (endpoint, payload) => {
+            if (endpoint === "/api/query/sql") return { code: 0, msg: "", data: [{ id: payload.id ?? "d1" }] };
+            if (endpoint === "/api/av/renderAttributeView") {
+                return { code: 0, msg: "", data: { view: { columns: [], rowCount: 1, rows: [{ id: "r1", cells: [] }] } } };
+            }
+            return { code: 0, msg: "", data: {} };
+        };
+        const report = await runHealthCheck(settings, {
+            ...catalog,
+            certs: { columns: [{ key: "name" }, { key: "expiry" }] },
+        });
+        const byId = Object.fromEntries(report.modules.map((m) => [m.moduleId, m]));
+        expect(byId.certs.ok).toBe(true);
+        expect(byId.certs.complete).toBe(true);
+    });
+
+    it("读取完整但 schema 列缺失 → 健康检查仍失败并摘要缺列", async () => {
+        handler = (endpoint) => {
+            if (endpoint === "/api/query/sql") return { code: 0, msg: "", data: [{ id: "d1" }] };
+            if (endpoint === "/api/av/renderAttributeView") {
+                return { code: 0, msg: "", data: { view: { columns: [], rowCount: 1, rows: [{ id: "r1", cells: [] }] } } };
+            }
+            return { code: 0, msg: "", data: {} };
+        };
+        const report = await runHealthCheck(
+            {
+                enabledModules: ["certs"],
+                dbRefs: { certs: { avId: "av-c", docId: "d1", columns: { name: "k1", expiry: "k2" } } },
+            } as any,
+            { certs: { columns: [{ key: "name" }, { key: "expiry" }, { key: "renewed_to" }] } },
+        );
+        const certs = report.modules[0];
+        expect(certs).toMatchObject({
+            moduleId: "certs",
+            ok: false,
+            rows: 1,
+            complete: true,
+            missingColumns: ["renewed_to"],
+        });
+        expect(certs.error).toContain("missing schema columns: renewed_to");
+    });
+
+    it("renderLedger 抛错 → 模块 error 项，不中断其余模块", async () => {
+        handler = (endpoint, payload) => {
+            if (endpoint === "/api/query/sql") return { code: 0, msg: "", data: [{ id: "d1" }] }; // 文档预检通过
+            if (payload?.id === "av-c") throw new Error("endpoint unavailable");
+            if (endpoint === "/api/av/renderAttributeView") {
+                return { code: 0, msg: "", data: { view: { columns: [], rowCount: 1, rows: [{ id: "r9", cells: [] }] } } };
+            }
+            return { code: 0, msg: "", data: {} };
+        };
+        const report = await runHealthCheck(settings, catalog);
+        const byId = Object.fromEntries(report.modules.map((m) => [m.moduleId, m]));
+        expect(byId.certs.ok).toBe(false);
+        expect(byId.certs.error).toContain("endpoint unavailable");
+        expect(byId.health.ok).toBe(true);
+        expect(report.modules).toHaveLength(3);
+    });
+});

@@ -64,7 +64,7 @@
     "date-fns": "^4.4.0",
     "fast-glob": "^3.3.3",
     "glob": "^13.0.6",
-    "js-yaml": "^5.4.3",
+    "js-yaml": "^5.5.0",
     "livereload": "^0.10.3",
     "lunar-typescript": "^1.8.6",
     "minimist": "^1.2.8",

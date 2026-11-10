@@ -1,7 +1,7 @@
 > 当前开发/验收边界：[唯一状态摘要](docs/CURRENT-STATUS.md)。以下旧版本测试说明保留作历史。
 
 > **内测说明**：小驴管家（Lv Home）功能持续稳健迭代中。欢迎体验并通过交流 QQ 群 **871707735** 反馈建议与功能需求。
-> 当前版本 **v0.5.193** 已通过全仓 206 个测试套件、1,273 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
+> 当前版本 **v0.5.194** 已通过 200+ 个测试套件、1,200+ 项自动化单元测试守护与 5 层严苛质量门禁，可放心用于日常生产环境。
 
 <div align="center">
 
@@ -10,18 +10,20 @@
 
 **家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理**
 
-[![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.193-blue)](./CHANGELOG.md)
+[![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/version-v0.5.194-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
-[![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
+[![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
-[⬇️ 下载安装](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 使用指南](./docs/FAQ.md) · [📖 术语表](./docs/glossary.md) · [🗺 演进路线图](./ROADMAP.md) · [🌐 English](./README.en.md)
+[⬇️ 下载安装](https://github.com/xiaolv-suite/siyuan-home/releases/latest) · [📖 使用指南](./docs/FAQ.md) · [📖 术语表](./docs/glossary.md) · [🗺 演进路线图](./ROADMAP.md) · [🌐 English](./README.en.md)
 
 *本地优先（Local-First） · 零外部云端依赖 · 零隐私遥测 · 数据完全归属思源工作区*
 
 </div>
 
 ---
+
+![小驴管家界面预览](preview.png)
 
 ## 💡 一句话说明：它解决什么问题？
 
@@ -176,7 +178,7 @@
 - **方式一：思源官方集市一键安装（推荐）**
   打开思源笔记「设置 ➔ 集市 ➔ 插件」，搜索 `小驴管家` 或 `siyuan-home`，点击“安装”并启用即可。
 - **方式二：离线手动安装**
-  1. 前往 [GitHub Releases 页面](https://github.com/ai68298100/siyuan-home/releases/latest) 下载最新的 `package.zip` 产物；
+  1. 前往 [GitHub Releases 页面](https://github.com/xiaolv-suite/siyuan-home/releases/latest) 下载最新的 `package.zip` 产物；
   2. 解压并将文件夹重命名为 `siyuan-home`；
   3. 放置到你的思源工作区插件目录：`data/plugins/siyuan-home/`；
   4. 重启思源笔记并在「设置 ➔ 插件」中启用。
@@ -185,7 +187,7 @@
 
 ## 📝 更新日志（Changelog）
 
-### v0.5.192（2026-11-01 · 当前版本）
+### v0.5.192（2026-11-01）
 - **新增（家庭群通知一键复制 · CAND-24）**：在提醒卡片更多菜单中提供「复制家庭群通知」，将事项、截止日、剩余天数、责任人及备注一键格式化为适于微信/企微/飞书家庭群分发的标准化图文通知；
 - **新增（原生日历离线 ICS 导出 · CAND-25）**：在到期提醒「日历」视图顶栏提供「导出手机日历 (.ics)」，零三方依赖生成标准 RFC 5545 格式日程文件，支持手机系统日历/Outlook无缝导入与批量订阅；
 - **新增（聚光灯标签与高优紧急度过滤 · CAND-26）**：全景聚光灯（`Ctrl+K`）支持 `#标签`（如 `#证件`、`#日常`）与 `!紧急` / `!urgent` / `!overdue` / `!高优` 复合检索语法，支持拼音首字母模糊匹配与动态状态条提示；

@@ -53,7 +53,7 @@
                 disabled={rerunBusy || saving || migrationBusy || demoBusy}
                 onclick={onRerunOnboarding}>{rerunBusy ? t("ledger.saving") : t("wiz.rerun")}</button>
             <button type="button" class="b3-button b3-button--outline lv-mt-8 lv-ml-6"
-                onclick={() => window.open("https://github.com/ai68298100/siyuan-home", "_blank")}>{t("about.repo")}</button>
+                onclick={() => window.open("https://github.com/xiaolv-suite/siyuan-home", "_blank")}>{t("about.repo")}</button>
         </div>
     </div>
     {#if diag}

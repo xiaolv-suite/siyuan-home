@@ -4,7 +4,7 @@
 
 ## 报告安全问题
 
-请优先使用 GitHub 的 [Private vulnerability reporting](https://github.com/ai68298100/siyuan-home/security/advisories/new) 提交私密报告。报告中请写明：
+请优先使用 GitHub 的 [Private vulnerability reporting](https://github.com/xiaolv-suite/siyuan-home/security/advisories/new) 提交私密报告。报告中请写明：
 
 - 受影响的插件版本、思源版本、前端平台和操作系统；
 - 最小复现步骤、影响范围和是否需要已登录的思源实例；

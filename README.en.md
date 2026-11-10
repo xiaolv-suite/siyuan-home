@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.193** is protected by 206 test suites (1,273 automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.194** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -8,12 +8,12 @@
 
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
-[![CI](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/ai68298100/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.193-blue)](./CHANGELOG.md)
+[![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/version-v0.5.194-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
-[![License](https://img.shields.io/github/license/ai68298100/siyuan-home)](./LICENSE)
+[![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
-[⬇️ Download](https://github.com/ai68298100/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
+[⬇️ Download](https://github.com/xiaolv-suite/siyuan-home/releases/latest) · [📖 Usage FAQ](./docs/FAQ.md) · [📖 Glossary](./docs/glossary.md) · [🗺 Roadmap](./ROADMAP.md) · [🌐 中文文档](./README.md)
 
 *Local-First · Zero External Cloud Dependencies · Zero Telemetry · Data Stays Strictly in Your SiYuan Workspace*
 
@@ -174,7 +174,7 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 - **Method 1: SiYuan Marketplace (Recommended)**
   Open SiYuan Note, navigate to **Settings ➔ Marketplace ➔ Plugins**, search for `siyuan-home` or `小驴管家`, and click Install.
 - **Method 2: Offline Manual Installation**
-  1. Download the latest `package.zip` from [GitHub Releases](https://github.com/ai68298100/siyuan-home/releases/latest);
+  1. Download the latest `package.zip` from [GitHub Releases](https://github.com/xiaolv-suite/siyuan-home/releases/latest);
   2. Unzip and rename the folder to `siyuan-home`;
   3. Move it to your SiYuan workspace plugins directory: `data/plugins/siyuan-home/`;
   4. Restart SiYuan Note and enable it under **Settings ➔ Plugins**.
@@ -183,7 +183,7 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
-### v0.5.192 (2026-11-01 · Current Version)
+### v0.5.192 (2026-11-01)
 - **Added (One-Click Copy Family Group Notice · CAND-24)**: Added "Copy Family Notice" in reminder card action menus, formatting tasks, deadlines, days remaining, assignees, and notes into structured group notifications ready for messaging apps;
 - **Added (Native Calendar Offline iCalendar .ics Export · CAND-25)**: Added "Export Phone Calendar (.ics)" to the Reminders Calendar header, generating standard RFC 5545 `.ics` event files without external dependencies for iOS/Android calendar import;
 - **Added (Spotlight Tag & Urgency Advanced Filtering · CAND-26)**: Universal Spotlight (`Ctrl+K`) supports `#tag` (e.g. `#certs`, `#daily`) and `!urgent` / `!overdue` / `!high` composite query syntax with fuzzy pinyin matching and dynamic count headers;

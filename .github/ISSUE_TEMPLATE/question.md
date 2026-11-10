@@ -6,7 +6,7 @@ labels: question
 assignees: ''
 ---
 
-请先查看 [FAQ](https://github.com/ai68298100/siyuan-home/blob/main/docs/FAQ.md)、[迁移说明](https://github.com/ai68298100/siyuan-home/blob/main/docs/migration.md) 和 [SUPPORT.md](https://github.com/ai68298100/siyuan-home/blob/main/SUPPORT.md)。
+请先查看 [FAQ](https://github.com/xiaolv-suite/siyuan-home/blob/main/docs/FAQ.md)、[迁移说明](https://github.com/xiaolv-suite/siyuan-home/blob/main/docs/migration.md) 和 [SUPPORT.md](https://github.com/xiaolv-suite/siyuan-home/blob/main/SUPPORT.md)。
 
 **环境**
 

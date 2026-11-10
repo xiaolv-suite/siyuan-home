@@ -5,7 +5,7 @@ labels: bug
 assignees: ''
 ---
 
-请先确认问题仍能在最新 [Release](https://github.com/ai68298100/siyuan-home/releases/latest) 复现，并删除下面内容中的真实个人资料、token、密码和工作区正文。
+请先确认问题仍能在最新 [Release](https://github.com/xiaolv-suite/siyuan-home/releases/latest) 复现，并删除下面内容中的真实个人资料、token、密码和工作区正文。
 
 **环境**
 - 思源笔记版本：（设置 → 关于）

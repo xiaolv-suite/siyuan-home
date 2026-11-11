@@ -418,6 +418,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 plugin,
                 t,
                 DialogCls,
+                dlg,
                 showMessageFn,
                 renderLedgerAllFn,
                 cellTextFn,

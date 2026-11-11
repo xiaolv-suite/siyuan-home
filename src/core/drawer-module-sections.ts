@@ -28,6 +28,7 @@ export interface RenderModuleSpecificSectionsOptions {
     plugin: any;
     t: (k: string) => string;
     DialogCls: any;
+    dlg?: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
     renderLedgerAllFn: (avId: string) => Promise<{ complete: boolean; rows: any[] }>;
     cellTextFn: (cell: any, key?: string) => string;
@@ -220,7 +221,7 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeMeterReading(current, ref.avId!, row.itemID, e.date)); },
             format: (e: any) => `${e.date} · ${e.reading}${typeof e.usage === "number" ? ` (${e.usage})` : ""}`,
         });
-        await renderHouseWarrantySection({ body, row, ref, plugin, t, renderLedgerAllFn });
+        await renderHouseWarrantySection({ body, row, ref, plugin, t, renderLedgerAllFn, dlg: options.dlg });
     } else if (active === "food") {
         await renderFoodDietarySection({ body, row, ref, plugin, t, showMessageFn, renderLedgerAllFn, cellTextFn });
     } else if (active === "pets") {

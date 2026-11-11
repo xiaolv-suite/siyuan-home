@@ -28,6 +28,7 @@ export interface RenderHouseWarrantySectionOptions {
     plugin: any;
     t: (k: string) => string;
     renderLedgerAllFn: (avId: string) => Promise<{ complete: boolean; rows: any[] }>;
+    dlg?: any;
 }
 
 /**
@@ -45,7 +46,10 @@ export async function renderHouseWarrantySection(options: RenderHouseWarrantySec
     head.append(mk("span", "ft__on-surface lv-domain-title", t("ledger.houseContractsTitle")));
     if (contractsRef.docId) {
         const openAll = mk("button", "b3-button b3-button--text lv-domain-link", t("ledger.houseContractsOpenAll"));
-        openAll.onclick = () => plugin.showTabDocs?.(contractsRef.docId);
+        openAll.onclick = () => {
+            options.dlg?.destroy?.();
+            plugin.showTabDocs?.(contractsRef.docId);
+        };
         head.append(openAll);
     }
     houseWarrantySection.append(head);

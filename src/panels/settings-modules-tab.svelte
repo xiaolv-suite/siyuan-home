@@ -97,7 +97,13 @@
                         <span>
                             {t(`module.${mod.id}`)}
                             {#if mod.alwaysOn}<span class="lv-badge gray">{t("alwaysOn")}</span>{/if}
-                            {#if mod.devStatus === "skeleton"}<span class="lv-badge gray">{t("skeleton")}</span>{/if}
+                            {#if mod.devStatus === "ready"}
+                                <span class="lv-badge green">{t("ready")}</span>
+                            {:else if mod.devStatus === "skeleton"}
+                                <span class="lv-badge gray">{t("skeleton")}</span>
+                            {:else if mod.devStatus === "planned"}
+                                <span class="lv-badge gray">{t("planned")}</span>
+                            {/if}
                         </span>
                         <span class="b3-card__info-meta">{t(`module.${mod.id}.desc`)}</span>
                         {#if mod.suggestRoles?.length && !enabledIds.has(mod.id)}

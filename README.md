@@ -162,15 +162,20 @@
 
 - **兼容版本**：**思源笔记 >= v3.8.4**（已全面适配桌面端 Windows / macOS / Linux 以及 Android / iOS 移动端）
 
-### 方式一：思源官方集市一键安装（推荐）
-1. 打开思源笔记，进入「设置」 -> 「集市」 -> 「插件」；
-2. 搜索 **小驴管家**（或 `siyuan-home`）；
-3. 点击「下载」并启用，顶栏即可看到小驴管家的小房子图标。
+> **内测说明**：当前 `plugin.json` 为 `disabledInPublish: true`，尚未在思源集市上架；请使用下方本地安装方式，集市入口将在内测转正后开放。
 
-### 方式二：Releases 手动安装
-1. 从 [GitHub Releases](https://github.com/xiaolv-suite/siyuan-home/releases/latest) 下载最新版的 `package.zip`；
+### 方式一：发行包手动安装（内测推荐）
+1. 从 [GitHub Releases](https://github.com/xiaolv-suite/siyuan-home/releases/latest) 下载最新版的 `package.zip`（或使用本地 `pnpm build` 生成的包）；
 2. 将压缩包解压至思源工作空间目录：`data/plugins/siyuan-home/`；
 3. 重启思源笔记，在「设置」 -> 「插件」中开启即可。
+
+### 方式二：源码构建与本地安装
+1. 环境要求：Node.js `>= 24.0.0`、pnpm `12.x`；
+2. 在仓库根目录执行 `pnpm install && pnpm build`；
+3. 执行 `pnpm make-install`（或 `pnpm make-link` 建立开发软链）。
+
+### 方式三：思源集市（内测转正后开放）
+当前版本尚未上架，集市搜索不到属预期；上架后此处会更新为推荐方式。
 
 ---
 

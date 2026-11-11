@@ -107,8 +107,12 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
         let itemID = pendingRowId;
         if (!itemID) {
             try {
-                const { addDetachedRow } = await import("./siyuan");
-                itemID = await addDetachedRow(ref.avId, title, { idempotencyKey: `${operationKey}:row`, retries: 1 });
+                const { addDetachedRow, newSiYuanId } = await import("./siyuan");
+                itemID = await addDetachedRow(ref.avId, title, {
+                    idempotencyKey: `${operationKey}:row`,
+                    retries: 1,
+                    rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+                });
                 pendingRowId = itemID;
                 pendingModuleId = mod;
             } catch (e) {

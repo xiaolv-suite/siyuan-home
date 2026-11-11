@@ -551,7 +551,7 @@ body.theme--dark {
     cursor: pointer;
 
     &:hover {
-        background: var(--b3-list-hover);
+        background: var(--lv-surface-2);
     }
 
     &:focus-visible {
@@ -1179,7 +1179,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 .b3-dialog--lvmobile {
     padding: 0 !important;
     .b3-dialog { padding: 0 !important; }
-    .b3-dialog__scrim { background: var(--b3-theme-background); }
+    .b3-dialog__scrim { background: var(--lv-canvas); }
     // Dialog 自带标题栏与关闭叉号会与面板内的品牌栏重复；关闭入口由面板顶栏提供，
     // 强制彻底隐藏宿主自带的 header 与浮动 close 按钮，确保移动端沉浸且无重叠。
     .b3-dialog__header,

@@ -1,5 +1,5 @@
 import { showMessage } from "siyuan";
-import { addDetachedRow, setCell } from "@/core/siyuan";
+import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "@/core/siyuan";
 
 export interface ExecuteCaptureToOptions {
     plugin: any;
@@ -45,13 +45,22 @@ export async function executeCaptureTo(options: ExecuteCaptureToOptions): Promis
         if (!targetCol) throw new Error(`target column unavailable: ${moduleId}`);
         // 码点安全截断（Array.from 按 Unicode 码点切，emoji/生僻字不被劈成乱码）
         const name = Array.from(normalizedText).length > 40 ? `${Array.from(normalizedText).slice(0, 40).join("")}…` : normalizedText;
-        const itemID = await addDetachedRow(ref.avId, name, { idempotencyKey: `${operationKey}:row` });
+        const itemID = await addDetachedRow(ref.avId, name, {
+            idempotencyKey: `${operationKey}:row`,
+            // D02：注入客户端行身份，未知结果时不得按「唯一新增行」认领他人记录。
+            rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+        });
         await setCell(ref.avId, targetCol, itemID, moduleId === "bookmarks"
             ? { type: "url", url: { content: normalizedText } }
             : { type: "text", text: { content: normalizedText } }, { idempotencyKey: `${operationKey}:cell` });
         showMessage(t("capture.saved").replace("${module}", t(`module.${moduleId}`)), 3000, "info");
         // 常用语/书签/地址无提醒规则——写入不触发扫描（PF06：无相关变更不重扫）
     } catch (e) {
+        if (e instanceof RowIdentityPendingError) {
+            // 行可能已提交但身份未确认：保留去重窗口，提示待确认，不诱导立即重试。
+            showMessage(t("capture.identityPending").replace("${module}", t(`module.${moduleId}`)), 5000, "info");
+            return;
+        }
         captureDedupe.delete(dedupeKey);
         const { coalescedNotify } = await import("@/libs/notify-queue");
         coalescedNotify("capture-failed", () =>

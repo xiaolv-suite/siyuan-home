@@ -5,6 +5,7 @@
     import { confirm } from "@/libs/dialog";
     import { removeMember } from "@/core/members";
     import { renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
+    import { openNativeAssetPicker } from "@/libs/lv-notice-kit";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { openContactPicker, getContactsBridge } from "@/libs/contact-picker";
@@ -101,6 +102,28 @@
                 idempotencyKey: `${operationKey}:cell`,
                 retries: 1,
             });
+            avatars = { ...avatars, [m.id]: path };
+            showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
+        } catch (e) {
+            showMessage(t("members.avatarFailed").replace("${msg}", errText(e)), 5000, "error");
+        } finally {
+            const next = new Set(avatarBusy);
+            next.delete(m.id);
+            avatarBusy = next;
+        }
+    }
+    async function pickAssetAvatar(m: FamilyMember) {
+        if (!m.avItemId) { showMessage(t("members.avatarNoRow"), 4000, "info"); return; }
+        const res = await openNativeAssetPicker();
+        if (!res?.path) return;
+        const path = res.path.trim();
+        const name = path.replace(/^.*[\\/]/, "") || "avatar.png";
+        const ref = plugin.settings.dbRefs?.members;
+        const avatarKey = ref?.columns?.avatar;
+        if (!ref?.avId || !avatarKey) return;
+        avatarBusy = new Set([...avatarBusy, m.id]);
+        try {
+            await setCell(ref.avId, avatarKey, m.avItemId, { type: "mAsset", mAsset: [{ content: path, name }] });
             avatars = { ...avatars, [m.id]: path };
             showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
         } catch (e) {
@@ -489,6 +512,7 @@
                 onToggleExpand={() => toggleExpand(m.id)}
                 onStartEdit={() => startEdit(m)}
                 onPickAvatar={() => pickAvatar(m)}
+                onPickAssetAvatar={() => void pickAssetAvatar(m)}
                 onOpenAssetTimeline={() => void openMemberAssetTimeline(m)}
                 onLinkContact={() => linkContact(m)}
                 onUnlinkContact={() => void unlinkContact(m)}

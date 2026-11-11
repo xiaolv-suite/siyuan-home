@@ -1,5 +1,7 @@
 <script lang="ts">
     import UiIcon from "@/ui/icon.svelte";
+    import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
+    import { sql } from "@/core/siyuan";
     import { MODULE_GROUPS, getModule } from "@/core/modules";
     import { createDefaultGuestConfig, filterGuestVisibleModules } from "@/core/guest-mode";
     import { formatLocalDate } from "@/core/date-display";
@@ -184,9 +186,33 @@
                     aria-hidden="true"><UiIcon name={moduleUiIcon(mid) as any} size={20} /></span><b>{t(`module.${mid}`)}</b>
                 {#if plugin.settings.dbRefs?.[mid]?.docId}
                     <button type="button" class="b3-button b3-button--text lv-mod-doc-btn"
-                        title={t("ledger.openDoc")}
+                        title={`${t("ledger.openDoc")}（右键打开原生文档树菜单）`}
                         aria-label={`${t(`module.${mid}`)} · ${t("ledger.openDoc")}`}
-                        onclick={(e: MouseEvent) => { e.stopPropagation(); plugin.showTabDocs?.(plugin.settings.dbRefs[mid].docId); }}>
+                        onclick={(e: MouseEvent) => { e.stopPropagation(); plugin.showTabDocs?.(plugin.settings.dbRefs[mid].docId); }}
+                        oncontextmenu={async (e: MouseEvent) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const ref = plugin.settings.dbRefs?.[mid];
+                            let notebookId = ref?.notebook;
+                            const docId = ref?.docId;
+                            if (docId) {
+                                if (!notebookId) {
+                                    try {
+                                        const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
+                                        if (rows && rows[0]?.box) {
+                                            notebookId = rows[0].box;
+                                        }
+                                    } catch {}
+                                }
+                                if (notebookId) {
+                                    await showDocTreeNativeMenu({
+                                        notebookId,
+                                        docId,
+                                        position: { x: e.clientX, y: e.clientY }
+                                    });
+                                }
+                            }
+                        }}>
                         <UiIcon name="folder" size={13} />
                     </button>
                 {/if}

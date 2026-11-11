@@ -7,7 +7,7 @@
  */
 import type { Plugin } from "siyuan";
 import type { FamilyMember, HomeSettings, DbRef, MemberRowCreatePending } from "@/types";
-import { addDetachedRow, setCell, renderLedgerAll, RowIdentityPendingError } from "./siyuan";
+import { addDetachedRow, newSiYuanId, setCell, renderLedgerAll, RowIdentityPendingError } from "./siyuan";
 import { saveSettings, errText } from "./settings";
 import { selectCellValue } from "./avcell";
 
@@ -157,7 +157,13 @@ async function createMemberRow(plugin: Plugin, settings: HomeSettings, ref: DbRe
     catch (error) { m.avRowCreatePending = undefined; m.syncError = errText(error); return false; }
     try {
         const operationKey = memberOperationKey("member-create", m);
-        const itemID = await addDetachedRow(ref.avId!, m.name, { idempotencyKey: `${operationKey}:row`, retries: 0 });
+        const itemID = await addDetachedRow(ref.avId!, m.name, {
+            idempotencyKey: `${operationKey}:row`,
+            retries: 0,
+            // D02/D05：成员行建行同样注入客户端身份，未知结果只进 pending 对账，
+            // 不得按「唯一新增行」认领他人或历史记录。
+            rowIdentity: { avID: ref.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
+        });
         m.avItemId = itemID;
         m.avRowCreatePending = undefined;
         m.syncError = undefined;

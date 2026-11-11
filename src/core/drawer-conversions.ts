@@ -48,12 +48,13 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
         confirm(t("ledger.rxToMedicine"), t("ledger.rxToMedicineBody").replace("${name}", name), async () => {
             btn.disabled = true;
             try {
-                const { addDetachedRow, setCell } = await import("./siyuan");
+                const { addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
                 const { selectCellValue } = await import("./avcell");
                 if (!medicineOperationKey) medicineOperationKey = `ledger:rx-to-medicine:${row.itemID}:${Date.now()}`;
                 const itemID = pendingMedicineID ?? await addDetachedRow(medRef.avId!, name, {
                     idempotencyKey: `${medicineOperationKey}:row`,
                     retries: 1,
+                    rowIdentity: { avID: medRef.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
                 });
                 pendingMedicineID = itemID;
                 const catKey = medRef.columns?.category;
@@ -71,6 +72,12 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
                 pendingMedicineID = null;
                 medicineOperationKey = null;
             } catch (e) {
+                const { RowIdentityPendingError } = await import("./siyuan");
+                if (e instanceof RowIdentityPendingError) {
+                    // 行可能已创建：保持按钮禁用，提示先核对，避免重复建行。
+                    showMessageFn(t("common.identityPending"), 6000, "info");
+                    return;
+                }
                 showMessageFn(t("ledger.rxToMedicineFailed").replace("${msg}", errMsg(e)), 6000, "error");
                 btn.disabled = false;
             }
@@ -120,7 +127,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
         stockInBusy = true;
         btn.disabled = true;
         try {
-            const { renderLedgerAll, addDetachedRow, setCell } = await import("./siyuan");
+            const { renderLedgerAll, addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
             const res = await renderLedgerAll(medRef.avId!);
             if (!res.complete) throw new Error(t("ledger.loadIncomplete"));
             const nameKey = medRef.columns?.name;
@@ -172,6 +179,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                             const itemID = pendingStockItemID ?? await addDetachedRow(medRef.avId!, name, {
                                 idempotencyKey: `${stockOperationKey}:row`,
                                 retries: 1,
+                                rowIdentity: { avID: medRef.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
                             });
                             pendingStockItemID = itemID;
                             if (!stockWrite) stockWrite = { itemID, value: qty, idempotencyKey: `${stockOperationKey}:cell:${itemID}` };
@@ -190,6 +198,12 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                         } catch { /* soft */ }
                         showMessageFn(t("ledger.stockInDone"), 3000, "info");
                     } catch (e) {
+                        const { RowIdentityPendingError } = await import("./siyuan");
+                        if (e instanceof RowIdentityPendingError) {
+                            // 行可能已创建：保持弹窗按钮禁用，提示先核对药箱台账。
+                            showMessageFn(t("common.identityPending"), 6000, "info");
+                            return;
+                        }
                         showMessageFn(t("ledger.stockInFailed").replace("${msg}", errMsg(e)), 6000, "error");
                         ok.disabled = false;
                         if (cancel) cancel.disabled = false;

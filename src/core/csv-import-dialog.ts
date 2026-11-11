@@ -5,7 +5,7 @@
 import { parseCsv } from "./csv";
 import { bindDialogA11y } from "./dialog-a11y";
 import { planImport, guessMapping } from "./importer";
-import { addDetachedRow, setCell, RowIdentityPendingError } from "./siyuan";
+import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "./siyuan";
 import { cellValue } from "./avcell";
 import { confirm } from "@/libs/dialog";
 
@@ -109,7 +109,11 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
                             let created = false;
                             try {
                                 const rowOperationKey = `${importOperationKey}:row:${i}`;
-                                const itemID = await addDetachedRow(ref.avId!, row.name, { idempotencyKey: rowOperationKey });
+                                const itemID = await addDetachedRow(ref.avId!, row.name, {
+                                    idempotencyKey: rowOperationKey,
+                                    // D02：导入行同样注入身份，避免未知结果重试时认领同名单行。
+                                    rowIdentity: { avID: ref.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
+                                });
                                 created = true;
                                 for (const c of row.cells) {
                                     if (ref.columns?.[c.key]) {

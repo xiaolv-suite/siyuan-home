@@ -5,7 +5,7 @@
  */
 import type { Plugin } from "siyuan";
 import type { HomeSettings, MemberRole } from "@/types";
-import { addDetachedRow, setCell, removeLedgerRows, newSiYuanId } from "./siyuan";
+import { addDetachedRow, setCell, removeLedgerRows, newSiYuanId, RowIdentityPendingError } from "./siyuan";
 import { selectCellValue } from "./avcell";
 import { addMember, removeMember } from "./members";
 import { saveSettings } from "./settings";
@@ -38,7 +38,17 @@ async function demoRow(
     const cols = ref?.columns;
     if (!ref?.avId || !cols) return false;
     const operationKey = `demo:${moduleId}:${String(fields.name)}`;
-    const itemID = await addDetachedRow(ref.avId, `${DEMO_PREFIX}${fields.name}`, { idempotencyKey: `${operationKey}:row` });
+    let itemID: string;
+    try {
+        itemID = await addDetachedRow(ref.avId, `${DEMO_PREFIX}${fields.name}`, {
+            idempotencyKey: `${operationKey}:row`,
+            // 示例数据同样注入行身份：未知结果不认领同名旧行，直接放弃该条。
+            rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+        });
+    } catch (e) {
+        if (e instanceof RowIdentityPendingError) return false;
+        throw e;
+    }
     settings.demoRows = {
         ...(settings.demoRows ?? {}),
         [moduleId]: [...(settings.demoRows?.[moduleId] ?? []), itemID],

@@ -1,6 +1,8 @@
 <script lang="ts">
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage, homeInline } from "@/libs/notice";
+    import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
+    import { sql } from "@/core/siyuan";
     import { onDestroy } from "svelte";
     import type { ActivityRecord, ActivitySnapshot } from "@/core/activity";
     import { loadActivitySnapshot } from "@/core/activity";
@@ -383,7 +385,27 @@
                                         <span class="lv-activity-module">{t(`module.${record.moduleId}`)}{record.memberId ? ` · ${memberName(record.memberId)}` : ` · ${t("members.unassigned")}`}</span>
                                     </button>
                                     {#if plugin.settings?.dbRefs?.[record.moduleId]?.docId}
-                                        <button type="button" class="b3-button b3-button--text lv-activity-doc-btn" title={t("ledger.openDoc")} aria-label={t("ledger.openDoc")} onclick={() => openRecordDoc(record)}>
+                                        <button type="button" class="b3-button b3-button--text lv-activity-doc-btn"
+                                            title={`${t("ledger.openDoc")}（右键打开原生文档树菜单）`}
+                                            aria-label={t("ledger.openDoc")}
+                                            onclick={() => openRecordDoc(record)}
+                                            oncontextmenu={async (e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                const docId = plugin.settings?.dbRefs?.[record.moduleId]?.docId;
+                                                let notebookId = plugin.settings?.dbRefs?.[record.moduleId]?.notebook;
+                                                if (docId) {
+                                                    if (!notebookId) {
+                                                        try {
+                                                            const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
+                                                            if (rows && rows[0]?.box) notebookId = rows[0].box;
+                                                        } catch {}
+                                                    }
+                                                    if (notebookId) {
+                                                        await showDocTreeNativeMenu({ notebookId, docId, position: { x: e.clientX, y: e.clientY } });
+                                                    }
+                                                }
+                                            }}>
                                             <UiIcon name="folder" size={13} />
                                         </button>
                                     {/if}

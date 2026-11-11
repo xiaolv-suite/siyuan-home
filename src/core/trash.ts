@@ -1,7 +1,7 @@
 /**
  * 台账安全回收站管理与一键恢复引擎
  */
-import { addDetachedRow, setCell } from "./siyuan";
+import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "./siyuan";
 import { saveRuntime, type HubRuntime } from "./hub/runtime";
 
 export interface TrashItem {
@@ -49,6 +49,8 @@ export async function restoreTrashItem(
         const title = item.title && item.title !== "—" ? item.title : "已恢复记录";
         const newRowId = await addDetachedRow(dbRef.avId, title, {
             idempotencyKey: `trash:restore:${item.id}:${Date.now()}`,
+            // 恢复同样注入行身份：未知结果不认领同名单行，先提示核对。
+            rowIdentity: { avID: dbRef.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
         });
 
         // 将原单元格数据逐一写回新行
@@ -70,6 +72,9 @@ export async function restoreTrashItem(
 
         return { success: true, restoredRowId: newRowId };
     } catch (e) {
+        if (e instanceof RowIdentityPendingError) {
+            return { success: false, error: "记录可能已恢复，但系统暂时无法确认行身份；请先核对台账，再决定是否重试。" };
+        }
         return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
 }

@@ -2,6 +2,8 @@
     import type { FamilyMember, Reminder } from "@/types";
     import type { HomePluginLike } from "@/types/plugin";
     import { Menu } from "siyuan";
+    import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
+    import { sql } from "@/core/siyuan";
     import { memberHue } from "@/core/format";
     import { calculateRetirement } from "@/core/retirement";
     import { getContactsBridge } from "@/libs/contact-picker";
@@ -34,6 +36,7 @@
         onToggleExpand,
         onStartEdit,
         onPickAvatar,
+        onPickAssetAvatar,
         onOpenAssetTimeline,
         onLinkContact,
         onUnlinkContact,
@@ -67,6 +70,7 @@
         onToggleExpand: () => void;
         onStartEdit: () => void;
         onPickAvatar: () => void;
+        onPickAssetAvatar?: () => void;
         onOpenAssetTimeline: () => void;
         onLinkContact: () => void;
         onUnlinkContact: () => void;
@@ -89,9 +93,28 @@
             const menu = new Menu("lv-member-card");
             menu.addItem({ label: t("members.edit"), click: () => onStartEdit() });
             const docId = plugin.settings?.dbRefs?.members?.docId;
-            if (docId) menu.addItem({ label: t("members.openLedger"), click: () => plugin.showTabDocs?.(docId) });
+            if (docId) {
+                menu.addItem({ label: t("members.openLedger"), click: () => plugin.showTabDocs?.(docId) });
+                menu.addItem({
+                    label: "原生文档树菜单",
+                    icon: "iconMenu",
+                    click: async () => {
+                        let notebookId = plugin.settings?.dbRefs?.members?.notebook;
+                        if (!notebookId) {
+                            try {
+                                const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
+                                if (rows && rows[0]?.box) notebookId = rows[0].box;
+                            } catch {}
+                        }
+                        if (notebookId) {
+                            await showDocTreeNativeMenu({ notebookId, docId, position: { x, y } });
+                        }
+                    }
+                });
+            }
             menu.addItem({ label: t("members.assetTimeline"), click: () => onOpenAssetTimeline() });
             menu.addItem({ label: t("members.uploadAvatar"), click: () => onPickAvatar() });
+            menu.addItem({ label: "从思源资源库选头像", icon: "iconFolder", click: () => onPickAssetAvatar?.() });
             if (contact) {
                 menu.addItem({
                     label: t("members.contactUnlink"),
@@ -136,9 +159,14 @@
                 <div class="lv-caption">{t(`role.${m.role}`)}{m.sex ? ` · ${t(`members.sex.${m.sex}`)}` : ""}{m.lunarBirthday ? ` · ${t("members.lunar")}` : ""} {m.birthday ?? ""}</div>
             </div>
         </button>
-        <button type="button" class="lv-iconbtn" title={t("members.uploadAvatar")} aria-label={t("members.uploadAvatar")}
+        <button type="button" class="lv-iconbtn"
+            title={`${t("members.uploadAvatar")}（右键从思源资源库选头像）`}
+            aria-label={t("members.uploadAvatar")}
             disabled={isAvatarBusy} aria-busy={isAvatarBusy}
-            onclick={() => onPickAvatar()}>{isAvatarBusy ? "…" : t("field.avatar")}</button>
+            onclick={() => onPickAvatar()}
+            oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); onPickAssetAvatar?.(); }}>
+            {isAvatarBusy ? "…" : t("field.avatar")}
+        </button>
         <button type="button" class="b3-button b3-button--text lv-member-edit" onclick={() => onStartEdit()}>{t("members.edit")}</button>
         <button type="button" class="b3-button b3-button--text" title={t("members.moreActions")} aria-label={t("members.moreActions")}
             onclick={(e) => openCardMenu(e)}><UiIcon name="moreHorizontal" size={14} /></button>

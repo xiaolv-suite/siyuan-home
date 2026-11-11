@@ -235,11 +235,14 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
             }
             writeBtn.disabled = true;
             try {
-                const { addDetachedRow, setCell } = await import("./siyuan");
+                const { addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
                 for (let i = 0; i < items.length; i++) {
                     const it = items[i];
                     const buyQty = Math.max(1, Math.floor(Number(qtyInputs[i]?.value) || 1));
-                    const rowId = await addDetachedRow(shoppingRef.avId, it.name, { idempotencyKey: `stock:to-shop:${it.name}:${Date.now()}` });
+                    const rowId = await addDetachedRow(shoppingRef.avId, it.name, {
+                        idempotencyKey: `stock:to-shop:${it.name}:${Date.now()}`,
+                        rowIdentity: { avID: shoppingRef.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+                    });
                     if (shoppingRef.columns.qty) {
                         await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty } });
                     }
@@ -247,6 +250,12 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
                 dlg.destroy();
                 showMessageFn(t("ledger.shopWritten"), 3000, "info");
             } catch (e) {
+                const { RowIdentityPendingError } = await import("./siyuan");
+                if (e instanceof RowIdentityPendingError) {
+                    // 批量写入中可能有行已创建：保持按钮禁用，先核对采购台账。
+                    showMessageFn(t("common.identityPending"), 6000, "info");
+                    return;
+                }
                 writeBtn.disabled = false;
                 showMessageFn(String(e), 5000, "error");
             }

@@ -8,6 +8,7 @@
     import { showMessage } from "siyuan";
     import { confirm } from "@/libs/dialog";
     import { setCell } from "@/core/siyuan";
+    import { openNativeAssetPicker } from "@/libs/lv-notice-kit";
 
     let {
         certificateFiles = $bindable<Record<string, File[]>>({}),
@@ -107,11 +108,29 @@
                 {@const uploadedFiles = uploadedCertificateFiles[target.key] ?? []}
                 <div class="lv-record-field lv-record-field-wide">
                     <label for="lv-new-file-{target.key}">{target.labelKey ? t(target.labelKey) : fieldLabel(target.key)}</label>
-                    <div class="lv-record-file-picker">
+                    <div class="lv-record-file-picker" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <label class="b3-button b3-button--outline lv-record-file-btn" for="lv-new-file-{target.key}">
                             {selectedFileText(target.key)}
                         </label>
                         <input id="lv-new-file-{target.key}" type="file" multiple accept={active === "vehicles" && target.key === "attachments" ? "image/*" : "image/*,.pdf"} disabled={saving || identityPending} onchange={(event) => setCertificateFiles(target.key, Array.from((event.currentTarget as HTMLInputElement).files ?? []))} />
+                        <button
+                            type="button"
+                            class="b3-button b3-button--outline"
+                            title="从思源笔记本资源中选择"
+                            disabled={saving || identityPending}
+                            onclick={async () => {
+                                const res = await openNativeAssetPicker();
+                                if (res && res.path) {
+                                    const cleanPath = res.path.trim();
+                                    const assetName = cleanPath.replace(/^.*[\\/]/, "") || "asset";
+                                    const current = uploadedCertificateFiles[target.key] ?? [];
+                                    uploadedCertificateFiles = {
+                                        ...uploadedCertificateFiles,
+                                        [target.key]: [...current, { name: assetName, content: cleanPath }]
+                                    };
+                                }
+                            }}
+                        >📁 选资源</button>
                     </div>
                     {#if localFiles.length > 0 || uploadedFiles.length > 0}
                         <div class="lv-record-file-list" aria-label={target.labelKey ? t(target.labelKey) : fieldLabel(target.key)}>

@@ -1,7 +1,8 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
     import { homeNotify as showMessage } from "@/libs/notice";
-    import { lvLaunchpad } from "@/libs/lv-notice-kit";
+    import { lvLaunchpad, showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
+    import { sql } from "@/core/siyuan";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
     import { memberHue } from "@/core/format";
@@ -93,6 +94,25 @@
     async function openReminderDoc() {
         const { openModuleOrJournalDoc } = await import("@/core/doc-sync");
         await openModuleOrJournalDoc(plugin, r.moduleId, r.moduleId === "adhoc" ? undefined : r.rowId);
+    }
+
+    async function openReminderDocTreeMenu(e: MouseEvent) {
+        const docId = r.moduleId === "adhoc"
+            ? (plugin.settings?.dbRefs?.adhoc?.docId)
+            : (plugin.settings?.dbRefs?.[r.moduleId]?.docId);
+        if (!docId) return;
+        let notebookId = r.moduleId === "adhoc"
+            ? (plugin.settings?.dbRefs?.adhoc?.notebook)
+            : (plugin.settings?.dbRefs?.[r.moduleId]?.notebook);
+        if (!notebookId) {
+            try {
+                const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
+                if (rows && rows[0]?.box) notebookId = rows[0].box;
+            } catch {}
+        }
+        if (notebookId) {
+            await showDocTreeNativeMenu({ notebookId, docId, position: { x: e.clientX, y: e.clientY } });
+        }
     }
 
     const hasTargetDoc = $derived(r.moduleId === "adhoc" || !!plugin.settings?.dbRefs?.[r.moduleId]?.docId);
@@ -371,7 +391,7 @@
                     <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
                 {/if}
                 {#if hasTargetDoc}
-                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={t("act.locate")} onclick={() => handleMoreAction(() => void openReminderDoc())}>{t("act.locate")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={`${t("act.locate")}（右键打开原生菜单）`} onclick={() => handleMoreAction(() => void openReminderDoc())} oncontextmenu={async (e) => { e.preventDefault(); e.stopPropagation(); moreOpen = false; await openReminderDocTreeMenu(e); }}>{t("act.locate")}</button>
                 {/if}
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>

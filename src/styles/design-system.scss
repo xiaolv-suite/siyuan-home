@@ -1,7 +1,10 @@
 // ============================================================
 // 小驴管家 · UI 设计系统（R54 工作面基座）
 // 规则：
-//  1. 浅色采用白卡、冷雾蓝画布和深海蓝品牌色；暗色和未覆盖的语义色跟随思源主题；
+//  1. 面板（.lv-home）配色固定：浅色白卡+冷雾蓝画布+深海蓝品牌色，暗色用自有
+//     固定色板（dark-surfaces），均不读取思源宿主主题色，换主题不污染面板；
+//     仅挂在 body 下的少数宿主 chrome 弹窗（官方表单组件、高对比场景）按既有
+//     设计跟随宿主，属有意保留；
 //  2. 全部类作用域限定在 .lv-home 内，避免污染主界面；
 //  3. 表单原语（输入/下拉/开关/按钮）在混合场景优先 b3 原生类，
 //     .lv-* 组件用于面板内自有 UI，R54 的白面与描边语言映射为管家冷雾蓝色板。
@@ -916,14 +919,14 @@
   .lv-col-vis__header { font-size: 11.5px; font-weight: 600; color: var(--lv-tx-2); margin-bottom: 6px; padding: 0 4px; }
   .lv-col-vis__list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; max-height: 220px; padding-right: 4px; }
   .lv-col-vis__item { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: var(--lv-r-1); color: var(--lv-tx); }
-  .lv-col-vis__item:hover { background: var(--b3-theme-surface-lighter); }
+  .lv-col-vis__item:hover { background: var(--lv-surface-2); }
   .lv-col-vis__footer { border-top: 1px solid var(--lv-line); margin-top: 6px; padding-top: 6px; display: flex; justify-content: flex-end; }
 
   .lv-pulse-completed-card { padding: 12px 14px; background: var(--lv-surface); border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); margin-top: 10px; }
   .lv-pulse-completed-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--lv-tx); }
   .lv-pulse-completed-title { display: inline-flex; align-items: center; gap: 6px; color: var(--lv-ok); }
   .lv-pulse-completed-list { display: flex; flex-direction: column; gap: 6px; }
-  .lv-pulse-completed-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--lv-tx-2); padding: 5px 8px; border-radius: var(--lv-r-1); background: var(--b3-theme-surface-lighter); }
+  .lv-pulse-completed-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--lv-tx-2); padding: 5px 8px; border-radius: var(--lv-r-1); background: var(--lv-surface-2); }
   .lv-pulse-completed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lv-ok); flex: none; }
   .lv-pulse-completed-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lv-pulse-completed-bar { border-top: 1px dashed var(--lv-line); padding: 8px 12px; margin-top: 6px; }
@@ -2181,6 +2184,9 @@
   .lv-vehicle-quick-actions .b3-button { min-height: 44px; padding: 5px 10px; font-size: 12px; }
   .lv-vehicle-more { grid-column: 1 / -1; justify-self: center; }
   @media (max-width: 600px) {
+    .lv-vehicle-actions .b3-button { min-height: 44px; padding: 6px 12px; }
+    .lv-settings__row { min-height: 48px; }
+    .lv-avatar-trigger { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
     .lv-record-grid { grid-template-columns: 1fr; }
     .lv-record-field-wide { grid-column: auto; }
     .lv-record-foot { gap: 6px; }
@@ -2255,7 +2261,7 @@
       color-mix(in srgb, var(--lv-surface-2) 55%, var(--lv-tx)) 45%, var(--lv-surface-2) 65%);
     background-size: 200% 100%; animation: lv-shimmer 1.4s linear infinite; }
   .lv-filter-clear-badge { cursor: pointer; border: none; margin-left: 8px; }
-  .lv-overdue-postpone-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; font-size: 12px; border-radius: 999px; color: var(--b3-theme-primary); border-color: var(--b3-theme-primary); }
+  .lv-overdue-postpone-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; font-size: 12px; border-radius: 999px; color: var(--lv-accent); border-color: var(--lv-accent); }
   .lv-undo-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 2px 6px; }
   .lv-skel--icon { width: 32px; height: 32px; border-radius: 8px; flex: none; }
   .lv-skel-col { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -2330,7 +2336,7 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: var(--b3-theme-on-surface-light, var(--lv-tx-3));
+    color: var(--lv-tx-3);
     font-size: 17px;
     font-weight: 600;
     cursor: pointer;
@@ -2339,7 +2345,7 @@
     transition: color 120ms ease, transform 100ms ease;
     &:active {
       transform: scale(0.92);
-      color: var(--b3-theme-error, var(--lv-danger));
+      color: var(--lv-danger);
     }
   }
 
@@ -3102,12 +3108,12 @@
       border: 1px solid var(--lv-tx);
     }
     .lv-tabs__item.is-active, .lv-tabs__item.on, .lv-setnav__item.on {
-      outline: 2px solid var(--b3-theme-primary);
+      outline: 2px solid var(--lv-accent);
       outline-offset: 1px;
       font-weight: 700;
     }
-    .lv-cal-cell.sel { border: 2px solid var(--b3-theme-primary); }
-    .lv-cal-cell .d.today { outline: 2px solid var(--b3-theme-on-background); }
+    .lv-cal-cell.sel { border: 2px solid var(--lv-accent); }
+    .lv-cal-cell .d.today { outline: 2px solid var(--lv-tx); }
     :where(button, a, input, select, textarea, [tabindex="0"]):focus-visible,
     :focus-visible {
       outline: 3px solid var(--b3-theme-primary);
@@ -4832,4 +4838,59 @@ body.theme--dark .lv-home {
       }
     }
   }
+}
+
+// ── 移动端点击高亮抑制（378 波）────────────────────────────────
+// 浏览器默认 tap 灰闪会与各控件精心设计的 :active 按压反馈叠加打架；
+// 在插件根作用域内统一透明化，按压语义完全由自有 active 态表达。
+.lv-home,
+.lv-home-dialog,
+.lv-mobile-host,
+.b3-dialog--lvmobile {
+  -webkit-tap-highlight-color: transparent;
+}
+
+// ── 面板与弹窗 b3 原生控件配色统一（378 波）────────────────────
+// 面板（.lv-home）内混用的 b3 原生按钮/输入/开关此前直读宿主主题色，
+// 与管家深海蓝色板并存导致同屏两种主题色；挂 body 的弹窗（.lv-home-dialog）
+// 则完全没有 lv 令牌，fallback 到宿主色。统一做法：
+// 1) 弹窗根补齐与面板相同的明/暗 surfaces 令牌；
+// 2) 面板与弹窗作用域内把 --b3-* 别名到管家自有色板，
+//    b3 原生控件与 .lv-* 组件渲染同一套颜色，且不再受宿主换主题污染。
+.lv-home-dialog {
+  @include light-surfaces;
+  color-scheme: light;
+}
+
+.lv-home,
+.lv-home-dialog {
+  --b3-theme-primary: var(--lv-accent);
+  --b3-theme-on-primary: var(--lv-on-accent);
+  --b3-theme-primary-light: var(--lv-accent-soft);
+  --b3-theme-primary-lighter: color-mix(in srgb, var(--lv-accent) 5%, transparent);
+  --b3-theme-background: var(--lv-canvas);
+  --b3-theme-surface: var(--lv-surface);
+  --b3-theme-surface-light: var(--lv-canvas);
+  --b3-theme-surface-lighter: var(--lv-surface-2);
+  --b3-theme-on-background: var(--lv-tx);
+  --b3-theme-on-surface: var(--lv-tx-2);
+  --b3-theme-on-surface-light: var(--lv-tx-3);
+  --b3-border-color: var(--lv-line);
+  --b3-theme-error: var(--lv-danger);
+  --b3-theme-success: var(--lv-ok);
+  --b3-theme-warning: var(--lv-warn);
+  --b3-theme-info: var(--lv-info);
+  --b3-theme-secondary: var(--lv-amber);
+  --b3-list-hover: var(--lv-surface-2);
+  --b3-list-icon-hover: var(--lv-surface-2);
+}
+
+:root[data-theme-mode="dark"] .lv-home-dialog,
+html[data-theme-mode="dark"] .lv-home-dialog,
+body[data-theme-mode="dark"] .lv-home-dialog,
+body.body--dark .lv-home-dialog,
+html.dark .lv-home-dialog,
+body.theme--dark .lv-home-dialog {
+  @include dark-surfaces;
+  color-scheme: dark;
 }

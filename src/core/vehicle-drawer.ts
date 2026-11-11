@@ -86,7 +86,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         line.tabIndex = -1;
         requestAnimationFrame(() => {
             if (!line.isConnected) return;
-            line.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+            line.scrollIntoView({ block: "center", behavior: (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth" });
             line.focus({ preventScroll: true });
         });
     };

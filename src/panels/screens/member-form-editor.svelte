@@ -79,7 +79,7 @@
     $effect(() => {
         if (editorOpen) {
             requestAnimationFrame(() => {
-                document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+                document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth", block: "nearest" });
                 nameInput?.focus();
             });
         } else {
@@ -88,7 +88,7 @@
     });
 
     export function focusName() {
-        document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+        document.getElementById("lv-member-editor")?.scrollIntoView?.({ behavior: (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth", block: "nearest" });
         nameInput?.focus();
     }
 

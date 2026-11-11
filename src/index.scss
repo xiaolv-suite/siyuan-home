@@ -245,14 +245,32 @@ body.theme--dark {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    padding-bottom: 8px;
     margin: 2px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--lv-line) 60%, transparent);
 }
 
 .lv-settings__pane-title {
     flex: none;
+    position: relative;
     margin: 0;
+    padding-left: 10px;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+
+    /* 面板标题锚点竖条：与左侧一级导航激活色呼应 */
+    &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 3px;
+        height: 15px;
+        border-radius: 2px;
+        background: var(--lv-accent);
+        transform: translateY(-50%);
+    }
 }
 
 .lv-set-search-wrap {
@@ -285,22 +303,32 @@ body.theme--dark {
     gap: var(--lv-space-1);
     overflow-x: auto;
     padding-bottom: 4px;
-    scrollbar-width: thin;
+    scrollbar-width: none;
 
     .lv-setnav__item {
         flex: none;
         min-height: var(--lv-control-sm);
-        padding: 6px 10px;
+        padding: 6px 12px;
         border: 1px solid transparent;
-        border-radius: var(--lv-r-2);
+        border-radius: 9999px;
         color: var(--lv-tx-2);
         background: transparent;
         cursor: pointer;
         white-space: nowrap;
+        transition: background var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease);
 
         &:hover { background: var(--lv-surface-2); color: var(--lv-tx); }
-        &.on { border-color: var(--lv-line); background: var(--lv-surface-2); color: var(--lv-accent); }
+        &:active { transform: scale(0.97); }
+        &.on,
+        &[aria-current="true"] {
+            border-color: color-mix(in srgb, var(--lv-accent) 32%, var(--lv-line));
+            background: var(--lv-accent-soft);
+            color: var(--lv-accent);
+            font-weight: 550;
+        }
     }
+
+    &::-webkit-scrollbar { display: none; }
 }
 
 .lv-settings__scroll {
@@ -326,9 +354,25 @@ body.theme--dark {
     padding: var(--lv-space-4) 18px;
 
     .lv-setcard__title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
         font-size: 13.5px;
-        font-weight: 600;
-        margin-bottom: 4px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid color-mix(in srgb, var(--lv-line) 55%, transparent);
+
+        // 分组标题前置微圆点：与侧栏导航激活点一致
+        &::before {
+            content: "";
+            flex: none;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: color-mix(in srgb, var(--lv-accent) 72%, transparent);
+        }
     }
 
     .lv-setcard__hint {

@@ -470,7 +470,7 @@
     // 品牌名来自插件标题/内测标记，窄面板下允许它收缩，避免挤压页签和右侧动作。
     b { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: 14px; font-weight: 600; letter-spacing: 0; }
-    span { font-size: 9.5px; font-weight: 600; letter-spacing: .16em; color: var(--lv-tx-3); } }
+    span { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; color: var(--lv-tx-3); } }
   .lv-tabbar__title { font-size: 15px; font-weight: 600; }
   .lv-tabbar__meta { display: flex; gap: 6px; align-items: center; }
   .lv-hubstatus {
@@ -4704,7 +4704,7 @@ body.theme--dark .lv-home {
     min-width: 0;
   }
   .lv-monthly-amount {
-    font-size: 9px;
+    font-size: 10px;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4717,7 +4717,7 @@ body.theme--dark .lv-home {
     border-radius: 4px 4px 1px 1px;
   }
   .lv-monthly-label {
-    font-size: 9px;
+    font-size: 10px;
     white-space: nowrap;
   }
   .lv-vehicle-log-row {
@@ -4949,5 +4949,16 @@ body.theme--dark .lv-home-dialog {
     :is(select, .b3-select) :is(option, optgroup) {
         background-color: var(--lv-surface, var(--b3-theme-background));
         color: var(--lv-tx, var(--b3-theme-on-background));
+    }
+}
+
+/* ══════════ 文字专项：等宽数字对齐 / 行高节奏 / 换行保护 ══════════ */
+:is(.lv-home, .lv-home-dialog, .lv-settings) {
+    font-variant-numeric: tabular-nums;
+
+    .lv-caption,
+    .b3-card__info-meta {
+        line-height: 1.55;
+        overflow-wrap: anywhere;
     }
 }

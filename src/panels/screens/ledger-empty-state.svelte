@@ -83,9 +83,11 @@
                 <button type="button" class="b3-button b3-button--outline" onclick={onOpenBindDoc} disabled={rebuilding}>
                     <UiIcon name="link" size={13} /> {t("ledger.bindDoc")}
                 </button>
-                <button type="button" class="b3-button b3-button--outline" onclick={onOpenNewRecord} disabled={rebuilding}>
-                    <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
-                </button>
+                {#if ref?.avId}
+                    <button type="button" class="b3-button b3-button--outline" onclick={onOpenNewRecord} disabled={rebuilding}>
+                        <UiIcon name="add" size={13} /> {t("ledger.newRecord")}
+                    </button>
+                {/if}
             </div>
         </div>
     </div>

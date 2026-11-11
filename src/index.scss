@@ -741,6 +741,8 @@ body.theme--dark {
     @include design-system.light-surfaces;
 
     .b3-dialog__container {
+        max-width: calc(100vw - 20px) !important;
+        box-sizing: border-box;
         border-radius: var(--lv-r-card);
         background: var(--lv-surface);
         color: var(--lv-tx);
@@ -859,6 +861,22 @@ body.theme--dark {
         color: var(--lv-tx);
         font-size: 12.5px;
         line-height: 1.5;
+    }
+}
+
+.lv-dialog-mobile-fullscreen {
+    .b3-dialog__container {
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        box-sizing: border-box !important;
+    }
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+    .b3-dialog--lvmobile :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea),
+    .b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab, [class*="lv-exam-"], [class*="lv-cards"])) :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea),
+    .b3-dialog:has(.lv-home) :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea) {
+        font-size: 16px !important;
     }
 }
 

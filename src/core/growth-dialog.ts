@@ -329,7 +329,6 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                             const batchVal = (rdlg.element.querySelector("#lv-vrec-batch") as HTMLInputElement)?.value.trim();
                             const siteVal = (rdlg.element.querySelector("#lv-vrec-site") as HTMLInputElement)?.value.trim();
                             this.disabled = true;
-                            rdlg.destroy();
                             try {
                                 // 经写入网关：分类走 select 双形态、日期转时间戳（此前日期以字符串写入、分类单形态，内核落盘为空）
                                 const { itemID: rowId, failed } = await writeLedgerRow({
@@ -348,6 +347,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                                     addRowFn: addDetachedRow,
                                     setCellFn: setCell,
                                 });
+                                rdlg.destroy();
                                 if (failed.length > 0) {
                                     showMessageFn(t("ledger.writePartialFailed").replace("${fields}", failed.map((k) => t(`field.${k}`)).join("、")), 6000, "error");
                                 } else {
@@ -366,6 +366,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                                 render();
                                 if (onRecordSaved) await onRecordSaved();
                             } catch (err) {
+                                this.disabled = false;
                                 showMessageFn(t("ledger.saveFailed").replace("${msg}", err instanceof Error ? err.message : String(err)), 6000, "error");
                             }
                         };

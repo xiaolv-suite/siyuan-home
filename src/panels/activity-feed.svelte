@@ -99,7 +99,13 @@
         });
     });
     const pageCount = $derived(Math.max(1, Math.ceil(records.length / pageSize)));
-    const pageRecords = $derived(records.slice((page - 1) * pageSize, page * pageSize));
+    const safePage = $derived(Math.min(Math.max(1, page), pageCount));
+    const pageRecords = $derived(records.slice((safePage - 1) * pageSize, safePage * pageSize));
+    $effect(() => {
+        if (page !== safePage) {
+            page = safePage;
+        }
+    });
     const moduleOptions = $derived.by(() => {
         const found = new Set((snapshot?.records ?? []).filter((r) => !memberId || r.memberId === memberId).map((r) => r.moduleId));
         return [...found].sort((a, b) => t(`module.${a}`).localeCompare(t(`module.${b}`), undefined, { numeric: true }));

@@ -77,7 +77,7 @@
 {:else if type === "textinput"}
     <input class="b3-text-field fn__flex-center" class:fn__size200={fnSize} id={key} {placeholder} type={password ? "password" : "text"} spellcheck={spellcheck} bind:value={value} onchange={handleChanged} style={style} />
 {:else if type === "textarea"}
-    <textarea class="b3-text-field fn__block" id={key} {placeholder} spellcheck={spellcheck} style={`resize: vertical; height: 10em; white-space: nowrap; ${style}`} bind:value={value} onchange={handleChanged}></textarea>
+    <textarea class="b3-text-field fn__block" id={key} {placeholder} spellcheck={spellcheck} style={`resize: vertical; height: 10em; ${style}`} bind:value={value} onchange={handleChanged}></textarea>
 {:else if type === "number"}
     <input class="b3-text-field fn__flex-center" class:fn__size200={fnSize} id={key} type="number" inputMode="numeric" min={number?.min} max={number?.max} step={number?.step} bind:value={value} onchange={handleChanged} style={style} />
 {:else if type === "button"}

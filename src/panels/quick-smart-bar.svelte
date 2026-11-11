@@ -31,12 +31,16 @@
         onApplyTemplate?: (tpl: QuickRecordTemplate) => void;
     } = $props();
 
+    let smartParseSeq = 0;
+
     async function handleSmartInput() {
+        const seq = ++smartParseSeq;
         if (!smartInputText.trim()) {
             smartParsed = null;
             return;
         }
         const { smartParseNoteContent } = await import("@/core/block-capture");
+        if (seq !== smartParseSeq) return;
         const res = smartParseNoteContent(smartInputText);
         smartParsed = res?.title ? res : null;
     }

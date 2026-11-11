@@ -264,6 +264,7 @@
     box-sizing: border-box;
     width: 100%;
     min-height: calc(100vh - 24px);
+    min-height: calc(100dvh - 24px);
     background: var(--lv-surface);
     border-radius: var(--lv-r-card);
     box-shadow: var(--lv-shadow-2);
@@ -3180,7 +3181,7 @@
     .lv-tabbar > .lv-tabs { width: 100%; }
   }
   // 触屏设备不论 CSS 视口宽度，均常显原先依赖 hover 的操作入口。
-  @media (hover: none) {
+  @media (hover: none), (pointer: coarse) {
     .lv-rem .lv-rem-ops { display: flex; opacity: 1; transform: none; }
     .lv-rem .lv-rem-more { display: block; }
     .lv-rem .lv-rem-ops > .b3-button,
@@ -3550,12 +3551,13 @@
       flex-wrap: wrap;
     }
     .lv-hub-view-toggle {
-      height: 30px;
+      min-height: 36px;
+      height: auto;
       margin: 0 !important;
       .lv-tabs__item {
-        min-height: 26px !important;
-        height: 26px !important;
-        padding: 0 8px !important;
+        min-height: 36px !important;
+        height: auto !important;
+        padding: 4px 10px !important;
         font-size: 12px !important;
       }
     }
@@ -3578,9 +3580,9 @@
         justify-content: flex-start;
         > .b3-button,
         .lv-rem-more-toggle {
-          min-height: 30px !important;
-          height: 30px !important;
-          padding: 0 10px !important;
+          min-height: 36px !important;
+          height: auto !important;
+          padding: 4px 10px !important;
           font-size: 12px !important;
         }
       }
@@ -3590,9 +3592,9 @@
       align-items: center;
       gap: 4px;
       .lv-chip {
-        padding: 3px 9px;
+        padding: 4px 10px;
         font-size: 12px;
-        min-height: 28px;
+        min-height: 36px;
       }
     }
     .lv-hub-mobile-drawer-btn {
@@ -3600,9 +3602,9 @@
       align-items: center;
       gap: 4px;
       margin-left: auto;
-      min-height: 30px !important;
-      height: 30px;
-      padding: 0 8px;
+      min-height: 36px !important;
+      height: auto;
+      padding: 4px 10px;
       font-size: 12px;
       border-radius: 8px;
       &.is-active {

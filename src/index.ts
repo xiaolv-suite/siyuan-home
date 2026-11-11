@@ -1,4 +1,4 @@
-import { Plugin, openTab, openMobileFileById, getFrontend } from "siyuan";
+import { Plugin, openTab, openMobileFileById, getFrontend, type TProtyleAction } from "siyuan";
 import { mount, unmount } from "svelte";
 import "./index.scss";
 
@@ -623,14 +623,24 @@ export default class LvHomePlugin extends Plugin {
 
     /** 打开台账文档或定位具体块（B4e/R5 定案：detached 行 itemID 不在 blocks 表，必须优先打开台账文档 docId；若 blockId 实为真实绑定文档块则再聚焦高亮） */
     showTabDocs(docId?: string, blockId?: string) {
-        const resolvedDocId = docId ?? this.settings.dbRefs[this.activeLedger]?.docId;
+        const resolvedDocId = docId ?? (blockId ? undefined : this.settings.dbRefs[this.activeLedger]?.docId);
         const primaryTarget = resolvedDocId ?? blockId;
         if (!primaryTarget) return;
 
         // 手机端：分流调用 openMobileFileById 并主动收起全屏管家面板，露出底层文档
         if (this.isMobileView()) {
+            const action: TProtyleAction[] | undefined = primaryTarget === blockId && blockId ? ["cb-get-focus", "cb-get-hl"] : undefined;
             if (typeof openMobileFileById === "function") {
-                openMobileFileById(this.app, primaryTarget);
+                openMobileFileById(this.app, primaryTarget, action);
+            }
+            if (blockId && resolvedDocId && blockId !== resolvedDocId && typeof openMobileFileById === "function") {
+                import("@/core/siyuan").then(({ sql }) =>
+                    sql<{ id: string }>(`SELECT id FROM blocks WHERE id='${blockId.replace(/'/g, "''")}' LIMIT 1`)
+                ).then((rows) => {
+                    if (rows && rows.length > 0) {
+                        openMobileFileById(this.app, blockId, ["cb-get-focus", "cb-get-hl"]);
+                    }
+                }).catch(() => undefined);
             }
             try {
                 this.entrypointsController?.getMobileController()?.closeMobilePanel();
@@ -1197,7 +1207,7 @@ export default class LvHomePlugin extends Plugin {
             component: HomeSettingsPanel,
             props: { plugin: this, settings: this.settings },
             width: "min(920px, calc(100vw - 32px))",
-            height: "min(760px, calc(100vh - 96px))",
+            height: "min(760px, calc(100dvh - 96px))",
         });
     }
 

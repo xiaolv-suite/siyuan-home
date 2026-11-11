@@ -166,7 +166,7 @@
     function openBlock(blockId?: string) {
         if (!blockId) return;
         if (typeof plugin.showTabDocs === "function") {
-            plugin.showTabDocs(blockId);
+            plugin.showTabDocs(undefined, blockId);
         }
     }
 </script>
@@ -332,6 +332,13 @@
         transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
         line-height: 1;
         white-space: nowrap;
+    }
+    @media (max-width: 680px), (pointer: coarse) {
+        .lv-launchpad-chip {
+            height: auto;
+            min-height: 36px;
+            padding: 4px 12px;
+        }
     }
     .lv-launchpad-chip:hover {
         background: var(--lv-surface-hover, var(--b3-theme-background-hover));

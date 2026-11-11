@@ -184,7 +184,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                     else if (cmd.action === "open-location") window.dispatchEvent(new CustomEvent("siyuan-home:open-location"));
                     else if (cmd.action === "open-emergency") window.dispatchEvent(new CustomEvent("siyuan-home:open-emergency"));
                     else if (cmd.action === "open-life-index") window.dispatchEvent(new CustomEvent("siyuan-home:open-life-index"));
-                    else if (cmd.action === "open-reminders") onNavigateToTarget({ moduleId: "adhoc", rowId: "" });
+                    else if (cmd.action === "open-reminders") (plugin as any).openRemindersScreen?.();
                     else if (cmd.action === "open-settings") (plugin as any).openSetting?.();
                     else if (cmd.action === "open-store-mode") window.dispatchEvent(new CustomEvent("siyuan-home:open-store"));
                 }

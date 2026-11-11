@@ -74,13 +74,13 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
                 return;
             }
             this.disabled = true;
-            dlg.destroy();
             try {
                 const { reassignMemberRows } = await import("./members");
                 const res = await reassignMemberRows(plugin, plugin.settings, {
                     fromAvItemId: fromVal === "unassigned" ? "unassigned" : fromVal,
                     toAvItemId: toVal,
                 });
+                dlg.destroy();
                 if (res.updated > 0) {
                     const modNames = res.modules.map((m) => t(`module.${m}`) !== `module.${m}` ? t(`module.${m}`) : m).join("、");
                     showMessageFn(t("members.reassignDone").replace("${n}", String(res.updated)).replace("${modules}", modNames), 4000, "info");
@@ -93,6 +93,7 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
                     showMessageFn(t("members.reassignZero"), 3000, "info");
                 }
             } catch (e) {
+                this.disabled = false;
                 showMessageFn(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
             }
         };

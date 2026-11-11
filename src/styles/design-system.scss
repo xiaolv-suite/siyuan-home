@@ -328,7 +328,7 @@
       font-weight: 500;
       cursor: pointer;
       position: relative;
-      transition: all var(--lv-t-fast) var(--lv-ease);
+      transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
 
       &:hover {
         background: var(--lv-surface-2);
@@ -372,7 +372,7 @@
         border: none;
         color: var(--lv-tx-2);
         cursor: pointer;
-        transition: all var(--lv-t-fast) var(--lv-ease);
+        transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
         &:hover { background: var(--lv-surface-2); color: var(--lv-tx); }
         &.is-primary { background: var(--lv-accent); color: var(--lv-on-accent); box-shadow: var(--lv-shadow-pop); }
       }
@@ -643,7 +643,7 @@
       align-items: center;
       gap: 4px;
       text-decoration: none;
-      transition: all var(--lv-t-fast) var(--lv-ease-out);
+      transition: transform var(--lv-t-fast) var(--lv-ease-out), background var(--lv-t-fast) var(--lv-ease-out), border-color var(--lv-t-fast) var(--lv-ease-out), box-shadow var(--lv-t-fast) var(--lv-ease-out), color var(--lv-t-fast) var(--lv-ease-out), opacity var(--lv-t-fast) var(--lv-ease-out);
       &:hover { color: #a5f3fc; transform: translateX(2px); opacity: 1; }
     }
   }
@@ -730,7 +730,7 @@
     border-radius: var(--lv-r-full); font-size: 12px; font-weight: 500;
     background: var(--lv-surface);
     border: 1px solid var(--lv-line);
-    color: var(--lv-data-accent); transition: all var(--lv-t-fast) var(--lv-ease-out);
+    color: var(--lv-data-accent); transition: transform var(--lv-t-fast) var(--lv-ease-out), background var(--lv-t-fast) var(--lv-ease-out), border-color var(--lv-t-fast) var(--lv-ease-out), box-shadow var(--lv-t-fast) var(--lv-ease-out), color var(--lv-t-fast) var(--lv-ease-out), opacity var(--lv-t-fast) var(--lv-ease-out);
     box-shadow: var(--lv-shadow-1);
     &:hover { transform: translateY(-1px); border-color: var(--lv-data-accent); background: var(--lv-data-soft); box-shadow: var(--lv-shadow-2); }
     &:active { transform: translateY(0); }
@@ -787,7 +787,7 @@
     min-height: 32px; height: 32px; padding: 0 12px; font-size: 12px;
     border-radius: var(--lv-r-1); display: inline-flex; align-items: center; gap: 5px;
     background: var(--lv-surface); border: 1px solid var(--lv-line); color: var(--lv-tx-2);
-    box-shadow: var(--lv-shadow-1); transition: all var(--lv-t-fast) var(--lv-ease);
+    box-shadow: var(--lv-shadow-1); transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     cursor: pointer; user-select: none;
     &:hover { background: var(--lv-surface-2); color: var(--lv-tx); border-color: var(--lv-line-strong); transform: translateY(-1px); box-shadow: var(--lv-shadow-2); }
     &:active { transform: translateY(0) scale(.98); }
@@ -809,7 +809,7 @@
   }
   .lv-hero-open { min-height: 34px; height: 34px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
     border-radius: var(--lv-r-2); background: var(--lv-accent); border: 1px solid transparent; color: var(--lv-on-accent); font-weight: 600; box-shadow: 0 2px 6px var(--lv-accent-glow);
-    cursor: pointer; user-select: none; transition: all var(--lv-t-fast) var(--lv-ease);
+    cursor: pointer; user-select: none; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-accent); color: var(--lv-on-accent); border-color: transparent; filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 12px var(--lv-accent-glow); }
     &:active { transform: translateY(0) scale(.98); }
     &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; } }
@@ -846,7 +846,7 @@
   .lv-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--lv-space-2); min-height: var(--lv-control-md); padding: 0 16px;
     border-radius: var(--lv-r-2); border: 1px solid var(--lv-line);
     background: var(--lv-surface); font-size: 13px; font-weight: 500; color: var(--lv-tx);
-    box-shadow: var(--lv-shadow-1); transition: all var(--lv-t-fast) var(--lv-ease);
+    box-shadow: var(--lv-shadow-1); transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     cursor: pointer; user-select: none;
     // 状态 2: 悬停 (Hover)
     &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); color: var(--lv-tx); transform: translateY(-1px); box-shadow: var(--lv-shadow-2); }
@@ -874,7 +874,7 @@
     &.sm { min-height: var(--lv-control-sm); padding: 0 10px; font-size: 12px; } }
 
   .lv-iconbtn { width: 36px; height: 36px; min-width: 36px; min-height: var(--lv-control-md); border-radius: 10px; display: grid; place-items: center; background: transparent; cursor: pointer;
-    color: var(--lv-tx-2); border: 1px solid transparent; transition: all var(--lv-t-fast) var(--lv-ease);
+    color: var(--lv-tx-2); border: 1px solid transparent; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-surface-2); color: var(--lv-tx); border-color: var(--lv-line); box-shadow: var(--lv-shadow-1); transform: translateY(-1px); }
     &:active { transform: scale(.95); }
     &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; }
@@ -896,7 +896,7 @@
   .lv-toolbar .b3-select { cursor: pointer; }
   .lv-toolbar .b3-button--outline { border-color: var(--lv-line); background: var(--lv-surface); color: var(--lv-tx-2);
     box-shadow: none; font-size: 13px; border-radius: var(--lv-r-2);
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { border-color: var(--lv-accent-line); color: var(--lv-accent); background: var(--lv-surface); }
     &:active { transform: translateY(0) scale(.98); }
     &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 2px; }
@@ -988,7 +988,7 @@
   // ── 6. chips / 徽章 / 状态点 ────────────────────────────
   .lv-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
     font-size: 12.5px; color: var(--lv-tx-2); border: 1px solid var(--lv-line);
-    background: var(--lv-surface); transition: all var(--lv-t-fast) var(--lv-ease); cursor: pointer;
+    background: var(--lv-surface); transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease); cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     &:hover { border-color: var(--lv-line-strong); color: var(--lv-tx); transform: translateY(-1px); box-shadow: var(--lv-shadow-1); }
     &:active { transform: translateY(0) scale(.98); }
@@ -1039,7 +1039,7 @@
   .lv-named-view-chip {
     display: inline-flex; align-items: center; border: 1px solid var(--lv-line);
     border-radius: var(--lv-r-full, 999px); background: var(--lv-surface);
-    font-size: 11.5px; transition: all var(--lv-t-fast) var(--lv-ease);
+    font-size: 11.5px; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); }
     &.is-active {
       border-color: var(--lv-accent); background: var(--lv-accent-soft);
@@ -1087,7 +1087,7 @@
       border: 1px solid transparent; background: transparent; color: var(--lv-tx-3); cursor: pointer;
       width: 24px; height: 24px; padding: 0; margin-left: 6px; font-size: 10px; line-height: 1;
       border-radius: 6px; vertical-align: middle;
-      transition: all var(--lv-t-fast) var(--lv-ease);
+      transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
       &:hover { background: var(--lv-surface); border-color: var(--lv-line); color: var(--lv-tx); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
     }
     .lv-plan-badge {
@@ -1146,11 +1146,11 @@
       b { font-size: 13.5px; font-weight: 600; display: block; letter-spacing: 0; }
       span { font-size: 11.5px; color: var(--lv-tx-3); } }
     .lv-rem-ops { display: flex; gap: var(--lv-space-1); flex: none; opacity: 0; transform: translateX(6px);
-      transition: all var(--lv-t-med) var(--lv-ease);
+      transition: transform var(--lv-t-med) var(--lv-ease), background var(--lv-t-med) var(--lv-ease), border-color var(--lv-t-med) var(--lv-ease), box-shadow var(--lv-t-med) var(--lv-ease), color var(--lv-t-med) var(--lv-ease), opacity var(--lv-t-med) var(--lv-ease);
       // 251 波：操作钮 ghost 化（对齐原型 .rem .ops .btn.ghost）——中性灰、hover 才浮出底色；
       // 之前 b3-button--text 的主色蓝字让整排操作过度用色
       .b3-button { padding: 5px 9px; color: var(--lv-tx-2); border-radius: var(--lv-r-2); font-size: 12px;
-        border: 1px solid transparent; transition: all var(--lv-t-fast) var(--lv-ease);
+        border: 1px solid transparent; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
         &:hover { background: var(--lv-surface); color: var(--lv-tx); border-color: var(--lv-line); box-shadow: var(--lv-shadow-1); } } }
     // 173 波（13 §3.3 对齐原型）：键盘聚焦行时操作显现（触屏常显另有 hover:none 分支）
     &:hover .lv-rem-ops, &:focus-within .lv-rem-ops { opacity: 1; transform: none; }
@@ -1179,7 +1179,7 @@
   .lv-handled-filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .lv-handled-filter-btn { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; font-size: 11.5px;
     border-radius: var(--lv-r-full); border: 1px solid var(--lv-line); background: var(--lv-surface);
-    color: var(--lv-tx-2); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
+    color: var(--lv-tx-2); cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-surface-2); color: var(--lv-tx); }
     &.active { background: var(--lv-accent-soft); color: var(--lv-accent); border-color: var(--lv-accent); font-weight: 600; } }
 
@@ -1193,7 +1193,7 @@
     &::-webkit-scrollbar { display: none; } }
   .lv-module-filter { display: inline-flex; align-items: center; gap: 5px; min-height: 31px; padding: 5px 10px;
     flex: none; border: 1px solid var(--lv-line); border-radius: 999px; background: var(--lv-surface);
-    color: var(--lv-tx-2); font-size: 11.5px; cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
+    color: var(--lv-tx-2); font-size: 11.5px; cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     span { color: var(--lv-tx-3); font-variant-numeric: tabular-nums; }
     &:hover { color: var(--lv-tx); border-color: var(--lv-line-strong); }
     &.on { color: var(--lv-accent); background: var(--lv-accent-soft); border-color: var(--lv-accent-line); font-weight: 500;
@@ -1210,7 +1210,7 @@
   .lv-module-section__head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 14px;
     border: 1px solid var(--lv-line); border-radius: var(--lv-r-2); background: var(--lv-surface); text-align: left;
     box-shadow: var(--lv-shadow-1); cursor: pointer; user-select: none;
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-surface-2); border-color: var(--lv-line-strong); box-shadow: var(--lv-shadow-2); }
     .lv-module-section__chevron { width: 18px; flex: none; color: var(--lv-accent); font-size: 17px; text-align: center; }
     .lv-module-section__title { color: var(--lv-tx); font-size: 13px; font-weight: 600; }
@@ -1285,7 +1285,7 @@
     border: 1px solid var(--lv-line);
     background: var(--lv-surface);
     color: var(--lv-tx-2);
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
 
     &--sm {
       padding: 1px 8px;
@@ -1373,7 +1373,7 @@
   .lv-qty-btn {
     width: 20px; height: 20px; display: grid; place-items: center; border: none;
     background: transparent; color: var(--lv-tx-2); border-radius: 4px; cursor: pointer;
-    font-size: 13px; font-weight: bold; line-height: 1; transition: all var(--lv-t-fast) var(--lv-ease);
+    font-size: 13px; font-weight: bold; line-height: 1; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-surface); color: var(--lv-accent); box-shadow: var(--lv-shadow-1); }
     &:active { transform: scale(0.88); }
   }
@@ -1499,7 +1499,7 @@
   .lv-quick-chip {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: 12px;
     border-radius: var(--lv-r-full, 999px); background: var(--lv-surface-2); color: var(--lv-tx-2);
-    border: 1px solid var(--lv-line); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
+    border: 1px solid var(--lv-line); cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     user-select: none; line-height: 1.25;
     &:hover { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); }
     &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 500; }
@@ -1979,7 +1979,7 @@
   }
   .lv-spotlight-item {
     cursor: pointer;
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     border: 1px solid var(--lv-line);
     background: var(--lv-surface);
     display: flex;
@@ -2022,7 +2022,7 @@
     display: inline-flex; align-items: center; min-height: 24px;
     font-size: 11.5px; padding: 3px 9px; border-radius: var(--lv-r-1, 6px);
     background: var(--lv-surface); color: var(--lv-tx-2); border: 1px solid var(--lv-line);
-    cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease); user-select: none; line-height: 1.25;
+    cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease); user-select: none; line-height: 1.25;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     &:hover { background: var(--lv-surface-2); border-color: var(--lv-accent); color: var(--lv-accent); transform: translateY(-1px); }
     &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 550; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25); }
@@ -2045,7 +2045,7 @@
   .lv-capture-mode-btn {
     flex: 1; padding: 6px 12px; font-size: 13px; font-weight: 500;
     border: none; background: transparent; color: var(--lv-tx-2);
-    border-radius: var(--lv-r-1); cursor: pointer; transition: all 0.15s ease;
+    border-radius: var(--lv-r-1); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, opacity 0.15s ease;
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     &.active {
       background: var(--lv-surface); color: var(--lv-tx); font-weight: 600;
@@ -2058,7 +2058,7 @@
   .lv-event-subbtn {
     display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px;
     border-radius: var(--lv-r-full, 999px); background: var(--lv-surface-2); color: var(--lv-tx-2);
-    border: 1px solid var(--lv-line); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
+    border: 1px solid var(--lv-line); cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); }
     &.active { background: var(--lv-accent); color: var(--lv-on-accent); border-color: var(--lv-accent); font-weight: 500; }
   }
@@ -2240,9 +2240,9 @@
     .tt { flex: 1; b { font-size: 13px; font-weight: 500; display: block; }
       span { font-size: 12px; color: var(--lv-tx-3); } } }
   .lv-sw { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--lv-surface-2);
-    border: 1px solid var(--lv-line-strong); transition: all var(--lv-t-med) var(--lv-ease); flex: none; cursor: pointer;
+    border: 1px solid var(--lv-line-strong); transition: transform var(--lv-t-med) var(--lv-ease), background var(--lv-t-med) var(--lv-ease), border-color var(--lv-t-med) var(--lv-ease), box-shadow var(--lv-t-med) var(--lv-ease), color var(--lv-t-med) var(--lv-ease), opacity var(--lv-t-med) var(--lv-ease); flex: none; cursor: pointer;
     &::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
-      background: var(--lv-tx-3); transition: all var(--lv-t-med) var(--lv-spring); }
+      background: var(--lv-tx-3); transition: transform var(--lv-t-med) var(--lv-spring), background var(--lv-t-med) var(--lv-spring), border-color var(--lv-t-med) var(--lv-spring), box-shadow var(--lv-t-med) var(--lv-spring), color var(--lv-t-med) var(--lv-spring), opacity var(--lv-t-med) var(--lv-spring); }
     &:hover { border-color: var(--lv-accent-line); }
     &.on { background: var(--lv-accent); border-color: transparent;
       &::after { left: 16px; background: #fff; } } }
@@ -2281,7 +2281,7 @@
   @keyframes lv-shimmer { to { background-position: -200% 0; } }
   .lv-file { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: var(--lv-r-2);
     border: 1px solid var(--lv-line); background: var(--lv-surface-2); font-size: 12.5px; color: var(--lv-tx-2);
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { color: var(--lv-accent); border-color: var(--lv-accent-line); } }
   .lv-kv { display: grid; grid-template-columns: 88px 1fr; gap: var(--lv-space-2) 14px; font-size: 13px;
     dt { color: var(--lv-tx-3); } dd { color: var(--lv-tx); } }
@@ -2291,7 +2291,7 @@
   .lv-qbtn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
     min-height: 86px; padding: 12px 6px; border-radius: var(--lv-r-3); background: var(--lv-surface);
     border: 1px solid var(--lv-line); color: var(--lv-tx); cursor: pointer; text-align: center;
-    box-shadow: var(--lv-shadow-1); transition: all var(--lv-t-med) var(--lv-ease);
+    box-shadow: var(--lv-shadow-1); transition: transform var(--lv-t-med) var(--lv-ease), background var(--lv-t-med) var(--lv-ease), border-color var(--lv-t-med) var(--lv-ease), box-shadow var(--lv-t-med) var(--lv-ease), color var(--lv-t-med) var(--lv-ease), opacity var(--lv-t-med) var(--lv-ease);
     &:hover { color: var(--lv-accent); border-color: var(--lv-accent-line); transform: translateY(-2px); box-shadow: var(--lv-shadow-2); }
     &:active { transform: translateY(0) scale(0.97); }
     .qi { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 16px;
@@ -2437,7 +2437,7 @@
     color: var(--lv-warn);
     border: 1px solid rgba(249, 115, 22, 0.35);
     font-weight: 600;
-    transition: all 120ms ease;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease, opacity 120ms ease;
     touch-action: manipulation;
 
     &:hover {
@@ -2716,7 +2716,7 @@
     }
   }
 
-  .lv-seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: var(--lv-r-2, 8px); border: 1px solid var(--lv-line); background: var(--lv-surface-2); color: var(--lv-tx); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 130ms ease;
+  .lv-seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: var(--lv-r-2, 8px); border: 1px solid var(--lv-line); background: var(--lv-surface-2); color: var(--lv-tx); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: transform 130ms ease, background 130ms ease, border-color 130ms ease, box-shadow 130ms ease, color 130ms ease, opacity 130ms ease;
     &:hover { border-color: var(--lv-accent); background: var(--lv-surface); }
     &.active { background: var(--lv-accent); color: var(--lv-on-accent, #ffffff); border-color: var(--lv-accent); box-shadow: 0 1px 3px rgba(13, 148, 136, 0.25); } }
   .lv-pill-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -2751,7 +2751,7 @@
     > label { color: var(--lv-tx-3); font-size: 11.5px; }
     .b3-text-field, .b3-select { width: 100%; min-width: 0; box-sizing: border-box; } }
   .lv-member-suggest-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-  .lv-member-sug-btn { font-size: 11px; padding: 2px 8px; border-radius: var(--lv-r-full); background: var(--lv-surface-2); color: var(--lv-tx-2); border: 1px solid var(--lv-line); cursor: pointer; transition: all var(--lv-t-fast) var(--lv-ease);
+  .lv-member-sug-btn { font-size: 11px; padding: 2px 8px; border-radius: var(--lv-r-full); background: var(--lv-surface-2); color: var(--lv-tx-2); border: 1px solid var(--lv-line); cursor: pointer; transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { background: var(--lv-accent-soft); color: var(--lv-accent); border-color: var(--lv-accent); } }
   .lv-member-field-wide { grid-column: 1 / -1; }
   .lv-member-check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding-bottom: 1px; color: var(--lv-tx-2); font-size: 12px; white-space: nowrap; cursor: pointer; }
@@ -2995,7 +2995,7 @@
   // 250 波：成员卡结构（对齐原型 .person：head 分区 + 顶部分隔的信息区 + 提醒行）
   .lv-person { padding: 18px 20px; display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; position: relative; overflow: hidden;
     background: var(--lv-surface); border: 1px solid var(--lv-line); border-radius: var(--lv-r-3); box-shadow: var(--lv-shadow-1);
-    transition: all var(--lv-t-med) var(--lv-ease);
+    transition: transform var(--lv-t-med) var(--lv-ease), background var(--lv-t-med) var(--lv-ease), border-color var(--lv-t-med) var(--lv-ease), box-shadow var(--lv-t-med) var(--lv-ease), color var(--lv-t-med) var(--lv-ease), opacity var(--lv-t-med) var(--lv-ease);
     &:hover { border-color: var(--lv-line-strong); transform: translateY(-2px); box-shadow: var(--lv-shadow-2); }
     // 260 波：展开档案区入场（对齐抽屉编排语言）
     .lv-person-expanded { animation: lv-rise var(--lv-t-med) var(--lv-ease); }
@@ -4050,7 +4050,7 @@
     &-cell { min-height: 64px; min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden; border: 1px solid var(--lv-line); border-radius: 10px;
         background: var(--lv-surface); display: flex; flex-direction: column; align-items: flex-start;
         gap: 4px; padding: 6px 8px; cursor: pointer; font: inherit; color: var(--lv-tx-2); text-align: left;
-        transition: all var(--lv-t-fast) var(--lv-ease);
+        transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
         &:hover { border-color: var(--lv-line-strong); background: var(--lv-surface-2); }
         &:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 1px; }
         // 233 波：跨月真实日期（相邻月弱化显示但仍可点选看提醒）
@@ -4180,7 +4180,7 @@
 .lv-rolechip { display: inline-flex; align-items: center; gap: var(--lv-space-2); padding: 9px 16px; border-radius: 999px;
     border: 1px solid var(--lv-line); font-size: 13.5px; color: var(--lv-tx); background: var(--lv-surface); cursor: pointer;
     box-shadow: var(--lv-shadow-1);
-    transition: all var(--lv-t-fast) var(--lv-ease);
+    transition: transform var(--lv-t-fast) var(--lv-ease), background var(--lv-t-fast) var(--lv-ease), border-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease), color var(--lv-t-fast) var(--lv-ease), opacity var(--lv-t-fast) var(--lv-ease);
     &:hover { border-color: var(--lv-line-strong); transform: translateY(-1px); box-shadow: var(--lv-shadow-2); }
     &.on { background: var(--lv-accent-soft); border-color: var(--lv-accent); color: var(--lv-accent); font-weight: 550; } }
 

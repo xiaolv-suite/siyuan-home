@@ -705,7 +705,7 @@ body.theme--dark {
     border-radius: var(--lv-r-control);
     border: 1px solid var(--lv-line);
     background: var(--lv-surface-2);
-    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    transition: transform var(--lv-t-fast) var(--lv-ease-out), background var(--lv-t-fast) var(--lv-ease-out), border-color var(--lv-t-fast) var(--lv-ease-out), box-shadow var(--lv-t-fast) var(--lv-ease-out), color var(--lv-t-fast) var(--lv-ease-out), opacity var(--lv-t-fast) var(--lv-ease-out);
     &:focus {
         border-color: var(--lv-accent);
         outline: none;
@@ -723,7 +723,7 @@ body.theme--dark {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    transition: transform var(--lv-t-fast) var(--lv-ease-out), background var(--lv-t-fast) var(--lv-ease-out), border-color var(--lv-t-fast) var(--lv-ease-out), box-shadow var(--lv-t-fast) var(--lv-ease-out), color var(--lv-t-fast) var(--lv-ease-out), opacity var(--lv-t-fast) var(--lv-ease-out);
     &:hover, &:focus-visible {
         background: var(--lv-accent-soft);
         transform: translateY(-1px);
@@ -740,7 +740,7 @@ body.theme--dark {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    transition: all var(--lv-t-fast) var(--lv-ease-out);
+    transition: transform var(--lv-t-fast) var(--lv-ease-out), background var(--lv-t-fast) var(--lv-ease-out), border-color var(--lv-t-fast) var(--lv-ease-out), box-shadow var(--lv-t-fast) var(--lv-ease-out), color var(--lv-t-fast) var(--lv-ease-out), opacity var(--lv-t-fast) var(--lv-ease-out);
     &:hover, &:focus-visible {
         border-color: var(--lv-line-strong);
         background: var(--lv-surface-2);
@@ -835,7 +835,7 @@ body.theme--dark {
             border-radius: 10px;
             color: var(--b3-theme-on-surface, var(--lv-tx-2));
             opacity: 0.8;
-            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1);
             box-sizing: border-box;
 
             &:hover {
@@ -870,7 +870,7 @@ body.theme--dark {
             border-radius: 8px;
             border: none;
             box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2);
-            transition: all 150ms ease;
+            transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease, opacity 150ms ease;
             &:hover { filter: brightness(1.08); box-shadow: 0 3px 8px rgba(217, 119, 6, 0.3); }
             &:active { transform: scale(0.98); }
         }
@@ -880,7 +880,7 @@ body.theme--dark {
             border: 1px solid var(--lv-line);
             border-radius: 8px;
             box-shadow: none;
-            transition: all 150ms ease;
+            transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease, opacity 150ms ease;
             &:hover { background: var(--lv-surface-2); border-color: var(--lv-line-strong); color: var(--lv-tx); }
         }
         .b3-button--text {

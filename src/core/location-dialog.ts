@@ -166,7 +166,10 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
                 gotoBtn.innerHTML = `${t("ledger.openDoc")} ${uiIcon("forward", "", 12)}`;
                 gotoBtn.onclick = () => {
                     const docId = plugin.settings.dbRefs[it.moduleId]?.docId;
-                    if (docId) plugin.showTabDocs(docId);
+                    if (docId) {
+                        dlg.destroy();
+                        plugin.showTabDocs(docId);
+                    }
                 };
                 line.append(left, gotoBtn);
                 grp.appendChild(line);

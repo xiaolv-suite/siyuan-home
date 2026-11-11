@@ -167,10 +167,17 @@
   // 在居中列内原样保留。width:100% 必须显式——flex 子元素的 auto 边距会吞掉
   // 默认 stretch（探针实测 .lv-screen 收缩成内容宽 776）；lv-screen 无 padding、
   // tabbar 已 border-box，width 不会叠加超限
-  .lv-tabbar,
-  .lv-screen { box-sizing: border-box; width: 100%; max-width: 1160px; margin-inline: auto; }
+  .lv-tabbar { box-sizing: border-box; width: 100%; max-width: 1160px; margin-inline: auto; }
+  .lv-screen {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1160px;
+    margin-inline: auto;
+    padding-inline: clamp(14px, 2.5vw, 24px);
+    padding-bottom: 28px;
+  }
   // 台账页面支持多列密集数据，在超宽屏下自适应放宽以充分利用视野
-  .lv-screen.lv-panel-ledger { max-width: min(1680px, 96%); }
+  .lv-screen.lv-panel-ledger { max-width: min(1680px, 96%); padding-inline: clamp(10px, 1.8vw, 18px); }
 
   // 容器顶部环境辉光（对齐原型 ambient 光层：主色晕 + 顶部高光带，胶片颗粒仅 Tab 全高容器启用，见 08 §7）
   // 252 波：max-width 封顶——窄面板（移动/分屏 <1000px）下 980px 椭圆会把横向可滚动区

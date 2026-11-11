@@ -1991,6 +1991,7 @@
   "overview.aiAudit": "AI Life Audit",
   "overview.aiAuditTitle": "Life Health & Expiry Audit Report",
   "overview.aiAuditCopyOk": "Copied life health audit report to clipboard",
+  "overview.aiAuditCopyFail": "Copy failed — please check clipboard permission",
   "overview.aiAuditCopyBtn": "Copy Report",
   "overview.aiAuditJournalBtn": "Write to Journal",
   "overview.aiAuditJournalOk": "Written to daily journal document",

@@ -155,7 +155,10 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
     try {
         pngBlob = await renderYearlyReportCardPng(cardData);
         const img = document.createElement("img");
-        img.src = URL.createObjectURL(pngBlob);
+        const cardUrl = URL.createObjectURL(pngBlob);
+        img.src = cardUrl;
+        /* Blob URL 在图片解码完成后即刻回收，避免每次预览累积持留内存。 */
+        img.onload = () => URL.revokeObjectURL(cardUrl);
         img.className = "lv-sharecard-img";
         img.alt = t("overview.shareCardTitle");
         previewEl.replaceChildren(img);

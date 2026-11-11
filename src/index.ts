@@ -1052,8 +1052,14 @@ export default class LvHomePlugin extends Plugin {
             const copyBtn = dlg.element.querySelector("#lv-audit-copy") as HTMLButtonElement | null;
             if (copyBtn) {
                 copyBtn.onclick = async () => {
-                    await navigator.clipboard.writeText(audit.reportText);
-                    homeNotify(this.i18nText("overview.aiAuditCopyOk"), 2500, "info");
+                    try {
+                        if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+                        await navigator.clipboard.writeText(audit.reportText);
+                        homeNotify(this.i18nText("overview.aiAuditCopyOk"), 2500, "info");
+                    } catch (err) {
+                        console.warn("[siyuan-home] audit copy failed", err);
+                        homeNotify(this.i18nText("overview.aiAuditCopyFail"), 3200, "error");
+                    }
                 };
             }
 

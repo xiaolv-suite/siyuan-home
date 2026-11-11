@@ -1991,6 +1991,7 @@
   "overview.aiAudit": "AI效期体检",
   "overview.aiAuditTitle": "生活效期全局 AI 体检报告",
   "overview.aiAuditCopyOk": "已复制生活效期全局体检报告",
+  "overview.aiAuditCopyFail": "复制失败，请检查剪贴板权限",
   "overview.aiAuditCopyBtn": "复制体检报告",
   "overview.aiAuditJournalBtn": "写入流水日记",
   "overview.aiAuditJournalOk": "已写入日常流水日记",

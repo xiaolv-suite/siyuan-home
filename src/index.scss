@@ -214,10 +214,16 @@ body.theme--dark {
             color: var(--lv-tx);
         }
 
-        &.on {
+        &:active {
+            transform: scale(0.98);
+        }
+
+        &.on,
+        &[aria-current="true"],
+        &[aria-selected="true"] {
             background: var(--lv-accent-soft);
             color: var(--lv-accent);
-            font-weight: 500;
+            font-weight: 550;
 
             .lv-setnav__icon { color: var(--lv-accent); background: color-mix(in srgb, var(--lv-accent-soft) 65%, var(--lv-surface)); }
         }
@@ -523,7 +529,9 @@ body.theme--dark {
         overflow-x: auto;
         overflow-y: hidden;
         scrollbar-width: none;
-        padding: 0 4px 4px;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x;
+        padding: 4px calc(6px + env(safe-area-inset-left, 0px)) 6px calc(6px + env(safe-area-inset-right, 0px));
         border-right: 0;
         border-bottom: 1px solid var(--lv-line);
 
@@ -537,13 +545,18 @@ body.theme--dark {
 
         .lv-setnav__item {
             flex: none;
-            min-height: 34px;
-            padding: 7px 10px;
+            min-height: 36px;
+            padding: 7px 12px;
+            border-radius: 9999px;
+            white-space: nowrap;
         }
         .lv-settings-close-btn { display: none; }
     }
 
-    .lv-settings__footer { grid-column: 1; }
+    .lv-settings__footer {
+        grid-column: 1;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 // C4b：台账行点击进详情（键盘/指针可达提示）
@@ -1808,5 +1821,27 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
             padding: 6px 12px !important;
             .b3-button { min-height: 34px !important; }
         }
+    }
+}
+
+/* ══════════ 暗黑主题下管家设置页卡片与输入框高对比度强化 ══════════ */
+:is([data-theme-mode="dark"], [data-appearance="dark"], body.body--dark, body.theme--dark, html.dark, body.dark) .lv-settings {
+    .lv-setcard {
+        background: color-mix(in srgb, var(--lv-surface, #1e222d) 94%, #000 6%);
+        border-color: color-mix(in srgb, var(--lv-line, #333a4d) 80%, rgba(255, 255, 255, 0.08) 20%);
+    }
+
+    .lv-settings__row {
+        border-bottom-color: color-mix(in srgb, var(--lv-line, #333a4d) 65%, transparent);
+
+        > span:first-child {
+            color: var(--lv-tx, #f0f3f6);
+        }
+    }
+
+    .lv-setnav__item.on,
+    .lv-setnav__item[aria-current="true"] {
+        background: color-mix(in srgb, var(--lv-accent, #3b82f6) 22%, var(--lv-surface, #1e222d));
+        color: var(--lv-accent, #60a5fa);
     }
 }

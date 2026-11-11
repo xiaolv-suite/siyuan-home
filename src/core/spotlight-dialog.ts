@@ -296,6 +296,8 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     };
 
     inp.onkeydown = (e) => {
+        /* IME 合成期让路：ArrowDown 属候选导航，Enter 属确认选字。 */
+        if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "Escape") {
             if (debounceTimer !== undefined) window.clearTimeout(debounceTimer);
             dlg.destroy();

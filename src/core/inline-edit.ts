@@ -158,6 +158,8 @@ export function beginInlineEdit(options: InlineEditOptions): void {
 
     save.onclick = () => { void saveInline(); };
     control.addEventListener("keydown", (event: KeyboardEvent) => {
+        /* IME 合成期让路：Enter 属确认选字，误触会以拼音半成品保存。 */
+        if (event.isComposing || event.keyCode === 229) return;
         if (event.key === "Escape") { event.preventDefault(); restore(); }
         else if (event.key === "Enter" && (!(control instanceof HTMLTextAreaElement) || event.ctrlKey || event.metaKey)) {
             event.preventDefault();

@@ -432,7 +432,7 @@
         const activeTab = navEl?.querySelector(`[data-s="${screen}"]`) as HTMLElement | undefined;
         movePill(activeTab);
         if (activeTab && typeof activeTab.scrollIntoView === "function") {
-            activeTab.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+            activeTab.scrollIntoView({ inline: "nearest", block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
         }
         // 254 波：窗口 resize 后重新测量（对齐原型的 resize 监听）——否则胶囊停在旧坐标、
         // 与当前页签错位

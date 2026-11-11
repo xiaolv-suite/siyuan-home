@@ -886,7 +886,8 @@
   .lv-toolbar .b3-select,
   .lv-toolbar .b3-text-field { min-height: var(--lv-control-md); padding: 6px 10px; font-size: 13px; border-radius: var(--lv-r-2);
     border: none; outline: 1px solid var(--lv-line); outline-offset: -1px;
-    background: var(--lv-surface); color: var(--lv-tx);
+    /* background-color 长写：保留 core 下拉箭头（简写会抹掉 background-image） */
+    background-color: var(--lv-surface); color: var(--lv-tx);
     box-shadow: none; transition: outline-color var(--lv-t-fast) var(--lv-ease), box-shadow var(--lv-t-fast) var(--lv-ease);
     &:hover { outline-color: var(--lv-line-strong); box-shadow: none; }
     &:focus, &:focus-visible { outline-color: var(--lv-accent); outline-width: 2px; outline-offset: -1px; box-shadow: 0 0 0 2px var(--lv-accent-soft); }
@@ -2069,7 +2070,8 @@
   .lv-cap-body .b3-select,
   .lv-cap-body .b3-text-field { width: 100%; min-width: 0; min-height: var(--lv-control-sm); padding: 6px 10px; font-size: 13px;
     border-radius: var(--lv-r-2); border: none; outline: 1px solid var(--lv-line); outline-offset: -1px;
-    background: var(--lv-surface-2); color: var(--lv-tx); box-shadow: none;
+    /* background-color 长写：保留 core 下拉箭头 */
+    background-color: var(--lv-surface-2); color: var(--lv-tx); box-shadow: none;
     transition: outline-color var(--lv-t-fast) var(--lv-ease);
     &:hover { outline-color: var(--lv-line-strong); }
     &:focus { outline-color: var(--lv-accent-line); box-shadow: 0 0 0 .6px var(--lv-accent-soft); } }
@@ -4935,5 +4937,17 @@ body.theme--dark .lv-home-dialog {
     /* 图标按钮：无文字时保持方形不塌陷 */
     .lv-iconbtn {
         aspect-ratio: 1;
+    }
+}
+
+/* ══════════ 下拉菜单专项：选项可读性 / 光标 ══════════ */
+:is(.lv-home, .lv-home-dialog, .lv-settings) {
+    :is(select, .b3-select) {
+        cursor: pointer;
+    }
+
+    :is(select, .b3-select) :is(option, optgroup) {
+        background-color: var(--lv-surface, var(--b3-theme-background));
+        color: var(--lv-tx, var(--b3-theme-on-background));
     }
 }

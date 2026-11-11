@@ -142,7 +142,7 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             syncViewport();
             const vv = window.visualViewport;
             vv?.addEventListener("resize", syncViewport);
-            vv?.addEventListener("scroll", syncViewport);
+            vv?.addEventListener("scroll", syncViewport, { passive: true });
             window.addEventListener("resize", syncViewport, { passive: true });
             mobileViewportCleanup = () => {
                 vv?.removeEventListener("resize", syncViewport);

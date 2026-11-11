@@ -283,7 +283,7 @@
             keyboardOffset = heightDiff > 120 ? Math.max(0, heightDiff - 20) : 0;
         };
         vv.addEventListener("resize", onResize);
-        vv.addEventListener("scroll", onResize);
+        vv.addEventListener("scroll", onResize, { passive: true });
         onResize();
         return () => {
             vv.removeEventListener("resize", onResize);

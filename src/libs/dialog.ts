@@ -71,7 +71,7 @@ export const simpleDialog = (args: {
         };
         sync();
         vv.addEventListener("resize", sync);
-        vv.addEventListener("scroll", sync);
+        vv.addEventListener("scroll", sync, { passive: true });
         window.addEventListener("resize", sync, { passive: true });
         vvCleanup = () => {
             vv.removeEventListener("resize", sync);

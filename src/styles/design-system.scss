@@ -3995,6 +3995,9 @@
       min-width: 30px !important;
       min-height: 30px !important;
     }
+    .lv-pulse-strip { gap: 2px !important; }
+    .lv-pulse-pill { padding: 6px 1px !important; font-size: 11px !important; }
+    .lv-pulse-pill .d { font-size: 10px !important; }
   }
 
   @media (max-height: 500px) {

@@ -4995,3 +4995,17 @@ body.theme--dark .lv-home-dialog {
         background: color-mix(in srgb, var(--lv-accent) 8%, transparent);
     }
 }
+
+/* R14 桌面 hover 收口（触屏不生效） */
+@media (hover: hover) {
+    .lv-detail-more > summary:hover {
+        color: var(--lv-accent);
+    }
+    .lv-record-check:hover {
+        background: color-mix(in srgb, var(--lv-accent) 7%, transparent);
+    }
+    .lv-syntax-chip:hover {
+        background: color-mix(in srgb, var(--lv-accent) 8%, transparent);
+        border-color: color-mix(in srgb, var(--lv-accent) 40%, transparent);
+    }
+}

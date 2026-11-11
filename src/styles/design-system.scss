@@ -884,7 +884,7 @@
   // ── 5b. 工具条（筛选/台账头/成员录入条等控件排）────────
   .lv-toolbar { display: flex; align-items: center; gap: var(--lv-space-2); flex-wrap: wrap; }
   .lv-toolbar .b3-select,
-  .lv-toolbar .b3-text-field { min-height: var(--lv-control-md); padding: 6px 10px; font-size: 13px; border-radius: var(--lv-r-2);
+  .lv-toolbar .b3-text-field { min-height: var(--lv-control-md); padding: 6px 10px; /* ≥16px 防 iOS 聚焦自动放大 */ font-size: 16px; border-radius: var(--lv-r-2);
     border: none; outline: 1px solid var(--lv-line); outline-offset: -1px;
     /* background-color 长写：保留 core 下拉箭头（简写会抹掉 background-image） */
     background-color: var(--lv-surface); color: var(--lv-tx);

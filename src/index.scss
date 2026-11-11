@@ -700,7 +700,8 @@ body.theme--dark {
 
 .lv-spotlight-input {
     width: 100%;
-    font-size: 14px;
+    /* ≥16px 防 iOS 聚焦自动放大 */
+    font-size: 16px;
     padding: 9px 12px 9px 36px;
     border-radius: var(--lv-r-control);
     border: 1px solid var(--lv-line);

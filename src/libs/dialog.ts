@@ -53,6 +53,33 @@ export const simpleDialog = (args: {
         },
     });
 
+    /** 移动端软键盘视口守卫：键盘弹起时同步 --lv-vv-h 并标记 lv-keyboard-open，
+     *  供 CSS 将弹窗高度收缩到可视区，保证焦点输入框始终可见。 */
+    let vvCleanup: (() => void) | undefined;
+    const bindKeyboardViewport = (target: HTMLElement | null | undefined) => {
+        if (!target || typeof window === "undefined" || !window.visualViewport) return;
+        const vv = window.visualViewport;
+        let baseHeight = Math.max(window.innerHeight || 0, Math.round(vv.height || 0));
+        const sync = () => {
+            if (!target.isConnected) return;
+            const currentInner = window.innerHeight || 0;
+            const currentH = Math.round(vv.height || currentInner);
+            if (currentH > baseHeight) baseHeight = currentH;
+            target.style.setProperty("--lv-vv-h", `${currentH}px`);
+            const keyboardOpen = Math.max(baseHeight, currentInner) - currentH > 110;
+            target.classList.toggle("lv-keyboard-open", keyboardOpen);
+        };
+        sync();
+        vv.addEventListener("resize", sync);
+        vv.addEventListener("scroll", sync);
+        window.addEventListener("resize", sync, { passive: true });
+        vvCleanup = () => {
+            vv.removeEventListener("resize", sync);
+            vv.removeEventListener("scroll", sync);
+            window.removeEventListener("resize", sync);
+        };
+    };
+
     const dialog = new Dialog({
         title: args.title,
         content: `<div class="dialog-content" style="display: flex; flex-direction: column; align-items: stretch; width: 100%; height: 100%; min-width: 0; min-height: 0; box-sizing: border-box;"/>`,
@@ -63,6 +90,8 @@ export const simpleDialog = (args: {
                 closed = true;
                 popSurface();
             }
+            vvCleanup?.();
+            vvCleanup = undefined;
             args.callback?.();
         }
     });
@@ -87,6 +116,8 @@ export const simpleDialog = (args: {
     try {
         dialog.element?.classList?.add?.("lv-home-dialog");
         dialog.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-dialog");
+        // 移动端软键盘视口守卫：挂在弹窗根节点上，CSS 按 --lv-vv-h 收缩高度
+        bindKeyboardViewport(dialog.element);
         const outerClose = dialog.element?.querySelector?.(".b3-dialog__container > .b3-dialog__close") as HTMLElement | SVGElement | null;
         if (outerClose && outerClose.style) {
             outerClose.style.setProperty("display", "none", "important");

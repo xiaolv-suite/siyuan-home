@@ -4962,3 +4962,36 @@ body.theme--dark .lv-home-dialog {
         overflow-wrap: anywhere;
     }
 }
+
+/* ══════════ 手机端专项：滚动边界防抖 / 触屏惯性 / 粘滞 hover 抑制 ══════════ */
+/* 弹窗滚动容器：滚动到顶/底不再把滚动手势传给宿主页面（防"整页跟滚"） */
+.lv-home-dialog {
+    .b3-dialog__body,
+    .b3-dialog__content {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .lv-settings__scroll,
+    .lv-setnav {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* 触屏（无悬停）：导航条目默认底色透明，粘滞 hover 底色会让"上一次点过的项"看起来像激活态 */
+@media (hover: none) and (pointer: coarse) {
+    :is(.lv-home, .lv-home-dialog, .lv-settings) {
+        .lv-setnav__item:hover:not(.on):not([aria-current="true"]),
+        .lv-settings__subnav .lv-setnav__item:hover:not(.on):not([aria-current="true"]) {
+            background: transparent;
+        }
+    }
+}
+
+/* ══════════ 手机端专项：台账行按压反馈 ══════════ */
+@media (hover: none) and (pointer: coarse) {
+    .lv-home .lv-row-link:active {
+        background: color-mix(in srgb, var(--lv-accent) 8%, transparent);
+    }
+}

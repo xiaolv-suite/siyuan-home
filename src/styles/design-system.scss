@@ -4906,3 +4906,34 @@ body.theme--dark .lv-home-dialog {
   @include dark-surfaces;
   color-scheme: dark;
 }
+
+/* ══════════ 按钮专项：按压反馈 / 忙碌态拦截 / 文字显示 ══════════ */
+:is(.lv-home, .lv-home-dialog, .lv-settings) {
+    /* 主次按钮按压反馈（禁用态不响应） */
+    :is(.lv-btn, .lv-iconbtn, .b3-button, button):not(:disabled):not([aria-busy="true"]):active {
+        transform: scale(0.97);
+    }
+
+    /* 忙碌态：拦截连点 + 视觉降透明（saving/migrationBusy 等已同时 disabled 双保险） */
+    button[aria-busy="true"] {
+        pointer-events: none;
+        opacity: 0.72;
+    }
+
+    button {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    /* 底部操作区的文字按钮：长文案单行截断，主保存按钮不截断 */
+    .lv-settings__footer :is(.b3-button--text, .lv-btn-text-sm) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* 图标按钮：无文字时保持方形不塌陷 */
+    .lv-iconbtn {
+        aspect-ratio: 1;
+    }
+}

@@ -8,10 +8,10 @@
 
 家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理
 
-**当前版本：v0.5.194** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
+**当前版本：v0.5.195** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.194-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.195-blue)](./CHANGELOG.md)
 [![思源笔记](https://img.shields.io/badge/思源笔记-%3E%3D%203.8.4-brightgreen.svg)](https://b3log.org/siyuan)
 [![License: MIT](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -199,6 +199,14 @@
 ---
 
 ## 📝 最近更新动态
+
+- **思源 3.8.10+ 原生特性适配**：家庭成员头像支持右键通过 `openNativeAssetPicker` 直接选用库内图片；台账成员卡片与提醒任务项支持右键直通原生文档树菜单（`showDocTreeNativeMenu`）。
+- **输入法合成期守护**：行内编辑保存与聚焦搜索（Spotlight）的 Enter/ArrowDown 键盘流在拼音候选合成期整体让路，不再以拼音半成品误保存或误导航。
+- **资源与内存健壮性**：AI 体检报告复制补齐失败捕获与双语错误提示；年度名片预览图 Blob URL 解码后即刻回收防内存累积；全生态剪贴板写入失败覆盖率契约固化。
+- **双端体验打磨**：Spotlight 与工具栏输入框 16px 字号防 iOS 聚焦自动放大；屏幕容器平滑内边距消除贴边感；视口与快速记录滚动监听全面 passive 降负。
+
+<details>
+<summary>展开查看历史版本更新（v0.5.194 及更早版本 · 完整记录见 <a href="./CHANGELOG.md">CHANGELOG.md</a>）</summary>
 
 ### v0.5.194（2026-11-10 · GitHub 组织迁移与体验升级）
 

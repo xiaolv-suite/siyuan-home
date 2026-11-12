@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.194** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.195** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.194-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.195-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -182,6 +182,17 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 ---
 
 ## 📝 Changelog
+
+- **SiYuan 3.8.10+ Native Adaptations**: Family member avatars support selecting images directly from SiYuan asset storage via `openNativeAssetPicker`; ledger cards and reminder tasks link directly to native document tree context menus (`showDocTreeNativeMenu`).
+- **Input Method & Keyboard Defense**: In-line table edit saving and Spotlight search keyboard navigation yield during IME composition, preventing premature saves with raw Pinyin input.
+- **Resource & Memory Hardening**: AI health audit report copy failure handling with bilingual notices; share card preview Blob URLs revoked immediately after image decode to prevent memory retention; ecosystem-wide clipboard error-handling contracts enforced.
+- **Responsive & Mobile Polish**: Spotlight and toolbar controls use 16px baseline to eliminate iOS WebView auto-zoom; screen container padding smoothed against edge-sticking; viewport and quick-capture scroll listeners converted to passive.
+
+<details>
+<summary><b>View Historical Releases (v0.5.194 and earlier)</b></summary>
+
+### v0.5.194 (2026-11-10)
+- Launchpad topbar convergence debounce, full-screen mobile exit flow via `openMobileFileById`, pull-down gesture input guard, instant haptic and capsule feedback, and `xiaolv-suite` organization migration.
 
 ### v0.5.192 (2026-11-01)
 - **Added (One-Click Copy Family Group Notice · CAND-24)**: Added "Copy Family Notice" in reminder card action menus, formatting tasks, deadlines, days remaining, assignees, and notes into structured group notifications ready for messaging apps;

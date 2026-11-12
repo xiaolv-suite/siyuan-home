@@ -1,0 +1,174 @@
+/**
+ * 合成示例数据（24 组/CM07）：一键生成虚拟家庭的少量台账行，供新用户体验、截图与回归测试。
+ * 纪律：所有名称带【示例】前缀；只写已启用模块；记录生成的行/成员 ID，一键清除可回滚；
+ * 清除走 removeLedgerRows（[待实测] 端点）——失败逐行报告，不静默假清成功。
+ */
+import type { Plugin } from "siyuan";
+import type { HomeSettings, MemberRole } from "@/types";
+import { addDetachedRow, setCell, removeLedgerRows, newSiYuanId, RowIdentityPendingError } from "./siyuan";
+import { selectCellValue } from "./avcell";
+import { addMember, removeMember } from "./members";
+import { saveSettings } from "./settings";
+
+const DEMO_PREFIX = "【示例】";
+
+export interface DemoResult {
+    created: number;
+    cleared: number;
+    alreadyPresent?: boolean;
+    /** 清除失败的行（moduleId/itemID/原因），数据仍在台账可手动删 */
+    errors: string[];
+}
+
+function localMs(daysAhead: number): number {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** 在模块台账中建一行示例数据（字段按列存在性写入；默认状态同快速表单惯例） */
+async function demoRow(
+    plugin: Plugin,
+    settings: HomeSettings,
+    moduleId: string,
+    schemaCatalog: Record<string, any>,
+    fields: Record<string, unknown>,
+): Promise<boolean> {
+    const ref = settings.dbRefs[moduleId];
+    const cols = ref?.columns;
+    if (!ref?.avId || !cols) return false;
+    const operationKey = `demo:${moduleId}:${String(fields.name)}`;
+    let itemID: string;
+    try {
+        itemID = await addDetachedRow(ref.avId, `${DEMO_PREFIX}${fields.name}`, {
+            idempotencyKey: `${operationKey}:row`,
+            // 示例数据同样注入行身份：未知结果不认领同名旧行，直接放弃该条。
+            rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+        });
+    } catch (e) {
+        if (e instanceof RowIdentityPendingError) return false;
+        throw e;
+    }
+    settings.demoRows = {
+        ...(settings.demoRows ?? {}),
+        [moduleId]: [...(settings.demoRows?.[moduleId] ?? []), itemID],
+    };
+    await saveSettings(plugin, settings);
+    const write = async (key: string, value: unknown) => {
+        if (!cols[key]) return;
+        await setCell(ref.avId!, cols[key], itemID, value, { idempotencyKey: `${operationKey}:cell:${key}` });
+    };
+    for (const [key, v] of Object.entries(fields)) {
+        // 269 波：名称列必须显式写——addDetachedRow 的标题不落到 av 名称列
+        // （真机实证：示例行全部退化成"未命名证件"提醒）。与快速表单/分诊同口径。
+        if (key === "name") {
+            await write("name", { type: "text", text: { content: `${DEMO_PREFIX}${v}` } });
+            continue;
+        }
+        if (typeof v === "number") await write(key, { type: "number", number: { content: v, isNotEmpty: true } });
+        else if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) await write(key, { type: "date", date: { content: localMs(daysFromToday(v)), isNotEmpty: true, isNotTime: true } });
+        else if (typeof v === "string") await write(key, { type: "text", text: { content: v } });
+        else if (typeof v === "boolean") await write(key, { type: "checkbox", checkbox: { checked: v } });
+    }
+    // 默认状态（schema 显式声明优先，否则枚举首值；D11）与快速表单一致
+    const statusCol = (schemaCatalog[moduleId]?.columns ?? []).find((c) => c.key === "status");
+    if (statusCol?.options?.length) await write("status", selectCellValue(statusCol.default ?? statusCol.options[0]));
+    return true;
+}
+
+function daysFromToday(ymd: string): number {
+    const [y, m, d] = ymd.split("-").map(Number);
+    const target = new Date(y, (m ?? 1) - 1, d ?? 1);
+    return Math.round((target.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+}
+
+/** 生成示例成员 + 少量已启用模块的示例行；生成清单记入 settings.demoRows/demoMemberIds */
+export async function generateDemoData(
+    plugin: Plugin,
+    settings: HomeSettings,
+    schemaCatalog: Record<string, any>,
+): Promise<DemoResult> {
+    const result: DemoResult = { created: 0, cleared: 0, errors: [] };
+    const hasTrackedRows = Object.values(settings.demoRows ?? {}).some((ids) => ids.length > 0);
+    if (hasTrackedRows || (settings.demoMemberIds ?? []).length > 0) {
+        return { ...result, alreadyPresent: true };
+    }
+
+    // 示例成员（走成员 DAL：设置侧 + 台账行 + 生日）
+    const demoMembers: { name: string; role: MemberRole; birthday: string; lunar: boolean }[] = [
+        { name: `${DEMO_PREFIX}驴爸爸`, role: "self", birthday: "1988-04-15", lunar: false },
+        { name: `${DEMO_PREFIX}驴妈妈`, role: "spouse", birthday: "1990-10-08", lunar: true },
+    ];
+    for (const m of demoMembers) {
+        const member = { id: newSiYuanId(), name: m.name, role: m.role, birthday: m.birthday, lunarBirthday: m.lunar, createdAt: new Date().toISOString() };
+        settings.demoMemberIds = [...(settings.demoMemberIds ?? []), member.id];
+        await addMember(plugin, settings, member);
+        result.created++;
+    }
+
+    // 示例行：证件（一张 20 天后到期 → 提醒中枢立即可见）+ 药箱低库存 + 囤货
+    const plan: [string, Record<string, unknown>][] = [
+        ["certs", { name: "护照", expiry: dateStr(20), note: "示例：到期前 20 天应出现在提醒中枢" }],
+        ["medicine", { name: "布洛芬", expiry: dateStr(90), stock_qty: 2, low_stock_at: 5, location: "家庭药箱" }],
+        ["stock", { name: "抽纸", expiry: dateStr(300), qty: 1, low_stock_at: 3 }],
+    ];
+    for (const [moduleId, fields] of plan) {
+        if (!settings.enabledModules.includes(moduleId)) continue;
+        const before = settings.demoRows?.[moduleId]?.length ?? 0;
+        try {
+            if (await demoRow(plugin, settings, moduleId, schemaCatalog, fields)) result.created++;
+        } catch (e) {
+            if ((settings.demoRows?.[moduleId]?.length ?? 0) > before) result.created++;
+            result.errors.push(`${moduleId}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+    }
+    await saveSettings(plugin, settings);
+    return result;
+}
+
+function dateStr(daysAhead: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** 清除示例数据：按生成清单删行（[待实测] 端点，失败逐行报告）+ 移除示例成员引用 */
+export async function clearDemoData(plugin: Plugin, settings: HomeSettings): Promise<DemoResult> {
+    const result: DemoResult = { created: 0, cleared: 0, errors: [] };
+    const remainingRows: Record<string, string[]> = {};
+    for (const [moduleId, itemIds] of Object.entries(settings.demoRows ?? {})) {
+        const ref = settings.dbRefs[moduleId];
+        if (!ref?.avId) {
+            remainingRows[moduleId] = [...itemIds];
+            result.errors.push(`${moduleId}: ledger is not available`);
+            continue;
+        }
+        const failedIds: string[] = [];
+        for (const itemID of itemIds) {
+            try {
+                await removeLedgerRows(ref.avId, [itemID], { idempotencyKey: `demo:clear:${moduleId}:${itemID}`, retries: 1 });
+                result.cleared++;
+            } catch (e) {
+                result.errors.push(`${moduleId}/${itemID}: ${e instanceof Error ? e.message : String(e)}`);
+                failedIds.push(itemID);
+            }
+        }
+        if (failedIds.length > 0) remainingRows[moduleId] = failedIds;
+    }
+    settings.demoRows = remainingRows;
+    const remainingMembers: string[] = [];
+    for (const id of settings.demoMemberIds ?? []) {
+        const m = settings.members.find((x) => x.id === id);
+        if (!m) continue;
+        try {
+            await removeMember(plugin, settings, id);
+            result.cleared++;
+        } catch (e) {
+            result.errors.push(`${m.name}: ${e instanceof Error ? e.message : String(e)}`);
+            remainingMembers.push(id);
+        }
+    }
+    settings.demoMemberIds = remainingMembers;
+    await saveSettings(plugin, settings);
+    return result;
+}

@@ -126,7 +126,7 @@ export function searchLocations(
             ...(r.hint ? { hint: r.hint } : {}),
         });
     }
-    return out.sort((a, b) => a.location.localeCompare(b.location) || a.name.localeCompare(b.name));
+    return out.sort((a, b) => a.location.localeCompare(b.location, "zh-CN") || a.name.localeCompare(b.name, "zh-CN"));
 }
 
 /** 格式化位置索引为可复制文本 */
@@ -258,13 +258,13 @@ export function buildLocationTree(
     function finalize(node: MutableNode): LocationTreeNode {
         const children = [...node.childMap.values()]
             .map(finalize)
-            .sort((a, b) => b.totalCount - a.totalCount || a.segment.localeCompare(b.segment));
+            .sort((a, b) => b.totalCount - a.totalCount || a.segment.localeCompare(b.segment, "zh-CN"));
 
         const directCount = node.directEntries.length;
         const childrenCount = children.reduce((acc, c) => acc + c.totalCount, 0);
 
         // 组内直接条目按模块和名称稳定排序
-        node.directEntries.sort((a, b) => a.moduleId.localeCompare(b.moduleId) || a.name.localeCompare(b.name));
+        node.directEntries.sort((a, b) => a.moduleId.localeCompare(b.moduleId, "zh-CN") || a.name.localeCompare(b.name, "zh-CN"));
 
         return {
             segment: node.segment,
@@ -282,7 +282,7 @@ export function buildLocationTree(
             // 未填写的特殊项排在最末
             if (a.segment === missingLabel) return 1;
             if (b.segment === missingLabel) return -1;
-            return b.totalCount - a.totalCount || a.segment.localeCompare(b.segment);
+            return b.totalCount - a.totalCount || a.segment.localeCompare(b.segment, "zh-CN");
         });
 }
 

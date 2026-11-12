@@ -47,13 +47,13 @@ jobs:
       - name: Package smoke test
         run: pnpm run smoke
 
-      # 思源加载器要求单文件 bundle；对齐 390KB 预算门禁（399,360 字节，容纳 Epoch 7 全生态联合套件、Launchpad 罗盘收敛坞与 AI 网关），留出合理功能迭代空间。
-      - name: Bundle size gate (index.js gzip < 390KB, single-file mandatory)
+      # 思源加载器要求单文件 bundle；对齐 420KB 预算门禁（430,080 字节，容纳 Launchpad 5.5 + 3.8.10 原生适配 + R8-R28 全量加固，由 390KB 上调），留出合理功能迭代空间。
+      - name: Bundle size gate (index.js gzip < 420KB, single-file mandatory)
         run: |
           SIZE=$(gzip -c dist/index.js | wc -c)
           echo "index.js gzip: $SIZE bytes"
-          if [ "$SIZE" -gt 399360 ]; then
-            echo "::error::index.js gzip exceeds 390KB budget"
+          if [ "$SIZE" -gt 430080 ]; then
+            echo "::error::index.js gzip exceeds 420KB budget"
             exit 1
           fi
 

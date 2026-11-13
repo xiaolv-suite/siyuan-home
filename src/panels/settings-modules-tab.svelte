@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { MODULE_GROUPS, modulesByGroup, BUILT_IN_MODULES } from "@/core/modules";
     import UiIcon from "@/ui/icon.svelte";

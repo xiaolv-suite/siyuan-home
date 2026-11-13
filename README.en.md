@@ -1,5 +1,5 @@
 > **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.195** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> The current build **v0.5.196** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.195-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.196-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 

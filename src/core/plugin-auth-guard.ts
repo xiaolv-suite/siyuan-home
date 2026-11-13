@@ -1,4 +1,4 @@
-import { showMessage } from "siyuan";
+import { showMessage } from "@/libs/notice";
 import { compactUserMessage, sameOriginReturnPath } from "@/core/auth";
 
 export interface PluginAuthGuardOptions {

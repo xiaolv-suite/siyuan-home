@@ -1,4 +1,4 @@
-import { showMessage } from "siyuan";
+import { showMessage } from "@/libs/notice";
 import { addDetachedRow, setCell, RowIdentityPendingError, type DetachedRowIdentity } from "@/core/siyuan";
 import { saveRuntime } from "@/core/hub/runtime";
 import { captureCellValue, validateCaptureInput } from "@/core/capture";

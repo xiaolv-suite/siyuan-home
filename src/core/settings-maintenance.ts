@@ -7,7 +7,6 @@ import { confirm } from "@/libs/dialog";
 import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
-import { homeSilent } from "@/libs/notice";
 
 const errStr = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const errParen = (e: unknown) => (e ? ` (${errStr(e)})` : "");
@@ -392,7 +391,6 @@ export async function executeImportSettings(
                 try {
                     if (plugin.saveData) {
                         await plugin.saveData("settings.pre-import.json", cloneSettings(plugin.settings));
-                        homeSilent("backup-preimport", "导入配置前已自动生成备份快照 settings.pre-import.json");
                     }
                 } catch { /* soft backup failure */ }
                 const { normalizeImportedSettings } = await import("./settings");

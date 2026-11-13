@@ -5,7 +5,7 @@
 </script>
 
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { setCell } from "@/core/siyuan";
     import { openNativeAssetPicker } from "@/libs/lv-notice-kit";

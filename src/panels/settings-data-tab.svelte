@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
     import { saveSettings } from "@/core/settings";
     import UiIcon from "@/ui/icon.svelte";
-    import { lvBackup, lvEcosystem, homeNotify } from "@/libs/notice";
+    import { lvBackup, lvEcosystem, homeNotify, showMessage } from "@/libs/notice";
 
     let {
         plugin,

@@ -139,6 +139,8 @@ export function deliverPriorityReminderCard(
                 { label: "15分钟后再提醒", durationMs: 15 * 60 * 1000 },
                 { label: "1小时后再提醒", durationMs: 60 * 60 * 1000 },
                 { label: "今日免打扰", muteToday: true },
+                { label: "未来3天不通知", muteDays: 3 },
+                { label: "未来一周不通知", muteDays: 7 },
             ],
         },
     });

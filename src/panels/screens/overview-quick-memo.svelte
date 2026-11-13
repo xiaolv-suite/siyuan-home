@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { parseQuickAdd } from "@/core/quick-add";
     import { parseQuickEntryWithAi } from "@/core/ai-nlp";
     import { localDateKey } from "@/core/hub/rule";

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import UiIcon from "@/ui/icon.svelte";
     import type { HomeSettings, FamilyMember, CheckinBinding } from "@/types";

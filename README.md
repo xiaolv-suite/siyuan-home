@@ -8,10 +8,10 @@
 
 家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理
 
-**当前版本：v0.5.195** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
+**当前版本：v0.5.196** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.195-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.196-blue)](./CHANGELOG.md)
 [![思源笔记](https://img.shields.io/badge/思源笔记-%3E%3D%203.8.4-brightgreen.svg)](https://b3log.org/siyuan)
 [![License: MIT](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 

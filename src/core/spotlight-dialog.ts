@@ -4,7 +4,7 @@
  * 独立模块，按需延迟加载。
  */
 import { searchSpotlight, searchSpotlightCommands, type SpotlightItem } from "./spotlight";
-import { showMessage } from "siyuan";
+import { showMessage } from "@/libs/notice";
 import { ensurePinyin } from "./pinyin";
 import { formatLocationBreadcrumbTag } from "./location-index";
 import { uiIcon, moduleUiIcon, type UiIconName } from "@/ui/icons";

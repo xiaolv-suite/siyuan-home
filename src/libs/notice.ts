@@ -122,6 +122,10 @@ export function homeNotify(
     }
 }
 
+export function showMessage(message: string, timeout = 3000, type: "info" | "error" = "info"): void {
+    homeNotify(message, timeout, type);
+}
+
 /**
  * 后台扫描、自动同步、巡检、备份检查全面降级为静默通知
  * 零弹窗打扰用户，仅记入通知历史

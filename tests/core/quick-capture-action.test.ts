@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { executeCaptureTo } from "@/core/quick-capture-action";
 import * as siyuan from "@/core/siyuan";
-import * as siyuanPkg from "siyuan";
+import * as noticeMod from "@/libs/notice";
 
 describe("quick-capture-action (划选文字快速收录动作执行器)", () => {
     let mockPlugin: any;
@@ -21,7 +21,7 @@ describe("quick-capture-action (划选文字快速收录动作执行器)", () =>
             },
             ensureCoreLedgers: vi.fn().mockResolvedValue(undefined),
         };
-        vi.spyOn(siyuanPkg, "showMessage").mockImplementation(() => undefined);
+        vi.spyOn(noticeMod, "showMessage").mockImplementation(() => undefined);
         vi.spyOn(siyuan, "addDetachedRow").mockResolvedValue("row-123");
         vi.spyOn(siyuan, "setCell").mockResolvedValue(undefined);
     });
@@ -35,7 +35,7 @@ describe("quick-capture-action (划选文字快速收录动作执行器)", () =>
             t,
         });
 
-        expect(siyuanPkg.showMessage).toHaveBeenCalledWith("capture.empty", 3000, "info");
+        expect(noticeMod.showMessage).toHaveBeenCalledWith("capture.empty", 3000, "info");
         expect(mockPlugin.ensureCoreLedgers).not.toHaveBeenCalled();
     });
 
@@ -49,7 +49,7 @@ describe("quick-capture-action (划选文字快速收录动作执行器)", () =>
             t,
         });
 
-        expect(siyuanPkg.showMessage).toHaveBeenCalled();
+        expect(noticeMod.showMessage).toHaveBeenCalled();
         expect(mockPlugin.ensureCoreLedgers).not.toHaveBeenCalled();
     });
 
@@ -75,7 +75,7 @@ describe("quick-capture-action (划选文字快速收录动作执行器)", () =>
             { type: "text", text: { content: "常用快递地址：朝阳区" } },
             expect.objectContaining({ idempotencyKey: expect.stringContaining("capture:snippets") })
         );
-        expect(siyuanPkg.showMessage).toHaveBeenCalledWith("capture.saved", 3000, "info");
+        expect(noticeMod.showMessage).toHaveBeenCalledWith("capture.saved", 3000, "info");
     });
 
     it("短时间内重复触发去重防重入", async () => {

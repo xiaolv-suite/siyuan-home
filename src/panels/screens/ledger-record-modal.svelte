@@ -1,6 +1,6 @@
 <script lang="ts">
     import { RowIdentityPendingError } from "@/core/siyuan";
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { localDateKey } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";

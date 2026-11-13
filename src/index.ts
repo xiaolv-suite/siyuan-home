@@ -23,12 +23,12 @@ import { initPluginAuthGuard, type PluginAuthGuardController } from "@/core/plug
 import { SCHEMA_CATALOG } from "@/core/schema";
 import type { HomeSettings } from "@/types";
 import { lvNotify, lvTicker, lvActivity, lvBackup, lvLaunchpad, lvOmnisearch, lvAutomation, type LvSearchResultItem } from "@/libs/lv-notice-kit";
-import { homeNotify, homeSilent } from "@/libs/notice";
+import { homeNotify } from "@/libs/notice";
 import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delivery";
 import { searchMatch } from "@/core/pinyin";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.195";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.196";
 
 /**
  * 小驴管家（Lv Home）
@@ -83,6 +83,7 @@ export default class LvHomePlugin extends Plugin {
      * the first kernel write is still pending must not add duplicate rows. */
     private readonly captureDedupe = new Map<string, number>();
     private lastScanAt = 0;
+    private lastHubScanDigest = "";
     /** 20 组：全量扫描去抖——Tab/面板快速开关 30 秒内不重复全量（增量扫描与手动强制不受限） */
     private static FULL_SCAN_MIN_MS = 30 * 1000;
     /** 状态栏角标更新（28 组：今日到期 N） */
@@ -156,7 +157,8 @@ export default class LvHomePlugin extends Plugin {
 
         // 全端入口接入小驴罗盘统一管理（Protocol v1.7.5 Unified Entry 顶栏+悬浮球收敛）
         try {
-            this.mobileEntryCleaner = lvLaunchpad.ensureUnifiedEntry();
+            this.mobileEntryCleaner = lvLaunchpad.ensureUnifiedEntry(this);
+            lvLaunchpad.registerHostApi({ openTab, openMobileFileById, app: this.app });
         } catch { /* 容错降级 */ }
 
         // 全局遮罩点击即关（Backdrop Scrim Click-to-Dismiss · 对齐管家全弹窗人体工程学）
@@ -206,14 +208,13 @@ export default class LvHomePlugin extends Plugin {
         // 接入小驴生态全局后台心跳主时钟 (lvTicker)：失焦自动降频至 60s 节电，对齐后台节拍
         this.tickerUnsubscribe = lvTicker.subscribe("siyuan-home", 30 * 60 * 1000, () => {
             this.refreshHub()
-                .then(() => homeSilent("heartbeat-scan", "管家定时心跳后台巡检完成"))
                 .catch((e) => console.warn("[LvHome] heartbeat scan failed:", e));
         });
 
         // 零点跨日精准广播刷新：00:00 准点重算到期事项与待办，免去轮询日期
         this.dateCrossUnsubscribe = lvTicker.onDateCross("siyuan-home", (todayKey) => {
             this.refreshHub(undefined, true)
-                .then(() => homeSilent("date-cross-refresh", `管家零点跨日自动重算完成：${todayKey}`))
+                .then(() => console.debug("[LvHome] date-cross-refresh:", todayKey))
                 .catch((e) => console.warn("[LvHome] date cross refresh failed:", e));
         });
 
@@ -278,7 +279,6 @@ export default class LvHomePlugin extends Plugin {
             if (this.settings?.onboarded && this.app) {
                 import("@/core/doc-sync").then(({ syncRowLogsToSiYuanDocs }) => {
                     syncRowLogsToSiYuanDocs(this);
-                    homeSilent("journal-sync", "后台流水与日记文档增量同步完成");
                 }).catch(() => undefined);
             }
         } catch (e) {
@@ -315,7 +315,7 @@ export default class LvHomePlugin extends Plugin {
         if (report.adoptedCount > 0) {
             try {
                 await saveSettings(this, this.settings);
-                homeSilent("ledger-adopt", `后台已智能对齐并找回 ${report.adoptedCount} 个历史台账`);
+                console.debug(`[LvHome] 后台已智能对齐并找回 ${report.adoptedCount} 个历史台账`);
             } catch { /* soft persist */ }
         }
         return report;
@@ -419,10 +419,7 @@ export default class LvHomePlugin extends Plugin {
             const digest = dailyDigest(scan, this.settings, this.runtime);
             if (digest.shouldNotify) {
                 markNotified(this.runtime);
-                if (priorityCardDelivered) {
-                    // 若已弹出重点到期交互卡片，常规摘要自动降级为静默记录入库，彻底杜绝双重弹窗打扰
-                    homeSilent("hub-digest", `每日生活摘要：${digest.overdue} 项逾期，${digest.soon} 项临期`);
-                } else {
+                if (!priorityCardDelivered && (digest.overdue > 0 || digest.soon > 0)) {
                     const text = this.i18nText("notify.digest")
                         .replace("${overdue}", String(digest.overdue))
                         .replace("${soon}", String(digest.soon));
@@ -474,8 +471,12 @@ export default class LvHomePlugin extends Plugin {
         }
         await saveRuntime(this, this.runtime);
         this.lastScanAt = Date.now();
-        // 后台扫描全面静默化：常规扫描结果静默入库，不弹窗打扰用户
-        homeSilent("hub-scan", `管家扫描完成：${scan.counts.overdue} 项逾期，${scan.counts.soon} 项临期（共 ${scan.reminders.length} 项）`);
+        // 后台常规扫描静默落盘，不向通知中心灌入状态日志（逾期/临期高优事项由 deliverPriorityReminders 专卡推送）
+        const scanDigest = `${scan.counts.overdue}|${scan.counts.soon}|${scan.reminders.length}`;
+        if (scanDigest !== this.lastHubScanDigest) {
+            this.lastHubScanDigest = scanDigest;
+            console.debug(`[LvHome] 管家扫描完成：${scan.counts.overdue} 项逾期，${scan.counts.soon} 项临期（共 ${scan.reminders.length} 项）`);
+        }
         performance.mark(`${perfMark}-end`);
         try { performance.measure(perfMark, `${perfMark}-start`, `${perfMark}-end`); } catch { /* PF01 测量标记 */ }
         const todayDue = scan.reminders.filter((r) => r.daysLeft <= 0).length;
@@ -1101,6 +1102,11 @@ export default class LvHomePlugin extends Plugin {
                 digit: 3,
                 badge: expiring > 0 ? `${expiring} 到期` : undefined,
                 badgeType: "warn",
+                /* 罗盘每次打开（桌面/移动）实时拉取临期数，归零自动隐藏徽章 */
+                badgeProvider: () => {
+                    const n = this.getExpiringCount();
+                    return n > 0 ? `${n} 到期` : undefined;
+                },
                 actions: ["记一笔备忘", "今日清单", "逾期扫描", "证件到期速览"],
                 topBarElement: (this as any).topBarElement,
                 onClick: () => this.openDashboard(),

@@ -1,4 +1,4 @@
-import { showMessage } from "siyuan";
+import { showMessage } from "@/libs/notice";
 import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "@/core/siyuan";
 
 export interface ExecuteCaptureToOptions {

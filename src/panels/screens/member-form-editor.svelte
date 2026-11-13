@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { addMember, updateMember } from "@/core/members";
     import { newSiYuanId } from "@/core/siyuan";

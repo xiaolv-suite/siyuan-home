@@ -1,6 +1,7 @@
 <script lang="ts">
     import UiIcon from "@/ui/icon.svelte";
-    import { Menu, showMessage } from "siyuan";
+    import { Menu } from "siyuan";
+    import { showMessage } from "@/libs/notice";
     import type { TableDensity } from "../panel-session";
 
     type LedgerTone = "danger" | "warn" | "ok" | "none";

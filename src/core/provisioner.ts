@@ -67,11 +67,7 @@ export function getModuleCategoryFolder(moduleId?: string): string {
 
 export function isXiaoLvHubNotebookName(name: string | undefined): boolean {
     if (!name) return false;
-    return (
-        name.includes("小驴空间") ||
-        name.includes("小驴笔记本") ||
-        name.includes("小驴生态统一测试空间")
-    );
+    return /^(🐴\s*)?小驴(生态|空间|笔记本)/.test(name.trim());
 }
 
 export {
@@ -184,7 +180,7 @@ export async function ensureNotebook(preferred?: string, defaultNotebookId?: str
         }
     }
 
-    // 3. 第三优先级：优先复用统一生态笔记本（🐴 小驴空间 / 小驴生态统一测试空间），其次为默认笔记本名称 "🏠 小驴管家"
+    // 3. 第三优先级：优先复用统一生态大本营笔记本（🐴 小驴生态 / 小驴空间），其次为默认笔记本名称 "🏠 小驴管家"
     if (!preferred || isSiYuanId(preferred)) {
         const hubHit = notebooks.find((nb) => !nb.closed && isXiaoLvHubNotebookName(nb.name));
         if (hubHit) return hubHit.id;

@@ -1,0 +1,220 @@
+/**
+ * 小驴管家（Lv Home）核心类型定义
+ * 与 docs/design/ 对齐：数据模型 02、提醒中枢 03。
+ */
+
+/** 成员角色：家庭、伴侣、亲属等维度 */
+export type MemberRole = "self" | "spouse" | "partner" | "child" | "elder" | "kin" | "other";
+
+/** A member-row create may have committed even when its response was lost. */
+export interface MemberRowCreatePending {
+    avId: string;
+    baselineItemIds: string[];
+    candidateItemIds: string[];
+    fingerprint: {
+        name: string;
+        role: MemberRole;
+        birthday?: string;
+        lunarBirthday: boolean;
+    };
+    startedAt: string;
+}
+
+/** 家庭成员：所有模块共用的组织维度（台账本体在思源数据库，此为设置侧引用） */
+export interface FamilyMember {
+    id: string;
+    name: string;
+    role: MemberRole;
+    /** 公历生日 ISO 日期 */
+    birthday?: string;
+    /** 生日是否按农历记 */
+    lunarBirthday?: boolean;
+    /** D23：生理性别（WHO 生长参考带按性别匹配；未知则图上不显示参考带） */
+    sex?: "male" | "female";
+    /** members 台账行的 itemID（addMember 建行后回填；成员过滤/下钻的关联键） */
+    avItemId?: string;
+    /** 最近一次台账行同步失败的摘要（D05：可见可重试；成功后清除） */
+    syncError?: string;
+    /** 上次建行结果未知时的核对快照；必须先核实，不能直接再次建行。 */
+    avRowCreatePending?: MemberRowCreatePending;
+    /** EC14：人脉联系人绑定快照（`名称 [docId]`）；仅引用快照，不改写人脉数据 */
+    contactSnapshot?: string;
+    notes?: string;
+    createdAt: string;
+}
+
+/** 模块分组 */
+export type ModuleGroupId = "people" | "assets" | "living" | "kids" | "travel" | "media";
+
+export interface ModuleGroup {
+    id: ModuleGroupId;
+    /** i18n key: group.<id> */
+}
+
+/** 模块开发状态（33.1 能力矩阵）：ready=有数据管理入口 / skeleton=有 schema 与壳 / planned=路线图 */
+export type DevStatus = "ready" | "skeleton" | "planned";
+
+/** 内置模块定义 */
+export interface HomeModule {
+    id: string;
+    group: ModuleGroupId;
+    /** 默认是否启用 */
+    defaultEnabled: boolean;
+    /** 始终开启，不可关闭（如家庭成员） */
+    alwaysOn?: boolean;
+    /** 建议存在的成员角色：开启前给出引导 */
+    suggestRoles?: MemberRole[];
+    devStatus: DevStatus;
+}
+
+// ── 提醒中枢（docs/design/03）──────────────────────────────
+
+/** 规则类型：一次性效期 / 周期 / 周年（支持农历）/ 事件后 N 天（favors 回礼，190 波） */
+export type ReminderKind = "oneoff" | "recurring" | "anniversary" | "after";
+
+/** 模块 schema 声明的提醒规则（数据驱动，中枢不写死模块） */
+export interface ReminderRuleSpec {
+    key: string;
+    /** 参与扫描的日期列（字段字典 key，如 expiry/next_pay/due） */
+    field: string;
+    kind: ReminderKind;
+    /** 默认提前提醒天数（用户可在 leadOverrides 按 `${moduleId}.${key}` 覆盖） */
+    leadDays: number;
+    /** recurring：周期列 key（字段字典 cycle） */
+    cycleField?: string;
+    /** anniversary：农历标记列 key */
+    lunarField?: string;
+    /** 合同等：自动续约条款标记列 key（有标记的到期提醒升级为「续约决策提醒」，D19/16 组） */
+    autoRenewField?: string;
+    /** after（favors 回礼等）：事件日期 + offsetDays 的一次性提醒 */
+    offsetDays?: number;
+    /** after：仅当该 select 列值等于 equals 时才派生（favors 只对 direction=in 回礼） */
+    onlyIf?: { field: string; equals: string };
+    /**
+     * 多段提醒割点（311 波，G2）：如 [60, 30, 7]——到达每个割点各重现一次（取最近一个已过割点）。
+     * 缺省时行为完全不变（回退 leadDays 单一窗口），向后兼容旧 schema。
+     */
+    leadStages?: number[];
+    /** 周期循环基准（Tasks.org 规格）：due=按计划到期日循环（默认）；completion=按实际完成日顺延循环 */
+    recurrenceAnchor?: "due" | "completion";
+}
+
+/** 紧急级别：🔴 已逾期 / 🟠 7 天内 / 🟡 提前量内 / ⚪ 更远 */
+export type ReminderLevel = "overdue" | "soon" | "lead" | "later";
+
+/** 运行态提醒：从台账派生，不落业务库 */
+export interface Reminder {
+    /** `${rowId}::${moduleId}.${ruleKey}` */
+    id: string;
+    moduleId: string;
+    ruleKey: string;
+    /** 台账行块 ID（定位/续期都作用于它） */
+    rowId: string;
+    memberId?: string;
+    title: string;
+    /** 下次发生日 ISO */
+    dueDate: string;
+    daysLeft: number;
+    level: ReminderLevel;
+    /** 规则类型（H05 完成语义分派；adhoc 备忘视为 oneoff。旧缓存可能缺失） */
+    kind?: ReminderKind;
+    /** anniversary 农历标记（dueDate 为下次农历对应的公历日期；卡片显示 🌙） */
+    lunar?: boolean;
+    /** 自动续约条款标记（合同：到期前需做续/不续决策；卡片显示 🔄） */
+    autoRenew?: boolean;
+    /** 周期循环基准（Tasks.org 规格）：due=按计划到期日循环；completion=按实际完成日顺延循环 */
+    recurrenceAnchor?: "due" | "completion";
+    /** 累计被推迟/顺延次数（>=3 次触发反拖延微步骤拆解提示） */
+    snoozeCount?: number;
+    /** 累计被顺延/推迟次数（与 snoozeCount 同步，>=3 次触发微拆解提示） */
+    postponeCount?: number;
+    /** 事项已完成 5 分钟微步骤拆解标记 */
+    decomposed?: boolean;
+    /** 优先级标记（Quick Add !高/!中/!低 识别） */
+    priority?: "high" | "medium" | "low";
+    /** 分类标签（Quick Add #分类 识别） */
+    tag?: string;
+}
+
+/** 扫描结果聚合（内存 + kernel storage 缓存） */
+export interface HubState {
+    scannedAt: string;
+    reminders: Reminder[];
+    counts: { overdue: number; soon: number; lead: number };
+}
+
+// ── 设置（docs/design/01 ADR-7：只放设置与运行态）───────────
+
+/** 模块台账落点映射（provisioner 维护，幂等）；provisional=等 Spike 的占位建库（C7） */
+export interface DbRef {
+    docId?: string;
+    /** av 实体 ID（Spike 定案 = av 块 ID） */
+    avId?: string;
+    notebook?: string;
+    provisional?: boolean;
+    /** 字典列 key → av 列 keyID（provisioner 建列时记录；读取行的唯一稳定依据） */
+    columns?: Record<string, string>;
+    /** 最近一次建库/补列失败的摘要（33.2 journal 最小版；成功后清除） */
+    provisionError?: string;
+}
+
+/** 插件设置（持久化到 data/storage/petal/siyuan-home/settings.json） */
+export interface HomeSettings {
+    /** 已启用模块 id 列表 */
+    enabledModules: string[];
+    members: FamilyMember[];
+    /** 提前量覆盖，key = `${moduleId}.${ruleKey}`，值为天数；空 = 用 schema 默认 */
+    leadOverrides: Record<string, number>;
+    /** 每日摘要通知时刻（0-23，默认 8） */
+    notifyHour: number;
+    /** 静默时段起止（小时，默认 22 → 8） */
+    silentFrom: number;
+    silentTo: number;
+    /** moduleId → 台账文档/数据库映射 */
+    dbRefs: Record<string, DbRef>;
+    /** 首次引导的家庭构成快照（C7 向导写入；真实成员在成员页维护） */
+    household?: { roles: MemberRole[]; children: number };
+    /** 首次运行引导是否已完成 */
+    onboarded?: boolean;
+    /** 示例数据生成清单（24 组：moduleId → 行 itemID；一键清除用） */
+    demoRows?: Record<string, string[]>;
+    /** 示例成员 id 清单（一键清除移除引用） */
+    demoMemberIds?: string[];
+    /** 15 组：settings.json 损坏已回退默认（onload 弹警告；marker 文件 settings.json.corrupted.json 可查） */
+    /** 269 波：值为损坏原因串（弹窗就地诊断）；布尔 true = 无细节 */
+    corruptedSettings?: boolean | string;
+    /** EC09（D20）：打卡习惯 → 成员指标绑定（settings 驱动映射 v1；只读消费，不写打卡数据） */
+    checkinBindings?: CheckinBinding[];
+    /** Webhook 推送（路线图"下一阶段"，229 波）：用户显式配置并启用后才外发；空 URL 不推送 */
+    webhookEnabled?: boolean;
+    webhookUrl?: string;
+    webhookMode?: "bark" | "ntfy";
+    /** 顶栏个人头像：单个字符预设或自定义短文字 */
+    avatar?: string;
+    /** 经裁剪压缩的本地头像 data URL（不超过 1 MB） */
+    avatarImage?: string;
+    /** 315 波（G6）：预算分类月度限额（分类 key → 限额元） */
+    budgetLimits?: Record<string, number>;
+    /** 用户自选的台账建账目标笔记本 ID（未设定则使用或创建默认笔记本） */
+    targetNotebookId?: string;
+    /** 统一小驴空间下的管家台账根路径（如 "/02-小驴管家"） */
+    rootPath?: string;
+    /** 快捷补能预设面额列表（元，默认 [200, 300, 500]） */
+    fuelPresetAmounts?: number[];
+    /** 快捷充电预设面额列表（元，默认 [30, 50, 100]） */
+    chargePresetAmounts?: number[];
+    /** 台账表格列显示自选配置（moduleId → 自选展示列 keys） */
+    columnVisibility?: Record<string, string[]>;
+    /** 台账表格排序列偏好记忆（moduleId → { key, asc }） */
+    ledgerSort?: Record<string, { key: string; asc: boolean }>;
+    /** 台账表格列宽手动调整记忆（moduleId → { colKey: widthPx }） */
+    ledgerColumnWidths?: Record<string, Record<string, number>>;
+}
+
+/** EC09：打卡绑定。metric 显式区分（不把次数当体重）；itemName 为绑定时点快照（展示用） */
+export interface CheckinBinding {
+    itemId: string;
+    itemName: string;
+    memberId: string;
+    metric: "count" | "quantity" | "duration";
+}

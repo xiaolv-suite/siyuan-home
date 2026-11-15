@@ -25,6 +25,42 @@
 
 ---
 
+## 🚀 本次更新要点（v0.5.197）
+
+- **根治思源 v3.8.10 非法 ID 报错**：彻底消除待办备忘在 Kramdown 中写入自定义假 ID (`{: id="h2-pending-memos"}`) 引发的内核解析异常，全面改用思源内核原生合规 22 位块 ID；
+- **日常流水防多端同步冲突**：将日常流水与备忘由集中式文档覆写解耦为按日记增量落地的 LifeLog 模式，从源头杜绝跨端大文档冲突与日记覆盖；
+- **重点到期提醒长效免打扰**：证件、保单、药品效期提醒全面接入统一通知体系，选择「未来3天不提醒」或「未来一周不提醒」跨会话跨重启严格静音；
+- **全生态罗盘顶栏常驻与防抖**：即使只启用小驴管家单插件，顶栏罗盘依然稳定常驻并可一键唤起全功能罗盘工作台，彻底根除启动期顶栏反复横跳拉锯。
+
+<details>
+<summary>展开查看历史版本更新记录（v0.5.196 及更早版本 · 完整记录见 CHANGELOG.md）</summary>
+
+- **v0.5.196**：罗盘启动防抖与顶栏对齐、LifeLog 照片流与原子多块撤销、全生态联合灾备恢复、移动端全面去电脑化。
+- **v0.5.195**：思源 3.8.10+ 原生资源库头像选取（openNativeAssetPicker）、原生文档树上下文菜单联动。
+- **v0.5.194**：顶栏罗盘微任务防抖、移动端全屏退场闭环与软键盘防误关。
+</details>
+
+---
+
+## 🐴 小驴思源全家桶生态矩阵与交流
+
+本插件为「小驴思源生态」8 大官方集市插件之一。所有插件共享小驴罗盘（顶栏常驻中枢）、全域穿透搜索与统一备份恢复：
+
+| 插件名称 | 核心用途 | 官方集市 / 仓库 |
+| :--- | :--- | :--- |
+| **小驴打卡** | 本地优先习惯打卡、日程提醒与多维人生热力图工作台 | [`siyuan-checkin`](https://github.com/xiaolv-suite/siyuan-checkin) |
+| **小驴管家** | 家庭成员中心视角档案、证照保单到期预警与 LifeLog 流水协同 | [`siyuan-home`](https://github.com/xiaolv-suite/siyuan-home) |
+| **小驴人脉** | 一人一文档人际管理、圈层力导向关系网络与会前破冰速览 | [`siyuan-contacts`](https://github.com/xiaolv-suite/siyuan-contacts) |
+| **小驴拾遗** | 剪藏文章深度消化、视线同焦伴生导读与 4 大学术著录 | [`siyuan-glean`](https://github.com/xiaolv-suite/siyuan-glean) |
+| **小驴闪卡** | 原生 FSRS 算法调度、文档内质感序号流与全场景极速制卡 | [`siyuan-lv-cards`](https://github.com/xiaolv-suite/siyuan-lv-cards) |
+| **小驴考试** | 全真模拟考场环境、错题靶向归因复训与苏格拉底启发式 AI 导师 | [`siyuan-exam`](https://github.com/xiaolv-suite/siyuan-exam) |
+| **小驴常用** | 代码片段工作室、零卡死安全剪贴板历史与一键记事沙盒 | [`xiaolv-common`](https://github.com/xiaolv-suite/xiaolv-common) |
+| **小驴雷切** | 毫秒级多文档穿透切换、左右双文档实时分栏对照与切片代码画板 | [`siyuan-speed-switch`](https://github.com/xiaolv-suite/siyuan-speed-switch) |
+
+💬 **官方交流与需求反馈 QQ 群**：**871707735**（开发者实时在线，欢迎反馈问题、交流使用体验与提交新功能构想）。
+
+---
+
 ## 🎯 为什么需要小驴管家？它解决什么问题？
 
 在快节奏的生活中，个人的证件卡券、家人的健康用药、资产维保与周期缴费往往散落各处：微信收藏、手机备忘录、实体抽屉或者脑海里。**不记容易忘，纯手工记账又繁琐难以坚持。**
@@ -176,59 +212,6 @@
 
 ### 方式三：思源集市（内测转正后开放）
 当前版本尚未上架，集市搜索不到属预期；上架后此处会更新为推荐方式。
-
----
-
-## 🐴 小驴系列插件家族
-
-小驴系列插件各自独立，可按需安装和组合使用：
-
-| 插件名称 | 一句话简介 | GitHub 仓库 |
-| :--- | :--- | :--- |
-| [小驴雷切](https://github.com/xiaolv-suite/siyuan-speed-switch) | 思源中的统一导航与工作上下文平台，连接页签、工作台、片段和快捷入口。 | [xiaolv-suite/siyuan-speed-switch](https://github.com/xiaolv-suite/siyuan-speed-switch) |
-| [小驴打卡](https://github.com/xiaolv-suite/siyuan-checkin) | 本地优先的习惯、目标打卡与复盘工作台。 | [xiaolv-suite/siyuan-checkin](https://github.com/xiaolv-suite/siyuan-checkin) |
-| [小驴人脉](https://github.com/xiaolv-suite/siyuan-contacts) | 在思源中管理联系人、人际关系、组织归属和重要日期。 | [xiaolv-suite/siyuan-contacts](https://github.com/xiaolv-suite/siyuan-contacts) |
-| [小驴拾遗](https://github.com/xiaolv-suite/siyuan-glean) | 整理思源剪藏和导入文章，支持状态分拣、阅读管理与日后回顾。 | [xiaolv-suite/siyuan-glean](https://github.com/xiaolv-suite/siyuan-glean) |
-| [小驴考试（内测版）](https://github.com/xiaolv-suite/siyuan-exam) | 本地题库备考工作台，支持多格式导入、刷题、模考、错题复盘与 AI 辅助。 | [xiaolv-suite/siyuan-exam](https://github.com/xiaolv-suite/siyuan-exam) |
-| [小驴管家（内测版）](https://github.com/xiaolv-suite/siyuan-home) | 管理家庭与生活资料、成员档案、台账、到期提醒和事务跟进。 | [xiaolv-suite/siyuan-home](https://github.com/xiaolv-suite/siyuan-home) |
-| [小驴闪卡（内测版）](https://github.com/xiaolv-suite/siyuan-lv-cards) | 思源中的知识捕获、制卡、练习与复习平台，使用内核原生 FSRS 排期。 | [xiaolv-suite/siyuan-lv-cards](https://github.com/xiaolv-suite/siyuan-lv-cards) |
-| [小驴常用（内测版）](https://github.com/xiaolv-suite/xiaolv-common) | 基于思源块保存、搜索并快速调用常用语、模板、代码和链接，支持变量填充。 | [xiaolv-suite/xiaolv-common](https://github.com/xiaolv-suite/xiaolv-common) |
-
-交流与反馈 QQ 群：**871707735**（可反馈 Bug、提交需求和交流使用体验）。
-
----
-
-## 📝 最近更新动态
-
-- **思源 3.8.10+ 原生特性适配**：家庭成员头像支持右键通过 `openNativeAssetPicker` 直接选用库内图片；台账成员卡片与提醒任务项支持右键直通原生文档树菜单（`showDocTreeNativeMenu`）。
-- **输入法合成期守护**：行内编辑保存与聚焦搜索（Spotlight）的 Enter/ArrowDown 键盘流在拼音候选合成期整体让路，不再以拼音半成品误保存或误导航。
-- **资源与内存健壮性**：AI 体检报告复制补齐失败捕获与双语错误提示；年度名片预览图 Blob URL 解码后即刻回收防内存累积；全生态剪贴板写入失败覆盖率契约固化。
-- **双端体验打磨**：Spotlight 与工具栏输入框 16px 字号防 iOS 聚焦自动放大；屏幕容器平滑内边距消除贴边感；视口与快速记录滚动监听全面 passive 降负。
-
-<details>
-<summary>展开查看历史版本更新（v0.5.194 及更早版本 · 完整记录见 <a href="./CHANGELOG.md">CHANGELOG.md</a>）</summary>
-
-### v0.5.194（2026-11-10 · GitHub 组织迁移与体验升级）
-
-- **顶栏罗盘性能升级**：启动收敛微任务防抖（8 插件并发启动 DOM 重绘 8 次 → 1 次）、思源云同步/重启后顶栏图标 MutationObserver 持久自愈；
-- **移动端全屏退场闭环**：打开台账文档自动收起管家全屏面板（`openMobileFileById` 分流），彻底杜绝“文档打开在底层被遮挡”问题；
-- **软键盘防误关四重防线**：全屏宿主下拉关闭手势加入输入焦点/表单容器/软键盘三重豁免，严格限定顶栏把手起始；
-- **即时轻触感反馈**：快速记录保存与连续记录加入触感振动（`haptic`）与实时入账微胶囊；
-- **i18n 补齐**：新增 `hub.mobileFilter` / `hub.mobileFilterAndOps` 语言键；
-- **仓库迁移**：GitHub 仓库与提交身份迁移至 `xiaolv-suite` 组织。
-
-<details>
-<summary>展开查看历史版本更新（v0.5.193 及更早版本 · 完整记录见 <a href="./CHANGELOG.md">CHANGELOG.md</a>）</summary>
-
-### v0.5.193（2026-11-04）
-
-- 全生态统一基础设施（Epoch 7 Protocol v1.1.0）、AI 网关深度协同、模态弹窗全局键盘治理与 20 步全链路自动化实测通过。
-
-### v0.5.192（2026-11-01）
-
-- 事项与循环引擎全链路优化、日历多选视图与全景检索提速。
-
-</details>
 
 ---
 

@@ -77,7 +77,7 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
                 <div id="lv-spotlight-list" class="lv-dialog-scroll-body lv-spotlight-list"></div>
             </div>
         `,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const inp = dlg.element.querySelector("#lv-spotlight-input") as HTMLInputElement;
@@ -142,7 +142,25 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
     await Promise.all(loadPromises);
     if (isClosed) return;
 
+    let pressDepth = 0;
+    let pendingQuery: string | null = null;
+    listEl.addEventListener("pointerdown", () => { pressDepth += 1; });
+    const releasePress = () => {
+        if (pressDepth > 0) pressDepth -= 1;
+        if (pressDepth === 0 && pendingQuery !== null && !isClosed) {
+            const q = pendingQuery;
+            pendingQuery = null;
+            renderResults(q);
+        }
+    };
+    listEl.addEventListener("pointerup", releasePress);
+    listEl.addEventListener("pointercancel", releasePress);
+
     const renderResults = (query: string) => {
+        if (pressDepth > 0) {
+            pendingQuery = query;
+            return;
+        }
         const matched = searchSpotlight(allItems, query, 30);
         const matchedCmds = searchSpotlightCommands(query);
         statusEl.innerHTML = `
@@ -228,7 +246,10 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             const copyRef = document.createElement("button");
             copyRef.type = "button";
             copyRef.className = "b3-button b3-button--text lv-badge--sm lv-tx-muted";
-            copyRef.title = `${t("ledger.copyBlockRef")} ((id "title")) (Alt+C)`;
+            const isMobile = Boolean((plugin as any).isMobileView?.());
+            copyRef.title = isMobile
+                ? `${t("ledger.copyBlockRef")} ((id "title"))`
+                : `${t("ledger.copyBlockRef")} ((id "title")) (Alt+C)`;
             copyRef.textContent = t("spotlight.copyRef");
             copyRef.onclick = async (e) => {
                 e.stopPropagation();

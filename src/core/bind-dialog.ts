@@ -41,7 +41,7 @@ export function openBindExistingDocDialog(options: BindExistingDocDialogOptions)
                 <button class="b3-button" id="lv-bind-doc-ok">${t("save")}</button>
             </div>
         `,
-        width: "480px",
+        width: "min(480px, 94vw)",
     });
 
     const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;

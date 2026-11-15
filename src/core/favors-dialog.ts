@@ -46,7 +46,7 @@ export async function openFavorsReportDialog(opts: FavorsDialogOptions): Promise
         title: t("ledger.favorsReport"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-favors-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-favors-close">${t("close")}</button><button class="b3-button" id="lv-favors-copy">${t("ledger.favorsCopyText")}</button></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
     const body = dlg.element.querySelector("#lv-favors-body") as HTMLElement;
     if (!body) return;

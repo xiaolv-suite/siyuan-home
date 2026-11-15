@@ -355,7 +355,7 @@ export function openMedicineSupplyDialog(options: MedicineSupplyDialogOptions): 
         title: t("ledger.medicineSupplyTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-med-supply-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-med-supply-close">${t("close")}</button><button class="b3-button" id="lv-med-supply-copy">${t("ledger.medicineSupplyCopy")}</button></div>`,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const body = dlg.element.querySelector("#lv-med-supply-body") as HTMLElement;

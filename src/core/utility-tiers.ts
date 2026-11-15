@@ -255,7 +255,7 @@ export function openUtilityTiersDialog(options: UtilityTiersDialogOptions): void
         title: t("ledger.utilityTiersTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-util-tiers-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-util-tiers-close">${t("close")}</button><button class="b3-button" id="lv-util-tiers-copy">${t("ledger.utilityCopyReport")}</button></div>`,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const body = dlg.element.querySelector("#lv-util-tiers-body") as HTMLElement;

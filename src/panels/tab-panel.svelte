@@ -537,9 +537,9 @@
                 <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
                 <div class="lv-tabbar-actions">
                     <!-- 搜索/快速记录/设置在宽屏由左侧导航栏承担，顶栏同名按钮只在窄屏（无侧栏）出现 -->
-                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("spotlight.title")} title={`${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
+                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("spotlight.title")} title={onMobileClose ? t("spotlight.title") : `${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
                     <button type="button" class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("capture.title")} title={`${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("capture.title")} title={onMobileClose ? t("capture.title") : `${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
                     <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
                     {#if onMobileClose}
                         <button type="button" class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>

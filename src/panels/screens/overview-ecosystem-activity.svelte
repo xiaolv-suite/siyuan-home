@@ -363,15 +363,15 @@
         font-weight: normal;
     }
     .lv-launchpad-chip-badge.is-warn {
-        background: rgba(245, 158, 11, 0.15);
-        color: #f59e0b;
+        background: color-mix(in srgb, var(--b3-theme-warning, #f59e0b) 16%, transparent);
+        color: var(--b3-theme-warning, #f59e0b);
     }
     .lv-launchpad-chip-badge.is-error {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
+        background: color-mix(in srgb, var(--b3-theme-error, #ef4444) 16%, transparent);
+        color: var(--b3-theme-error, #ef4444);
     }
     .lv-launchpad-chip-badge.is-success {
-        background: rgba(16, 185, 129, 0.15);
-        color: #10b981;
+        background: color-mix(in srgb, var(--b3-theme-success, #10b981) 16%, transparent);
+        color: var(--b3-theme-success, #10b981);
     }
 </style>

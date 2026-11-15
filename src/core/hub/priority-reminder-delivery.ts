@@ -78,8 +78,8 @@ export function deliverPriorityReminderCard(
 ): PriorityReminderDeliveryResult {
     const { reminders, settings, runtime, t, onOpenReminders } = options;
 
-    // 1. 今日免打扰比对
-    if (lvNotify.isMutedToday(PRIORITY_CATEGORY)) {
+    // 1. 今日免打扰、多天免打扰与稍后提醒窗口比对
+    if (lvNotify.isMutedToday(PRIORITY_CATEGORY) || lvNotify.isCategoryMuted?.(PRIORITY_CATEGORY) || lvNotify.isCategorySnoozed?.(PRIORITY_CATEGORY)) {
         return { delivered: false, itemCount: 0, reason: "muted_today" };
     }
 

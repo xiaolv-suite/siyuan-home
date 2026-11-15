@@ -41,7 +41,7 @@ export async function openReminderDigestDialog(options: OpenReminderDigestDialog
             title: t("hub.digestTitle"),
             bodyId: "lv-digest-body",
             body: `<pre class="lv-report-pre">${escapeHtml(markdown)}</pre>`,
-            width: "600px",
+            width: "min(600px, 94vw)",
             actions: [
                 { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
                 { id: "copy", label: escapeHtml(t("hub.digestCopy")), kind: "primary" },

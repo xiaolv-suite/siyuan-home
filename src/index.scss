@@ -172,9 +172,9 @@ body.theme--dark {
     .lv-setnav__label {
         padding: 6px 12px 4px;
         color: var(--lv-tx-3);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 650;
-        letter-spacing: .08em;
+        letter-spacing: .06em;
         text-transform: uppercase;
     }
 
@@ -870,9 +870,9 @@ body.theme--dark {
             font-weight: 500;
             border-radius: 8px;
             border: none;
-            box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2);
+            box-shadow: 0 1px 2px var(--lv-accent-glow);
             transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease, opacity 150ms ease;
-            &:hover { filter: brightness(1.08); box-shadow: 0 3px 8px rgba(217, 119, 6, 0.3); }
+            &:hover { filter: brightness(1.08); box-shadow: 0 3px 8px var(--lv-accent-glow); }
             &:active { transform: scale(0.98); }
         }
         .b3-button--cancel {
@@ -1338,7 +1338,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
         flex: 1 1 auto;
         min-height: 0;
         overflow-y: auto !important;
-        padding: 8px 12px calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+        padding: 6px 4px calc(76px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     &[data-keyboard-open="true"] {
@@ -1404,14 +1404,14 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
+    width: 32px;
     height: 24px;
 }
 
 .lv-mob-badge {
     position: absolute;
     top: -4px;
-    right: -8px;
+    right: -2px;
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
@@ -1930,14 +1930,28 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 /* ══════════ 移动端软键盘弹起：弹窗随 visualViewport 收缩，输入框不被遮挡 ══════════ */
+@media (max-width: 680px) {
+    :is(.lv-home-dialog, .b3-dialog:has([id^="lv-"]), .b3-dialog:has([class*="lv-"])) .b3-dialog__container {
+        max-width: 94vw !important;
+        box-sizing: border-box !important;
+    }
+}
+
 :is(body.body--mobile, [data-is-mobile="true"]) .lv-home-dialog.lv-keyboard-open {
     .b3-dialog__container {
         max-height: var(--lv-vv-h, 100dvh) !important;
     }
 
-    /* 键盘弹起时保存栏不再固定占位，避免盖住输入焦点 */
-    .lv-settings__footer {
+    /* 键盘弹起时保存栏/抽屉底栏不再固定占位，避免盖住输入焦点 */
+    :is(.lv-settings__footer, .lv-sheet-foot, .b3-dialog__action) {
         position: static !important;
+        box-shadow: none !important;
+    }
+}
+@media (max-width: 680px) and (max-height: 500px) {
+    :is(.lv-home-dialog, .lv-mobile-host) :is(.lv-settings__footer, .lv-sheet-foot, .b3-dialog__action) {
+        position: static !important;
+        box-shadow: none !important;
     }
 }
 
@@ -1953,5 +1967,15 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 
     textarea {
         min-height: 72px;
+    }
+}
+
+/* ══════════ 移动端隐藏桌面端组合键后缀（如 (Alt+K)） ══════════ */
+:is(body.body--mobile, [data-is-mobile="true"], .lv-mobile-host) .lv-keep-context-sub {
+    display: none !important;
+}
+@media (max-width: 680px), (pointer: coarse) {
+    .lv-keep-context-sub {
+        display: none !important;
     }
 }

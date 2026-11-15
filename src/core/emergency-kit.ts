@@ -203,7 +203,7 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
   <button class="b3-button b3-button--outline" id="lv-em-copy">${t("ledger.emergencyKitCopy")}</button>
   <button class="b3-button" id="lv-em-import" ${newRows.length === 0 ? "disabled" : ""}>${t("ledger.emergencyKitImport").replace("${n}", String(newRows.length))}</button>
 </div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
 
     const body = dlg.element.querySelector("#lv-em-body") as HTMLElement;

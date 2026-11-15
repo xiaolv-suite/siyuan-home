@@ -68,7 +68,7 @@ export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): 
             <button class="b3-button b3-button--cancel" id="lv-plan-cancel">${t("cancel")}</button>
             <button class="b3-button" id="lv-plan-save">${t("save")}</button>
         </div>`,
-        width: "420px",
+        width: "min(420px, 94vw)",
     });
 
     bindDialogA11y({ dlg, defaultFocus: "#lv-plan-date-input" });
@@ -148,7 +148,7 @@ export function openNamedViewSaveDialog(options: OpenNamedViewSaveDialogOptions)
             <button class="b3-button b3-button--cancel" id="lv-named-view-cancel">${t("cancel")}</button>
             <button class="b3-button" id="lv-named-view-save">${t("save")}</button>
         </div>`,
-        width: "400px",
+        width: "min(400px, 94vw)",
     });
     bindDialogA11y({ dlg, defaultFocus: "#lv-named-view-input" });
     const input = dlg.element.querySelector("#lv-named-view-input") as HTMLInputElement;
@@ -222,7 +222,7 @@ export function openReminderRenewDialog(options: OpenReminderRenewDialogOptions)
         title: t("act.renew"),
         content: `<div class="b3-dialog__content"><div class="b3-dialog__content" id="lv-renew-sub" style="margin-bottom:8px"></div><input class="b3-text-field fn__block" id="lv-renew-date" type="date"><div class="lv-caption" id="lv-renew-err" role="alert" style="color:var(--b3-card-error-color);display:none"></div></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-renew-cancel">${t("cancel")}</button><button class="b3-button" id="lv-renew-ok">${t("save")}</button></div>`,
-        width: "380px",
+        width: "min(380px, 94vw)",
     });
     const dateInput = dlg.element.querySelector("#lv-renew-date") as HTMLInputElement;
     dateInput.value = r.dueDate;
@@ -266,7 +266,7 @@ export interface OpenMemoEditDialogOptions {
 export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, onMemoUpdated } = options;
-    const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" class="lv-dialog-col"></div>`, width: "460px" });
+    const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" class="lv-dialog-col"></div>`, width: "min(460px, 94vw)" });
     const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
     const row1 = document.createElement("label");
     row1.className = "lv-row-field";
@@ -318,7 +318,9 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     cancel.textContent = t("cancel");
     cancel.addEventListener("click", () => dlg.destroy());
     const action = document.createElement("div"); action.className = "b3-dialog__action"; action.append(err, cancel, save);
-    box.append(row1, row2, action);
+    box.append(row1, row2);
+    const container = dlg.element.querySelector(".b3-dialog__container") || dlg.element;
+    container.append(action);
     bindDialogA11y({ dlg, defaultFocus: titleInput });
     requestAnimationFrame(() => titleInput.focus());
 }

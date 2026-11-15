@@ -81,7 +81,7 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
         const dialog = new DialogCls({
             title: t(existing ? "fuel.editRecord" : isFuel ? "fuel.addFuel" : "fuel.addCharging"),
             content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-energy-form-body"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-energy-cancel">${t("cancel")}</button><span class="fn__flex-1"></span><button class="b3-button" id="lv-energy-save">${t(existing ? "fuel.update" : "save")}</button></div>`,
-            width: "560px",
+            width: "min(560px, 94vw)",
         });
         dialog.element.classList.add("lv-energy-dialog");
         bindDialogA11y({ dlg: dialog });

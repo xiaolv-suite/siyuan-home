@@ -54,7 +54,7 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
             const picker = new DialogCls({
                 title: t("ledger.pickNew"),
                 content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-pick-body"></div>`,
-                width: "420px",
+                width: "min(420px, 94vw)",
             });
             bindDialogA11y({ dlg: picker });
             const list = picker.element.querySelector("#lv-pick-body") as HTMLElement;

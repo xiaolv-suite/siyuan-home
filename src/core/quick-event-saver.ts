@@ -28,11 +28,15 @@ export async function ensureModuleTargetRef(plugin: any, mod: string): Promise<a
 export function dispatchBackgroundSync(plugin: any, mod: string, nextLogs: any): void {
     queueMicrotask(async () => {
         try {
-            const { syncModuleDocSection, syncDailyJournalDoc } = await import("./doc-sync");
+            const { syncModuleDocSection, syncDailyJournalDoc, appendRecentRowLogToDailyNote } = await import("./doc-sync");
             if (mod !== "shopping" && mod !== "snippets") {
                 await syncModuleDocSection(plugin, mod, nextLogs);
             }
-            await syncDailyJournalDoc(plugin, nextLogs);
+            if (plugin.settings?.ledgerJournalMode === "legacyDoc") {
+                await syncDailyJournalDoc(plugin, nextLogs);
+            } else {
+                await appendRecentRowLogToDailyNote(plugin, mod, nextLogs);
+            }
         } catch { /* soft */ }
         try { await plugin.refreshHub?.([mod], true); } catch { /* soft */ }
     });

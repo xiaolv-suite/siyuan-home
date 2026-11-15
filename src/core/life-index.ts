@@ -355,7 +355,7 @@ export function openLifeIndexDialog(
         title: t("overview.lifeIndexTitle"),
         bodyId: "lv-life-index-body",
         body: "",
-        width: "580px",
+        width: "min(580px, 94vw)",
         warnings,
         actions: [
             { id: "close", label: escapeHtml(t("close")), kind: "cancel" },

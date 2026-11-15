@@ -209,6 +209,8 @@ export interface HomeSettings {
     ledgerSort?: Record<string, { key: string; asc: boolean }>;
     /** 台账表格列宽手动调整记忆（moduleId → { colKey: widthPx }） */
     ledgerColumnWidths?: Record<string, Record<string, number>>;
+    /** 流水与备忘落地存储模式："dailyNote"（默认推荐 · 写入日记模式，彻底杜绝多端冲突） | "legacyDoc"（旧版兼容 · 集中独立文档） */
+    ledgerJournalMode?: "dailyNote" | "legacyDoc";
 }
 
 /** EC09：打卡绑定。metric 显式区分（不把次数当体重）；itemName 为绑定时点快照（展示用） */

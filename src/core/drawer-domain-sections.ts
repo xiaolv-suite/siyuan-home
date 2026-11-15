@@ -418,7 +418,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                         <button class="b3-button b3-button--cancel" id="lv-allergy-cancel">${t("cancel")}</button>
                         <button class="b3-button" id="lv-allergy-save">${t("save")}</button>
                     </div>`,
-                    width: "420px",
+                    width: "min(420px, 94vw)",
                 });
                 const reactionInput = adlg.element.querySelector("#lv-allergy-reaction") as HTMLInputElement;
                 (adlg.element.querySelector("#lv-allergy-cancel") as HTMLButtonElement).onclick = () => adlg.destroy();

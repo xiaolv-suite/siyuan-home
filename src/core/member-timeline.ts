@@ -366,7 +366,7 @@ export async function openMemberTimelineFlow(
         title: escapeHtml(t("members.timelineTitle").replace("${name}", m.name)),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-member-timeline-body">${modalWarningHtml(reads.failed.length ? [t("modal.readIncomplete").replace("${modules}", reads.failed.map((id) => t(`module.${id}`)).join("、"))] : [])}</div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-member-timeline-close">${t("close")}</button><button class="b3-button" id="lv-member-timeline-copy">${t("members.timelineCopy")}</button></div>`,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const body = dlg.element.querySelector("#lv-member-timeline-body") as HTMLElement;

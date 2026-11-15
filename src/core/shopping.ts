@@ -167,7 +167,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
         title: t("ledger.shoppingList"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-shop-body"></div>
 <div class="b3-dialog__action"><span class="lv-caption fn__flex-1" id="lv-shop-total"></span><button class="b3-button b3-button--cancel" id="lv-shop-close">${t("cancel")}</button><button class="b3-button b3-button--text" id="lv-shop-copy" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopCopy")}</button><button class="b3-button" id="lv-shop-write" ${items.length === 0 ? "disabled" : ""}>${t("ledger.shopWriteToLedger")}</button></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
 
     bindDialogA11y({ dlg });

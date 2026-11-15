@@ -296,7 +296,7 @@ export function openAssetValuationDialog(options: AssetValuationDialogOptions): 
         title: t("ledger.assetValuationReport"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-asset-val-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-asset-val-close">${t("close")}</button><button class="b3-button" id="lv-asset-val-copy">${t("ledger.assetValuationCopy")}</button></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
     const body = dlg.element.querySelector("#lv-asset-val-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-asset-val-copy") as HTMLButtonElement;

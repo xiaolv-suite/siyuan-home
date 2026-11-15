@@ -32,6 +32,7 @@ export function defaultSettings(): HomeSettings {
         chargePresetAmounts: [30, 50, 100],
         columnVisibility: {},
         ledgerSort: {},
+        ledgerJournalMode: "dailyNote",
     };
 }
 

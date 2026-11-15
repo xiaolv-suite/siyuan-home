@@ -41,7 +41,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         const guide = new DialogCls({
             title: t("ledger.ocrSetupTitle"),
             content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body"><p>${t("ledger.ocrSetupIntro")}</p><ol><li>${t("ledger.ocrSetupStep1")}</li><li>${t("ledger.ocrSetupStep2")}</li><li>${t("ledger.ocrSetupStep3")}</li></ol><p>${t("ledger.ocrSetupStorage")}</p><p>${t("ledger.ocrSetupAI")}</p></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-guide-close">${t("close")}</button></div>`,
-            width: "460px",
+            width: "min(460px, 94vw)",
         });
         guide.element.querySelector("#lv-ocr-guide-close")?.addEventListener("click", () => guide.destroy());
         bindDialogA11y({ dlg: guide });
@@ -51,7 +51,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         const result = new DialogCls({
             title: t("ledger.ocrResultTitle"),
             content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-col"><div class="ft__on-surface fn__break-word" id="lv-ocr-result-name"></div><textarea id="lv-ocr-result-text" class="b3-text-field fn__block" readonly></textarea><div class="ft__on-surface" style="font-size:12px">${t("ledger.ocrResultStored")}</div></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ocr-close">${t("close")}</button><span class="fn__flex-1"></span><button class="b3-button b3-button--outline" id="lv-ocr-rerun">${t("ledger.ocrRerun")}</button><button class="b3-button" id="lv-ocr-copy" ${text ? "" : "disabled"}>${t("ledger.ocrCopy")}</button></div>`,
-            width: "520px",
+            width: "min(520px, 94vw)",
         });
         const nameEl = result.element.querySelector("#lv-ocr-result-name") as HTMLElement | null;
         if (nameEl) nameEl.textContent = fileName;
@@ -95,12 +95,22 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     showOCRGuide();
                     return;
                 }
-                confirm(
-                    t("ledger.ocrAIConfirmTitle"),
-                    t("ledger.ocrAIConfirmBody").replace("${engine}", model.name || provider),
-                    () => { void runRecognition(); },
-                    () => { button.disabled = false; button.textContent = previousLabel; }
-                );
+                await new Promise<void>((resolve) => {
+                    confirm(
+                        t("ledger.ocrAIConfirmTitle"),
+                        t("ledger.ocrAIConfirmBody").replace("${engine}", model.name || provider),
+                        async () => {
+                            try {
+                                await runRecognition();
+                            } finally {
+                                resolve();
+                            }
+                        },
+                        () => {
+                            resolve();
+                        }
+                    );
+                });
             } else if (provider === "tesseract" || provider === "paddleocr") {
                 await runRecognition();
             } else {

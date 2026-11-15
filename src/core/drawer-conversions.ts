@@ -139,7 +139,7 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                 title: t("ledger.stockIn"),
                 content: `<div class="b3-dialog__content lv-dialog-col"><p class="ft__on-surface" id="lv-stockin-body"></p></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-stockin-cancel">${t("cancel")}</button><button class="b3-button" id="lv-stockin-ok">${t("save")}</button></div>`,
-                width: "420px",
+                width: "min(420px, 94vw)",
                 destroyCallback: () => {
                     if (!stockCommitted) {
                         stockInBusy = false;
@@ -291,7 +291,7 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
                     <button class="b3-button b3-button--cancel" id="lv-s2a-cancel">${t("cancel")}</button>
                     <button class="b3-button" id="lv-s2a-save">${t("save")}</button>
                 </div>`,
-                width: "420px",
+                width: "min(420px, 94vw)",
             });
 
             let s2aSaving = false;

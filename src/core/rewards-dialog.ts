@@ -111,7 +111,7 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
 		  <button class="b3-button b3-button--outline" id="lv-rewards-copy">${uiIcon("copy", "", 13)} ${t("ledger.copyRewardsReport") || "复制积分报告"}</button>
 		  <button class="b3-button" id="lv-rewards-settle" ${report.unsettledPointsAll === 0 ? "disabled" : ""}>${t("ledger.rewardsSettleBtn")}</button>
 		</div>`,
-        width: "580px",
+        width: "min(580px, 94vw)",
     });
 
     const listEl = dlg.element.querySelector("#lv-rewards-list") as HTMLElement;

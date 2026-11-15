@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage, homeInline } from "@/libs/notice";
-    import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
+    import { showDocTreeNativeMenu, lvLaunchpad } from "@/libs/lv-notice-kit";
     import { sql } from "@/core/siyuan";
     import { onDestroy } from "svelte";
     import type { ActivityRecord, ActivitySnapshot } from "@/core/activity";
@@ -28,7 +28,8 @@
     let moduleFilter = $state("all");
     let page = $state(1);
     // svelte-ignore state_referenced_locally
-    let collapsed = $state(initialCollapsed);
+    // 手机端默认展开：折叠态在窄屏只剩标题+箭头，观感破碎且增加一次触达
+    let collapsed = $state(initialCollapsed && !lvLaunchpad.isMobileFrontend());
     let showFilterTools = $state(false);
     let loadedVersion = $state<number | undefined>();
     let activeController: AbortController | undefined;

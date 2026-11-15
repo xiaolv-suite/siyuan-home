@@ -44,7 +44,7 @@ export function openExpenseTrendDialog(opts: ExpenseDialogOptions): void {
         title: t("ledger.expenseTrendTitle"),
         bodyId: "lv-expense-body",
         body: `<pre class="lv-report-pre">${escapeHtml(fullReportText)}</pre>`,
-        width: "580px",
+        width: "min(580px, 94vw)",
         actions: [
             { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
             { id: "copy", label: `${uiIcon("copy", "", 13)} ${escapeHtml(t("ledger.copyExpenseReport") || "复制支出分析")}`, kind: "primary" },

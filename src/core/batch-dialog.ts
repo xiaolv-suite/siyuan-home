@@ -35,7 +35,7 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
                 <button class="b3-button b3-button--cancel">${t("cancel")}</button>
             </div>
         `,
-        width: "380px",
+        width: "min(380px, 94vw)",
     });
 
     const cancelBtn = dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement | null;
@@ -93,7 +93,7 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
                 <button class="b3-button" id="lv-batch-loc-ok">${t("save")}</button>
             </div>
         `,
-        width: "420px",
+        width: "min(420px, 94vw)",
     });
 
     const inp = dlg.element.querySelector("#lv-batch-loc-input") as HTMLInputElement | null;

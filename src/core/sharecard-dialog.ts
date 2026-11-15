@@ -132,7 +132,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
   <button class="b3-button b3-button--outline" id="lv-sc-copy-img" disabled>${t("overview.shareCardCopyImage")}</button>
   <button class="b3-button" id="lv-sc-download" disabled>${t("overview.shareCardDownload")}</button>
 </div>`,
-        width: "620px",
+        width: "min(620px, 94vw)",
     });
 
     const previewEl = dlg.element.querySelector("#lv-sharecard-preview") as HTMLElement;

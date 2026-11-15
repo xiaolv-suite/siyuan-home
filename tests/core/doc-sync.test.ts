@@ -5,6 +5,7 @@ import {
     formatRowLogEntryLine,
     formatModuleRowLogsMarkdown,
     formatDailyJournalMarkdown,
+    formatActiveMemosMarkdown,
     upsertDocSection,
     replaceJournalDocPreservingFolds,
 } from "@/core/doc-sync";
@@ -350,5 +351,43 @@ describe("doc-sync (LifeLog 标准语法、年/月/日倒序可折叠大纲与�
         expect(projected.records[0].logKind).toBe("chexecs");
         expect(projected.records[0].memberId).toBe("m-kid");
         expect(projected.records[0].details.some((d) => d.key === "points" && d.value === "30")).toBe(true);
+    });
+
+    it("formatActiveMemosMarkdown 输出的思源块 ID 必须严格符合 22 位规范 (^\\d{14}-[0-9a-z]{7}$)，杜绝任何伪 ID", () => {
+        const docId = "20261108090418-faz2en6";
+        const memos = [
+            { id: "memo-test-1", title: "测试待办1", dueDate: "2026-11-20", priority: "high", category: "生活" },
+            { id: "memo-test-2", title: "测试待办2", dueDate: "2026-11-22", amount: 150, cycleDays: 7 },
+        ];
+
+        // 1. 带 docId 时：提取所有 id="..." 属性，逐个校验严格符合 22 位思源块 ID 格式
+        const mdWithDoc = formatActiveMemosMarkdown(memos, docId);
+        expect(mdWithDoc).toContain("📌 活跃待办与周期备忘（2 项）");
+        expect(mdWithDoc).not.toContain("h2-pending-memos");
+        expect(mdWithDoc).not.toContain("body-pending-memos");
+        expect(mdWithDoc).not.toContain('id="memo-');
+
+        const idsInMd = Array.from(mdWithDoc.matchAll(/id="([^"]+)"/g)).map((m) => m[1]);
+        expect(idsInMd.length).toBeGreaterThan(0);
+        for (const id of idsInMd) {
+            expect(id).toMatch(/^\d{14}-[0-9a-z]{7}$/);
+        }
+
+        // 2. 空待办状态下：严格输出规范 ID，杜绝 h2-pending-memos 与 p-empty-memos
+        const emptyMd = formatActiveMemosMarkdown([], docId);
+        expect(emptyMd).toContain("暂无待办事项。");
+        expect(emptyMd).not.toContain("h2-pending-memos");
+        expect(emptyMd).not.toContain("p-empty-memos");
+        const emptyIds = Array.from(emptyMd.matchAll(/id="([^"]+)"/g)).map((m) => m[1]);
+        expect(emptyIds.length).toBeGreaterThan(0);
+        for (const id of emptyIds) {
+            expect(id).toMatch(/^\d{14}-[0-9a-z]{7}$/);
+        }
+
+        // 3. 不带 docId 时：完全不输出自定义 id 属性，交由思源原生自动分配，只保留 custom-* 属性
+        const rawMd = formatActiveMemosMarkdown(memos);
+        expect(rawMd).not.toContain('id="');
+        expect(rawMd).toContain('custom-lvhome="1"');
+        expect(rawMd).toContain('custom-lvhome-memo="memo-test-1"');
     });
 });

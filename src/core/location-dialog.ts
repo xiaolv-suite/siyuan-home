@@ -108,7 +108,7 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
   <button class="b3-button b3-button--outline" id="lv-loc-copy-tree">${t("ledger.locCopyTree")}</button>
   <button class="b3-button" id="lv-loc-copy">${t("ledger.locCopy")}</button>
 </div>`,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const resultsEl = dlg.element.querySelector("#lv-loc-results") as HTMLElement;

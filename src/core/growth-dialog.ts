@@ -33,7 +33,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
     const dlg = new DialogCls({
         title: t("ledger.growthChart"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-growth-body"></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
     bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-growth-body") as HTMLElement;
@@ -44,7 +44,13 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
         return;
     }
 
-    const COLORS = ["#4a6785", "#ac503d", "#5a8a48", "#8a5aa0", "#b08030"];
+    const COLORS = [
+        "var(--b3-theme-primary, #60a5fa)",
+        "var(--b3-theme-error, #f87171)",
+        "var(--b3-theme-success, #34d399)",
+        "var(--b3-theme-info, #a78bfa)",
+        "var(--b3-theme-warning, #fbbf24)"
+    ];
     const NS = "http://www.w3.org/2000/svg";
     const el = (tag: string, attrs: Record<string, string | number>, textContent?: string) => {
         const e = document.createElementNS(NS, tag);
@@ -102,7 +108,10 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
             const sx = (x: number) => (xMax === xMin ? W / 2 : PAD + ((x - xMin) / (xMax - xMin)) * (W - PAD * 2));
             const sy = (y: number) => (yMax === yMin ? H / 2 : H - PAD - ((y - yMin) / (yMax - yMin)) * (H - PAD * 2));
             const fx = (x: number) => (Number.isInteger(x) ? String(x) : (Math.round(x * 10) / 10).toFixed(1));
-            const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+            const svg = el("svg", {
+                viewBox: `0 0 ${W} ${H}`,
+                style: "width:100%;height:auto;max-width:100%;display:block;",
+            });
 
             svg.appendChild(el("line", { x1: PAD, y1: H - PAD, x2: W - PAD / 2, y2: H - PAD, stroke: "var(--lv-line)", "stroke-opacity": "0.5" }));
             svg.appendChild(el("line", { x1: PAD, y1: PAD / 2, x2: PAD, y2: H - PAD, stroke: "var(--lv-line)", "stroke-opacity": "0.5" }));
@@ -200,7 +209,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
             title: t("ledger.vaccineSchedule"),
             content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-vaccine-sched-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-vaccine-sched-close">${t("close")}</button></div>`,
-            width: "580px",
+            width: "min(580px, 94vw)",
         });
         const body = dlg.element.querySelector("#lv-vaccine-sched-body") as HTMLElement;
         (dlg.element.querySelector("#lv-vaccine-sched-close") as HTMLButtonElement).onclick = () => dlg.destroy();
@@ -320,7 +329,7 @@ export async function openVaccineScheduleDialog(options: VaccineScheduleDialogOp
                                 <button class="b3-button b3-button--cancel" id="lv-vrec-cancel">${t("cancel")}</button>
                                 <button class="b3-button" id="lv-vrec-save">${t("save")}</button>
                             </div>`,
-                            width: "400px",
+                            width: "min(400px, 94vw)",
                         });
                         (rdlg.element.querySelector("#lv-vrec-cancel") as HTMLButtonElement).onclick = () => rdlg.destroy();
                         bindDialogA11y({ dlg: rdlg, defaultFocus: "#lv-vrec-date" });

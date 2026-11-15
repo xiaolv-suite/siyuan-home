@@ -172,7 +172,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             const dialog = new DialogCls({
                 title: t(existing ? "vehicle.maintenance.edit" : "vehicle.maintenance.add"),
                 content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-maintenance-form"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-maintenance-cancel">${t("cancel")}</button><span class="fn__flex-1"></span><button class="b3-button" id="lv-maintenance-save">${t(existing ? "vehicle.maintenance.update" : "save")}</button></div>`,
-                width: "560px",
+                width: "min(560px, 94vw)",
             });
             bindDialogA11y({ dlg: dialog });
             const formBody = dialog.element.querySelector("#lv-maintenance-form") as HTMLElement;

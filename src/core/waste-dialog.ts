@@ -31,7 +31,7 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
         title: t("ledger.wasteTitle"),
         bodyId: "lv-waste-body",
         body: `<div class="lv-card lv-notice-card fn__text-left"><span class="lv-caption font-weight-600">${escapeHtml(t("ledger.wasteIntro"))}</span></div><div id="lv-waste-list" class="lv-ecard-list"></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
         actions: [
             { id: "close", label: escapeHtml(t("close")), kind: "cancel" },
             { id: "copy", label: `${uiIcon("copy", "", 13)} ${escapeHtml(t("ledger.copyWasteSchedule") || "复制清运计划")}`, kind: "primary" },
@@ -51,8 +51,8 @@ export function openWasteScheduleDialog(opts: WasteDialogOptions): void {
         const first = items[0];
         const badgeCls = first.isToday ? "red" : first.isTomorrow ? "orange" : "gray";
         const badgeTxt = first.isToday ? t("ledger.wasteToday") : first.isTomorrow ? t("ledger.wasteTomorrow") : `${first.daysLeft} ${t("days.unit")}`;
-        const types = items.map((it) => it.label).join("、");
-        return `<div class="lv-metric-item lv-favor-person-row"><div class="lv-broken-link-row__left"><span class="lv-badge ${badgeCls}">${badgeTxt}</span><b class="lv-dialog-name">${date}</b><span class="lv-caption">${types}</span></div></div>`;
+        const typeChips = items.map((it) => `<span class="lv-chip sm">${escapeHtml(it.label)}</span>`).join("");
+        return `<div class="lv-waste-item"><div class="lv-waste-item__date"><span class="lv-badge ${badgeCls}">${badgeTxt}</span><span>${date}</span></div><div class="lv-waste-item__types">${typeChips}</div></div>`;
     }).join("");
 
     const copyBtn = shell.button("copy");

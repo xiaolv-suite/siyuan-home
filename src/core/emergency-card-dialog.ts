@@ -113,7 +113,7 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
   <button class="b3-button b3-button--outline" id="lv-ecard-flashcards">${uiIcon("idCard", "", 13)} ${t("overview.exportFlashcards")}</button>
   <button class="b3-button" id="lv-ecard-copy">${uiIcon("copy", "", 13)} ${t("overview.copyEmergencyCard") || "复制急救卡"}</button>
 </div>`,
-        width: "600px",
+        width: "min(600px, 94vw)",
     });
 
     const membersEl = dlg.element.querySelector("#lv-ecard-members") as HTMLElement;

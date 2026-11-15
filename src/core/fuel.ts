@@ -329,7 +329,7 @@ export async function openEnergyDashboardDialog(options: EnergyDashboardDialogOp
     const dlg = new DialogCls({
         title: t("fuel.dashboardTitle"),
         content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-fuel-dashboard"></div>`,
-        width: "620px",
+        width: "min(620px, 94vw)",
     });
     dlg.element.classList.add("lv-energy-dialog");
     bindDialogA11y({ dlg });

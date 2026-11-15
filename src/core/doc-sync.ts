@@ -24,11 +24,15 @@ import { ensureNotebook, findLedgerDoc, isDocMissingError, stableAvSeed } from "
 import { normalizeLifelogTime } from "./quick-actions";
 import { loadRowLogs, type LogKind, type RowLog, type RowLogs } from "./rowlog";
 import { withDocLock } from "@/libs/notice";
+import { pushDiagError } from "@/libs/lv-notice-kit";
 import { saveSettings } from "./settings";
 import type { FamilyMember } from "@/types";
 
 export const DAILY_JOURNAL_TITLE = "日常流水与备忘";
 export const DAILY_JOURNAL_HPATH = "/📒 日常流水与备忘";
+
+export const ACTIVE_MEMOS_TITLE = "生活待办与周期清单";
+export const ACTIVE_MEMOS_HPATH = "/📌 生活待办与周期清单";
 
 /** 思源生态通用 LifeLog 段落识别正则（行首无样式 HH:mm + 空格 + 类型 + 冒号 + 内容） */
 export const LIFELOG_MARKER_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^：:\r\n]+)[：:](.+)$/;
@@ -705,7 +709,7 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
                 docId: found.id,
                 notebook: found.box || notebookId,
             };
-            try { await saveSettings(plugin, plugin.settings); } catch { /* soft */ }
+            try { await saveSettings(plugin, plugin.settings); } catch (e) { pushDiagError({ source: "小驴管家", message: `保存流水文档引用失败：${e instanceof Error ? e.message : String(e)}` }); }
             return found.id;
         }
 
@@ -718,7 +722,7 @@ export async function ensureDailyJournalDoc(plugin: any): Promise<string | undef
             docId,
             notebook: notebookId,
         };
-        try { await saveSettings(plugin, plugin.settings); } catch { /* soft */ }
+        try { await saveSettings(plugin, plugin.settings); } catch (e) { pushDiagError({ source: "小驴管家", message: `保存新建流水文档引用失败：${e instanceof Error ? e.message : String(e)}` }); }
         return docId;
     } catch {
         return undefined;
@@ -771,6 +775,203 @@ export async function syncModuleDocSection(
 }
 
 /**
+ * 格式化待办备忘轻量清单 Markdown（仅保留未完成的待办与周期事项，彻底剥离历史流水，永不膨胀）
+ */
+export function formatActiveMemosMarkdown(
+    memos: Array<{
+        id: string;
+        title: string;
+        dueDate: string;
+        category?: string;
+        priority?: string;
+        cycleDays?: number;
+        amount?: number;
+    }>,
+    docId?: string,
+): string {
+    const blockIdFor = (seedKey: string) => (docId ? stableAvSeed(seedKey, docId) : undefined);
+    const introId = blockIdFor("bq:intro");
+    const intro = `> 🏠 **小驴管家 · ${ACTIVE_MEMOS_TITLE}**\n{: ${introId ? `id="${introId}" ` : ""}custom-lvhome="1"}`;
+    const active = memos.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    if (active.length === 0) {
+        const h2Id = blockIdFor("h2:pending-memos");
+        const pId = blockIdFor("p:empty-memos");
+        return `${intro}\n\n## 📌 活跃待办与周期备忘\n{: ${h2Id ? `id="${h2Id}" ` : ""}custom-lvhome="1"}\n\n暂无待办事项。\n{: ${pId ? `id="${pId}" ` : ""}custom-lvhome="1"}`;
+    }
+    const lines = active.map((m) => {
+        const pri = m.priority === "high" ? " · 🔴 紧急" : m.priority === "low" ? " · ⚪ 次要" : "";
+        const cat = m.category ? ` · #${m.category.replace(/\s+/g, "_")}` : "";
+        const cyc = m.cycleDays ? ` · 🔁 每 ${m.cycleDays} 天` : "";
+        const amt = typeof m.amount === "number" && m.amount > 0 ? ` · 💰 ¥${m.amount}` : "";
+        const memoBlockId = blockIdFor(`memo:${m.id}`);
+        return `- [ ] **${m.title}** · 到期 \`${m.dueDate}\`${amt}${pri}${cat}${cyc} {: ${memoBlockId ? `id="${memoBlockId}" ` : ""}custom-lvhome-memo="${m.id}" }`;
+    });
+    const h2Id = blockIdFor("h2:pending-memos");
+    return `${intro}\n\n## 📌 活跃待办与周期备忘（${active.length} 项）\n{: ${h2Id ? `id="${h2Id}" ` : ""}custom-lvhome="1"}\n\n${lines.join("\n")}`;
+}
+
+/**
+ * 确保 `/📌 生活待办与周期清单` 文档在目标笔记本中创建并登记到 `settings.dbRefs.activeMemos`
+ */
+export async function ensureActiveMemosDoc(plugin: any): Promise<string | undefined> {
+    if (!plugin?.settings?.dbRefs) return undefined;
+    const existing = plugin.settings.dbRefs.activeMemos || plugin.settings.dbRefs.adhoc;
+    if (existing?.docId) {
+        try {
+            await getHPathByID(existing.docId);
+            return existing.docId;
+        } catch (e) {
+            if (!isDocMissingError(e)) return existing.docId;
+        }
+    }
+
+    try {
+        const preferredNb = existing?.notebook
+            || plugin.settings.dbRefs?.members?.notebook
+            || plugin.settings.dbRefs?.certs?.notebook
+            || plugin.settings.dbRefs?.adhoc?.notebook;
+        const notebookId = await ensureNotebook(preferredNb, plugin.settings.targetNotebookId);
+        const rawRoot = typeof plugin.settings?.rootPath === "string" ? plugin.settings.rootPath.trim().replace(/\/+$/, "") : "";
+        const targetHPath = rawRoot
+            ? `${rawRoot.startsWith("/") ? rawRoot : `/${rawRoot}`}${ACTIVE_MEMOS_HPATH}`
+            : ACTIVE_MEMOS_HPATH;
+        const found = await findLedgerDoc(notebookId, targetHPath, "activeMemos");
+        if (found?.id) {
+            plugin.settings.dbRefs.activeMemos = {
+                ...existing,
+                docId: found.id,
+                notebook: found.box || notebookId,
+            };
+            try { await saveSettings(plugin, plugin.settings); } catch {}
+            return found.id;
+        }
+
+        const initMd = `> 🏠 **小驴管家 · ${ACTIVE_MEMOS_TITLE}**\n`;
+        const docId = await createDocWithMd(notebookId, targetHPath, initMd, {
+            idempotencyKey: `provision:doc:memos:${notebookId}:${targetHPath}`,
+            retries: 0,
+        });
+        plugin.settings.dbRefs.activeMemos = {
+            docId,
+            notebook: notebookId,
+        };
+        try { await saveSettings(plugin, plugin.settings); } catch {}
+        return docId;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * 同步活跃待办备忘轻量清单（只更新活跃待办，文件极小，速度极快且杜绝多端冲突）
+ */
+export async function syncActiveMemosDoc(plugin: any): Promise<string | undefined> {
+    if (!plugin?.settings?.dbRefs) return undefined;
+    try {
+        const docId = await ensureActiveMemosDoc(plugin);
+        if (!docId) return undefined;
+        const activeMemos = (plugin.runtime?.memos ?? []).filter((m: any) => !m.doneAt);
+        const md = formatActiveMemosMarkdown(activeMemos, docId);
+        await withDocLock(docId, async () => {
+            await updateBlock(docId, md, { retries: 0 });
+        });
+        return docId;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * 将最新的一笔日常流水作为标准 LifeLog 单行增量追加至当日日记（增量模式，完全规避大文档冲突）
+ */
+export async function appendRecentRowLogToDailyNote(
+    plugin: any,
+    moduleId: string,
+    providedLogs?: RowLogs,
+): Promise<{ ok: boolean; line?: string; docId?: string; error?: string }> {
+    try {
+        const logs = providedLogs ?? (await loadRowLogs(plugin));
+        const ref = plugin.settings?.dbRefs?.[moduleId];
+        const avId = ref?.avId;
+        if (!avId) return { ok: false, error: "missing-avId" };
+
+        const prefix = `${avId}|`;
+        const matchedKey = Object.keys(logs).find((k) => k.startsWith(prefix));
+        if (!matchedKey) return { ok: false, error: "no-matched-log" };
+
+        const grouped = logs[matchedKey];
+        if (!grouped || typeof grouped !== "object") return { ok: false, error: "empty-grouped" };
+
+        const members: FamilyMember[] = plugin.settings?.members ?? [];
+        const membersDocId = plugin.settings?.dbRefs?.members?.docId;
+        const modTitle = typeof plugin.i18nText === "function"
+            ? plugin.i18nText(`module.${moduleId}`)
+            : String(plugin.i18n?.[`module.${moduleId}`] ?? moduleId);
+
+        let latestEntry: Record<string, unknown> | null = null;
+        let latestKind: LogKind = "quickflows";
+        let latestAt = 0;
+
+        for (const kind of ALL_LOG_KINDS) {
+            const list = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
+            if (!Array.isArray(list) || list.length === 0) continue;
+            const last = list[list.length - 1];
+            if (!last) continue;
+            const at = typeof last.at === "number" ? last.at : new Date(String(last.date || "") + "T" + String(last.time || "00:00")).getTime();
+            if (at >= latestAt) {
+                latestAt = at;
+                latestEntry = last;
+                latestKind = kind;
+            }
+        }
+
+        if (!latestEntry) return { ok: false, error: "no-entry-found" };
+
+        const linkedSpec = describeRowLogAsLifelog(latestKind, latestEntry, members, modTitle, {
+            subjectDocId: ref.docId,
+            membersDocId,
+        });
+
+        const tag = linkedSpec.tags?.length ? ` ${linkedSpec.tags.join(" ")}` : "";
+        const refLink = ref.docId ? ` ((${ref.docId} "台账 · ${modTitle}"))` : "";
+        const lineText = buildLifelogLine(linkedSpec.time, linkedSpec.lifelogType, `${linkedSpec.detailText}${tag}${refLink}`);
+        const lineMd = `${lineText}\n{: custom-lifelog-type="${cleanLifelogType(linkedSpec.lifelogType)}" custom-lvhome="1" }`;
+
+        const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
+        const targetNb = plugin?.settings?.targetNotebookId;
+        const res = await appendMarkdownToDailyNote(lineMd, targetNb);
+        return { ok: res.ok, line: lineText, docId: res.docId };
+    } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+}
+
+/**
+ * 当备忘被勾选办结时，自动将办结事实以标准 LifeLog 格式增量追加至今日日记
+ */
+export async function appendDoneMemoToDailyNote(
+    plugin: any,
+    memoOrReminder: any,
+): Promise<{ ok: boolean; line?: string; docId?: string }> {
+    try {
+        const title = String(memoOrReminder.title || memoOrReminder.content || "生活备忘").trim();
+        const now = new Date();
+        const pad = (v: number) => String(v).padStart(2, "0");
+        const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        const cat = memoOrReminder.category ? ` #${String(memoOrReminder.category).replace(/\s+/g, "_")}` : "";
+        const lineText = buildLifelogLine(timeStr, "备忘办结", `${title}${cat} #备忘`);
+        const lineMd = `${lineText}\n{: custom-lifelog-type="备忘办结" custom-lvhome="1" }`;
+
+        const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
+        const targetNb = plugin?.settings?.targetNotebookId;
+        const res = await appendMarkdownToDailyNote(lineMd, targetNb);
+        return { ok: res.ok, line: lineText, docId: res.docId };
+    } catch {
+        return { ok: false };
+    }
+}
+
+/**
  * 同步更新 `/📒 日常流水与备忘` 思源文档（按【年 ➔ 月 ➔ 日】倒序渲染标准 LifeLog 时间线、双向链接与待办备忘）
  */
 export async function syncDailyJournalDoc(
@@ -778,6 +979,10 @@ export async function syncDailyJournalDoc(
     providedLogs?: RowLogs,
 ): Promise<string | undefined> {
     if (!plugin?.settings?.dbRefs) return undefined;
+    // 默认启用日记流模式：待办解耦至轻量清单，日常流水增量沉淀至当日日记（彻底杜绝大文档全量覆写冲突）
+    if (plugin.settings?.ledgerJournalMode !== "legacyDoc") {
+        return syncActiveMemosDoc(plugin);
+    }
     try {
         const docId = await ensureDailyJournalDoc(plugin);
         if (!docId) return undefined;
@@ -910,10 +1115,17 @@ export async function syncDailyJournalDoc(
 }
 
 /**
- * 打开 `/📒 日常流水与备忘` 文档（若尚未创建则即时同步创建后打开）
+ * 打开流水与备忘文档（日记流模式打开轻量待办清单，兼容模式打开全量汇总文档）
  */
 export async function openDailyJournalDoc(plugin: any): Promise<boolean> {
     if (!plugin) return false;
+    if (plugin.settings?.ledgerJournalMode !== "legacyDoc") {
+        const docId = await ensureActiveMemosDoc(plugin);
+        if (docId && typeof plugin.showTabDocs === "function") {
+            plugin.showTabDocs(docId);
+            return true;
+        }
+    }
     let docId = plugin.settings?.dbRefs?.adhoc?.docId;
     if (!docId) {
         docId = await syncDailyJournalDoc(plugin);
@@ -941,7 +1153,7 @@ export async function openModuleOrJournalDoc(
 }
 
 /**
- * 当 rowlogs 发生变更时，自动将最新 LifeLog 流水同步至涉及的台账文档及 `/📒 日常流水与备忘`
+ * 当 rowlogs 发生变更时，自动将最新 LifeLog 流水同步至涉及的台账文档及轻量清单/日记
  */
 export async function syncRowLogsToSiYuanDocs(plugin: any, logs?: RowLogs): Promise<void> {
     if (!plugin?.settings?.dbRefs) return;
@@ -957,7 +1169,11 @@ export async function syncRowLogsToSiYuanDocs(plugin: any, logs?: RowLogs): Prom
                 await syncModuleDocSection(plugin, moduleId, resolvedLogs);
             }
         }
-        await syncDailyJournalDoc(plugin, resolvedLogs);
+        if (plugin.settings?.ledgerJournalMode === "legacyDoc") {
+            await syncDailyJournalDoc(plugin, resolvedLogs);
+        } else {
+            await syncActiveMemosDoc(plugin);
+        }
     } catch {
         /* ignore non-fatal doc sync errors */
     }

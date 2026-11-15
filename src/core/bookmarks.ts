@@ -203,7 +203,7 @@ export async function openBookmarksCheckDialog(options: BookmarksCheckDialogOpti
             </div>
         </div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-bm-check-close">${t("close")}</button><button class="b3-button" id="lv-bm-check-copy" disabled>${t("ledger.bookmarksCopyReport")}</button></div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
     const body = dlg.element.querySelector("#lv-bm-check-body") as HTMLElement;
     const copyBtn = dlg.element.querySelector("#lv-bm-check-copy") as HTMLButtonElement;

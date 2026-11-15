@@ -23,7 +23,23 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
         } catch { /* soft */ }
     };
 
+    let wasConnected = Boolean(dlg.element?.isConnected);
+    let destroyed = false;
+    const cleanupListeners = () => {
+        observer?.disconnect();
+        dlg.element?.removeEventListener?.("keydown", handleKeydown);
+        if (typeof window !== "undefined") {
+            window.removeEventListener("keydown", handleKeydown, true);
+        }
+    };
+
     const handleKeydown = (e: KeyboardEvent) => {
+        if (dlg.element?.isConnected) {
+            wasConnected = true;
+        } else if (wasConnected && dlg.element?.isConnected === false) {
+            cleanupListeners();
+            return;
+        }
         if (e.key === "Escape") {
             e.preventDefault();
             e.stopPropagation();
@@ -144,15 +160,10 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
     });
 
     const originalDestroy = typeof dlg.destroy === "function" ? dlg.destroy.bind(dlg) : () => undefined;
-    let destroyed = false;
     dlg.destroy = () => {
         if (destroyed) return;
         destroyed = true;
-        observer?.disconnect();
-        dlg.element?.removeEventListener?.("keydown", handleKeydown);
-        if (typeof window !== "undefined") {
-            window.removeEventListener("keydown", handleKeydown, true);
-        }
+        cleanupListeners();
         originalDestroy();
         onClose?.();
         restoreFocus();

@@ -51,7 +51,7 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
             <button class="b3-button b3-button--cancel" id="lv-reassign-cancel">${t("cancel")}</button>
             <button class="b3-button" id="lv-reassign-confirm">${t("save")}</button>
         </div>`,
-        width: "440px",
+        width: "min(440px, 94vw)",
     });
 
     bindDialogA11y({ dlg });

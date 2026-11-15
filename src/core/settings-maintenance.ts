@@ -99,7 +99,7 @@ export async function openDiagnosticsPreviewDialog(
             <span class="fn__flex-1"></span>
             <button class="b3-button b3-button--cancel" id="lv-diag-close">${t("close")}</button>
         </div>`,
-        width: "520px",
+        width: "min(520px, 94vw)",
     });
 
     (dlg.element.querySelector("#lv-diag-close") as HTMLButtonElement).onclick = () => dlg.destroy();
@@ -163,7 +163,7 @@ export async function openAmbiguityDialog(
         title: t("diag.ambigTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-ambig-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-ambig-cancel">${t("cancel")}</button><button class="b3-button" id="lv-ambig-ok">${t("save")}</button></div>`,
-        width: "520px",
+        width: "min(520px, 94vw)",
     });
     bindDialogA11y({ dlg });
     const body = dlg.element.querySelector("#lv-ambig-body") as HTMLElement;

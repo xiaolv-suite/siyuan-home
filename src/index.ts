@@ -28,7 +28,7 @@ import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delive
 import { searchMatch } from "@/core/pinyin";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.196";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.197";
 
 /**
  * 小驴管家（Lv Home）
@@ -168,7 +168,10 @@ export default class LvHomePlugin extends Plugin {
                 const dialogEl = target.closest(".b3-dialog");
                 if (dialogEl && dialogEl.querySelector('[id^="lv-"], .lv-home, .dialog-content')) {
                     const closeBtn = dialogEl.querySelector<HTMLElement>(".b3-dialog__close, [data-action='close'], .b3-button--cancel");
-                    if (closeBtn) closeBtn.click();
+                    if (closeBtn) {
+                        if (typeof closeBtn.click === "function") closeBtn.click();
+                        else closeBtn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+                    }
                 }
             }
         };
@@ -638,7 +641,8 @@ export default class LvHomePlugin extends Plugin {
                 import("@/core/siyuan").then(({ sql }) =>
                     sql<{ id: string }>(`SELECT id FROM blocks WHERE id='${blockId.replace(/'/g, "''")}' LIMIT 1`)
                 ).then((rows) => {
-                    if (rows && rows.length > 0) {
+                    // 即使 SQLite 异步索引延迟尚未入表，只要传入了有效 blockId 仍交由宿主聚焦定位
+                    if ((rows && rows.length > 0) || /^[0-9]{14}-[a-z0-9]{7}$/i.test(blockId)) {
                         openMobileFileById(this.app, blockId, ["cb-get-focus", "cb-get-hl"]);
                     }
                 }).catch(() => undefined);
@@ -754,7 +758,13 @@ export default class LvHomePlugin extends Plugin {
             });
         } catch { /* 零强依赖优雅降级 */ }
         await this.notifyHubChanged();
-        if (r?.moduleId === "adhoc") await this.syncJournalSafely();
+        if (r?.moduleId === "adhoc") {
+            try {
+                const { appendDoneMemoToDailyNote } = await import("@/core/doc-sync");
+                await appendDoneMemoToDailyNote(this, r);
+            } catch { /* soft */ }
+            await this.syncJournalSafely();
+        }
     }
     async snooze(id: string, days: number) { await snooze(this, id, days); await this.notifyHubChanged(); }
     async snoozeToDate(id: string, targetDate: string) {

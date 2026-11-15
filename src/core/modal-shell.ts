@@ -79,7 +79,7 @@ export function openModalShell(opts: ModalShellOptions): ModalShell {
     const dlg = new opts.DialogCls({
         title: escapeHtml(opts.title),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="${escapeHtml(opts.bodyId)}"><div class="lv-modal-warn-slot">${modalWarningHtml(opts.warnings ?? [])}</div>${opts.body}</div>${actionHtml}`,
-        width: opts.width,
+        width: opts.width ? (opts.width.includes("vw") ? opts.width : `min(${opts.width}, 94vw)`) : "min(560px, 94vw)",
     });
     const body = dlg.element.querySelector(`#${escId(opts.bodyId)}`) as HTMLElement;
     const button = (id: string) => dlg.element.querySelector<HTMLButtonElement>(`[data-lv-action="${escId(id)}"]`);

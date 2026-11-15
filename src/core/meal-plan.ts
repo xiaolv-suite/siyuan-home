@@ -371,7 +371,7 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         title: t("ledger.mealPlanTitle"),
         content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-mealplan-body"></div>
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-mealplan-close">${t("close")}</button><button class="b3-button b3-button--outline" id="lv-mealplan-copy">${t("ledger.mealPlanCopyShopping")}</button><button class="b3-button" id="lv-mealplan-add">${t("ledger.mealPlanAddToShopping")}</button></div>`,
-        width: "620px",
+        width: "min(620px, 94vw)",
     });
 
     const body = dlg.element.querySelector("#lv-mealplan-body") as HTMLElement;

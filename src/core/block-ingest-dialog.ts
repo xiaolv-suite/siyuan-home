@@ -71,7 +71,7 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
   <button class="b3-button b3-button--cancel">${t("close")}</button>
   <button class="b3-button" id="lv-ingest-submit">${t("capture.ingestSubmit")}</button>
 </div>`,
-        width: "560px",
+        width: "min(560px, 94vw)",
     });
 
     const linkInp = dlg.element.querySelector("#lv-ingest-link") as HTMLInputElement;

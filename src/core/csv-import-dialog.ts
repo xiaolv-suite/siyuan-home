@@ -52,7 +52,7 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
 <p class="lv-caption ft__on-surface">${t("ledger.importMapHint").replace("${file}", file.name).replace("${n}", String(table.length - 1))}</p>
 <div id="lv-csvimp-map"></div></div>
 <div class="b3-dialog__action"><span class="lv-caption fn__flex-1" id="lv-csvimp-stat"></span><button class="b3-button b3-button--cancel" id="lv-csvimp-close">${t("cancel")}</button><button class="b3-button" id="lv-csvimp-start">${t("ledger.importStart")}</button></div>`,
-            width: "560px",
+            width: "min(560px, 94vw)",
         });
 
         bindDialogA11y({ dlg });

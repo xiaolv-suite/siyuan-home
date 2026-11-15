@@ -23,7 +23,7 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     if (!targets.length) { showMessageFn(t("triage.noTarget"), 3500, "error"); return; }
     const modLabel = (id: string) => (t(`module.${id}`) !== `module.${id}` ? t(`module.${id}`) : id);
     const needProvision = (id: string) => !plugin.settings?.dbRefs?.[id]?.avId;
-    const dlg = new DialogCls({ title: t("triage.title"), content: `<div id="lv-triage" class="lv-dialog-col"></div>`, width: "460px" });
+    const dlg = new DialogCls({ title: t("triage.title"), content: `<div id="lv-triage" class="lv-dialog-col"></div>`, width: "min(460px, 94vw)" });
     const box = dlg.element.querySelector("#lv-triage") as HTMLElement;
 
     const row1 = document.createElement("label");

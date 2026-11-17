@@ -1,0 +1,62 @@
+/**
+ * 面板侧插件接口（32 组 props any 清零）：
+ * 各屏以结构性类型引用插件能力——LvHomePlugin 类实例天然满足（多余成员不影响）。
+ * 数据边界：scan/reminders 为运行态 JSON（内核派生），rows/cells 维持宽类型并由
+ * 21 组"SQL 结果类型化"逐模块收紧；本接口只约束面板与插件的契约面。
+ */
+import type { Plugin, JSONValue } from "siyuan";
+import type { HomeSettings, Reminder } from "./index";
+import type { HubRuntime, HandledEntry } from "@/core/hub/runtime";
+import type { ScanResult } from "@/core/hub/scanner";
+import type { ModuleSchema } from "@/core/schema";
+import type { ProvisioningReport } from "@/core/provisioner";
+import type { ActivityTarget } from "@/core/activity";
+
+export interface HomePluginLike extends Plugin {
+    i18n: Record<string, JSONValue>;
+    name: string;
+    settings: HomeSettings;
+    runtime: HubRuntime;
+    scan?: ScanResult;
+    /** moduleId → schema 目录（UI 按需读取列定义/枚举） */
+    schemaCatalog: Record<string, ModuleSchema>;
+    hubListeners: Set<() => void>;
+    emitHubChanged?(): void;
+    activeLedger: string;
+    /** 状态栏/通知入口预选页签（消费后清空） */
+    pendingScreen?: string;
+
+    refreshHub(only?: string | string[], force?: boolean): Promise<ScanResult>;
+    ensureCoreLedgers(): Promise<ProvisioningReport>;
+    adoptHistoryLedgers?(): Promise<any>;
+    showTab(): void;
+    showTabDocs(docId?: string, blockId?: string): void;
+    repairModule?(moduleId: string): Promise<any>;
+    openSetting(): void;
+    setActiveLedger(id: string): void;
+    listHandled(): HandledEntry[];
+    /** C7：向导完成（家庭构成 + 预选模块 → 建库 + 首扫） */
+    finishOnboarding(household: { roles: string[]; children: number }, moduleIds: string[]): Promise<void>;
+
+    complete(r: Reminder): Promise<void>;
+    snooze(id: string, days: number): Promise<void>;
+    snoozeToDate?(id: string, targetDate: string): Promise<void>;
+    batchSnooze?(ids: string[], targetDate: string): Promise<Record<string, string | undefined>>;
+    undoBatchSnooze?(previousMap: Record<string, string | undefined>): Promise<void>;
+    mute(id: string): Promise<void>;
+    unmute(id: string): Promise<void>;
+    restore(id: string): Promise<void>;
+    renew(r: Reminder, iso: string): Promise<unknown>;
+    addMemo(title: string, due: string, options?: any): Promise<void>;
+    removeMemo(id: string): Promise<void>;
+    updateMemo(id: string, patch: { title?: string; dueDate?: string }): Promise<void>;
+    /** 29 组：今日免打扰快捷开关（todaySilent 跨天自动失效） */
+    toggleTodaySilent(): Promise<void>;
+    /** 已挂载面板的页签直切（openRemindersScreen 已挂载路径用；面板卸载时由组件清空） */
+    panelScreenSwitch?: (screen: string) => void;
+    /** 时间线点击后的仅内存一次性详情目标，由台账页在真实数据加载后消费。 */
+    pendingActivityTarget?: ActivityTarget;
+    openActivityTarget?: (target: Omit<ActivityTarget, "requestId">) => void;
+    /** 全局生活效期 AI 智能体检洞察 (Epoch 7 Phase 6) */
+    runLifeHealthAudit?: () => Promise<void>;
+}

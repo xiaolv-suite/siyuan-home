@@ -1,0 +1,270 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "path";
+import { defineConfig, type Plugin } from "vite";
+import { viteStaticCopy } from "vite-plugin-static-copy";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import zipPack from "vite-plugin-zip-pack";
+import fg from "fast-glob";
+import * as terser from "terser";
+
+import vitePluginYamlI18n from "./yaml-plugin.js";
+import { useLiveReload } from "./scripts/siyuan_live_reload.js";
+
+const env = process.env;
+const isSrcmap = env.VITE_SOURCEMAP === "inline";
+const isDev = env.NODE_ENV === "development";
+const buildTarget = env.VITE_BUILD_TARGET === "kernel" ? "kernel" : "app";
+
+const outputDir = isDev ? "dev" : "dist";
+const pluginManifest = JSON.parse(readFileSync(resolve(import.meta.dirname, "plugin.json"), "utf8"));
+const packageImageTargets = [
+    ["icon", "icon.png"],
+    ["preview", "preview.png"],
+].flatMap(([field, legacyName]) => {
+    const fileName = pluginManifest[field] || (existsSync(legacyName) ? legacyName : "");
+    return fileName ? [{ src: `./${fileName}`, dest: "./" }] : [];
+});
+console.log("isDev=>", isDev);
+console.log("isSrcmap=>", isSrcmap);
+console.log("outputDir=>", outputDir);
+console.log("buildTarget=>", buildTarget);
+
+export default defineConfig(buildTarget === "kernel" ? {
+    build: {
+        outDir: outputDir,
+        emptyOutDir: false,
+        minify: true,
+        sourcemap: isSrcmap ? "inline" : false,
+
+        lib: {
+            entry: resolve(import.meta.dirname, "src/kernel.ts"),
+            name: "KernelPluginSample",
+            fileName: () => "kernel.js",
+            formats: ["iife"],
+        },
+        rollupOptions: {
+            plugins: isDev ? [
+                watchExternalFiles(["src/kernel.ts"])
+            ] : [
+                cleanupDistFiles({
+                    patterns: ["i18n/*.yaml", "i18n/*.md"],
+                    distDir: outputDir
+                }),
+                zipPack({
+                    inDir: "./dist",
+                    outDir: "./",
+                    outFileName: "package.zip"
+                })
+            ],
+
+            external: [],
+
+            output: {
+                entryFileNames: "kernel.js",
+            },
+        },
+    }
+} : {
+    resolve: {
+        alias: {
+            "@": resolve(import.meta.dirname, "src"),
+        }
+    },
+
+    plugins: [
+        svelte(),
+
+        vitePluginYamlI18n({
+            inDir: "public/i18n",
+            outDir: `${outputDir}/i18n`
+        }),
+
+        viteStaticCopy({
+            targets: [
+                ...packageImageTargets,
+                { src: "./README*.md", dest: "./" },
+                { src: "./asset/*", dest: "./asset", rename: { stripBase: true } },
+                // D12 发布产物范围：仅运行必需；设计文档（docs/）不入包
+                { src: "./LICENSE", dest: "./" },
+                { src: "./plugin.json", dest: "./" },
+            ],
+        }),
+    ],
+
+    define: {
+        "process.env.DEV_MODE": JSON.stringify(isDev),
+        "process.env.NODE_ENV": JSON.stringify(env.NODE_ENV),
+        // REL-01 版本单源：诊断/关于显示的版本从 plugin.json 构建注入，杜绝字面量漂移
+        "__PLUGIN_VERSION__": JSON.stringify(pluginManifest.version),
+    },
+
+    build: {
+        target: "es2022",
+        outDir: outputDir,
+        emptyOutDir: false,
+        minify: "terser",
+        terserOptions: {
+            ecma: 2022,
+            compress: {
+                ecma: 2022,
+                passes: 6,
+                drop_console: true,
+                drop_debugger: true,
+                // 严禁开启 pure_getters: true！Svelte 5 的组件 props 通过对象 getter (get version() { return $.get(version); })
+                // 进行响应式依赖追踪，开启 pure_getters 会导致 Terser 将 `void version;` (即 `void $$props.version;`) 当作无副作用死代码剔除，
+                // 从而彻底破坏全站 $derived 与 $effect 的响应式刷新！
+                pure_getters: false,
+                unsafe_arrows: true,
+                toplevel: true,
+                reduce_funcs: true,
+                reduce_vars: true,
+                inline: 3,
+                // 严禁开启 booleans_as_integers: true！思源后端为 Go encoding/json 强类型反序列化，
+                // 将 { createIfNotExist: true, isDetached: true, isNotEmpty: true, checked: true } 压成 1/0
+                // 会直接触发 `json: cannot unmarshal number into Go value of type bool`，导致全新工作区建库与写格 100% 失败！
+                booleans_as_integers: false,
+                dead_code: true,
+                unused: true,
+                keep_fargs: false,
+                sequences: true,
+                hoist_funs: true,
+                collapse_vars: true,
+                join_vars: true,
+                loops: true,
+                side_effects: true,
+                evaluate: true,
+                conditionals: true,
+                comparisons: true,
+            },
+            mangle: {
+                toplevel: true,
+            },
+            format: {
+                comments: false,
+                ecma: 2022,
+            },
+        },
+        sourcemap: isSrcmap ? "inline" : false,
+
+        lib: {
+            entry: resolve(import.meta.dirname, "src/index.ts"),
+            fileName: () => "index.js",
+            cssFileName: "index",
+            formats: ["cjs"],
+        },
+        rollupOptions: {
+            plugins: isDev ? [
+                useLiveReload({ outputDir }),
+                watchExternalFiles([
+                    "public/i18n/**",
+                    "./README*.md",
+                    "./docs/*.md",
+                    "./plugin.json"
+                ])
+            ] : [
+                {
+                    name: "final-bundle-compress",
+                    async generateBundle(_options, bundle) {
+                        const chunk = bundle["index.js"];
+                        if (chunk && chunk.type === "chunk") {
+                            const res = await terser.minify(chunk.code, {
+                                ecma: 2022,
+                                compress: {
+                                    passes: 3,
+                                    toplevel: true,
+                                    pure_getters: false,
+                                    booleans_as_integers: false,
+                                    unsafe: true,
+                                    unsafe_arrows: true,
+                                },
+                                mangle: { toplevel: true },
+                                format: { comments: false },
+                            });
+                            if (res.code) chunk.code = res.code;
+                        }
+                    },
+                },
+            ],
+
+            external: ["siyuan", "process"],
+
+            output: {
+                entryFileNames: "[name].js",
+                // 禁止分包（含农历等动态 import 一并内联）：思源前端用 window.eval 评估插件 JS，
+                // require 桩把相对路径交给 Electron window.require（以思源 app 根为基准），
+                // require("./chunks/...") 必然 MODULE_NOT_FOUND → onload 前即失败 → 全部入口消失（v0.3.0 教训）
+                // Rolldown/Vite 8 replaced the deprecated inlineDynamicImports flag
+                // with the equivalent codeSplitting switch.
+                codeSplitting: false,
+                assetFileNames: (assetInfo) => assetInfo.name ?? "asset",
+            },
+        },
+    }
+});
+
+function watchExternalFiles(patterns: string[]): Plugin {
+    return {
+        name: "watch-external",
+        async buildStart() {
+            const files = await fg(patterns);
+            for (const file of files) {
+                this.addWatchFile(file);
+            }
+        }
+    };
+}
+
+/**
+ * Clean up some dist files after compiled
+ * @author frostime
+ * @param options:
+ * @returns
+ */
+function cleanupDistFiles(options: { patterns: string[], distDir: string }): Plugin {
+    const {
+        patterns,
+        distDir
+    } = options;
+
+    return {
+        name: "rollup-plugin-cleanup",
+        enforce: "post",
+        writeBundle: {
+            sequential: true,
+            order: "post" as "post",
+            async handler() {
+                const fg = await import("fast-glob");
+                const fs = await import("fs");
+                // const path = await import('path');
+
+                // Use glob syntax so nested translation files are included.
+                const distPatterns = patterns.map(pat => `${distDir}/${pat}`);
+                console.debug("Cleanup searching patterns:", distPatterns);
+
+                const files = await fg.default(distPatterns, {
+                    dot: true,
+                    absolute: true,
+                    onlyFiles: false
+                });
+
+                // console.info('Files to be cleaned up:', files);
+
+                for (const file of files) {
+                    try {
+                        if (fs.default.existsSync(file)) {
+                            const stat = fs.default.statSync(file);
+                            if (stat.isDirectory()) {
+                                fs.default.rmSync(file, { recursive: true });
+                            } else {
+                                fs.default.unlinkSync(file);
+                            }
+                            console.log(`Cleaned up: ${file}`);
+                        }
+                    } catch (error) {
+                        console.error(`Failed to clean up ${file}:`, error);
+                    }
+                }
+            }
+        }
+    };
+}

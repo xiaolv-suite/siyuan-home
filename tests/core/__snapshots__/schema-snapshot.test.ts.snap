@@ -1,0 +1,3339 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 1`] = `
+{
+  "capture": [
+    "name",
+    "role",
+    "birthday",
+    "lunar",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "role",
+      "options": [
+        "self",
+        "spouse",
+        "partner",
+        "child",
+        "elder",
+        "kin",
+        "other",
+      ],
+      "required": true,
+      "type": "select",
+    },
+    {
+      "key": "birthday",
+      "type": "date",
+    },
+    {
+      "key": "lunar",
+      "type": "checkbox",
+    },
+    {
+      "key": "relation_note",
+      "type": "text",
+    },
+    {
+      "key": "size_top",
+      "type": "text",
+    },
+    {
+      "key": "size_bottom",
+      "type": "text",
+    },
+    {
+      "key": "size_shoe",
+      "type": "text",
+    },
+    {
+      "key": "dislike",
+      "type": "text",
+    },
+    {
+      "key": "avatar",
+      "type": "mAsset",
+    },
+    {
+      "default": "active",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "active",
+        "archived",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "birthday",
+      "key": "birthday",
+      "kind": "anniversary",
+      "leadDays": 7,
+      "lunarField": "lunar",
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "role",
+      "key": "by_role",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 2`] = `
+{
+  "capture": [
+    "name",
+    "member",
+    "category",
+    "expiry",
+    "attachments",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "id",
+        "hukou",
+        "passport",
+        "visa",
+        "permit",
+        "hkmo_permit",
+        "tw_permit",
+        "license",
+        "driver_license",
+        "vehicle_lic",
+        "birth_cert",
+        "vocational_qualification",
+        "professional_qualification",
+        "graduation_cert",
+        "degree_cert",
+        "professional_title",
+        "other",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "valid",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "valid",
+        "expired",
+        "renewed",
+        "void",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_holder_name",
+      "labelKey": "field.x_cert_holder_name",
+      "type": "text",
+    },
+    {
+      "key": "holder_no",
+      "labelKey": "field.holder_no",
+      "type": "text",
+    },
+    {
+      "key": "issue_date",
+      "labelKey": "field.issue_date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_valid_from",
+      "labelKey": "field.x_cert_valid_from",
+      "type": "date",
+    },
+    {
+      "key": "issuance_rule",
+      "labelKey": "field.issuance_rule",
+      "options": [
+        "y6",
+        "y10",
+        "longterm",
+        "endorsement",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "store_place",
+      "labelKey": "field.store_place",
+      "type": "text",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "due",
+      "labelKey": "field.due",
+      "type": "date",
+    },
+    {
+      "key": "remind_before",
+      "labelKey": "field.remind_before",
+      "type": "number",
+    },
+    {
+      "key": "location",
+      "labelKey": "field.location",
+      "type": "text",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "copy_location",
+      "labelKey": "field.copy_location",
+      "type": "text",
+    },
+    {
+      "key": "renewed_to",
+      "labelKey": "field.renewed_to",
+      "type": "relation",
+    },
+    {
+      "key": "x_cert_id_number",
+      "labelKey": "field.x_cert_id_number",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_id_address",
+      "labelKey": "field.x_cert_id_address",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_id_authority",
+      "labelKey": "field.x_cert_id_authority",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_id_gender",
+      "labelKey": "field.x_cert_id_gender",
+      "options": [
+        "male",
+        "female",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "x_cert_id_front",
+      "labelKey": "field.x_cert_id_front",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_id_back",
+      "labelKey": "field.x_cert_id_back",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_hukou_location",
+      "labelKey": "field.x_cert_hukou_location",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_hukou_head_name",
+      "labelKey": "field.x_cert_hukou_head_name",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_hukou_scan",
+      "labelKey": "field.x_cert_hukou_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_passport_name_pinyin",
+      "labelKey": "field.x_cert_passport_name_pinyin",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_passport_nationality",
+      "labelKey": "field.x_cert_passport_nationality",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_passport_birth_place",
+      "labelKey": "field.x_cert_passport_birth_place",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_passport_authority",
+      "labelKey": "field.x_cert_passport_authority",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_passport_scan",
+      "labelKey": "field.x_cert_passport_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_visa_country",
+      "labelKey": "field.x_cert_visa_country",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_visa_type",
+      "labelKey": "field.x_cert_visa_type",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_visa_scan",
+      "labelKey": "field.x_cert_visa_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_permit_region",
+      "labelKey": "field.x_cert_permit_region",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_permit_endorsement",
+      "labelKey": "field.x_cert_permit_endorsement",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_permit_endorsement_expiry",
+      "labelKey": "field.x_cert_permit_endorsement_expiry",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_permit_scan",
+      "labelKey": "field.x_cert_permit_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_hkmo_region",
+      "labelKey": "field.x_cert_hkmo_region",
+      "options": [
+        "hong_kong",
+        "macao",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "x_cert_hkmo_endorsement",
+      "labelKey": "field.x_cert_hkmo_endorsement",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_hkmo_endorsement_expiry",
+      "labelKey": "field.x_cert_hkmo_endorsement_expiry",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_hkmo_scan",
+      "labelKey": "field.x_cert_hkmo_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_tw_endorsement",
+      "labelKey": "field.x_cert_tw_endorsement",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_tw_endorsement_expiry",
+      "labelKey": "field.x_cert_tw_endorsement_expiry",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_tw_scan",
+      "labelKey": "field.x_cert_tw_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_legacy_type",
+      "labelKey": "field.x_cert_legacy_type",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_legacy_issuer",
+      "labelKey": "field.x_cert_legacy_issuer",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_legacy_scan",
+      "labelKey": "field.x_cert_legacy_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_driver_class",
+      "labelKey": "field.x_cert_driver_class",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_driver_authority",
+      "labelKey": "field.x_cert_driver_authority",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_driver_first_issue_date",
+      "labelKey": "field.x_cert_driver_first_issue_date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_driver_review_due",
+      "labelKey": "field.x_cert_driver_review_due",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_driver_scan",
+      "labelKey": "field.x_cert_driver_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_vehicle_plate",
+      "labelKey": "field.x_cert_vehicle_plate",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vehicle_owner",
+      "labelKey": "field.x_cert_vehicle_owner",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vehicle_scan",
+      "labelKey": "field.x_cert_vehicle_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_birth_place",
+      "labelKey": "field.x_cert_birth_place",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_birth_registration_no_last4",
+      "labelKey": "field.x_cert_birth_registration_no_last4",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_birth_scan",
+      "labelKey": "field.x_cert_birth_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_vocational_name",
+      "labelKey": "field.x_cert_vocational_name",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vocational_level",
+      "labelKey": "field.x_cert_vocational_level",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vocational_issuer",
+      "labelKey": "field.x_cert_vocational_issuer",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vocational_registration_last4",
+      "labelKey": "field.x_cert_vocational_registration_last4",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_vocational_education_due",
+      "labelKey": "field.x_cert_vocational_education_due",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_vocational_scan",
+      "labelKey": "field.x_cert_vocational_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_professional_name",
+      "labelKey": "field.x_cert_professional_name",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_professional_level",
+      "labelKey": "field.x_cert_professional_level",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_professional_issuer",
+      "labelKey": "field.x_cert_professional_issuer",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_professional_registration_last4",
+      "labelKey": "field.x_cert_professional_registration_last4",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_professional_education_due",
+      "labelKey": "field.x_cert_professional_education_due",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_professional_scan",
+      "labelKey": "field.x_cert_professional_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_school",
+      "labelKey": "field.x_cert_school",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_major",
+      "labelKey": "field.x_cert_major",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_education_level",
+      "labelKey": "field.x_cert_education_level",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_admission_date",
+      "labelKey": "field.x_cert_admission_date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_graduation_date",
+      "labelKey": "field.x_cert_graduation_date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_graduation_no_last4",
+      "labelKey": "field.x_cert_graduation_no_last4",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_graduation_scan",
+      "labelKey": "field.x_cert_graduation_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_degree",
+      "labelKey": "field.x_cert_degree",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_degree_school",
+      "labelKey": "field.x_cert_degree_school",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_degree_award_date",
+      "labelKey": "field.x_cert_degree_award_date",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_degree_no_last4",
+      "labelKey": "field.x_cert_degree_no_last4",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_degree_scan",
+      "labelKey": "field.x_cert_degree_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_title_level",
+      "labelKey": "field.x_cert_title_level",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_title_specialty",
+      "labelKey": "field.x_cert_title_specialty",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_title_issuer",
+      "labelKey": "field.x_cert_title_issuer",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_title_review_due",
+      "labelKey": "field.x_cert_title_review_due",
+      "type": "date",
+    },
+    {
+      "key": "x_cert_title_scan",
+      "labelKey": "field.x_cert_title_scan",
+      "type": "mAsset",
+    },
+    {
+      "key": "x_cert_other_type",
+      "labelKey": "field.x_cert_other_type",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_other_issuer",
+      "labelKey": "field.x_cert_other_issuer",
+      "type": "text",
+    },
+    {
+      "key": "x_cert_other_scan",
+      "labelKey": "field.x_cert_other_scan",
+      "type": "mAsset",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 90,
+    },
+    {
+      "field": "due",
+      "key": "endorsement",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_permit_endorsement_expiry",
+      "key": "permit_endorsement",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_hkmo_endorsement_expiry",
+      "key": "hkmo_endorsement",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_tw_endorsement_expiry",
+      "key": "tw_endorsement",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_driver_review_due",
+      "key": "driver_review",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_vocational_education_due",
+      "key": "vocational_education",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_professional_education_due",
+      "key": "professional_education",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+    {
+      "field": "x_cert_title_review_due",
+      "key": "title_review",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "member",
+      "key": "by_member",
+      "type": "table",
+    },
+    {
+      "key": "expiring",
+      "sortBy": {
+        "asc": true,
+        "key": "expiry",
+      },
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 3`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "amount",
+      "location",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "amount",
+    "date",
+    "attachments",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "appliance",
+        "furniture",
+        "digital",
+        "toy",
+        "apparel",
+        "jewelry",
+        "collection",
+        "sports",
+        "other_ar",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "inuse",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "inuse",
+        "idle",
+        "lent",
+        "repairing",
+        "disposed",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "location",
+      "labelKey": "field.location",
+      "type": "text",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "tags",
+      "labelKey": "field.tags",
+      "type": "mSelect",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "brand_model",
+      "labelKey": "field.brand_model",
+      "type": "text",
+    },
+    {
+      "key": "warranty_expiry",
+      "labelKey": "field.warranty_expiry",
+      "type": "date",
+    },
+    {
+      "key": "channel",
+      "labelKey": "field.channel",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "warranty_expiry",
+      "key": "warranty",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "location",
+      "key": "by_location",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 4`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "hospital",
+      "department",
+      "diagnosis",
+    ],
+  },
+  "capture": [
+    "name",
+    "member",
+    "category",
+    "date",
+    "attachments",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "visit",
+        "report",
+        "vaccine",
+        "medication",
+        "allergy",
+        "checkup",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "following",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "following",
+        "closed",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "hospital",
+      "labelKey": "field.hospital",
+      "type": "text",
+    },
+    {
+      "key": "department",
+      "labelKey": "field.department",
+      "type": "text",
+    },
+    {
+      "key": "diagnosis",
+      "labelKey": "field.diagnosis",
+      "type": "text",
+    },
+    {
+      "key": "followup_date",
+      "labelKey": "field.followup_date",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "followup_date",
+      "key": "followup",
+      "kind": "oneoff",
+      "leadDays": 7,
+    },
+  ],
+  "templates": [
+    {
+      "file": "health/checkup-plan.tpl",
+      "key": "checkup_plan",
+      "nameKey": "tpl.checkupPlan",
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "member",
+      "key": "by_member",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 5`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "expiry",
+    "stock_qty",
+    "location",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "rx",
+        "otc",
+        "external",
+        "device",
+        "supplement",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "inuse",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "inuse",
+        "standby",
+        "med_expired",
+        "discarded",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "remind_before",
+      "labelKey": "field.remind_before",
+      "type": "number",
+    },
+    {
+      "key": "stock_qty",
+      "labelKey": "field.stock_qty",
+      "min": 0,
+      "type": "number",
+      "unitKey": "capture.unitCount",
+    },
+    {
+      "key": "low_stock_at",
+      "labelKey": "field.low_stock_at",
+      "min": 0,
+      "type": "number",
+      "unitKey": "capture.unitCount",
+    },
+    {
+      "key": "location",
+      "labelKey": "field.location",
+      "type": "text",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "numericRules": [
+    {
+      "field": "stock_qty",
+      "key": "low_stock",
+      "thresholdField": "low_stock_at",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+  "views": [
+    {
+      "key": "expiring",
+      "sortBy": {
+        "asc": true,
+        "key": "expiry",
+      },
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 6`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "amount",
+    "cycle",
+    "next_pay",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "member_card",
+        "prepaid",
+        "subscription",
+        "coupon",
+        "points",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "active",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "active",
+        "m_expired",
+        "refunded",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "cycle",
+      "labelKey": "field.cycle",
+      "options": [
+        "day",
+        "week",
+        "month",
+        "quarter",
+        "year",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "next_pay",
+      "labelKey": "field.next_pay",
+      "type": "date",
+    },
+    {
+      "key": "trial_end",
+      "labelKey": "field.trial_end",
+      "type": "date",
+    },
+    {
+      "key": "auto_renew",
+      "labelKey": "field.auto_renew",
+      "type": "checkbox",
+    },
+    {
+      "key": "credentials_note",
+      "labelKey": "field.credentials_note",
+      "type": "text",
+    },
+    {
+      "default": "holder",
+      "key": "seat_role",
+      "labelKey": "field.seat_role",
+      "options": [
+        "holder",
+        "member",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "cancel_guide",
+      "labelKey": "field.cancel_guide",
+      "type": "url",
+    },
+  ],
+  "reminders": [
+    {
+      "autoRenewField": "auto_renew",
+      "cycleField": "cycle",
+      "field": "next_pay",
+      "key": "next_pay",
+      "kind": "recurring",
+      "leadDays": 14,
+    },
+    {
+      "field": "trial_end",
+      "key": "trial_end",
+      "kind": "oneoff",
+      "leadDays": 3,
+    },
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 14,
+    },
+  ],
+  "views": [
+    {
+      "key": "renewing",
+      "sortBy": {
+        "asc": true,
+        "key": "next_pay",
+      },
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 7`] = `
+{
+  "activity": {
+    "dateField": "claim_date",
+    "detailFields": [
+      "claim_status",
+      "claim_amount",
+      "insurer",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "insurer",
+    "premium",
+    "next_pay",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "health",
+        "critical",
+        "accident",
+        "life",
+        "vehicle",
+        "property",
+        "other_ins",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "in_force",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "in_force",
+        "paying",
+        "ins_expired",
+        "surrendered",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "insurer",
+      "labelKey": "field.insurer",
+      "type": "text",
+    },
+    {
+      "key": "contact",
+      "labelKey": "field.contact",
+      "type": "text",
+    },
+    {
+      "key": "policy_no",
+      "labelKey": "field.policy_no",
+      "type": "text",
+    },
+    {
+      "key": "premium",
+      "labelKey": "field.premium",
+      "type": "number",
+    },
+    {
+      "key": "pay_cycle",
+      "labelKey": "field.pay_cycle",
+      "options": [
+        "month",
+        "quarter",
+        "year",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "next_pay",
+      "labelKey": "field.next_pay",
+      "type": "date",
+    },
+    {
+      "key": "coverage",
+      "labelKey": "field.coverage",
+      "type": "number",
+    },
+    {
+      "default": "none",
+      "key": "claim_status",
+      "labelKey": "field.claim_status",
+      "options": [
+        "none",
+        "filing",
+        "docs",
+        "paid",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "claim_date",
+      "labelKey": "field.claim_date",
+      "type": "date",
+    },
+    {
+      "key": "claim_amount",
+      "labelKey": "field.claim_amount",
+      "type": "number",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "cycleField": "pay_cycle",
+      "field": "next_pay",
+      "key": "next_pay",
+      "kind": "recurring",
+      "leadDays": 30,
+    },
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "member",
+      "key": "paying",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 8`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "amount",
+      "channel",
+      "qty",
+    ],
+  },
+  "capture": [
+    "name",
+    "amount",
+    "date",
+    "channel",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "daily",
+        "digital",
+        "apparel",
+        "food_sh",
+        "other_sh",
+        "wish",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "url",
+      "labelKey": "field.url",
+      "type": "url",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "channel",
+      "labelKey": "field.channel",
+      "type": "text",
+    },
+    {
+      "key": "tracking_no",
+      "labelKey": "field.tracking_no",
+      "type": "text",
+    },
+    {
+      "key": "pickup_code",
+      "labelKey": "field.pickup_code",
+      "type": "text",
+    },
+    {
+      "key": "qty",
+      "labelKey": "field.qty",
+      "min": 0,
+      "type": "number",
+      "unitKey": "capture.unitCount",
+    },
+    {
+      "key": "target_amount",
+      "labelKey": "field.target_amount",
+      "type": "number",
+    },
+    {
+      "default": "none",
+      "key": "return_status",
+      "labelKey": "field.return_status",
+      "options": [
+        "none",
+        "requested",
+        "returned",
+        "refunded",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "return_date",
+      "labelKey": "field.return_date",
+      "type": "date",
+    },
+    {
+      "key": "refund_amount",
+      "labelKey": "field.refund_amount",
+      "type": "number",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 9`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "party",
+      "deposit",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "expiry",
+    "attachments",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "rent",
+        "renovation",
+        "purchase",
+        "labor",
+        "property_ct",
+        "other_ct",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "ct_active",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "ct_active",
+        "ct_expired",
+        "terminated",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "remind_before",
+      "labelKey": "field.remind_before",
+      "type": "number",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "party",
+      "labelKey": "field.party",
+      "type": "text",
+    },
+    {
+      "key": "contact",
+      "labelKey": "field.contact",
+      "type": "text",
+    },
+    {
+      "key": "deposit",
+      "labelKey": "field.deposit",
+      "type": "number",
+    },
+    {
+      "key": "auto_renew",
+      "labelKey": "field.auto_renew",
+      "type": "checkbox",
+    },
+    {
+      "key": "deposit_returned",
+      "labelKey": "field.deposit_returned",
+      "type": "checkbox",
+    },
+    {
+      "key": "deposit_return_date",
+      "labelKey": "field.deposit_return_date",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "autoRenewField": "auto_renew",
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 10`] = `
+{
+  "activity": {
+    "dateField": "exam_date",
+    "detailFields": [
+      "category",
+      "status",
+      "issuer",
+    ],
+  },
+  "capture": [
+    "name",
+    "member",
+    "exam_date",
+    "expiry",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "vocational",
+        "title",
+        "language",
+        "academic",
+        "other_ex",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "preparing",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "preparing",
+        "passed",
+        "ex_expired",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "issuer",
+      "labelKey": "field.issuer",
+      "type": "text",
+    },
+    {
+      "key": "contact",
+      "labelKey": "field.contact",
+      "type": "text",
+    },
+    {
+      "key": "exam_date",
+      "labelKey": "field.exam_date",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 60,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 11`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "direction",
+      "amount",
+      "source",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "amount",
+    "direction",
+    "date",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "lucky",
+        "allowance_al",
+        "reward",
+        "interest_al",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "direction",
+      "labelKey": "field.direction",
+      "options": [
+        "in",
+        "out",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "source",
+      "labelKey": "field.source",
+      "type": "text",
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "member",
+      "key": "by_member",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 12`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "direction",
+      "person",
+      "amount",
+    ],
+  },
+  "capture": [
+    "name",
+    "direction",
+    "person",
+    "amount",
+    "date",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "wedding",
+        "full_moon",
+        "housewarming",
+        "graduation",
+        "birthday_fv",
+        "other_fv",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "direction",
+      "labelKey": "field.direction",
+      "options": [
+        "in",
+        "out",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "person",
+      "labelKey": "field.person",
+      "type": "text",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "date",
+      "key": "reciprocate",
+      "kind": "after",
+      "leadDays": 0,
+      "offsetDays": 30,
+      "onlyIf": {
+        "equals": "in",
+        "field": "direction",
+      },
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "person",
+      "key": "by_person",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 13`] = `
+{
+  "capture": [
+    "name",
+    "qty",
+    "low_stock_at",
+    "expiry",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "food_st",
+        "daily_chem",
+        "paper",
+        "medical_st",
+        "emergency_st",
+        "other_st",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "location",
+      "labelKey": "field.location",
+      "type": "text",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "qty",
+      "labelKey": "field.qty",
+      "min": 0,
+      "type": "number",
+      "unitKey": "capture.unitCount",
+    },
+    {
+      "key": "low_stock_at",
+      "labelKey": "field.low_stock_at",
+      "min": 0,
+      "type": "number",
+      "unitKey": "capture.unitCount",
+    },
+  ],
+  "numericRules": [
+    {
+      "field": "qty",
+      "key": "low_stock",
+      "thresholdField": "low_stock_at",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+  "templates": [
+    {
+      "file": "stock/emergency-kit.tpl",
+      "key": "emergency_kit",
+      "nameKey": "tpl.emergencyKit",
+    },
+  ],
+  "views": [
+    {
+      "groupBy": "category",
+      "key": "by_category",
+      "type": "table",
+    },
+    {
+      "key": "expiring",
+      "sortBy": {
+        "asc": true,
+        "key": "expiry",
+      },
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 14`] = `
+{
+  "activity": {
+    "dateField": "last_done",
+    "detailFields": [
+      "category",
+    ],
+  },
+  "capture": [
+    "name",
+    "member",
+    "cycle",
+    "due",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "housework",
+        "maintenance",
+        "care",
+        "other_ch",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "cycle",
+      "labelKey": "field.cycle",
+      "options": [
+        "day",
+        "week",
+        "month",
+        "quarter",
+        "year",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "due",
+      "labelKey": "field.due",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "last_done",
+      "labelKey": "field.last_done",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "due",
+      "key": "due",
+      "kind": "oneoff",
+      "leadDays": 7,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 15`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "pay_day",
+    "cycle",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "payment",
+        "maintenance_h",
+        "anniversary",
+        "emergency",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "cycle",
+      "labelKey": "field.cycle",
+      "options": [
+        "day",
+        "week",
+        "month",
+        "quarter",
+        "year",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "pay_day",
+      "labelKey": "field.pay_day",
+      "type": "date",
+    },
+    {
+      "key": "lunar",
+      "labelKey": "field.lunar",
+      "type": "checkbox",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "pay_day",
+      "key": "pay_day",
+      "kind": "anniversary",
+      "leadDays": 7,
+      "lunarField": "lunar",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 16`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "status",
+    "next_update",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "movie",
+        "tv",
+        "variety",
+        "book",
+        "comic",
+        "novel",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "wishlist",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "wishlist",
+        "consuming",
+        "done",
+        "dropped",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "rating",
+      "labelKey": "field.rating",
+      "type": "number",
+    },
+    {
+      "key": "progress",
+      "labelKey": "field.progress",
+      "type": "text",
+    },
+    {
+      "key": "next_update",
+      "labelKey": "field.next_update",
+      "type": "date",
+    },
+    {
+      "key": "url",
+      "labelKey": "field.url",
+      "type": "url",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "next_update",
+      "key": "next_update",
+      "kind": "oneoff",
+      "leadDays": 0,
+    },
+  ],
+  "views": [
+    {
+      "key": "wall",
+      "type": "gallery",
+    },
+    {
+      "groupBy": "status",
+      "key": "consuming",
+      "type": "table",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 17`] = `
+{
+  "capture": [
+    "name",
+    "species",
+    "vaccine_due",
+    "deworm_due",
+    "cycle",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "species",
+      "labelKey": "field.species",
+      "options": [
+        "cat",
+        "dog",
+        "other_pet",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "breed",
+      "labelKey": "field.breed",
+      "type": "text",
+    },
+    {
+      "key": "vaccine_due",
+      "labelKey": "field.vaccine_due",
+      "type": "date",
+    },
+    {
+      "key": "deworm_due",
+      "labelKey": "field.deworm_due",
+      "type": "date",
+    },
+    {
+      "key": "cycle",
+      "labelKey": "field.cycle",
+      "options": [
+        "day",
+        "week",
+        "month",
+        "quarter",
+        "year",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "vaccine_due",
+      "key": "vaccine",
+      "kind": "oneoff",
+      "leadDays": 14,
+    },
+    {
+      "cycleField": "cycle",
+      "field": "deworm_due",
+      "key": "deworm",
+      "kind": "recurring",
+      "leadDays": 7,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 18`] = `
+{
+  "activity": {
+    "dateField": "purchase_date",
+    "detailFields": [
+      "plate",
+      "brand_model",
+      "energy_type",
+      "mileage",
+    ],
+  },
+  "capture": [
+    "name",
+    "plate",
+    "brand_model",
+    "energy_type",
+    "mileage",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "plate",
+      "labelKey": "field.plate",
+      "type": "text",
+    },
+    {
+      "key": "brand_model",
+      "labelKey": "field.brand_model",
+      "type": "text",
+    },
+    {
+      "key": "vin",
+      "labelKey": "field.vin",
+      "type": "text",
+    },
+    {
+      "key": "color",
+      "labelKey": "field.color",
+      "type": "text",
+    },
+    {
+      "default": "gasoline",
+      "key": "energy_type",
+      "labelKey": "field.energy_type",
+      "options": [
+        "gasoline",
+        "diesel",
+        "hybrid",
+        "electric",
+        "other",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "mileage",
+      "labelKey": "field.mileage",
+      "min": 0,
+      "step": 1,
+      "type": "number",
+      "unitKey": "capture.unitKm",
+    },
+    {
+      "key": "purchase_date",
+      "labelKey": "field.purchase_date",
+      "type": "date",
+    },
+    {
+      "key": "purchase_price",
+      "labelKey": "field.purchase_price",
+      "type": "number",
+    },
+    {
+      "key": "current_value",
+      "labelKey": "field.current_value",
+      "type": "number",
+    },
+    {
+      "key": "inspection_due",
+      "labelKey": "field.inspection_due",
+      "type": "date",
+    },
+    {
+      "key": "insurance_company",
+      "labelKey": "field.insurance_company",
+      "type": "text",
+    },
+    {
+      "key": "insurance_due",
+      "labelKey": "field.insurance_due",
+      "type": "date",
+    },
+    {
+      "key": "vehicle_tax_due",
+      "labelKey": "field.vehicle_tax_due",
+      "type": "date",
+    },
+    {
+      "key": "battery_capacity",
+      "labelKey": "field.battery_capacity",
+      "type": "number",
+    },
+    {
+      "key": "battery_due",
+      "labelKey": "field.battery_due",
+      "type": "date",
+    },
+    {
+      "key": "violations",
+      "labelKey": "field.violations",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+    {
+      "field": "inspection_due",
+      "key": "inspection",
+      "kind": "oneoff",
+      "leadDays": 60,
+      "leadStages": [
+        60,
+        30,
+        7,
+      ],
+    },
+    {
+      "field": "insurance_due",
+      "key": "insurance",
+      "kind": "oneoff",
+      "leadDays": 60,
+      "leadStages": [
+        60,
+        30,
+        7,
+      ],
+    },
+    {
+      "field": "vehicle_tax_due",
+      "key": "vehicle_tax",
+      "kind": "oneoff",
+      "leadDays": 60,
+      "leadStages": [
+        60,
+        30,
+        7,
+      ],
+    },
+    {
+      "field": "battery_due",
+      "key": "battery",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 19`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "expiry",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "etc",
+        "transit_card",
+        "monthly",
+        "senior",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "card_no",
+      "labelKey": "field.card_no",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 20`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "destination",
+      "status",
+    ],
+  },
+  "capture": [
+    "name",
+    "destination",
+    "date",
+    "expiry",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "default": "planning",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "planning",
+        "ongoing",
+        "finished",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "destination",
+      "labelKey": "field.destination",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "date",
+      "key": "date",
+      "kind": "oneoff",
+      "leadDays": 7,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 21`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "amount",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "date",
+    "order_no",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "flight",
+        "hotel",
+        "train",
+        "ticket",
+        "rental",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "order_no",
+      "labelKey": "field.order_no",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 22`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "status",
+    ],
+  },
+  "capture": [
+    "name",
+    "date",
+    "status",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "default": "draft",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "draft",
+        "packed",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "checklist_doc",
+      "labelKey": "field.checklist_doc",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 23`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "cities",
+      "amount",
+    ],
+  },
+  "capture": [
+    "name",
+    "date",
+    "amount",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "cities",
+      "labelKey": "field.cities",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 24`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "platform",
+    "account_name",
+    "cred_loc",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "account",
+        "domain",
+        "game",
+        "nft",
+        "license",
+        "other_v",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "expiry",
+      "labelKey": "field.expiry",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "platform",
+      "labelKey": "field.platform",
+      "type": "text",
+    },
+    {
+      "key": "account_name",
+      "labelKey": "field.account_name",
+      "type": "text",
+    },
+    {
+      "key": "cred_loc",
+      "labelKey": "field.cred_loc",
+      "type": "text",
+    },
+    {
+      "key": "inherit_note",
+      "labelKey": "field.inherit_note",
+      "type": "text",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "expiry",
+      "key": "expiry",
+      "kind": "oneoff",
+      "leadDays": 30,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 25`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "rating",
+    ],
+  },
+  "capture": [
+    "name",
+    "category",
+    "rating",
+    "date",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "home_cook",
+        "restaurant",
+        "takeout",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "rating",
+      "labelKey": "field.rating",
+      "max": 5,
+      "min": 0,
+      "step": 0.5,
+      "type": "number",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "url",
+      "labelKey": "field.url",
+      "type": "url",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "dislike_safe",
+      "labelKey": "field.dislike_safe",
+      "type": "checkbox",
+    },
+    {
+      "key": "ingredients",
+      "labelKey": "field.ingredients",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 26`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "address_full",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "home",
+        "shipping",
+        "id_addr",
+        "org",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "address_full",
+      "labelKey": "field.address_full",
+      "type": "text",
+    },
+    {
+      "key": "url",
+      "labelKey": "field.url",
+      "type": "url",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 27`] = `
+{
+  "capture": [
+    "name",
+    "category",
+    "url",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "gov",
+        "payment_bm",
+        "shopping_bm",
+        "learning",
+        "work",
+        "other_bm",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "url",
+      "labelKey": "field.url",
+      "type": "url",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "account_note",
+      "labelKey": "field.account_name",
+      "type": "text",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 28`] = `
+{
+  "capture": [
+    "name",
+    "content",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "greeting",
+        "address_sn",
+        "intro",
+        "reply",
+        "other_sn",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "content",
+      "labelKey": "field.content",
+      "type": "text",
+    },
+    {
+      "key": "tags",
+      "labelKey": "field.tags",
+      "type": "mSelect",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 29`] = `
+{
+  "activity": {
+    "dateField": "date",
+    "detailFields": [
+      "category",
+      "vaccine_name",
+      "dose_no",
+      "metric_type",
+      "metric_value",
+    ],
+  },
+  "capture": [
+    "name",
+    "member",
+    "category",
+    "date",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "vaccine_p",
+        "growth",
+        "feeding",
+        "milestone",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "date",
+      "labelKey": "field.date",
+      "type": "date",
+    },
+    {
+      "key": "due",
+      "labelKey": "field.due",
+      "type": "date",
+    },
+    {
+      "key": "attachments",
+      "labelKey": "field.attachments",
+      "type": "mAsset",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "vaccine_name",
+      "labelKey": "field.vaccine_name",
+      "type": "text",
+    },
+    {
+      "key": "dose_no",
+      "labelKey": "field.dose_no",
+      "type": "number",
+    },
+    {
+      "key": "vaccine_batch",
+      "labelKey": "field.vaccine_batch",
+      "type": "text",
+    },
+    {
+      "key": "vaccine_site",
+      "labelKey": "field.vaccine_site",
+      "type": "text",
+    },
+    {
+      "default": "height",
+      "key": "metric_type",
+      "labelKey": "field.metric_type",
+      "options": [
+        "height",
+        "weight",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "metric_value",
+      "labelKey": "field.metric_value",
+      "type": "number",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "due",
+      "key": "next_visit",
+      "kind": "oneoff",
+      "leadDays": 7,
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 30`] = `
+{
+  "activity": {
+    "dateField": "exam_date",
+    "detailFields": [
+      "school",
+      "category",
+      "status",
+    ],
+  },
+  "capture": [
+    "name",
+    "school",
+    "category",
+    "amount",
+    "due",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "kindergarten",
+        "primary",
+        "junior",
+        "senior",
+        "college",
+        "grad_school",
+        "extracurricular",
+      ],
+      "type": "select",
+    },
+    {
+      "default": "applying",
+      "key": "status",
+      "labelKey": "field.status",
+      "options": [
+        "applying",
+        "enrolled",
+        "graduated",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "school",
+      "labelKey": "field.school",
+      "type": "text",
+    },
+    {
+      "key": "grade",
+      "labelKey": "field.grade",
+      "type": "text",
+    },
+    {
+      "key": "teacher",
+      "labelKey": "field.teacher",
+      "type": "text",
+    },
+    {
+      "key": "contact",
+      "labelKey": "field.contact",
+      "type": "text",
+    },
+    {
+      "key": "amount",
+      "labelKey": "field.amount",
+      "min": 0,
+      "step": 0.01,
+      "type": "number",
+      "unitKey": "capture.unitCny",
+    },
+    {
+      "key": "due",
+      "labelKey": "field.due",
+      "type": "date",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "enroll_year",
+      "labelKey": "field.enroll_year",
+      "type": "number",
+    },
+    {
+      "key": "exam_date",
+      "labelKey": "field.exam_date",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "due",
+      "key": "tuition",
+      "kind": "oneoff",
+      "leadDays": 14,
+    },
+    {
+      "field": "exam_date",
+      "key": "exam_date",
+      "kind": "oneoff",
+      "leadDays": 3,
+    },
+  ],
+  "templates": [
+    {
+      "file": "schooling/parent-meeting.tpl",
+      "key": "parent_meeting",
+      "nameKey": "tpl.parentMeeting",
+    },
+  ],
+}
+`;
+
+exports[`31 模块 schema 契约快照（21 组） > 每个 schema 的结构快照（有意变更时用 -u 更新并记录原因） 31`] = `
+{
+  "capture": [
+    "name",
+    "member",
+    "category",
+    "account_no",
+  ],
+  "columns": [
+    {
+      "key": "name",
+      "required": true,
+      "type": "text",
+    },
+    {
+      "key": "member",
+      "labelKey": "field.member",
+      "type": "relation",
+    },
+    {
+      "key": "category",
+      "labelKey": "field.category",
+      "options": [
+        "shebao",
+        "gongjijin",
+        "yibao",
+        "resident_pension",
+        "commercial_pension",
+      ],
+      "type": "select",
+    },
+    {
+      "key": "note",
+      "labelKey": "field.note",
+      "type": "text",
+    },
+    {
+      "key": "account_no",
+      "labelKey": "field.account_no",
+      "type": "text",
+    },
+    {
+      "key": "retire_check",
+      "labelKey": "field.retire_check",
+      "type": "checkbox",
+    },
+    {
+      "key": "retire_age",
+      "labelKey": "field.retire_age",
+      "type": "number",
+    },
+    {
+      "key": "balance_snapshot",
+      "labelKey": "field.balance_snapshot",
+      "type": "number",
+    },
+    {
+      "key": "snapshot_date",
+      "labelKey": "field.snapshot_date",
+      "type": "date",
+    },
+    {
+      "key": "base_adjust_date",
+      "labelKey": "field.base_adjust_date",
+      "type": "date",
+    },
+  ],
+  "reminders": [
+    {
+      "field": "base_adjust_date",
+      "key": "base_adjust",
+      "kind": "anniversary",
+      "leadDays": 14,
+    },
+  ],
+}
+`;

@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "@tsconfig/svelte": "^5.0.8",
+    "@tsconfig/svelte": "^5.0.9",
     "@types/livereload": "^0.9.5",
     "@types/minimist": "^1.2.5",
     "@types/node": "^26.6.4",

@@ -63,7 +63,7 @@
     "cross-env": "^10.1.0",
     "date-fns": "^4.4.0",
     "fast-glob": "^3.3.3",
-    "glob": "^13.0.6",
+    "glob": "^13.0.7",
     "js-yaml": "^5.4.3",
     "livereload": "^0.10.3",
     "lunar-typescript": "^1.8.6",

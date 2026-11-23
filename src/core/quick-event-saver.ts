@@ -171,7 +171,7 @@ export async function saveQuickVitalRecord(params: QuickVitalSaveParams): Promis
             target: healthRef,
             name: memberName,
             members: plugin.settings.members,
-            operationKey: `vital:init:${memberId || "default"}:${Date.now()}`,
+            operationKey: `vital:init:${memberId || "default"}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
             fields: vitalFields,
         });
         row = { itemID, cells: {} };
@@ -306,7 +306,7 @@ export async function saveQuickShoppingRecord(params: QuickShoppingSaveParams): 
         moduleId: "shopping",
         target: shopRef,
         name,
-        operationKey: `quick:shop:${Date.now()}`,
+        operationKey: `quick:shop:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
         fields: {
             qty: qty || 1,
             date,
@@ -348,7 +348,7 @@ export async function saveQuickSnippetRecord(params: QuickSnippetSaveParams): Pr
         moduleId: "snippets",
         target: snipRef,
         name: title,
-        operationKey: `quick:snip:${Date.now()}`,
+        operationKey: `quick:snip:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
         fields: {
             content: text,
             category: "other_sn",

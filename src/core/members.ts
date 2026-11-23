@@ -37,16 +37,45 @@ function memberOperationKey(prefix: string, m: FamilyMember): string {
     return `${prefix}:${encodeURIComponent(m.id)}:${encodeURIComponent(fingerprint)}`;
 }
 
-async function writeMemberCells(ref: DbRef, itemID: string, m: FamilyMember, operationKey = memberOperationKey("member", m)): Promise<void> {
+async function writeMemberCells(plugin: any, ref: DbRef, itemID: string, m: FamilyMember, operationKey = memberOperationKey("member", m)): Promise<void> {
     const c = ref.columns ?? {};
-    if (c.name) await setCell(ref.avId!, c.name, itemID, { type: "text", text: { content: m.name } }, { idempotencyKey: `${operationKey}:name`, retries: 1 });
-    if (c.role) await setCell(ref.avId!, c.role, itemID, selectCellValue(m.role), { idempotencyKey: `${operationKey}:role`, retries: 1 });
-    if (c.birthday) {
-        await setCell(ref.avId!, c.birthday, itemID, m.birthday
-            ? { type: "date", date: { content: new Date(`${m.birthday}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } }
-            : { type: "date", date: { isNotEmpty: false } }, { idempotencyKey: `${operationKey}:birthday`, retries: 1 });
+
+    async function setMemberCellWithHeal(colKey: string, val: unknown) {
+        let keyId = c[colKey];
+        if (!keyId && plugin) {
+            try {
+                const { healColumnMapping } = await import("./provisioner");
+                keyId = await healColumnMapping(plugin, "members", colKey);
+            } catch { /* soft */ }
+        }
+        if (!keyId) return;
+        try {
+            await setCell(ref.avId!, keyId, itemID, val, { idempotencyKey: `${operationKey}:${colKey}`, retries: 1 });
+        } catch (err: any) {
+            const errStr = String(err?.message || err || "");
+            if (errStr.includes("key not found") && plugin) {
+                try {
+                    const { healColumnMapping } = await import("./provisioner");
+                    const healedId = await healColumnMapping(plugin, "members", colKey);
+                    if (healedId) {
+                        c[colKey] = healedId;
+                        await setCell(ref.avId!, healedId, itemID, val, { idempotencyKey: `${operationKey}:${colKey}:healed`, retries: 1 });
+                        return;
+                    }
+                } catch { /* soft fallback */ }
+            }
+            throw err;
+        }
     }
-    if (c.lunar) await setCell(ref.avId!, c.lunar, itemID, { type: "checkbox", checkbox: { checked: !!m.lunarBirthday } }, { idempotencyKey: `${operationKey}:lunar`, retries: 1 });
+
+    if (m.name) await setMemberCellWithHeal("name", { type: "text", text: { content: m.name } });
+    if (m.role) await setMemberCellWithHeal("role", selectCellValue(m.role));
+    if (m.birthday) {
+        await setMemberCellWithHeal("birthday", { type: "date", date: { content: new Date(`${m.birthday}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } });
+    } else {
+        await setMemberCellWithHeal("birthday", { type: "date", date: { isNotEmpty: false } });
+    }
+    await setMemberCellWithHeal("lunar", { type: "checkbox", checkbox: { checked: !!m.lunarBirthday } });
 }
 
 function memberFingerprint(m: FamilyMember): MemberRowCreatePending["fingerprint"] {
@@ -121,7 +150,7 @@ async function reconcilePendingMemberRow(plugin: Plugin, settings: HomeSettings,
     // Persist the recovered identity before any follow-up cell write.
     await saveSettings(plugin, settings);
     try {
-        await writeMemberCells(ref, resolution.rowId, m, memberOperationKey("member-create", m));
+        await writeMemberCells(plugin, ref, resolution.rowId, m, memberOperationKey("member-create", m));
         m.syncError = undefined;
         await saveSettings(plugin, settings);
         return true;
@@ -168,7 +197,7 @@ async function createMemberRow(plugin: Plugin, settings: HomeSettings, ref: DbRe
         m.avRowCreatePending = undefined;
         m.syncError = undefined;
         await saveSettings(plugin, settings);
-        await writeMemberCells(ref, itemID, m, operationKey);
+        await writeMemberCells(plugin, ref, itemID, m, operationKey);
         m.syncError = undefined;
         return true;
     } catch (e) {
@@ -209,7 +238,7 @@ export async function addMember(plugin: Plugin, settings: HomeSettings, member: 
                 await createMemberRow(plugin, settings, ref, currentMember); // 失败不阻断：设置侧已生效，syncError 可见可重试
             } else if (currentMember.syncError) {
                 try {
-                    await writeMemberCells(ref, currentMember.avItemId, currentMember, memberOperationKey("member-create", currentMember));
+                    await writeMemberCells(plugin, ref, currentMember.avItemId, currentMember, memberOperationKey("member-create", currentMember));
                     currentMember.syncError = undefined;
                 } catch (error) {
                     currentMember.syncError = errText(error);
@@ -241,7 +270,7 @@ export async function updateMember(plugin: Plugin, settings: HomeSettings, membe
         const target = settings.members.find((m) => m.id === member.id)!;
         if (target.avItemId) {
             try {
-                await writeMemberCells(ref, target.avItemId, target, memberOperationKey("member-update", target));
+                await writeMemberCells(plugin, ref, target.avItemId, target, memberOperationKey("member-update", target));
                 target.syncError = undefined;
             } catch (e) {
                 target.syncError = errText(e);
@@ -315,7 +344,7 @@ export async function syncMembersToAv(
                 else if (!m.avItemId) report.failed.push(m.name);
             } else if (memberChanged(before, m)) {
                 if (m.avItemId) {
-                    await writeMemberCells(ref, m.avItemId, m, memberOperationKey("member-sync", m));
+                    await writeMemberCells(plugin, ref, m.avItemId, m, memberOperationKey("member-sync", m));
                     m.syncError = undefined;
                     report.updated++;
                 } else if (await createMemberRow(plugin, settings, ref, m)) {

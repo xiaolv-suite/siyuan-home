@@ -114,6 +114,8 @@
     }
     async function pickAssetAvatar(m: FamilyMember) {
         if (!m.avItemId) { showMessage(t("members.avatarNoRow"), 4000, "info"); return; }
+        // 2026-11-21 走查修复：与上传路径同口径——busy 预检防连点并发双写 + 幂等键
+        if (avatarBusy.has(m.id)) return;
         const res = await openNativeAssetPicker();
         if (!res?.path) return;
         const path = res.path.trim();
@@ -122,8 +124,15 @@
         const avatarKey = ref?.columns?.avatar;
         if (!ref?.avId || !avatarKey) return;
         avatarBusy = new Set([...avatarBusy, m.id]);
+        const operationKey = (() => {
+            try { return `member-avatar:${crypto.randomUUID()}`; }
+            catch { return `member-avatar:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
+        })();
         try {
-            await setCell(ref.avId, avatarKey, m.avItemId, { type: "mAsset", mAsset: [{ content: path, name }] });
+            await setCell(ref.avId, avatarKey, m.avItemId, { type: "mAsset", mAsset: [{ content: path, name }] }, {
+                idempotencyKey: `${operationKey}:cell`,
+                retries: 1,
+            });
             avatars = { ...avatars, [m.id]: path };
             showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
         } catch (e) {
@@ -423,8 +432,11 @@
         }
     }
 
-    let reassignBusy = $state(false);
+    // 2026-11-21 走查清理：reassignBusy 死状态移除（全文件原无置位点，aria-busy/saving 分支永不生效）。
+    // 改派防重入已下沉至 member-dialogs.ts 源头模块级互斥，头部按钮与卡片禁用改由 members.length 判定。
     function openReassignDialog(fromMember?: FamilyMember) {
+        // 2026-11-21 走查修复：防重入下沉至 openMemberReassignDialog 源头（模块级互斥，
+        // 原先此处同步 try/finally 无法跨越弹窗生命周期，连点可叠开两个改派弹窗）。
         openMemberReassignDialog({
             members,
             fromMember,
@@ -444,7 +456,7 @@
     {t}
     membersCount={members.length}
     {memberAlertCount}
-    {reassignBusy}
+    reassignBusy={false}
     {exportingVcf}
     {editorOpen}
     {hasContactsBridge}
@@ -503,7 +515,7 @@
                 contact={contactOf(m)}
                 isContactBusy={!!contactBusy[m.id]}
                 {reorderBusy}
-                reassignDisabled={reassignBusy || members.length <= 1}
+                reassignDisabled={members.length <= 1}
                 isFirst={index === 0}
                 isLast={index === members.length - 1}
                 expanded={expandedId === m.id}

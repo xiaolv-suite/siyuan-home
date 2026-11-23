@@ -8,10 +8,10 @@
 
 家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理
 
-**当前版本：v0.5.198** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
+**当前版本：v0.5.199** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.198-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.199-blue)](./CHANGELOG.md)
 [![思源笔记](https://img.shields.io/badge/思源笔记-%3E%3D%203.8.4-brightgreen.svg)](https://b3log.org/siyuan)
 [![License: MIT](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 🚀 本次更新要点（v0.5.198 · 累积迭代汇总）
+## 🚀 本次更新要点（v0.5.199 · 累积迭代汇总）
 
 - **打字微事务过滤与输入零卡顿**：WebSocket 监听层前置彻底过滤编辑器普通文本输入微事务（`transactions`），杜绝打字过程中的全库台账重新扫描与 CPU 抖动；
 - **根治思源 v3.8.10 非法 ID 报错**：彻底消除待办备忘在 Kramdown 中写入自定义假 ID (`{: id="h2-pending-memos"}`) 引发的内核解析异常，全面改用思源内核原生合规 22 位块 ID；

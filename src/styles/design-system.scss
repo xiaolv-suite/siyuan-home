@@ -49,6 +49,8 @@
   --lv-on-accent: #ffffff;
   --lv-accent-soft: rgba(49, 83, 114, .10);
   --lv-accent-glow: rgba(49, 83, 114, .18);
+  --lv-aura: var(--lv-accent-glow);
+  --lv-tx-muted: var(--lv-tx-3);
   --lv-accent-line: rgba(49, 83, 114, .26);
   // 2. 两色分工：数据语义色 (从 208° 偏移 26° 至 182° 湖翠青，专职成绩/连续/热力等正向数据)
   --lv-data-accent: #0d9488;
@@ -2312,6 +2314,9 @@
   input[type="checkbox"] { accent-color: var(--lv-accent); }
 
   // ── 12. 空态 / 骨架 / 附件 ─────────────────────────────
+  /* DL2 阶段3：空态吉祥物（受 mascot 偏好门控，关闭回退线性图标） */
+  .lv-empty .lv-empty-mascot { color: var(--lv-accent); }
+  .lv-empty .lv-empty-mascot svg { width: 84px; height: 74px; }
   .lv-empty { min-height: 164px; padding: 36px 24px; text-align: center; display: flex; flex-direction: column;
     align-items: center; gap: 10px;
     .eic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 22px;

@@ -49,7 +49,7 @@
 <style>
     span.title {
         font-weight: bold;
-        color: var(--b3-theme-primary)
+        color: var(--lv-accent)
     }
     .item-wrap.b3-label {
         box-shadow: none !important;
@@ -58,7 +58,7 @@
     }
 
     .item-wrap.b3-label:not(:last-child) {
-        border-bottom: 1px solid var(--b3-border-color);
+        border-bottom: 1px solid var(--lv-line);
     }
 
     .item-wrap__content {

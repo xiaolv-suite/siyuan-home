@@ -236,8 +236,12 @@ export function createMobileController(options: MobileControllerOptions): Mobile
         dialog.element.addEventListener("touchmove", onTouchMove, { passive: true });
         dialog.element.addEventListener("touchend", onTouchEnd, { passive: true });
 
+        const dialogRef = dialog;
         import("@/panels/tab-panel.svelte").then(({ default: TabPanel }) => {
-            if (!mobileDialog) return;
+            // 2026-11-21 走查修复：身份守卫。原先只判空不判身份——动态 import 解析前快速「关闭→重开」
+            // 会让旧回调把 TabPanel 挂进已分离的旧 host 并覆盖 mobileDialogUnmount，旧组件成僵尸
+            // （$effect/全局监听仍在跑），新面板的卸载句柄被顶掉。
+            if (mobileDialog !== dialogRef || !host.isConnected) return;
             const inst = mount(TabPanel, {
                 target: host,
                 props: {

@@ -227,9 +227,10 @@
     // 262 波（Todoist/Linear assignee avatar 语言）：行级成员微头像——"这是谁的事"一眼可辨
     const memberOf = (id: string | undefined) => (id ? members.find((m) => m.id === id) : undefined);
     // 对齐原型 hero：按本地时段问候 + 日期·快照说明行（纯展示，随挂载取值）
+    // 2026-11-21 走查修复：凌晨 0-5 点原先归入「早安」，改归晚安时段（复用现有 i18n key，免新增词条）
     const greet = $derived.by(() => {
         const h = new Date().getHours();
-        return h < 11 ? t("dash.greet.morning") : h < 18 ? t("dash.greet.afternoon") : t("dash.greet.evening");
+        return h >= 5 && h < 11 ? t("dash.greet.morning") : h >= 11 && h < 18 ? t("dash.greet.afternoon") : t("dash.greet.evening");
     });
     const dateLine = $derived(`${new Date().toLocaleDateString([], { month: "long", day: "numeric", weekday: "long" })} · ${t("dash.stripSnapshot")} ${snapshotLabel}`);
     const lunarText = $derived(getLunarDisplay());

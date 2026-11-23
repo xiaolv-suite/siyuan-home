@@ -93,6 +93,14 @@ export function composeLifelogIsoAt(dateStr: string, timeStr?: string, now = new
             if (!Number.isNaN(composed.getTime())) return composed.toISOString();
         }
     }
+    // 若未填 timeStr 但指定了合法的 dateStr，按该日期与当前时分秒合成，绝不可直接丢弃补录日期
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        const sec = String(now.getSeconds()).padStart(2, "0");
+        const composed = new Date(`${dateStr}T${hh}:${mm}:${sec}`);
+        if (!Number.isNaN(composed.getTime())) return composed.toISOString();
+    }
     return now.toISOString();
 }
 

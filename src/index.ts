@@ -28,7 +28,7 @@ import { deliverPriorityReminderCard } from "@/core/hub/priority-reminder-delive
 import { searchMatch } from "@/core/pinyin";
 
 /** 版本显示（诊断/关于）：构建时由 vite define 从 plugin.json 注入（REL-01 版本单源，勿写字面量） */
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.198";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.199";
 
 /**
  * 小驴管家（Lv Home）
@@ -37,7 +37,25 @@ const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERS
 export default class LvHomePlugin extends Plugin {
     settings: HomeSettings;
     runtime: HubRuntime;
-    scan: ScanResult;
+    scan: ScanResult = {
+        reminders: [],
+        counts: { overdue: 0, soon: 0, lead: 0 },
+        scannedAt: new Date().toISOString(),
+        errors: [],
+        stale: false,
+        derived: [],
+        byModule: {},
+    };
+    /** 延迟预热定时器（45 秒最小静默期） */
+    private deferredWarmupTimer?: number;
+    /** 延迟预热空闲回调 ID（45 秒到期后的空闲帧调度） */
+    private deferredWarmupIdleId?: number;
+    /** 进行中的后台预热 Promise（单飞守卫） */
+    private deferredWarmupPromise?: Promise<void> | null;
+    /** 后台预热是否已完成 */
+    private deferredWarmupCompleted = false;
+    /** 默认后台全量预热延迟时间（45 秒，避开冷启动峰值） */
+    private static DEFERRED_WARMUP_DELAY_MS = 45 * 1000;
     /** 小驴生态全局后台心跳订阅清理器 (Epoch 7 Phase 2: lvTicker 统一节拍) */
     private tickerUnsubscribe?: () => void;
     /** 零点跨日刷新订阅清理器 */
@@ -91,6 +109,45 @@ export default class LvHomePlugin extends Plugin {
         this.entrypointsController?.updateStatusbar(count);
     }
 
+    /**
+     * 轨道 A 启动期极速直出：从 loadRuntime 已载入的 runtime 缓存快照恢复初始状态栏与扫描视图
+     * 消除 onLayoutReady 阶段的全库 SQL 强扫，启动关键路径 0 全库 SQL。
+     */
+    initScanFromCache(): void {
+        const cache = this.runtime?.cache;
+        if (cache) {
+            const rawDerived = cache.derived ?? cache.reminders ?? [];
+            const { reminders, counts } = deriveVisible(
+                rawDerived,
+                this.settings,
+                this.runtime,
+                new Date(),
+            );
+            this.scan = {
+                reminders,
+                counts,
+                scannedAt: this.runtime.scannedAt ?? new Date().toISOString(),
+                errors: cache.errors ?? [],
+                stale: false,
+                derived: rawDerived,
+                byModule: cache.byModule ?? {},
+            };
+            const todayDue = reminders.filter((r) => r.daysLeft <= 0).length;
+            this.updateStatusbar(todayDue);
+        } else {
+            this.scan = {
+                reminders: [],
+                counts: { overdue: 0, soon: 0, lead: 0 },
+                scannedAt: new Date().toISOString(),
+                errors: [],
+                stale: false,
+                derived: [],
+                byModule: {},
+            };
+            this.updateStatusbar(0);
+        }
+    }
+
     /** i18n 取值（1.2.8 起 i18n 为 JSONValue，字符串位置统一转 string） */
     i18nText(key: string): string {
         return String(this.i18n[key] ?? key);
@@ -118,6 +175,9 @@ export default class LvHomePlugin extends Plugin {
     }
 
     async onload() {
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark("lvhome-onload-start");
+        }
         // 309 波（顶栏图标突然消失的真因）：思源宿主在插件 onload 返回前完成顶栏/页签装配，
         // 历史实现在 `await loadSettings/loadRuntime` 之后才 addTopBar，注册时机落在装配窗口之外，
         // 重载/热更新后条目就会丢失（图标“突然消失”，面板同时被重新渲染）。
@@ -135,6 +195,7 @@ export default class LvHomePlugin extends Plugin {
             getPanelScreenSwitch: () => this.panelScreenSwitch,
             scheduleTimeout: (fn, delay) => this.scheduleTimeout(fn, delay),
             mountTab: (element) => {
+                void this.triggerDeferredWarmup();
                 const inst = mount(TabPanel, { target: element, props: { plugin: this } });
                 return () => {
                     if (typeof inst === "function") (inst as () => void)();
@@ -145,6 +206,7 @@ export default class LvHomePlugin extends Plugin {
 
         this.settings = await loadSettings(this);
         this.runtime = await loadRuntime(this);
+        this.initScanFromCache();
 
         this.authGuardController = initPluginAuthGuard({
             plugin: this,
@@ -272,22 +334,134 @@ export default class LvHomePlugin extends Plugin {
                 (keyword) => this.searchHomeItems(keyword)
             );
         } catch { /* 容错 */ }
+
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark("lvhome-onload-end");
+            try {
+                performance.measure("lvhome-onload", "lvhome-onload-start", "lvhome-onload-end");
+            } catch { /* performance measure */ }
+        }
     }
 
-    /** 布局就绪后：首次引导数据准备 + 智能找回历史台账 + 扫描（不阻塞启动，不强制全量建库） */
+    /**
+     * 轨道 A 启动减负：布局就绪后不阻塞主线程与关键渲染路径
+     * 彻底移除同步阻塞的 adoptHistoryLedgers / cleanupLegacyJournalDocs / refreshHub 全库 SQL 扫描，
+     * 启动关键路径 0 全库 SQL；将后台台账认领、旧日志清理与全量 refreshHub 移至空闲/延迟调度。
+     */
     async onLayoutReady() {
-        try {
-            await this.adoptHistoryLedgers();
-            await this.cleanupLegacyJournalDocs();
-            await this.refreshHub(undefined, true);
-            if (this.settings?.onboarded && this.app) {
-                import("@/core/doc-sync").then(({ syncRowLogsToSiYuanDocs }) => {
-                    syncRowLogsToSiYuanDocs(this);
-                }).catch(() => undefined);
-            }
-        } catch (e) {
-            console.warn("[LvHome] initial adopt/scan deferred:", e instanceof Error ? e.message : e);
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark("lvhome-layout-ready-start");
         }
+        try {
+            this.scheduleDeferredWarmup();
+        } catch (e) {
+            console.warn("[LvHome] scheduling deferred warmup failed:", e instanceof Error ? e.message : e);
+        } finally {
+            if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+                performance.mark("lvhome-layout-ready-end");
+                try {
+                    performance.measure("lvhome-layout-ready", "lvhome-layout-ready-start", "lvhome-layout-ready-end");
+                    performance.measure("lvhome-startup-critical-path", "lvhome-onload-start", "lvhome-layout-ready-end");
+                } catch { /* performance measure */ }
+            }
+        }
+    }
+
+    /**
+     * 取消挂起的延迟预热调度（同时清理最小静默期定时器与空闲帧回调）
+     */
+    private cancelDeferredWarmupSchedule(): void {
+        if (this.deferredWarmupTimer !== undefined && this.deferredWarmupTimer !== null) {
+            window.clearTimeout(this.deferredWarmupTimer);
+            this.timeoutIds.delete(this.deferredWarmupTimer);
+            this.deferredWarmupTimer = undefined;
+        }
+        if (this.deferredWarmupIdleId !== undefined && this.deferredWarmupIdleId !== null) {
+            if (typeof window !== "undefined" && typeof (window as any).cancelIdleCallback === "function") {
+                try { (window as any).cancelIdleCallback(this.deferredWarmupIdleId); } catch { /* ignore */ }
+            }
+            this.deferredWarmupIdleId = undefined;
+        }
+    }
+
+    /**
+     * 调度空闲/延迟后台预热：
+     * 先通过 setTimeout 建立 45 秒最小静默窗口，确保不抢占冷启动 CPU 与 IPC；
+     * 45 秒静默期满后，若存在 requestIdleCallback 则转入空闲帧软调度触发，平滑执行。
+     */
+    scheduleDeferredWarmup(delayMs = LvHomePlugin.DEFERRED_WARMUP_DELAY_MS): void {
+        if (this.isUnloading || this.deferredWarmupCompleted || this.deferredWarmupPromise) return;
+        this.cancelDeferredWarmupSchedule();
+
+        const run = () => {
+            if (this.isUnloading || this.deferredWarmupCompleted || this.deferredWarmupPromise) return;
+            void this.triggerDeferredWarmup();
+        };
+
+        this.deferredWarmupTimer = this.scheduleTimeout(() => {
+            this.deferredWarmupTimer = undefined;
+            if (this.isUnloading || this.deferredWarmupCompleted || this.deferredWarmupPromise) return;
+
+            if (typeof window !== "undefined" && typeof (window as any).requestIdleCallback === "function") {
+                try {
+                    this.deferredWarmupIdleId = (window as any).requestIdleCallback(() => {
+                        this.deferredWarmupIdleId = undefined;
+                        run();
+                    });
+                    return;
+                } catch {
+                    // 回退到普通直接执行
+                }
+            }
+            run();
+        }, delayMs);
+    }
+
+    /**
+     * 触发后台延迟预热（台账认领、历史日志清理、全库 refreshHub 与日记同步）
+     * 具备 in-flight Promise 单飞守卫，多次调用复用同一 Promise，执行完成后标记完成。
+     */
+    triggerDeferredWarmup(): Promise<void> {
+        if (this.isUnloading) return Promise.resolve();
+        if (this.deferredWarmupCompleted) return Promise.resolve();
+        if (this.deferredWarmupPromise) return this.deferredWarmupPromise;
+
+        this.cancelDeferredWarmupSchedule();
+
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark("lvhome-deferred-warmup-start");
+        }
+
+        const task = (async () => {
+            try {
+                await this.adoptHistoryLedgers();
+                if (this.isUnloading) return;
+                await this.cleanupLegacyJournalDocs();
+                if (this.isUnloading) return;
+                await this.refreshHub(undefined, true, { internalWarmup: true });
+                if (this.isUnloading) return;
+                if (this.settings?.onboarded && this.app) {
+                    const { syncRowLogsToSiYuanDocs, autoHealMemosFromDailyNote } = await import("@/core/doc-sync");
+                    if (this.isUnloading) return;
+                    syncRowLogsToSiYuanDocs(this);
+                    autoHealMemosFromDailyNote(this);
+                }
+                this.deferredWarmupCompleted = true;
+            } catch (e) {
+                console.warn("[LvHome] deferred background warmup failed:", e instanceof Error ? e.message : e);
+            } finally {
+                this.deferredWarmupPromise = null;
+                if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+                    performance.mark("lvhome-deferred-warmup-end");
+                    try {
+                        performance.measure("lvhome-deferred-warmup", "lvhome-deferred-warmup-start", "lvhome-deferred-warmup-end");
+                    } catch { /* performance measure */ }
+                }
+            }
+        })();
+
+        this.deferredWarmupPromise = task;
+        return task;
     }
 
     /**
@@ -301,6 +475,7 @@ export default class LvHomePlugin extends Plugin {
             const nextSettings = await loadSettings(this);
             this.settings = nextSettings;
             this.runtime = await loadRuntime(this);
+            this.initScanFromCache();
             this.emitHubChanged();
             // 契约延伸：若是云端跨设备同步 (sync) 带来的变更，触发只读补扫更新到期提醒，实现多端感知
             if (reason === "sync") {
@@ -377,11 +552,23 @@ export default class LvHomePlugin extends Plugin {
     /** 扫描 → 运行态合并 → 缓存 → 每日摘要 → 通知面板。
      * PF06：传入模块范围则只实扫这些模块（写行后的增量刷新），其余沿用上次快照；
      * 20 组：非强制全量扫描 30 秒内去抖（Tab 快速开关不重复全量），force 用于手动重扫/设置变更 */
-    async refreshHub(only?: string | string[], force = false): Promise<ScanResult> {
+    async refreshHub(
+        only?: string | string[],
+        force = false,
+        options?: { internalWarmup?: boolean },
+    ): Promise<ScanResult> {
+        // 若后台延迟预热正在进行中且本次为外部非强制全量扫描，直接复用其 in-flight 结果
+        if (!only && !options?.internalWarmup && this.deferredWarmupPromise) {
+            await this.deferredWarmupPromise;
+            if (this.scan) return this.scan;
+        }
+
         const seq = ++this.scanSeq;
         // PF01/PF02：性能标记（PerformanceObserver / DevTools 可读取）
         const perfMark = `lvhome-scan-${seq}`;
-        performance.mark(`${perfMark}-start`);
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark(`${perfMark}-start`);
+        }
         const onlySet = only ? new Set(Array.isArray(only) ? only : [only]) : undefined;
         if (!onlySet && !force && this.lastScanAt && Date.now() - this.lastScanAt < LvHomePlugin.FULL_SCAN_MIN_MS) {
             const cached = this.scan;
@@ -491,8 +678,10 @@ export default class LvHomePlugin extends Plugin {
             this.lastHubScanDigest = scanDigest;
             console.debug(`[LvHome] 管家扫描完成：${scan.counts.overdue} 项逾期，${scan.counts.soon} 项临期（共 ${scan.reminders.length} 项）`);
         }
-        performance.mark(`${perfMark}-end`);
-        try { performance.measure(perfMark, `${perfMark}-start`, `${perfMark}-end`); } catch { /* PF01 测量标记 */ }
+        if (typeof performance !== "undefined" && typeof performance.mark === "function") {
+            performance.mark(`${perfMark}-end`);
+            try { performance.measure(perfMark, `${perfMark}-start`, `${perfMark}-end`); } catch { /* PF01 测量标记 */ }
+        }
         const todayDue = scan.reminders.filter((r) => r.daysLeft <= 0).length;
         this.updateStatusbar(todayDue);
 
@@ -588,6 +777,7 @@ export default class LvHomePlugin extends Plugin {
     }
 
     showTab() {
+        void this.triggerDeferredWarmup();
         if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel();
             return;
@@ -596,7 +786,9 @@ export default class LvHomePlugin extends Plugin {
         // 前端无公开的"聚焦已开自定义页签"API——走页签头 DOM 事件（与用户点击同源行为）；
         // 多开的旧页签逐个点其关闭钮回收（对象全部是本插件的页签）。
         const title = this.i18nText("butler");
-        const heads = Array.from(document.querySelectorAll<HTMLElement>(".layout-tab-bar .item"));
+        const heads = typeof document !== "undefined"
+            ? Array.from(document.querySelectorAll<HTMLElement>(".layout-tab-bar .item"))
+            : [];
         const mine = heads.filter((h) => h.querySelector(".item__text")?.textContent?.trim() === title);
         if (mine.length) {
             for (const h of mine.slice(0, -1)) h.querySelector(".item__close")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -616,6 +808,7 @@ export default class LvHomePlugin extends Plugin {
     /** 打开面板并预选提醒页签——pendingScreen 仅在挂载时消费（SiYuan 会恢复上次打开的页签，
      *  日常路径几乎总是"已挂载"），已挂载时经 panelScreenSwitch 直切（2026-10-09 R6 实证修复）。 */
     openRemindersScreen() {
+        void this.triggerDeferredWarmup();
         this.pendingScreen = "reminders";
         if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel("reminders");
@@ -627,6 +820,7 @@ export default class LvHomePlugin extends Plugin {
 
     /** 导航并打开指定台账模块（如 "assets" | "members" | "medicine" | "vehicle" 等） */
     openModuleTab(moduleId: string) {
+        void this.triggerDeferredWarmup();
         this.pendingScreen = moduleId;
         if (this.isMobileView()) {
             this.entrypointsController?.getMobileController()?.openMobilePanel(moduleId);
@@ -638,6 +832,7 @@ export default class LvHomePlugin extends Plugin {
 
     /** 打开台账文档或定位具体块（B4e/R5 定案：detached 行 itemID 不在 blocks 表，必须优先打开台账文档 docId；若 blockId 实为真实绑定文档块则再聚焦高亮） */
     showTabDocs(docId?: string, blockId?: string) {
+        void this.triggerDeferredWarmup();
         const resolvedDocId = docId ?? (blockId ? undefined : this.settings.dbRefs[this.activeLedger]?.docId);
         const primaryTarget = resolvedDocId ?? blockId;
         if (!primaryTarget) return;
@@ -767,8 +962,8 @@ export default class LvHomePlugin extends Plugin {
         await this.notifyHubChanged();
         if (r?.moduleId === "adhoc") {
             try {
-                const { appendDoneMemoToDailyNote } = await import("@/core/doc-sync");
-                await appendDoneMemoToDailyNote(this, r);
+                const { markMemoDoneInDailyNote } = await import("@/core/doc-sync");
+                await markMemoDoneInDailyNote(this, r);
             } catch { /* soft */ }
             await this.syncJournalSafely();
         }
@@ -819,20 +1014,29 @@ export default class LvHomePlugin extends Plugin {
     async addMemo(title: string, due: string, options?: any) {
         await addMemo(this, title, due, options);
         await this.notifyHubChanged();
+        const created = this.runtime.memos.find((m) => m.title === title.trim() && m.dueDate === due);
         try {
             const { appendMemoToDailyNote } = await import("@/core/doc-sync");
-            await appendMemoToDailyNote(this, { title, dueDate: due, ...options });
+            await appendMemoToDailyNote(this, { title, dueDate: due, id: created?.id, ...options });
         } catch { /* soft */ }
     }
-    async updateMemo(id: string, patch: { title?: string; dueDate?: string }) {
+    async updateMemo(id: string, patch: { title?: string; dueDate?: string; priority?: "high" | "low" | "medium"; category?: string }) {
         await updateMemo(this, id, patch);
         await this.notifyHubChanged();
+        try {
+            const { updateMemoInDailyNote } = await import("@/core/doc-sync");
+            await updateMemoInDailyNote(this, id, patch);
+        } catch { /* soft */ }
         await this.syncJournalSafely();
     }
     /** 删除备忘（显式动作，H03：未处理备忘只经此删除） */
     async removeMemo(id: string) {
         await removeMemo(this, id);
         await this.notifyHubChanged();
+        try {
+            const { deleteMemoFromDailyNote } = await import("@/core/doc-sync");
+            await deleteMemoFromDailyNote(this, id);
+        } catch { /* soft */ }
         await this.syncJournalSafely();
     }
     /** 29 组：今日免打扰快捷开关（todaySilent 存当日 localDateKey，跨天自动失效；闸口在 inSilentHours） */
@@ -1255,6 +1459,7 @@ export default class LvHomePlugin extends Plugin {
         this.tickerUnsubscribe = undefined;
         this.dateCrossUnsubscribe?.();
         this.dateCrossUnsubscribe = undefined;
+        this.cancelDeferredWarmupSchedule();
         this.isUnloading = true;
         this.entrypointsController?.dispose();
         this.entrypointsController = undefined;

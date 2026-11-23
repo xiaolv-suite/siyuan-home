@@ -1,3 +1,5 @@
+import { getCleanBlockText } from "../libs/lv-notice-kit";
+
 export interface PluginContextMenusOptions {
     plugin: any;
     eventBus: any;
@@ -69,7 +71,7 @@ export function registerPluginContextMenus(options: PluginContextMenusOptions): 
         const menu = detail?.menu;
         const blockEl = detail?.blockElements?.[0];
         if (!menu || !blockEl || typeof menu.addItem !== "function") return;
-        const text = (blockEl.textContent ?? "").trim();
+        const text = getCleanBlockText(blockEl);
         if (!text) return;
 
         menu.addItem({

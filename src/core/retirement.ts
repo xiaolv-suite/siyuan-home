@@ -66,11 +66,13 @@ export function calculateRetirement(input: RetirementInput): RetirementResult | 
         }
 
         const retireMonthStr = `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
-        const retireFullDate = `${retireMonthStr}-${String(birth.day).padStart(2, "0")}`;
+        const maxDayInRetireMonth = new Date(targetYear, targetMonth, 0).getDate();
+        const safeRetireDay = Math.min(birth.day, maxDayInRetireMonth);
+        const retireFullDate = `${retireMonthStr}-${String(safeRetireDay).padStart(2, "0")}`;
 
         const birthTime = new Date(birth.year, birth.month - 1, birth.day).getTime();
         const nowTime = new Date(today.year, today.month - 1, today.day).getTime();
-        const retireTime = new Date(targetYear, targetMonth - 1, birth.day).getTime();
+        const retireTime = new Date(targetYear, targetMonth - 1, safeRetireDay).getTime();
 
         const currentAge = Math.round(((nowTime - birthTime) / (365.25 * 24 * 60 * 60 * 1000)) * 10) / 10;
         const daysLeft = Math.round((retireTime - nowTime) / (24 * 60 * 60 * 1000));

@@ -5,6 +5,7 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
+import { localDateKey } from "./hub/rule";
 import { smartParseNoteContent, type ParsedCaptureResult } from "./block-capture";
 
 export interface BlockIngestResult {
@@ -94,7 +95,7 @@ export function parseBlockToLedgerRow(params: {
 export function formatBlockIngestSnippet(
     moduleTitle: string,
     rowTitle: string,
-    today = new Date().toISOString().slice(0, 10),
+    today = localDateKey(),
 ): string {
     return `> 🏠 已收录至小驴管家【${moduleTitle}】· ${today} · ${rowTitle}`;
 }

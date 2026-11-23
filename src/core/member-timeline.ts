@@ -307,13 +307,14 @@ export function formatMemberTimelineReportText(report: MemberTimelineReport): st
     lines.push("【效期与履约时间轴】");
     for (const node of report.timeline) {
         let tag = "✔";
-        let daysDesc = `剩 ${node.daysRemaining} 天`;
+        const validDays = Number.isFinite(node.daysRemaining) ? node.daysRemaining : 0;
+        let daysDesc = `剩 ${validDays} 天`;
         if (node.status === "expired") {
             tag = "❌";
-            daysDesc = `已逾期 ${Math.abs(node.daysRemaining)} 天`;
+            daysDesc = `已逾期 ${Math.abs(validDays)} 天`;
         } else if (node.status === "expiring_soon") {
             tag = "⚠️";
-            daysDesc = `临期 · 剩 ${node.daysRemaining} 天`;
+            daysDesc = `临期 · 剩 ${validDays} 天`;
         }
 
         const typeLabel = node.module === "certs" ? "证件" : "合同";
@@ -434,11 +435,12 @@ export async function openMemberTimelineFlow(
 
             const right = document.createElement("div");
             right.className = "lv-dialog-row__right";
-            const daysDesc = node.daysRemaining < 0
-                ? `<b class="lv-tx-warn">${t("members.timelineDaysOverdue").replace("${n}", String(Math.abs(node.daysRemaining)))}</b>`
-                : node.daysRemaining <= 90
-                    ? `<b class="lv-tx-warn">${t("members.timelineDaysLeft").replace("${n}", String(node.daysRemaining))}</b>`
-                    : `<span class="lv-caption">${t("members.timelineDaysLeft").replace("${n}", String(node.daysRemaining))}</span>`;
+            const validDays = Number.isFinite(node.daysRemaining) ? node.daysRemaining : 0;
+            const daysDesc = validDays < 0
+                ? `<b class="lv-tx-warn">${t("members.timelineDaysOverdue").replace("${n}", String(Math.abs(validDays)))}</b>`
+                : validDays <= 90
+                    ? `<b class="lv-tx-warn">${t("members.timelineDaysLeft").replace("${n}", String(validDays))}</b>`
+                    : `<span class="lv-caption">${t("members.timelineDaysLeft").replace("${n}", String(validDays))}</span>`;
 
             right.innerHTML = `<div>${daysDesc}</div><span class="lv-caption">${node.date}</span>`;
 

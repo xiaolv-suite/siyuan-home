@@ -3,6 +3,7 @@
  * 包含：成员台账归属批量改派、vCard 4.0 格式导出
  */
 
+import { localDateKey } from "./hub/rule";
 import { escapeHtml } from "./modal-shell";
 import { bindDialogA11y } from "./dialog-a11y";
 import type { FamilyMember } from "@/types";
@@ -17,6 +18,9 @@ export interface OpenMemberReassignDialogOptions {
     onReassigned?: () => Promise<void>;
 }
 
+/** 2026-11-21 走查修复：改派弹窗模块级防重入互斥——连点入口会叠开两个弹窗 */
+let reassignDialogOpen = false;
+
 export function openMemberReassignDialog(options: OpenMemberReassignDialogOptions): void {
     const { members, fromMember, plugin, t, DialogCls, showMessageFn, onReassigned } = options;
     const activeMembers = members.filter((m) => m.avItemId);
@@ -25,6 +29,7 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
         return;
     }
     if (typeof document === "undefined") return;
+    if (reassignDialogOpen) return;
     const fromOptions = [
         `<option value="unassigned">${t("members.unassignedOrStale")}</option>`,
         ...members.filter((m) => m.avItemId).map((m) => `<option value="${escapeHtml(m.avItemId)}" ${fromMember?.id === m.id ? "selected" : ""}>${escapeHtml(m.name)}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`),
@@ -34,6 +39,7 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
         .map((m) => `<option value="${escapeHtml(m.avItemId)}">${escapeHtml(m.name)}（${t(`role.${m.role}`) !== `role.${m.role}` ? t(`role.${m.role}`) : m.role}）</option>`)
         .join("");
 
+    reassignDialogOpen = true;
     const dlg = new DialogCls({
         title: t("members.reassignTitle"),
         content: `<div class="b3-dialog__content lv-dialog-col">
@@ -53,6 +59,13 @@ export function openMemberReassignDialog(options: OpenMemberReassignDialogOption
         </div>`,
         width: "min(440px, 94vw)",
     });
+
+    // 互斥释放：包装 destroy（Esc/遮罩点击/程序销毁统一走实例 destroy），销毁即复位
+    const rawDestroy = dlg.destroy.bind(dlg);
+    dlg.destroy = () => {
+        reassignDialogOpen = false;
+        rawDestroy();
+    };
 
     bindDialogA11y({ dlg });
     const cancelBtn = dlg.element.querySelector("#lv-reassign-cancel") as HTMLButtonElement | null;
@@ -129,7 +142,7 @@ export function exportMemberVcf(options: ExportMemberVcfOptions): void {
             const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `lvhome-members-${new Date().toISOString().slice(0, 10)}.vcf`;
+            a.download = `lvhome-members-${localDateKey(new Date())}.vcf`;
             a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("members.exportVcfDone").replace("${n}", String(members.length)), 3000, "info");

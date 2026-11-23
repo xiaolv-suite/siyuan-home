@@ -178,7 +178,8 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     (dlg.element.querySelector("#lv-ecard-flashcards") as HTMLButtonElement | null)?.addEventListener("click", async () => {
         const cards = generateEmergencyCards(card);
         if (!cards.length) {
-            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            // 2026-11-21 走查修复：无卡可导出时原复用「生活指数简报已复制」误导用户，改专用提示
+            showMessageFn(t("overview.noFlashcardsForEmergency"), 2500, "info");
             return;
         }
         const md = formatEmergencyCardsMarkdown(cards);
@@ -193,7 +194,8 @@ export async function openEmergencyCardDialog(opts: EmergencyCardDialogOptions):
     (dlg.element.querySelector("#lv-ecard-copy") as HTMLButtonElement).onclick = async () => {
         try {
             await navigator.clipboard.writeText(cardText);
-            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            // 2026-11-21 走查修复：复制对象是急救卡文字简报，原复用生活指数文案造成提示张冠李戴
+            showMessageFn(t("overview.emergencyCopied"), 2500, "info");
         } catch {
             showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
         }

@@ -4,6 +4,9 @@
     import { showDocTreeNativeMenu, lvLaunchpad } from "@/libs/lv-notice-kit";
     import { sql } from "@/core/siyuan";
     import { onDestroy } from "svelte";
+    // DL2 阶段3：空态吉祥物（mascot 偏好门控，关闭回退线性图标）
+    import { lvMascot } from "@/libs/ui/mascots";
+    import { resolveEffectiveMotion } from "@/libs/lv-ui-prefs";
     import type { ActivityRecord, ActivitySnapshot } from "@/core/activity";
     import { loadActivitySnapshot } from "@/core/activity";
     import type { HomePluginLike } from "@/types/plugin";
@@ -341,10 +344,10 @@
                     <span>{progress.total > 0 ? t("activity.progress").replace("${done}", String(progress.done)).replace("${total}", String(progress.total)) : t("activity.readingLedgers")}</span>
                 </div>
             {:else if loadError && !snapshot?.records.length}
-                <div class="lv-card lv-empty" role="alert">
-                    <div class="eic"><UiIcon name="alert" size={22} /></div>
-                    <b>{t("activity.failed")}</b><span>{loadError}</span>
-                    <button type="button" class="b3-button b3-button--outline lv-mt-8" disabled={loading} onclick={() => void refresh(true)}>{loading ? t("activity.loading") : t("activity.retry")}</button>
+                <div class="lvx-error" role="alert">
+                    <div class="lvx-error__icon"><UiIcon name="alert" size={22} /></div>
+                    <b class="lvx-error__title">{t("activity.failed")}</b><span class="lvx-error__desc">{loadError}</span>
+                    <span class="lvx-error__actions"><button type="button" class="b3-button b3-button--outline" disabled={loading} onclick={() => void refresh(true)}>{loading ? t("activity.loading") : t("activity.retry")}</button></span>
                 </div>
             {:else if records.length === 0}
                 {#if snapshot?.errors.length}
@@ -355,7 +358,13 @@
                     </div>
                 {/if}
                 <div class="lv-card {compact ? 'lv-empty-compact' : 'lv-empty'}" role="status">
-                    <div class={compact ? "eic-sm" : "eic"}><UiIcon name="calendar" size={compact ? 18 : 22} /></div>
+                    <div class={compact ? "eic-sm" : "eic"}>
+                        {#if !compact && resolveEffectiveMotion().mascot}
+                            {@html lvMascot("sleep", { class: "lv-empty-mascot" })}
+                        {:else}
+                            <UiIcon name="calendar" size={compact ? 18 : 22} />
+                        {/if}
+                    </div>
                     {#if compact}
                         <div class="lv-empty-compact__text">
                             <b>{query || moduleFilter !== "all" ? t("activity.noMatch") : t("activity.empty")}</b>

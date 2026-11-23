@@ -5,6 +5,7 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
+import { localDateKey } from "./hub/rule";
 import { parseLocationBreadcrumbs } from "./location-index";
 
 export interface DigestReminder {
@@ -69,7 +70,7 @@ export function buildReminderDigest(
     options: DigestOptions & { previousOverdue?: number | null } = {},
 ): ReminderDigest {
     const {
-        today = new Date().toISOString().slice(0, 10),
+        today = localDateKey(),
         periodLabel = "本周",
         topN = 5,
         previousOverdue = null,
@@ -204,7 +205,7 @@ export function formatDailyHomeBoardMarkdown(
     reminders: readonly DailyHomeBoardItem[],
     options: DailyHomeBoardOptions = {}
 ): string {
-    const today = options.date || new Date().toISOString().slice(0, 10);
+    const today = options.date || localDateKey();
     const label = options.label || ((m) => m);
 
     const list = (reminders || []).filter(r => r && r.id);

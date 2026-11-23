@@ -4,6 +4,7 @@
  * 降级：人脉未装/未初始化/搜索失败各有提示；快照格式 `名称 [docId]`。
  */
 import { Dialog } from "siyuan";
+import { localDateKey } from "@/core/hub/rule";
 import { getBridgeSafely, type ContactsBridgeApi } from "./ecosystem-bridge-kit";
 
 export interface ContactPickHandle {
@@ -46,7 +47,7 @@ export async function logContactInteractionSafely(options: {
     if (!docId) return false;
     try {
         const res = await bridge.recordInteraction([docId], {
-            date: options.date || new Date().toISOString().slice(0, 10),
+            date: options.date || localDateKey(),
             note: options.note,
             ref: options.ref || `home-interaction-${Date.now()}`,
         });

@@ -254,10 +254,12 @@ export function buildLocationTree(
         }
     }
 
-    // 递归转换与计算 totalCount
-    function finalize(node: MutableNode): LocationTreeNode {
-        const children = [...node.childMap.values()]
-            .map(finalize)
+    const MAX_LOCATION_TREE_DEPTH = 16;
+
+    // 递归转换与计算 totalCount（带 maxDepth 深度看门狗防执行栈溢出）
+    function finalize(node: MutableNode, depth = 0): LocationTreeNode {
+        const children = depth >= MAX_LOCATION_TREE_DEPTH ? [] : [...node.childMap.values()]
+            .map((c) => finalize(c, depth + 1))
             .sort((a, b) => b.totalCount - a.totalCount || a.segment.localeCompare(b.segment, "zh-CN"));
 
         const directCount = node.directEntries.length;
@@ -277,7 +279,7 @@ export function buildLocationTree(
     }
 
     return [...rootMap.values()]
-        .map(finalize)
+        .map((n) => finalize(n, 0))
         .sort((a, b) => {
             // 未填写的特殊项排在最末
             if (a.segment === missingLabel) return 1;
@@ -298,19 +300,20 @@ export function queryLocationSubtree(
     const needle = parts.join(" › ");
     const lastSeg = parts[parts.length - 1];
 
-    function search(node: LocationTreeNode): LocationTreeNode | null {
+    function search(node: LocationTreeNode, depth = 0): LocationTreeNode | null {
+        if (depth > 16) return null;
         if (node.fullPath === needle || (parts.length === 1 && node.segment === lastSeg)) {
             return node;
         }
         for (const child of node.children) {
-            const found = search(child);
+            const found = search(child, depth + 1);
             if (found) return found;
         }
         return null;
     }
 
     for (const r of roots) {
-        const found = search(r);
+        const found = search(r, 0);
         if (found) return found;
     }
     return null;
@@ -330,7 +333,8 @@ export interface FlatLocationItem {
 export function flattenLocationTree(roots: LocationTreeNode[]): FlatLocationItem[] {
     const result: FlatLocationItem[] = [];
 
-    function traverse(node: LocationTreeNode) {
+    function traverse(node: LocationTreeNode, depth = 0) {
+        if (depth > 16) return;
         result.push({
             segment: node.segment,
             fullPath: node.fullPath,
@@ -339,12 +343,12 @@ export function flattenLocationTree(roots: LocationTreeNode[]): FlatLocationItem
             directCount: node.directEntries.length,
         });
         for (const child of node.children) {
-            traverse(child);
+            traverse(child, depth + 1);
         }
     }
 
     for (const root of roots) {
-        traverse(root);
+        traverse(root, 0);
     }
     return result;
 }
@@ -360,7 +364,8 @@ export function formatLocationTreeText(
 
     const lines: string[] = ["🏡 家庭物品存放位置空间拓扑树", ""];
 
-    function renderNode(node: LocationTreeNode, prefix: string, isLast: boolean, isRoot: boolean) {
+    function renderNode(node: LocationTreeNode, prefix: string, isLast: boolean, isRoot: boolean, depth = 0) {
+        if (depth > 16) return;
         const marker = isRoot ? "" : (isLast ? "└── " : "├── ");
         lines.push(`${prefix}${marker}${node.segment} (${node.totalCount} 件)`);
 
@@ -377,12 +382,12 @@ export function formatLocationTreeText(
         for (let i = 0; i < node.children.length; i++) {
             const child = node.children[i];
             const childIsLast = (i === node.children.length - 1);
-            renderNode(child, nextPrefix, childIsLast, false);
+            renderNode(child, nextPrefix, childIsLast, false, depth + 1);
         }
     }
 
     for (let i = 0; i < roots.length; i++) {
-        renderNode(roots[i], "", i === roots.length - 1, true);
+        renderNode(roots[i], "", i === roots.length - 1, true, 0);
     }
 
     return lines.join("\n").trimEnd();
@@ -391,10 +396,10 @@ export function formatLocationTreeText(
 /**
  * 将层级位置渲染为符合思源原生 Protyle 规范的空气感微胶囊 HTML 标签（Tag Pill）
  */
-export function renderLocationCapsuleHtml(location: string | undefined): string {
+export function renderLocationCapsuleHtml(location: string | undefined, unfilledLabel = "（未填写位置）"): string {
     const parts = parseLocationBreadcrumbs(location);
     if (parts.length === 0) {
-        return `<span class="b3-chip b3-chip--secondary b3-chip--small">（未填写位置）</span>`;
+        return `<span class="b3-chip b3-chip--secondary b3-chip--small">${unfilledLabel}</span>`;
     }
 
     const segmentsHtml = parts

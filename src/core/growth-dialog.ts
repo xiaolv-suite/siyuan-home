@@ -45,11 +45,11 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
     }
 
     const COLORS = [
-        "var(--b3-theme-primary, #60a5fa)",
-        "var(--b3-theme-error, #f87171)",
-        "var(--b3-theme-success, #34d399)",
+        "var(--lv-accent, #60a5fa)",
+        "var(--lv-danger, #f87171)",
+        "var(--lv-ok, #34d399)",
         "var(--b3-theme-info, #a78bfa)",
-        "var(--b3-theme-warning, #fbbf24)"
+        "var(--lv-warn, #fbbf24)"
     ];
     const NS = "http://www.w3.org/2000/svg";
     const el = (tag: string, attrs: Record<string, string | number>, textContent?: string) => {
@@ -88,6 +88,7 @@ export function openGrowthChartDialog(options: GrowthChartDialogOptions): void {
             panel.appendChild(head);
             const W = 500, H = 170, PAD = 40;
             const all = ss.flatMap((s) => s.points.map((p, pi) => ({ x: p.ageMonths ?? pi, y: p.value })));
+            if (!all.length) continue;
             const xs = all.map((p) => p.x), ys = all.map((p) => p.y);
             const xMin = Math.min(...xs), xMax = Math.max(...xs);
             let yMin = Math.min(...ys), yMax = Math.max(...ys);

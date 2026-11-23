@@ -259,6 +259,23 @@ function enqueueRowLogWrite<T>(plugin: Plugin, action: () => Promise<T>): Promis
     return run;
 }
 
+function countRowLogEntries(log?: RowLog): number {
+    if (!log) return 0;
+    let sum = 0;
+    for (const v of Object.values(log)) {
+        if (Array.isArray(v)) sum += v.length;
+    }
+    return sum;
+}
+
+function countTotalLogEntries(logs: RowLogs): number {
+    let sum = 0;
+    for (const log of Object.values(logs)) {
+        sum += countRowLogEntries(log);
+    }
+    return sum;
+}
+
 /** Atomic in-process read/modify/write for child logs. The current snapshot is
  * read only after earlier mutations have committed, so concurrent dialogs do
  * not overwrite each other's append/delete changes. */
@@ -270,8 +287,24 @@ export function updateRowLogs(plugin: Plugin, update: (current: RowLogs) => RowL
         await plugin.saveData(ROWLOGS_NAME, snapshot);
         if ((plugin as any)?.app && (plugin as any)?.settings?.dbRefs) {
             try {
-                const { syncRowLogsToSiYuanDocs } = await import("./doc-sync");
+                const { syncRowLogsToSiYuanDocs, appendRecentRowLogToDailyNote } = await import("./doc-sync");
                 await syncRowLogsToSiYuanDocs(plugin, snapshot);
+
+                // 若本次为新增流水操作，自动统一增量同步一条标准 LifeLog 至当日日记
+                const currentCount = countTotalLogEntries(current);
+                const nextCount = countTotalLogEntries(next);
+                if (nextCount > currentCount) {
+                    for (const [key, val] of Object.entries(next)) {
+                        const prevVal = current[key];
+                        if (!prevVal || countRowLogEntries(val) > countRowLogEntries(prevVal)) {
+                            const avId = key.split("|")[0];
+                            const matchedMod = Object.entries((plugin as any).settings.dbRefs).find(([, ref]: any) => ref?.avId === avId)?.[0];
+                            if (matchedMod) {
+                                await appendRecentRowLogToDailyNote(plugin, matchedMod, next).catch(() => undefined);
+                            }
+                        }
+                    }
+                }
             } catch { /* soft */ }
         }
         return snapshot;

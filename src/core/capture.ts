@@ -43,7 +43,7 @@ export function validateCaptureInput(field: ColumnDef, value: unknown): CaptureI
         if (!Number.isFinite(number)) return "number";
         if (field.min !== undefined && number < field.min) return "min";
         if (field.max !== undefined && number > field.max) return "max";
-        if (typeof field.step === "number") {
+        if (typeof field.step === "number" && field.step > 0) {
             const origin = field.min ?? 0;
             const steps = (number - origin) / field.step;
             if (Math.abs(steps - Math.round(steps)) > 1e-8) return "step";

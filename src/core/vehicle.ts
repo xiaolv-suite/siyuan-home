@@ -7,6 +7,7 @@
  */
 
 import { calculateEnergyStats, normalizeEnergyRecords, type EnergyRecord, type EnergyStats } from "@/core/fuel";
+import { localDateKey } from "@/core/hub/rule";
 
 export type VehicleQuickAction = "fuel" | "charging" | "maintenance";
 
@@ -115,7 +116,7 @@ export function calculateVehicleCostSummary(
     fuelRecords: readonly EnergyRecord[],
     chargingRecords: readonly EnergyRecord[],
     maintenanceRecords: readonly MaintenanceRecord[],
-    asOfDate = new Date().toISOString().slice(0, 10),
+    asOfDate = localDateKey(),
     currentOdometer?: number,
 ): VehicleCostSummary {
     const fuel = calculateEnergyStats(fuelRecords, "fuel");
@@ -187,7 +188,7 @@ export function normalizeMaintenanceRecords(records: readonly MaintenanceRecord[
  */
 export function calculateMaintenanceStats(
     records: readonly MaintenanceRecord[],
-    asOfDate = new Date().toISOString().slice(0, 10),
+    asOfDate = localDateKey(),
     currentOdometer?: number,
 ): MaintenanceStats {
     const valid = normalizeMaintenanceRecords(records);

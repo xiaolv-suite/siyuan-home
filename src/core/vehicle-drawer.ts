@@ -113,7 +113,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             fuelRecords,
             chargingRecords,
             maintenanceRecords,
-            new Date().toISOString().slice(0, 10),
+            localDateKey(),
             Number.isFinite(currentOdometer) ? currentOdometer : undefined
         );
 
@@ -301,7 +301,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             head.append(title, add);
             wrap.appendChild(head);
             registerVehicleAction("maintenance", add);
-            const stats = calculateMaintenanceStats(records, new Date().toISOString().slice(0, 10), Number.isFinite(currentOdometer) ? currentOdometer : undefined);
+            const stats = calculateMaintenanceStats(records, localDateKey(), Number.isFinite(currentOdometer) ? currentOdometer : undefined);
             const summary = mk("div", "lv-diag-grid lv-mb-10");
             const metric = (label: string, value: string) => {
                 const box = mk("div", "lv-diag-stat-card");

@@ -8,7 +8,6 @@ import fg from "fast-glob";
 import * as terser from "terser";
 
 import vitePluginYamlI18n from "./yaml-plugin.js";
-import { useLiveReload } from "./scripts/siyuan_live_reload.js";
 
 const env = process.env;
 const isSrcmap = env.VITE_SOURCEMAP === "inline";
@@ -154,8 +153,7 @@ export default defineConfig(buildTarget === "kernel" ? {
         },
         rollupOptions: {
             plugins: isDev ? [
-                useLiveReload({ outputDir }),
-                watchExternalFiles([
+                                watchExternalFiles([
                     "public/i18n/**",
                     "./README*.md",
                     "./docs/*.md",

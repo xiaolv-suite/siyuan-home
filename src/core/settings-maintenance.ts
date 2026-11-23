@@ -5,6 +5,7 @@
 
 import { confirm } from "@/libs/dialog";
 import { bindDialogA11y } from "./dialog-a11y";
+import { localDateKey } from "./hub/rule";
 import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
 
@@ -26,7 +27,7 @@ export function exportSettingsJson(plugin: any, t: (k: string) => string): void 
         const blob = new Blob([payload], { type: "application/json" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `siyuan-home-settings-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `siyuan-home-settings-${localDateKey()}.json`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 0);
     });
@@ -136,7 +137,7 @@ export async function exportDiagnosticsPackage(
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `siyuan-home-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `siyuan-home-diagnostics-${localDateKey()}.json`;
             a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("settings.diagExportDone"), 3000, "info");

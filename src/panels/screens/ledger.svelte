@@ -540,10 +540,12 @@
                 }
                 const { removeLedgerRows } = await import("@/core/siyuan");
                 const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
+                const { updateRowLogs, removeRowLog } = await import("@/core/rowlog");
                 await removeLedgerRows(ref!.avId!, [r.itemID], {
                     idempotencyKey: `ledger:delete:${ref!.avId!}:${r.itemID}`,
                     retries: 1,
                 });
+                await updateRowLogs(plugin, (logs) => removeRowLog(logs, ref!.avId!, r.itemID)).catch(() => undefined);
                 cleanupRowRuntimeData(plugin.runtime, r.itemID);
                 await saveRuntime(plugin, plugin.runtime);
                 showMessage(t("ledger.delDone"), 2500, "info");

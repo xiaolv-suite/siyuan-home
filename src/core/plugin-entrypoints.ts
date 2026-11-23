@@ -1,4 +1,5 @@
 import { type Custom, getFrontend } from "siyuan";
+import { getCleanBlockText } from "../libs/lv-notice-kit";
 import { createMobileController, type MobileController } from "@/core/mobile-controller";
 
 export const TAB_TYPE = "hub-tab";
@@ -299,7 +300,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
             html: `<div class="b3-list-item__first"><span class="b3-list-item__text">⚡ ${butlerLabel}：${i18n["faq.quickCapture"] ?? "快速记录流水/便签"}</span></div>`,
             id: "lvHomeSlashQuickCapture",
             callback: (_protyle: any, nodeElement: HTMLElement) => {
-                const text = nodeElement?.textContent?.trim() ?? "";
+                const text = getCleanBlockText(nodeElement);
                 showTab();
                 window.dispatchEvent(new CustomEvent("siyuan-home:open-capture", { detail: { text } }));
             },

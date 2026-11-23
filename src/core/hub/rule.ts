@@ -135,10 +135,16 @@ export async function nextOccurrence(rule: ReminderRuleSpec, row: LedgerRowDates
 
     if (rule.kind === "anniversary") {
         if (row.lunar) return nextLunarAnniversary(base, today0);
-        // 公历周年：2/29 平年取 2/28（决策 09）
-        const day = Math.min(base.getDate(), daysInMonth(today0.getFullYear(), base.getMonth()));
-        const cand = new Date(today0.getFullYear(), base.getMonth(), day);
-        if (cand < today0) return addYears(cand, 1);
+        // 公历周年：2/29 平年取 2/28（决策 09），下一年必须按原始 base.getDate() 重新计算，防止闰年永久退化
+        const baseDay = base.getDate();
+        let targetYear = today0.getFullYear();
+        let day = Math.min(baseDay, daysInMonth(targetYear, base.getMonth()));
+        let cand = new Date(targetYear, base.getMonth(), day);
+        if (cand < today0) {
+            targetYear += 1;
+            day = Math.min(baseDay, daysInMonth(targetYear, base.getMonth()));
+            cand = new Date(targetYear, base.getMonth(), day);
+        }
         return cand;
     }
 
@@ -193,39 +199,42 @@ export function calculateNextRecurrenceDate(
         return addDays(startPoint, 1);
     }
 
-    // anchor === "due"：按日历固定周期滚动到今天及以后（O(1) 月数差；day/week 用差值跳步）
+    // anchor === "due"：按日历固定周期滚动到今天以后（若已到期或提前完成，必须至少递增一个周期推进）
     if (c === "day") {
         const diff = differenceInCalendarDays(today0, startPoint);
-        if (diff <= 0) return startPoint;
-        return addDays(startPoint, diff);
+        if (diff < 0) return startPoint;
+        return addDays(startPoint, Math.max(1, diff === 0 ? 1 : diff));
     }
     if (c === "week") {
         const diff = differenceInCalendarDays(today0, startPoint);
-        if (diff <= 0) return startPoint;
-        return addDays(startPoint, Math.ceil(diff / 7) * 7);
+        if (diff < 0) return startPoint;
+        const steps = diff === 0 ? 1 : Math.ceil(diff / 7);
+        return addDays(startPoint, steps * 7);
     }
     const months = CYCLE_MONTHS[c] ?? (monthMatch ? parseInt(monthMatch[1], 10) : 0);
     if (months > 0) {
         const diff = (today0.getFullYear() - startPoint.getFullYear()) * 12 + (today0.getMonth() - startPoint.getMonth());
-        if (diff <= 0 && startPoint >= today0) return startPoint;
-        const k = Math.max(1, Math.ceil(diff / months));
+        if (diff < 0 || (diff === 0 && startPoint > today0)) return startPoint;
+        const k = Math.max(1, Math.ceil((diff === 0 ? 1 : diff) / months));
         const next = addMonths(startPoint, k * months);
-        return next < today0 ? addMonths(next, months) : next;
+        return next <= today0 ? addMonths(next, months) : next;
     }
     if (dayMatch) {
         const step = parseInt(dayMatch[1], 10);
         if (step > 0) {
             const diff = differenceInCalendarDays(today0, startPoint);
-            if (diff <= 0) return startPoint;
-            return addDays(startPoint, Math.ceil(diff / step) * step);
+            if (diff < 0) return startPoint;
+            const steps = diff === 0 ? 1 : Math.ceil(diff / step);
+            return addDays(startPoint, steps * step);
         }
     }
     if (weekMatch) {
         const step = parseInt(weekMatch[1], 10) * 7;
         if (step > 0) {
             const diff = differenceInCalendarDays(today0, startPoint);
-            if (diff <= 0) return startPoint;
-            return addDays(startPoint, Math.ceil(diff / step) * step);
+            if (diff < 0) return startPoint;
+            const steps = diff === 0 ? 1 : Math.ceil(diff / step);
+            return addDays(startPoint, steps * step);
         }
     }
     return startPoint;

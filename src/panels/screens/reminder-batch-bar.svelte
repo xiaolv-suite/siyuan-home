@@ -103,7 +103,10 @@
         if (selectedList.length === 0) return;
         batchBusy = true;
         const refsText = selectedList
-            .map((r) => `((${r.rowId || r.id} '${r.title}'))`)
+            .map((r) => {
+                const safeTitle = (r.title || "").replace(/[\r\n]+/g, " ").replace(/'/g, "’");
+                return `((${r.rowId || r.id} '${safeTitle}'))`;
+            })
             .join("\n");
         try {
             await navigator.clipboard.writeText(refsText);

@@ -128,7 +128,8 @@
         const nameCol = ref.columns?.name;
         const selectedRows = rows.filter((r) => selectedItemIds.includes(r.itemID));
         const refs = selectedRows.map((r) => {
-            const title = String(r.cells?.[nameCol ?? ""]?.text?.content ?? r.cells?.[nameCol ?? ""]?.block?.content ?? r.itemID).trim();
+            const rawTitle = String(r.cells?.[nameCol ?? ""]?.text?.content ?? r.cells?.[nameCol ?? ""]?.block?.content ?? r.itemID).trim();
+            const title = rawTitle.replace(/[\r\n]+/g, " ").replace(/'/g, "’");
             return `((${r.itemID} '${title}'))`;
         });
         const text = refs.join("\n");
@@ -189,10 +190,18 @@
 	                    }
                     const { removeLedgerRows } = await import("@/core/siyuan");
                     const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
+                    const { updateRowLogs, removeRowLog } = await import("@/core/rowlog");
                     await removeLedgerRows(ref!.avId!, selectedItemIds, {
                         idempotencyKey: `ledger:batch-del:${ref!.avId!}:${Date.now()}`,
                         retries: 1,
                     });
+                    await updateRowLogs(plugin, (logs) => {
+                        let next = logs;
+                        for (const id of selectedItemIds) {
+                            next = removeRowLog(next, ref!.avId!, id);
+                        }
+                        return next;
+                    }).catch(() => undefined);
                     for (const id of selectedItemIds) {
                         cleanupRowRuntimeData(plugin.runtime, id);
                     }

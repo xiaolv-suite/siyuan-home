@@ -41,16 +41,16 @@ export function openMicroDecompositionDialog(options: OpenMicroDecompositionDial
 
     const contentHtml = `
         <div class="b3-dialog__content lv-dialog-col lv-stale-dialog-body" style="padding: 16px 20px; gap: 14px;">
-            <div class="lv-stale-intro lv-card" style="padding: 12px 14px; background: var(--b3-theme-surface-lighter, var(--lv-surface-2)); border: 1px solid var(--lv-line); border-radius: var(--lv-r-2, 8px);">
+            <div class="lv-stale-intro lv-card" style="padding: 12px 14px; background: var(--lv-surface-2, var(--lv-surface-2)); border: 1px solid var(--lv-line); border-radius: var(--lv-r-2, 8px);">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                    <b style="font-size: 14px; color: var(--b3-theme-on-background); line-height: 1.4; word-break: break-all;">
+                    <b style="font-size: 14px; color: var(--lv-tx); line-height: 1.4; word-break: break-all;">
                         🧩 ${esc(reminder.title)}
                     </b>
                     <span class="lv-badge orange" style="flex-shrink: 0; font-size: 11px;">
                         顺延 ${postponeCount} 次
                     </span>
                 </div>
-                <div class="lv-caption" style="margin-top: 6px; color: var(--b3-theme-on-surface); line-height: 1.5; font-size: 12px;">
+                <div class="lv-caption" style="margin-top: 6px; color: var(--lv-tx-2); line-height: 1.5; font-size: 12px;">
                     ${esc(postponeHint)}
                 </div>
             </div>
@@ -67,15 +67,15 @@ export function openMicroDecompositionDialog(options: OpenMicroDecompositionDial
 
             <div class="lv-stale-inputs" style="display: flex; flex-direction: column; gap: 10px;">
                 <label class="lv-stale-step-row" style="display: flex; flex-direction: column; gap: 4px;">
-                    <span class="lv-caption" style="font-weight: 600; color: var(--b3-theme-on-background);">第 1 步（5 分钟破冰）*</span>
+                    <span class="lv-caption" style="font-weight: 600; color: var(--lv-tx);">第 1 步（5 分钟破冰）*</span>
                     <input type="text" id="lv-stale-step-1" class="b3-text-field" maxlength="30" placeholder="${esc(t("stale.stepPlaceholder1") || "例如：打开网页 / 找出发票拍张照")}" style="width: 100%;" />
                 </label>
                 <label class="lv-stale-step-row" style="display: flex; flex-direction: column; gap: 4px;">
-                    <span class="lv-caption" style="font-weight: 600; color: var(--b3-theme-on-background);">第 2 步（顺势推进）</span>
+                    <span class="lv-caption" style="font-weight: 600; color: var(--lv-tx);">第 2 步（顺势推进）</span>
                     <input type="text" id="lv-stale-step-2" class="b3-text-field" maxlength="30" placeholder="${esc(t("stale.stepPlaceholder2") || "例如：写出提纲或前两句话")}" style="width: 100%;" />
                 </label>
                 <label class="lv-stale-step-row" style="display: flex; flex-direction: column; gap: 4px;">
-                    <span class="lv-caption" style="font-weight: 600; color: var(--b3-theme-on-background);">第 3 步（即时收尾）</span>
+                    <span class="lv-caption" style="font-weight: 600; color: var(--lv-tx);">第 3 步（即时收尾）</span>
                     <input type="text" id="lv-stale-step-3" class="b3-text-field" maxlength="30" placeholder="${esc(t("stale.stepPlaceholder3") || "例如：发送消息或提交确认")}" style="width: 100%;" />
                 </label>
             </div>

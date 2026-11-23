@@ -358,8 +358,20 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
  */
 async function renderRowIDs(avID: string, options?: RequestOptions): Promise<string[]> {
     const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
-    const d = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200 }, queryOptions);
-    return (d?.view?.rows ?? []).map((r: any) => r.id);
+    const first = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: 1 }, queryOptions);
+    const rows = (first?.view?.rows ?? []).map((r: any) => r.id);
+    const rowCount = typeof first?.view?.rowCount === "number" ? first.view.rowCount : rows.length;
+    if (rowCount <= 200) return rows;
+
+    const allIds = [...rows];
+    const totalPages = Math.min(50, Math.ceil(rowCount / 200));
+    for (let p = 2; p <= totalPages; p++) {
+        const next = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: p }, queryOptions).catch(() => null);
+        const nextRows = (next?.view?.rows ?? []).map((r: any) => r.id);
+        allIds.push(...nextRows);
+        if (nextRows.length < 200) break;
+    }
+    return Array.from(new Set(allIds));
 }
 
 /** 删除 av 行（detached 行删除路径；2026-10-03 真机确认参数名为 srcIDs） */

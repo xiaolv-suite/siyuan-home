@@ -200,7 +200,7 @@ export function bindDrawerMoreActions(options: BindDrawerMoreActionsOptions): vo
                     showMessageFn(t("ledger.contactsMissing"), 4000, "info");
                     return;
                 }
-                const dateKey = ref.columns?.date ? cellTextFn(row.cells?.[ref.columns.date], "date") : new Date().toISOString().slice(0, 10);
+                const dateKey = ref.columns?.date ? cellTextFn(row.cells?.[ref.columns.date], "date") : localDateKey();
                 const modName = t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active;
                 const noteContent = `${modName} · ${cardTitle}`;
 

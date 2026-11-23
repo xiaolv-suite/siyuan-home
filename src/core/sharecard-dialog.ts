@@ -15,6 +15,7 @@ import {
 } from "./sharecard";
 import { bindDialogA11y } from "./dialog-a11y";
 import { createReadTracker, modalWarningHtml } from "./modal-shell";
+import { localDateKey } from "./hub/rule";
 import { aggregateFamilyMilestones, type MilestoneSourceRow } from "./milestones";
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
@@ -48,7 +49,7 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
     const { loadRowLogs, getEntries } = await import("./rowlog");
 
     // 1. 收集生活指数与高光亮点
-    const ctx = await collectFamilyLifeContext(plugin, allReminders, new Date().toISOString().slice(0, 10));
+    const ctx = await collectFamilyLifeContext(plugin, allReminders, localDateKey());
     const lifeIndexReport = calculateFamilyLifeIndex(ctx);
 
     // 2. 收集家务完成数
@@ -145,7 +146,8 @@ export async function openYearlyShareCardDialog(opts: ShareCardDialogOptions): P
     copyTextBtn.onclick = async () => {
         try {
             await navigator.clipboard.writeText(plainText);
-            showMessageFn(t("overview.lifeIndexCopied"), 2500, "info");
+            // 2026-11-21 走查修复：复制对象是年度回顾文字简报，改专属文案
+            showMessageFn(t("overview.annualReviewCopied"), 2500, "info");
         } catch {
             showMessageFn(t("ledger.copyAsImageFail"), 4000, "error");
         }

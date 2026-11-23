@@ -3,6 +3,7 @@
  * 解耦自 reminder-dialogs.ts，封装周报摘要 Markdown 生成、差值记录、日历 ICS 导出与隐私二次确认
  */
 
+import { localDateKey } from "./hub/rule";
 import type { Reminder } from "@/types";
 import { saveRuntime } from "./hub/runtime";
 import { escapeHtml, openModalShell } from "./modal-shell";
@@ -100,7 +101,7 @@ export async function exportReminderIcs(options: ExportReminderIcsOptions): Prom
             const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `lvhome-reminders-${new Date().toISOString().slice(0, 10)}.ics`;
+            a.download = `lvhome-reminders-${localDateKey(new Date())}.ics`;
             a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 0);
             showMessageFn(t("hub.icsDone").replace("${n}", String(list.length)), 3000, "info");

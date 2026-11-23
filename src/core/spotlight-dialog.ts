@@ -253,7 +253,8 @@ export async function openSpotlightDialog(options: SpotlightDialogOptions): Prom
             copyRef.textContent = t("spotlight.copyRef");
             copyRef.onclick = async (e) => {
                 e.stopPropagation();
-                const blockRefText = `((${item.rowId} "${item.title}"))`;
+                const safeTitle = (item.title || "").replace(/[\r\n]+/g, " ").replace(/"/g, "”");
+                const blockRefText = `((${item.rowId} "${safeTitle}"))`;
                 try {
                     await navigator.clipboard.writeText(blockRefText);
                     showMessage(t("spotlight.refCopied"), 2500, "info");

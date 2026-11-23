@@ -1,21 +1,16 @@
 /**
- * 小驴管家通用线性图标路径。
- * 路径与小驴打卡保持同一套 stroke 语言；组件只负责渲染，不携带业务状态。
+ * 小驴管家线性图标集（DL2 阶段3 图标 5→1）。
+ * 事实源分层：跨仓通用图标在 packages/lv-kit/ui/icons.ts（LV_ICON_PATHS）；
+ * 本文件只保留管家业务扩展集（HOME_EXTRA_PATHS），合并后仓内 API 不变。
+ * uiIcon 渲染语言后续滚动迁移到 kit lvIcon 工厂。
  */
-export const UI_ICON_PATHS = {
-    home: "M3 10.5 12 3l9 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z M9 20v-6h6v6",
-    settings: "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9A7 7 0 0 0 15.5 6L15 3.5h-4L10.5 6a7 7 0 0 0-1.1.8l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 7 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.3.3.7.6 1.1.8l.5 2.5h4l.5-2.5c.4-.2.8-.6 1.1-.8l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z",
+import { LV_ICON_PATHS } from "../libs/ui/icons";
+
+/** 管家业务扩展图标（53 个；与 kit 基础集合并为仓内全集） */
+const HOME_EXTRA_PATHS = {
     bolt: "m13 2-9 11h7l-1 9 9-12h-7z",
-    close: "M6 6l12 12M18 6 6 18",
-    add: "M12 5v14M5 12h14",
     minus: "M5 12h14",
-    back: "m15 5-7 7 7 7",
-    forward: "m9 5 7 7-7 7",
-    search: "M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z M15 15l6 6",
-    calendar: "M6 3v3M18 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1z M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01",
     clock: "M12 7v5l3 2M12 3a9 9 0 1 0 9 9",
-    history: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2",
-    check: "m5 12 4 4L19 6",
     checkCircle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z m-4-9 3 3 5-6",
     alert: "M12 3 2.8 20h18.4z M12 9v5M12 17h.01",
     info: "M12 8h.01M11 12h1v5h1M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
@@ -45,7 +40,6 @@ export const UI_ICON_PATHS = {
     plane: "M3 11h7l2-8 2 8h7l-1 2h-5l2 8-5-3-5 3 2-8H4z",
     ticket: "M4 6h16v12H4a3 3 0 0 0 0-6 3 3 0 0 0 0-6z M12 6v12",
     luggage: "M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M5 7h14v14H5z M9 11v6M15 11v6",
-    camera: "M4 7h4l2-3h4l2 3h4v13H4z M16 13a4 4 0 1 0-8 0 4 4 0 0 0 8 0",
     film: "M4 5h16v14H4z M8 5v14M16 5v14M4 9h4M16 9h4M4 15h4M16 15h4",
     fuel: "M5 20V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v15M5 8h11M8 6h4M16 7l3 3v7a2 2 0 0 0 2 2M19 13h-3",
     charging: "M13 2 6 13h5l-1 9 8-12h-5z",
@@ -54,7 +48,6 @@ export const UI_ICON_PATHS = {
     mute: "M4 9v6h4l5 4V5L8 9z M19 9l-5 6M14 9l5 6",
     sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z",
     filter: "M4 5h16l-6 7v6l-4 2v-8z",
-    archive: "M4 7h16v13H4z M3 4h18v3H3z M9 11h6",
     menu: "M4 6h16M4 12h16M4 18h16",
     layout: "M4 4h16v16H4z M15 4v16",
     chevronDown: "m6 9 6 6 6-6",
@@ -63,8 +56,11 @@ export const UI_ICON_PATHS = {
     copy: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2 M4 16V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2",
     link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
-    moreHorizontal: "M12 12h.01M8 12h.01M16 12h.01",
-} as const;
+    moreHorizontal: "M12 12h.01M8 12h.01M16 12h.01",} as const;
+
+/** 管家仓内全集 = kit 跨仓基础集 + 管家扩展（同键以 kit 为准） */
+export const UI_ICON_PATHS = { ...LV_ICON_PATHS, ...HOME_EXTRA_PATHS } as const;
+
 
 export type UiIconName = keyof typeof UI_ICON_PATHS;
 

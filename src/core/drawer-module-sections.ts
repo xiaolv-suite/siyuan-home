@@ -6,6 +6,7 @@
  */
 
 import { formatAmount } from "./format";
+import { localDateKey } from "./hub/rule";
 import * as rl from "./rowlog";
 import type { LogKind } from "./rowlog";
 import { uiIcon } from "@/ui/icons";
@@ -257,7 +258,20 @@ export async function renderModuleSpecificSections(options: RenderModuleSpecific
                 return true;
             },
             remove: async (e) => { await rl.updateRowLogs(plugin, (current) => rl.removeEntry(current, ref.avId!, row.itemID, "loans", e)); },
-            format: (e) => `${e.date} · ${t("ledger.loanTo")} ${esc(e.to)}${e.back ? ` · ${e.back} ${t("ledger.loanReturned")}` : ` · ${t("ledger.loanOut")}`}`,
+            format: (e) => {
+                const todayStr = localDateKey(new Date());
+                let statusText = t("ledger.loanOut");
+                if (e.returned || e.isReturned) {
+                    statusText = `${e.back || ""} ${t("ledger.loanReturned")}`;
+                } else if (e.back) {
+                    if (e.back < todayStr) {
+                        statusText = `<span style="color:var(--b3-theme-error,#ef4444); font-weight:600;">逾期未还 (应还 ${esc(e.back)})</span>`;
+                    } else {
+                        statusText = `在借 (预计 ${esc(e.back)} 归还)`;
+                    }
+                }
+                return `${e.date} · ${t("ledger.loanTo")} ${esc(e.to)} · ${statusText}`;
+            },
         });
     } else if (active === "parenting") {
         await renderParentingFeedingSection({ body, row, ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn });

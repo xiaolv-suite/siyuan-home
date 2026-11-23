@@ -1,5 +1,6 @@
 <script lang="ts">
     import UiIcon from "@/ui/icon.svelte";
+    import { onDestroy } from "svelte";
     import { Menu } from "siyuan";
     import { showMessage } from "@/libs/notice";
     import type { TableDensity } from "../panel-session";
@@ -146,6 +147,7 @@
     // 列宽拖拽与持久化记忆 (CAND-27)
     let currentModuleColWidths = $state<Record<string, number>>({});
     let resizingColKey = $state<string | null>(null);
+    let activeResizeCleanup: (() => void) | null = null;
 
     $effect(() => {
         const modKey = activeModuleId || ref?.avId || "default";
@@ -170,11 +172,16 @@
             };
         };
 
-        const onMouseUp = async () => {
+        activeResizeCleanup = () => {
             window.removeEventListener("mousemove", onMouseMove);
             window.removeEventListener("mouseup", onMouseUp);
             document.body.classList.remove("lv-col-resizing");
             resizingColKey = null;
+            activeResizeCleanup = null;
+        };
+
+        const onMouseUp = async () => {
+            activeResizeCleanup?.();
 
             if (plugin?.settings) {
                 const modKey = activeModuleId || ref?.avId || "default";
@@ -193,6 +200,11 @@
         window.addEventListener("mousemove", onMouseMove);
         window.addEventListener("mouseup", onMouseUp);
     }
+
+    onDestroy(() => {
+        activeResizeCleanup?.();
+        document.body.classList.remove("lv-col-resizing");
+    });
 
     function resetColWidth(k: string) {
         const next = { ...currentModuleColWidths };
@@ -219,7 +231,8 @@
             menu.addItem({
                 label: t("ledger.copyBlockRef"),
                 click: async () => {
-                    const rowName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail");
+                    const rawName = cellText(r.cells?.[ref?.columns?.name], "name") || cellText(r.cells?.[ref?.columns?.title], "title") || t("ledger.detail");
+                    const rowName = rawName.replace(/[\r\n]+/g, " ").replace(/'/g, "’");
                     try {
                         await navigator.clipboard.writeText(`((${r.itemID} '${rowName}'))`);
                         showMessage(t("spotlight.refCopied"), 2500, "info");
@@ -404,7 +417,7 @@
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <span class="lv-col-resizer" class:is-resizing={resizingColKey === k}
-                        title="双击恢复自适应宽度，拖拽调整列宽"
+                        title={t("ledger.colResizeHint")}
                         ondblclick={(e) => { e.stopPropagation(); resetColWidth(k); }}
                         onmousedown={(e) => {
                             const th = (e.currentTarget as HTMLElement).closest("th");

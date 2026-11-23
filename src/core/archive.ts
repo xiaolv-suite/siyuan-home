@@ -5,6 +5,7 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
+import { localDateKey } from "./hub/rule";
 import type { AssetRef } from "./assets";
 
 export interface ArchiveRecordItem {
@@ -44,7 +45,7 @@ export function buildArchiveManifest(
     records: ArchiveRecordItem[],
     options: { maskSensitive?: boolean; generatedAt?: string; t?: (k: string) => string } = {},
 ): ArchiveManifest {
-    const { maskSensitive = false, generatedAt = new Date().toISOString().slice(0, 10), t } = options;
+    const { maskSensitive = false, generatedAt = localDateKey(), t } = options;
     const defaultMember = t ? t("members.unassigned") : "未指定成员";
     const defaultAttachment = t ? t("ledger.unnamed") : "未命名附件";
     const defaultRecord = t ? t("ledger.unnamed") : "未命名记录";

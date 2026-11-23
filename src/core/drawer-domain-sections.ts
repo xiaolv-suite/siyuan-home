@@ -433,7 +433,7 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
                             target: healthRef,
                             name: foodName,
                             fields: { category: "allergy", member: memberBlockId, note: reactionInput.value.trim() },
-                            operationKey: `allergy-sync:${row.itemID}:${Date.now()}`,
+                            operationKey: `allergy-sync:${row.itemID}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
                         });
                         adlg.destroy();
                         if (failed.length > 0) {

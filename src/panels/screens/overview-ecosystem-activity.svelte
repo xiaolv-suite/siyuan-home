@@ -237,7 +237,7 @@
                                 }
                             }}
                         >
-                            <span class="lv-launchpad-chip-dot" style="background-color: {item.color || 'var(--b3-theme-primary)'};"></span>
+                            <span class="lv-launchpad-chip-dot" style="background-color: {item.color || 'var(--lv-accent)'};"></span>
                             <span class="lv-launchpad-chip-name">{item.name}</span>
                             {#if item.badge}
                                 <span class="lv-launchpad-chip-badge" class:is-warn={item.badgeType === "warn"} class:is-error={item.badgeType === "error"} class:is-success={item.badgeType === "success"}>
@@ -276,8 +276,8 @@
                                         <button
                                             type="button"
                                             class="b3-button b3-button--text lv-activity-doc-btn"
-                                            title="跳转思源块"
-                                            aria-label="跳转思源块"
+                                            title={t("act.jumpToBlock")}
+                                            aria-label={t("act.jumpToBlock")}
                                             onclick={() => openBlock(item.linkBlockId)}
                                         >
                                             <UiIcon name="folder" size={13} />
@@ -316,9 +316,9 @@
         height: 28px;
         padding: 0 10px;
         border-radius: 999px;
-        background: var(--lv-surface, var(--b3-theme-surface));
-        border: 1px solid var(--lv-line, var(--b3-border-color));
-        color: var(--lv-tx-1, var(--b3-theme-on-surface));
+        background: var(--lv-surface, var(--lv-surface));
+        border: 1px solid var(--lv-line, var(--lv-line));
+        color: var(--lv-tx-1, var(--lv-tx-2));
         font-size: 12px;
         font-weight: 500;
         cursor: pointer;
@@ -335,7 +335,7 @@
     }
     .lv-launchpad-chip:hover {
         background: var(--lv-surface-hover, var(--b3-theme-background-hover));
-        border-color: var(--lv-accent, var(--b3-theme-primary));
+        border-color: var(--lv-accent, var(--lv-accent));
         transform: translateY(-1px);
     }
     .lv-launchpad-chip-dot {
@@ -351,20 +351,20 @@
         font-size: 10px;
         padding: 1px 6px;
         border-radius: 999px;
-        background: var(--b3-theme-surface-lighter, rgba(125, 125, 125, 0.15));
-        color: var(--lv-tx-2, var(--b3-theme-on-surface-light));
+        background: var(--lv-surface-2, rgba(125, 125, 125, 0.15));
+        color: var(--lv-tx-2, var(--lv-tx-3));
         font-weight: normal;
     }
     .lv-launchpad-chip-badge.is-warn {
-        background: color-mix(in srgb, var(--b3-theme-warning, #f59e0b) 16%, transparent);
-        color: var(--b3-theme-warning, #f59e0b);
+        background: color-mix(in srgb, var(--lv-warn, #f59e0b) 16%, transparent);
+        color: var(--lv-warn, #f59e0b);
     }
     .lv-launchpad-chip-badge.is-error {
-        background: color-mix(in srgb, var(--b3-theme-error, #ef4444) 16%, transparent);
-        color: var(--b3-theme-error, #ef4444);
+        background: color-mix(in srgb, var(--lv-danger, #ef4444) 16%, transparent);
+        color: var(--lv-danger, #ef4444);
     }
     .lv-launchpad-chip-badge.is-success {
-        background: color-mix(in srgb, var(--b3-theme-success, #10b981) 16%, transparent);
-        color: var(--b3-theme-success, #10b981);
+        background: color-mix(in srgb, var(--lv-ok, #10b981) 16%, transparent);
+        color: var(--lv-ok, #10b981);
     }
 </style>

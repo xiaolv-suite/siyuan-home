@@ -1,3 +1,4 @@
+import { localDateKey } from "./hub/rule";
 /**
  * 儿童激励积分与零花钱账本联动（§16/§17 317波，调研缺口 G8）：
  * 将家务完成记录（chexecs）中累积的劳动激励积分汇总，
@@ -125,7 +126,7 @@ export function mapPointsToAllowanceRow(
     options: { date?: string; pointsPerYuan?: number } = {},
 ): AllowanceCreationPayload | null {
     if (!summary || summary.unsettledPoints <= 0) return null;
-    const { date = new Date().toISOString().slice(0, 10), pointsPerYuan = 10 } = options;
+    const { date = localDateKey(), pointsPerYuan = 10 } = options;
     const amount = round2(summary.unsettledPoints / Math.max(0.1, pointsPerYuan));
 
     const choreDetail = summary.unsettledChores.length > 0

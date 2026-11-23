@@ -4,6 +4,7 @@
  * 消费方：详情抽屉「复制为图片 / 下载 PNG」。
  */
 import { generateQRDataUrl, blockDeepLink } from "./qr";
+import { localDateKey } from "./hub/rule";
 
 export interface ShareCardRow {
     label: string;
@@ -46,7 +47,7 @@ export function buildFamilyYearlyCardData(params: {
         mediaFinished,
         milestones = [],
         highlights = [],
-        generatedAt = new Date().toISOString().slice(0, 10),
+        generatedAt = localDateKey(),
     } = params;
 
     return {
@@ -306,7 +307,18 @@ export async function renderYearlyReportCardPng(data: FamilyYearlyReportCardData
             ctx.fillStyle = "#0f172a";
             ctx.font = "bold 13.5px system-ui, sans-serif";
             const member = m.memberName ? ` (${m.memberName})` : "";
-            ctx.fillText(`${m.title}${member}`, PAD + 120, y);
+            // 2026-11-21 走查修复：长标题原样绘制会被定宽画布右缘裁切丢字，按可用宽度截断并省略
+            const milestoneText = `${m.title}${member}`;
+            const maxMilestoneWidth = W - PAD - 120 - PAD;
+            if (ctx.measureText(milestoneText).width > maxMilestoneWidth) {
+                let clipped = milestoneText;
+                while (clipped.length > 1 && ctx.measureText(`${clipped}…`).width > maxMilestoneWidth) {
+                    clipped = clipped.slice(0, -1);
+                }
+                ctx.fillText(`${clipped}…`, PAD + 120, y);
+            } else {
+                ctx.fillText(milestoneText, PAD + 120, y);
+            }
             ctx.font = "13.5px system-ui, sans-serif";
             y += 32;
         }

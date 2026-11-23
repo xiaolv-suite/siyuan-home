@@ -116,7 +116,7 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
                 pendingRowId = itemID;
                 pendingModuleId = mod;
             } catch (e) {
-                operationKey = `triage:${Date.now()}`;
+                operationKey = `triage:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
                 const { RowIdentityPendingError } = await import("./siyuan");
                 if (e instanceof RowIdentityPendingError) {
                     identityPending = true;

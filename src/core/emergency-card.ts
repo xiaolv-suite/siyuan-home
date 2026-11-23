@@ -1,3 +1,4 @@
+import { localDateKey } from "./hub/rule";
 /**
  * 家庭急救与应急联络卡（§16/§17 318波，调研高阶特性）：
  * 从成员档案、健康过敏史、医保证件与应急储备中聚合提炼出家庭急救与防灾卡片，
@@ -75,7 +76,7 @@ export function buildFamilyEmergencyCard(params: {
         certRows = [],
         stockRows = [],
         homeAddress,
-        generatedAt = new Date().toISOString().slice(0, 10),
+        generatedAt = localDateKey(),
     } = params;
 
     let hasAllergies = false;

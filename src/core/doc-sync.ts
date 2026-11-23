@@ -22,6 +22,7 @@ import {
 import { stableAvSeed } from "./provisioner";
 import { normalizeLifelogTime } from "./quick-actions";
 import { loadRowLogs, type LogKind, type RowLog, type RowLogs } from "./rowlog";
+import { localDateKey } from "./hub/rule";
 import { withDocLock } from "@/libs/notice";
 import type { FamilyMember } from "@/types";
 
@@ -182,7 +183,10 @@ export function extractUserCustomBlocks(kramdown: string, docId: string): string
         if (chunk.startsWith("{:") && (chunk.includes('type="doc"') || chunk.includes(`id="${docId}"`))) continue;
         // 忽略本插件托管生成的块及旧版初始化头部/超级块
         if (chunk.includes('custom-lvhome="1"') || chunk.includes("custom-lvhome-sec=")) continue;
-        if (chunk.includes("小驴管家 · 日常流水") || chunk.startsWith("# 📒")) continue;
+        // 2026-11-21 走查修复：旧版遗留头识别从「chunk 任意位置包含」收窄为「chunk 起始的精确遗留标题」。
+        // 原启发式会把正文里提到「小驴管家 · 日常流水」的用户手写段落、以及「# 📒 我的读书笔记」等
+        // 用户自拟标题误判为插件托管块而静默丢弃（零污染红线边界）。
+        if (chunk.startsWith("小驴管家 · 日常流水") || chunk.startsWith("# 📒 日常流水")) continue;
         preserved.push(chunk);
     }
     return preserved;
@@ -390,7 +394,21 @@ const SIMPLE_LOG_MAP: Partial<Record<LogKind, { type: string; tags: string[]; fo
     prices: { type: "价格记录", tags: ["#价格"], format: (e) => `¥${e.price ?? "—"}${e.channel ? ` · ${e.channel}` : ""}` },
     meters: { type: "水电抄表", tags: ["#抄表"], format: (e) => `读数 ${e.reading ?? "—"}${e.usage !== undefined ? ` · 本期用量 ${e.usage}` : ""}` },
     checks: { type: "盘点核验", tags: ["#盘点"], format: (e) => String(e.result ?? "已核对") },
-    loans: { type: "借还记录", tags: ["#借还"], format: (e) => `${e.to ?? "—"}${e.back ? ` · 已还 ${e.back}` : ""}` },
+    loans: {
+        type: "借还记录",
+        tags: ["#借还"],
+        format: (e) => {
+            const to = e.to ?? "—";
+            if (e.returned || e.isReturned) return `${to} · 已还 ${e.back || ""}`.trim();
+            if (e.back) {
+                const todayStr = localDateKey(new Date());
+                return String(e.back) < todayStr
+                    ? `${to} · 逾期未还 (应还 ${e.back})`
+                    : `${to} · 在借 (预计 ${e.back} 归还)`;
+            }
+            return `${to} · 在借中`;
+        },
+    },
     deposits: { type: "心愿存入", tags: ["#心愿"], format: (e) => `¥${e.amount ?? "—"}` },
 };
 
@@ -798,11 +816,8 @@ export async function appendRecentRowLogToDailyNote(
         if (!avId) return { ok: false, error: "missing-avId" };
 
         const prefix = `${avId}|`;
-        const matchedKey = Object.keys(logs).find((k) => k.startsWith(prefix));
-        if (!matchedKey) return { ok: false, error: "no-matched-log" };
-
-        const grouped = logs[matchedKey];
-        if (!grouped || typeof grouped !== "object") return { ok: false, error: "empty-grouped" };
+        const matchedKeys = Object.keys(logs).filter((k) => k.startsWith(prefix));
+        if (matchedKeys.length === 0) return { ok: false, error: "no-matched-log" };
 
         const members: FamilyMember[] = plugin.settings?.members ?? [];
         const membersDocId = plugin.settings?.dbRefs?.members?.docId;
@@ -814,16 +829,20 @@ export async function appendRecentRowLogToDailyNote(
         let latestKind: LogKind = "quickflows";
         let latestAt = 0;
 
-        for (const kind of ALL_LOG_KINDS) {
-            const list = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
-            if (!Array.isArray(list) || list.length === 0) continue;
-            const last = list[list.length - 1];
-            if (!last) continue;
-            const at = typeof last.at === "number" ? last.at : new Date(String(last.date || "") + "T" + String(last.time || "00:00")).getTime();
-            if (at >= latestAt) {
-                latestAt = at;
-                latestEntry = last;
-                latestKind = kind;
+        for (const key of matchedKeys) {
+            const grouped = logs[key];
+            if (!grouped || typeof grouped !== "object") continue;
+            for (const kind of ALL_LOG_KINDS) {
+                const list = grouped[kind] as unknown as Array<Record<string, unknown>> | undefined;
+                if (!Array.isArray(list) || list.length === 0) continue;
+                const last = list[list.length - 1];
+                if (!last) continue;
+                const at = typeof last.at === "number" ? last.at : new Date(String(last.date || "") + "T" + String(last.time || "00:00")).getTime();
+                if (at >= latestAt) {
+                    latestAt = at;
+                    latestEntry = last;
+                    latestKind = kind;
+                }
             }
         }
 
@@ -845,6 +864,127 @@ export async function appendRecentRowLogToDailyNote(
         return { ok: res.ok, line: lineText, docId: res.docId };
     } catch (e) {
         return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+}
+
+/**
+ * 当备忘被勾选办结时，优先在思源当日日记中将原 `- [ ]` 原地更新为 `- [x]` 已完成；若未查到原块则回退追加流水
+ */
+export async function markMemoDoneInDailyNote(
+    plugin?: any,
+    memoOrReminder?: any,
+): Promise<{ ok: boolean; line?: string; docId?: string }> {
+    try {
+        const rawId = String(memoOrReminder?.id || memoOrReminder?.content || "").trim();
+        const cleanId = rawId.replace(/^adhoc::/, "");
+        if (cleanId) {
+            const { sql, updateBlock } = await import("@/core/siyuan");
+            const safeMemoId = cleanId.replace(/'/g, "''");
+            const rows = await sql<Array<{ id: string; content?: string; markdown?: string; root_id?: string }>>(
+                `SELECT id, content, markdown, root_id FROM blocks WHERE instr(ial, 'custom-lvhome-memo="${safeMemoId}"') > 0 LIMIT 1`
+            ).catch(() => []);
+            const block = Array.isArray(rows) && rows[0]?.id ? rows[0] : null;
+            if (block && typeof block.markdown === "string") {
+                const cleanMd = block.markdown.replace(/^-\s*\[\s*\]/, "- [x]");
+                await updateBlock(block.id, cleanMd);
+                return { ok: true, docId: (block as any).root_id };
+            }
+        }
+        return appendDoneMemoToDailyNote(plugin, memoOrReminder);
+    } catch {
+        return appendDoneMemoToDailyNote(plugin, memoOrReminder);
+    }
+}
+
+/**
+ * 当修改待办标题、到期日、优先级或分类时，联动更新思源日记中的对应任务块
+ */
+export async function updateMemoInDailyNote(
+    _plugin: any,
+    memoId: string,
+    patch: { title?: string; dueDate?: string; priority?: string; category?: string }
+): Promise<boolean> {
+    try {
+        const cleanId = String(memoId || "").replace(/^adhoc::/, "").trim();
+        if (!cleanId) return false;
+        const { sql, updateBlock } = await import("@/core/siyuan");
+        const safeMemoId = cleanId.replace(/'/g, "''");
+        const rows = await sql<Array<{ id: string; content?: string; markdown?: string; root_id?: string }>>(
+            `SELECT id, content, markdown, root_id FROM blocks WHERE instr(ial, 'custom-lvhome-memo="${safeMemoId}"') > 0 LIMIT 1`
+        ).catch(() => []);
+        const block = Array.isArray(rows) && rows[0]?.id ? rows[0] : null;
+        if (!block) return false;
+
+        const title = String(patch.title || "").replace(/[\r\n]+/g, " ").trim();
+        const due = patch.dueDate ? ` · 到期 \`${patch.dueDate}\`` : "";
+        const cat = patch.category ? ` #${String(patch.category).replace(/\s+/g, "_")}` : "";
+        const pri = patch.priority === "high" ? " · 🔴 紧急" : patch.priority === "low" ? " · ⚪ 次要" : "";
+        const isDone = block.markdown ? /^-\s*\[[xX]\]/.test(block.markdown) : false;
+        const checkbox = isDone ? "- [x]" : "- [ ]";
+        const memoIdAttr = ` custom-lvhome-memo="${cleanId}"`;
+        const nextMd = `${checkbox} **${title}**${due}${pri}${cat} #备忘\n{: custom-lvhome="1"${memoIdAttr} }`;
+        await updateBlock(block.id, nextMd);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * 删除待办时，联动删除思源日记中对应的任务块，不留孤儿任务
+ */
+export async function deleteMemoFromDailyNote(_plugin: any, memoId: string): Promise<boolean> {
+    try {
+        const cleanId = String(memoId || "").replace(/^adhoc::/, "").trim();
+        if (!cleanId) return false;
+        const { sql, post } = await import("@/core/siyuan");
+        const safeMemoId = cleanId.replace(/'/g, "''");
+        const rows = await sql<Array<{ id: string; root_id?: string }>>(
+            `SELECT id, root_id FROM blocks WHERE instr(ial, 'custom-lvhome-memo="${safeMemoId}"') > 0 LIMIT 1`
+        ).catch(() => []);
+        const blockId = Array.isArray(rows) && rows[0]?.id ? rows[0].id : null;
+        if (blockId) {
+            await post("/api/block/deleteBlock", { id: blockId }).catch(() => undefined);
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * 启动或刷新时扫描日记中已打勾 `- [x]` 的待办块，反向自愈管家中枢运行态为办结
+ */
+export async function autoHealMemosFromDailyNote(plugin: any): Promise<number> {
+    if (!plugin?.runtime?.memos?.length) return 0;
+    try {
+        const { sql } = await import("@/core/siyuan");
+        const rows = await sql<Array<{ id: string; ial: string; markdown: string }>>(
+            `SELECT id, ial, markdown FROM blocks WHERE instr(ial, 'custom-lvhome-memo="') > 0 AND (markdown LIKE '- [x]%' OR markdown LIKE '- [X]%')`
+        ).catch(() => []);
+        if (!Array.isArray(rows) || rows.length === 0) return 0;
+        let healed = 0;
+        for (const row of rows) {
+            const m = /custom-lvhome-memo="([^"]+)"/.exec(row.ial);
+            if (m?.[1]) {
+                const memoId = m[1];
+                const target = plugin.runtime.memos.find((item: any) => item.id === memoId);
+                if (target) {
+                    // 已办结的不重复自愈，杜绝虚增月度完成统计
+                    if (target.doneAt) continue;
+                    // 周期性备忘不被历史日记中的勾选项触发无限循环跳期
+                    if (target.cycle) continue;
+                    if (typeof plugin.complete === "function") {
+                        await plugin.complete({ id: `adhoc::${memoId}`, moduleId: "adhoc" }).catch(() => undefined);
+                    }
+                    healed++;
+                }
+            }
+        }
+        return healed;
+    } catch {
+        return 0;
     }
 }
 
@@ -945,9 +1085,9 @@ export async function syncRowLogsToSiYuanDocs(plugin: any, logs?: RowLogs): Prom
 export async function appendMemoToDailyNote(
     _plugin: any,
     memo: { title: string; dueDate: string; priority?: string; category?: string; id?: string },
-): Promise<{ ok: boolean; line?: string; docId?: string }> {
+): Promise<{ ok: boolean; line?: string; docId?: string; blockId?: string }> {
     try {
-        const title = String(memo.title || "生活备忘").trim();
+        const title = String(memo.title || "生活备忘").replace(/[\r\n]+/g, " ").trim();
         const due = memo.dueDate ? ` · 到期 \`${memo.dueDate}\`` : "";
         const cat = memo.category ? ` #${String(memo.category).replace(/\s+/g, "_")}` : "";
         const pri = memo.priority === "high" ? " · 🔴 紧急" : memo.priority === "low" ? " · ⚪ 次要" : "";
@@ -957,7 +1097,7 @@ export async function appendMemoToDailyNote(
         const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
         // 铁律：待办备忘新建一律落入思源原生默认当日日记，绝不传入管家专属笔记本
         const res = await appendMarkdownToDailyNote(lineMd);
-        return { ok: res.ok, line: lineMd, docId: res.docId };
+        return { ok: res.ok, line: lineMd, docId: res.docId, blockId: res.blockId };
     } catch {
         return { ok: false };
     }
@@ -1010,7 +1150,7 @@ export async function cleanupLegacyJournalDocs(plugin: any): Promise<{ cleanedCo
                     const taskMatches = kramdown.matchAll(/- \[[ xX]\]\s+\*\*([^*]+)\*\*(?:[^\n]*?到期\s*`?([0-9-]+)`?)?/g);
                     for (const match of taskMatches) {
                         const title = (match[1] || "").trim();
-                        const due = match[2] || new Date().toISOString().slice(0, 10);
+                        const due = match[2] || localDateKey();
                         if (title && !memoTitles.has(title)) {
                             memoTitles.add(title);
                             const { addMemo } = await import("./hub/actions");
@@ -1024,7 +1164,7 @@ export async function cleanupLegacyJournalDocs(plugin: any): Promise<{ cleanedCo
                     try {
                         await removeDoc(nb, `/${docId}.sy`);
                     } catch {
-                        const pRows = await sql<{ parent_id: string }>(`SELECT parent_id FROM blocks WHERE id='${docId}' LIMIT 1`).catch(() => []);
+	                        const pRows = await sql<{ parent_id: string }>(`SELECT parent_id FROM blocks WHERE id='${docId.replace(/'/g, "''")}' LIMIT 1`).catch(() => []);
                         const pid = pRows?.[0]?.parent_id;
                         if (pid && pid !== docId) {
                             await removeDoc(nb, `/${pid}/${docId}.sy`).catch(() => null);

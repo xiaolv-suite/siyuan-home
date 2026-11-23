@@ -131,16 +131,17 @@ export function formatAsTaskBlock(
     blockRefId?: string,
     options?: TaskBlockFormatOptions
 ): string {
-    const cleanTitle = (title ?? "").trim();
+    const cleanTitle = (title ?? "").trim().replace(/[\r\n]+/g, " ");
+    const safeAttrTitle = cleanTitle.replace(/"/g, "”").replace(/'/g, "’");
     if (options?.asTaskHorizon || (blockRefId && dueDate && options?.moduleName)) {
         const mod = options?.moduleName ? ` · ${options.moduleName}` : "";
         const priority = options?.priority ?? "high";
         const status = options?.status ?? "todo";
-        const remarkAttr = blockRefId ? ` custom-remark="(( ${blockRefId} '${cleanTitle}' ))"` : "";
+        const remarkAttr = blockRefId ? ` custom-remark="(( ${blockRefId} '${safeAttrTitle}' ))"` : "";
         const dueAttr = dueDate ? ` custom-completion-time="${dueDate}"` : "";
         return `- [ ] ${cleanTitle}${mod} {: custom-status="${status}" custom-priority="${priority}"${dueAttr}${remarkAttr} }`;
     }
-    const titleWithRef = blockRefId ? `((${blockRefId} "${cleanTitle}"))` : cleanTitle;
+    const titleWithRef = blockRefId ? `((${blockRefId} "${safeAttrTitle}"))` : cleanTitle;
     const dueStr = dueDate ? ` · 到期: ${dueDate}` : "";
     return `- [ ] ${titleWithRef}${dueStr}`;
 }

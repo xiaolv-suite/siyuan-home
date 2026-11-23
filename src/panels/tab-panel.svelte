@@ -307,8 +307,10 @@
     $effect(() => {
         const onKey = (e: KeyboardEvent) => {
             const el = e.target as HTMLElement | null;
-            // 任意宿主弹窗、插件弹窗或生活检索打开时不响应快捷键，杜绝多层抢键与重复弹窗堆叠
-            if (document.querySelector("dialog[open], .b3-dialog, .lv-modal.open, .lv-spotlight-dialog-body")) return;
+            // 任意宿主弹窗、插件弹窗或生活检索打开时不响应快捷键，杜绝多层抢键与重复弹窗堆叠。
+            // 2026-11-21 走查修复：移动宿主本身就是一个 .b3-dialog（b3-dialog--lvmobile），恒命中导致
+            // 带物理键盘设备（平板/折叠屏）在移动宿主内快捷键永久失效——排除自身宿主。
+            if (document.querySelector("dialog[open], .b3-dialog:not(.b3-dialog--lvmobile), .lv-modal.open, .lv-spotlight-dialog-body")) return;
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
                 // 仅当焦点落在小驴管家宿主容器内部且非编辑器内部时响应，避免抢占思源官方插入超链接快捷键
                 if (homeEl && homeEl.contains(el) && !el?.isContentEditable) {
@@ -570,7 +572,7 @@
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
                     <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
                         {#if screenLoadError}
-                            <div class="lv-card lv-empty" role="alert"><b>{t("error.unknown")}</b><span>{screenLoadError}</span><button type="button" class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></div>
+                            <div class="lvx-error" role="alert"><b class="lvx-error__title">{t("error.unknown")}</b><span class="lvx-error__desc">{screenLoadError}</span><span class="lvx-error__actions"><button type="button" class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></span></div>
                         {:else if loadedScreen !== screen || !ScreenView}
                             <div class="lv-card lv-screen-loading" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
                                 <span class="lv-skel lv-skel--w42-h16" aria-hidden="true"></span>

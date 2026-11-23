@@ -63,7 +63,8 @@ export function evaluateBudgetUsage(
         const m = toMonthKey(e.date);
         if (m !== month) continue;
         const amt = Number(e.amount);
-        if (!Number.isFinite(amt) || amt <= 0) continue;
+        // 支持负数支出（退款/费用冲销抵扣），仅过滤非有限数值与 0 元流水
+        if (!Number.isFinite(amt) || amt === 0) continue;
         const cat = (e.category ?? "other").trim() || "other";
         spentByCat.set(cat, (spentByCat.get(cat) ?? 0) + amt);
     }

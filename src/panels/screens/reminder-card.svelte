@@ -255,13 +255,13 @@
 
 <div class="lv-rem-swipe-container" class:has-swipe={isOverdue}>
     {#if isOverdue}
-        <div class="lv-rem-swipe-actions" class:is-revealed={swipeOffset < 0} aria-label="快捷顺延操作" aria-hidden={swipeOffset === 0 ? "true" : undefined}>
+        <div class="lv-rem-swipe-actions" class:is-revealed={swipeOffset < 0} aria-label={t("reminder.swipeAria")} aria-hidden={swipeOffset === 0 ? "true" : undefined}>
             {#if isStale}
-                <button type="button" class="lv-swipe-chip stale" disabled={isBusy} onclick={() => void openDecompositionModal()}>🧩 拆解</button>
+                <button type="button" class="lv-swipe-chip stale" disabled={isBusy} onclick={() => void openDecompositionModal()}>{t("reminder.chipDecompose")}</button>
             {/if}
-            <button type="button" class="lv-swipe-chip day1" disabled={isBusy} onclick={() => quickSnooze(1, "顺延1天")}>顺延 1 天</button>
-            <button type="button" class="lv-swipe-chip week1" disabled={isBusy} onclick={() => quickSnooze(7, "顺延1周")}>顺延 1 周</button>
-            <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy} onclick={() => quickSnooze(1, "明天再说")}>明天再说</button>
+            <button type="button" class="lv-swipe-chip day1" disabled={isBusy} onclick={() => quickSnooze(1, t("reminder.postpone1Day"))}>{t("reminder.postpone1Day")}</button>
+            <button type="button" class="lv-swipe-chip week1" disabled={isBusy} onclick={() => quickSnooze(7, t("reminder.postpone1Week"))}>{t("reminder.postpone1Week")}</button>
+            <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy} onclick={() => quickSnooze(1, t("reminder.tomorrow"))}>{t("reminder.tomorrow")}</button>
         </div>
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->

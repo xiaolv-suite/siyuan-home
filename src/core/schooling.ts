@@ -87,7 +87,7 @@ export function calculateSchoolingStage(input: SchoolingStageInput): SchoolingSt
         return null;
     }
 
-    const todayStr = input.today || localDateKey(new Date());
+    const todayStr = input.today && /^\d{4}-\d{2}-\d{2}$/.test(input.today.trim()) ? input.today.trim() : localDateKey(new Date());
     const [ty, tm, td] = todayStr.split("-").map(Number);
     const todayTime = new Date(ty, (tm ?? 1) - 1, td ?? 1).getTime();
 
@@ -128,11 +128,12 @@ export function calculateSchoolingStage(input: SchoolingStageInput): SchoolingSt
 
     const daysUntilGraduation = Math.max(0, Math.round((gradTime - todayTime) / (24 * 60 * 60 * 1000)));
 
+    const spanTime = gradTime - enrollTime;
     const stageProgressPercent = isGraduated
         ? 100
-        : isNotEnrolledYet
+        : isNotEnrolledYet || spanTime <= 0
             ? 0
-            : Math.min(100, Math.max(0, Math.round(((todayTime - enrollTime) / (gradTime - enrollTime)) * 100)));
+            : Math.min(100, Math.max(0, Math.round(((todayTime - enrollTime) / spanTime) * 100)));
 
     const transitionEventLabel = TRANSITION_EVENTS[category] || "升学毕业节点";
 

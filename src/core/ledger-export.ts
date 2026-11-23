@@ -192,7 +192,7 @@ export async function exportArchiveManifestFile(options: ExportArchiveManifestOp
         const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `lv-archive-${moduleId}-${new Date().toISOString().slice(0, 10)}.md`;
+        a.download = `lv-archive-${moduleId}-${localDateKey(new Date())}.md`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 0);
         showMessageFn(t("ledger.exportArchiveSuccess").replace("${n}", String(manifest.totalFiles)), 3500, "info");
@@ -314,7 +314,7 @@ export async function exportLedgerIcsFile(options: ExportIcsOptions): Promise<vo
         const blob = new Blob([icsText], { type: "text/calendar;charset=utf-8" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `lvhome-${moduleId}-${new Date().toISOString().slice(0, 10)}.ics`;
+        a.download = `lvhome-${moduleId}-${localDateKey(new Date())}.ics`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 0);
         showMessageFn(t("ledger.exportIcsDone").replace("${n}", String(count)), 3000, "info");

@@ -147,6 +147,12 @@ export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullY
             const m = rt.memos.find((m) => `adhoc::${m.id}` === r.id);
             if (m) {
                 if (m.cycle) {
+                    // 意图发生日保全（如月末 31 号、30 号），规避在 28/29 天月份过渡后永久退化漂移
+                    const origDay = (m as any).originalDay ?? (parseDate(m.dueDate)?.getDate() || today.getDate());
+                    if (origDay > 28) {
+                        (m as any).originalDay = origDay;
+                    }
+
                     const baseDate = parseDate(m.dueDate) ?? today;
                     const anchor = m.recurrenceAnchor ?? "due";
                     const refToday = anchor === "due"
@@ -157,6 +163,10 @@ export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullY
                         anchor,
                         completionDate: today,
                     });
+                    if (origDay > 28 && (m.cycle === "month" || m.cycle?.endsWith("m") || m.cycle === "quarter" || m.cycle === "year")) {
+                        const targetMaxDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                        nextDate.setDate(Math.min(origDay, targetMaxDay));
+                    }
                     m.dueDate = localDateKey(nextDate);
                     delete rt.snoozed[r.id];
                 } else {

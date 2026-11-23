@@ -2,6 +2,7 @@
  * 离线静态 HTML 全景手册导出器（POOL-FEAT-09 / CAND-11）
  * 生成零外部外链、内嵌自包含样式的单文件 HTML 手册，供无网应急或换机随时查阅。
  */
+import { localDateKey } from "./hub/rule";
 import type { Reminder, FamilyMember } from "@/types";
 
 export interface ManualExportData {
@@ -175,7 +176,7 @@ export function exportOfflineHtmlManual(plugin: any, t: (k: string) => string, s
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `siyuan-home-manual-${new Date().toISOString().slice(0, 10)}.html`;
+    a.download = `siyuan-home-manual-${localDateKey(new Date())}.html`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
 

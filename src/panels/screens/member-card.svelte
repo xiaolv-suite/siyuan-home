@@ -96,7 +96,7 @@
             if (docId) {
                 menu.addItem({ label: t("members.openLedger"), click: () => plugin.showTabDocs?.(docId) });
                 menu.addItem({
-                    label: "原生文档树菜单",
+                    label: t("member.nativeDocTreeMenu"),
                     icon: "iconMenu",
                     click: async () => {
                         let notebookId = plugin.settings?.dbRefs?.members?.notebook;
@@ -114,7 +114,7 @@
             }
             menu.addItem({ label: t("members.assetTimeline"), click: () => onOpenAssetTimeline() });
             menu.addItem({ label: t("members.uploadAvatar"), click: () => onPickAvatar() });
-            menu.addItem({ label: "从思源资源库选头像", icon: "iconFolder", click: () => onPickAssetAvatar?.() });
+            menu.addItem({ label: t("member.pickAssetAvatar"), icon: "iconFolder", click: () => onPickAssetAvatar?.() });
             if (contact) {
                 menu.addItem({
                     label: t("members.contactUnlink"),
@@ -160,7 +160,7 @@
             </div>
         </button>
         <button type="button" class="lv-iconbtn"
-            title={`${t("members.uploadAvatar")}（右键从思源资源库选头像）`}
+            title={`${t("members.uploadAvatar")} · ${t("member.pickAssetAvatar")}`}
             aria-label={t("members.uploadAvatar")}
             disabled={isAvatarBusy} aria-busy={isAvatarBusy}
             onclick={() => onPickAvatar()}

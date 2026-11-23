@@ -148,8 +148,8 @@ export async function openLocationIndexDialog(opts: LocationDialogOptions): Prom
             head.className = "lv-dialog-row lv-domain-title lv-tx-accent";
             head.style.marginBottom = "6px";
             head.style.alignItems = "center";
-            const capsuleHtml = renderLocationCapsuleHtml(loc);
-            head.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px">${capsuleHtml}</span><span class="lv-caption">${list.length} 件</span>`;
+            const capsuleHtml = renderLocationCapsuleHtml(loc, t("location.unfilled"));
+            head.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px">${capsuleHtml}</span><span class="lv-caption">${list.length} ${t("location.itemCount")}</span>`;
             grp.appendChild(head);
             for (const it of list) {
                 const line = document.createElement("div");

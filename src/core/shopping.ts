@@ -5,6 +5,7 @@
  */
 import type { AvRow } from "./siyuan";
 import { bindDialogA11y } from "./dialog-a11y";
+import { localDateKey } from "./hub/rule";
 import type { AvCellLike } from "./avcell";
 
 export interface ShoppingItem {
@@ -215,7 +216,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
             const lines = items
                 .map((it, i) => `${it.name} ×${Math.max(1, Math.floor(Number(qtyInputs[i]?.value) || 1))}`)
                 .join("\n");
-            const text = `${t("ledger.shoppingList")} · ${new Date().toISOString().slice(0, 10)}\n${lines}`;
+            const text = `${t("ledger.shoppingList")} · ${localDateKey()}\n${lines}`;
             try {
                 await navigator.clipboard.writeText(text);
                 showMessageFn(t("ledger.shopCopied"), 2500, "info");

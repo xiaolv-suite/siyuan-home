@@ -116,7 +116,7 @@
                         <button
                             type="button"
                             class="b3-button b3-button--outline"
-                            title="从思源笔记本资源中选择"
+                            title={t("ledger.pickFromAssets")}
                             disabled={saving || identityPending}
                             onclick={async () => {
                                 const res = await openNativeAssetPicker();

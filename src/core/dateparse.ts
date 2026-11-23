@@ -61,16 +61,27 @@ function patterns(today: Date): { re: RegExp; make: (m: RegExpMatchArray) => Dat
                 return addDays(t0, diff);
             },
         },
-        // M月D日 / M月D号（今年；已过 → 明年）
+        // M月D日 / M月D号（今年；已过 → 明年；2/29 自动寻觅下一个闰年）
         {
             re: /(\d{1,2})\s*月\s*(\d{1,2})[日号]/,
             make: (m) => {
                 const month = parseInt(m[1], 10);
                 const day = parseInt(m[2], 10);
                 if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-                const d = new Date(today.getFullYear(), month - 1, day);
-                if (d.getMonth() !== month - 1 || d.getDate() !== day) return null; // 不存在（2/30）
-                if (d < startOfToday(today)) d.setFullYear(d.getFullYear() + 1);
+                let year = today.getFullYear();
+                let d = new Date(year, month - 1, day);
+                if (month === 2 && day === 29) {
+                    while (d.getMonth() !== 1 || d.getDate() !== 29 || d < startOfToday(today)) {
+                        year++;
+                        d = new Date(year, 1, 29);
+                    }
+                    return d;
+                }
+                if (d.getMonth() !== month - 1 || d.getDate() !== day) return null; // 不存在（如 2/30、4/31）
+                if (d < startOfToday(today)) {
+                    d = new Date(year + 1, month - 1, day);
+                    if (d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+                }
                 return d;
             },
         },

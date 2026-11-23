@@ -1,5 +1,6 @@
 <script lang="ts">
     import { saveSettings } from "@/core/settings";
+    import { localDateKey } from "@/core/hub/rule";
     import UiIcon from "@/ui/icon.svelte";
     import { lvBackup, lvEcosystem, homeNotify, showMessage } from "@/libs/notice";
 
@@ -56,11 +57,13 @@
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            const today = new Date().toISOString().slice(0, 10);
+            const today = localDateKey();
             a.href = url;
             a.download = `lv-ecosystem-backup-${today}.json`;
             a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 0);
+            // 2026-11-21 走查修复：0ms 立即回收时序敏感（与同仓 sharecard.ts 的 4000ms 约定不一致），
+            // 个别引擎/慢速下载启动会被撤销，对齐延迟回收。
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
             homeNotify(t("settings.exportEcoFullOk"), 3000, "info");
         } catch (err) {
             homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
@@ -114,8 +117,13 @@
                     const val = (e.currentTarget as HTMLSelectElement).value;
                     if (!plugin.settings) plugin.settings = {};
                     plugin.settings.targetNotebookId = val || undefined;
-                    await saveSettings(plugin, plugin.settings);
-                    showMessage(t("saved"), 2000, "info");
+                    // 2026-11-21 走查修复：落盘失败原先静默（unhandled rejection + 无错误提示）
+                    try {
+                        await saveSettings(plugin, plugin.settings);
+                        showMessage(t("saved"), 2000, "info");
+                    } catch (err) {
+                        showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                    }
                 }}>
                 <option value="">🏠 {t("settings.targetNotebookHint")}</option>
                 {#each notebookList as nb (nb.id)}
@@ -140,8 +148,12 @@
                         if (vals.length > 0) {
                             if (!plugin.settings) return;
                             plugin.settings.fuelPresetAmounts = vals;
-                            await saveSettings(plugin, plugin.settings);
-                            showMessage(t("saved"), 2000, "info");
+                            try {
+                                await saveSettings(plugin, plugin.settings);
+                                showMessage(t("saved"), 2000, "info");
+                            } catch (err) {
+                                showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                            }
                         }
                     }}
                 />
@@ -158,8 +170,12 @@
                         if (vals.length > 0) {
                             if (!plugin.settings) return;
                             plugin.settings.chargePresetAmounts = vals;
-                            await saveSettings(plugin, plugin.settings);
-                            showMessage(t("saved"), 2000, "info");
+                            try {
+                                await saveSettings(plugin, plugin.settings);
+                                showMessage(t("saved"), 2000, "info");
+                            } catch (err) {
+                                showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                            }
                         }
                     }}
                 />

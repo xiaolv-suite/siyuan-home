@@ -2,10 +2,9 @@
     import { fade } from "svelte/transition";
     import { homeNotify as showMessage } from "@/libs/notice";
     import { lvLaunchpad, showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
-    import { sql } from "@/core/siyuan";
+    import { queryDocBox } from "@/core/sql-coalescer";
     import UiIcon from "@/ui/icon.svelte";
     import { moduleUiIcon } from "@/ui/icons";
-    import { memberHue } from "@/core/format";
     import { isStaleTask } from "@/core/micro-decomposition";
     import type { Reminder } from "@/types";
 
@@ -106,8 +105,7 @@
             : (plugin.settings?.dbRefs?.[r.moduleId]?.notebook);
         if (!notebookId) {
             try {
-                const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
-                if (rows && rows[0]?.box) notebookId = rows[0].box;
+                notebookId = await queryDocBox(docId);
             } catch {}
         }
         if (notebookId) {
@@ -355,7 +353,7 @@
         </b>
         <span class="lv-num">
             {#if member}
-                <span class="lv-miniava" style="background:linear-gradient(135deg, hsl({memberHue(member.id)} 62% 52%), hsl({(memberHue(member.id) + 42) % 360} 62% 40%))" aria-hidden="true">{member.name.slice(0, 1)}</span>
+                <span class="lv-miniava" aria-hidden="true">{member.name.slice(0, 1)}</span>
             {/if}
             {r.moduleId !== "adhoc" ? (t(`module.${r.moduleId}`) !== `module.${r.moduleId}` ? t(`module.${r.moduleId}`) : r.moduleId) + " · " : ""}{r.dueDate}{#if !r.memberId} · {t("members.unassigned")}{/if}{#if r.lunar} · <span class="lv-plan-badge" title={t("members.lunar")}><UiIcon name="moon" size={10} /></span>{/if}{#if r.autoRenew} · <span class="lv-plan-badge" title={t("hub.autoRenew")}><UiIcon name="repeat" size={10} /></span>{/if}
         </span>

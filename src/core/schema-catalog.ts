@@ -4,7 +4,7 @@
  */
 
 import type { ReminderRuleSpec } from "@/types";
-import type { ColumnDef, ViewDef, ModuleSchema } from "./schema";
+import type { ColumnDef, ViewDef, ModuleSchema } from "./schema-types";
 import { CERTIFICATE_CATEGORY_OPTIONS, CERT_PROFILE_COLUMNS } from "./certificate-profiles";
 
 // ── 字段定义与声明工厂函数 ────────────────────────────────────
@@ -316,7 +316,7 @@ export const STOCK_SCHEMA: ModuleSchema = {
     columns: [
         ...d("name", "member"),
         cat(["food_st", "daily_chem", "paper", "medical_st", "emergency_st", "other_st"]),
-        ...d("expiry", "location", "note"),
+        ...d("expiry", "location", "attachments", "note"),
         num("qty", { min: 0, unitKey: "capture.unitCount" }),
         num("low_stock_at", { min: 0, unitKey: "capture.unitCount" }),
     ],
@@ -518,6 +518,11 @@ export const VEHICLES_SCHEMA: ModuleSchema = {
         dat("battery_due"),
         // 违章手动记录（12123 功能面：日期/地点/行为/罚款 摘要，多条例以换行分隔；官方数据不做对接）
         txt("violations"),
+        // 汽车主表自动汇总列（方案 A：最近补能日 / 累计油电费 / 本年油电费 / 综合油耗能耗）
+        dat("last_fuel_date"),
+        num("total_fuel_cost", { min: 0, step: 0.01 }),
+        num("yearly_fuel_cost", { min: 0, step: 0.01 }),
+        num("avg_consumption", { min: 0, step: 0.01 }),
     ],
     // Keep the quick form within the schema contract's five-field limit.
     // The vehicle attachment is surfaced by the dedicated photo control.

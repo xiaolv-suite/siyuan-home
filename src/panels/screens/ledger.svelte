@@ -126,7 +126,10 @@
     let sortKey = $state<string>("");
     let sortAsc = $state<boolean>(true);
 
-    const ref = $derived(ledgers.find((entry) => entry.id === active)?.ref);
+    const ref = $derived.by(() => {
+        void version;
+        return plugin.settings?.dbRefs?.[active] ?? ledgers.find((entry) => entry.id === active)?.ref;
+    });
 
     $effect(() => {
         const saved = plugin.settings?.ledgerSort?.[active];
@@ -374,7 +377,7 @@
     }
 
     async function load(isModuleSwitch = false) {
-        const avID = ref?.avId;
+        const avID = ref?.avId ?? plugin.settings?.dbRefs?.[active]?.avId;
         const request = ++loadRequest;
         loadController?.abort();
         const controller = new AbortController();
@@ -404,7 +407,7 @@
                     showMessage(t("activity.navigationUnavailable"), 4000, "error");
                 },
             });
-            if (request !== loadRequest || avID !== ref?.avId) return;
+            if (request !== loadRequest) return;
             rows = res.rows;
             avCols = res.columns;
             if (res.error) {
@@ -460,7 +463,13 @@
 
     const fieldLabel = (key: string): string => t(`field.${key}`) !== `field.${key}` ? t(`field.${key}`) : key;
 
-    function openNewRecord(initialForm?: Record<string, any>) {
+    async function openNewRecord(initialForm?: Record<string, any>) {
+        if (!ref?.avId && typeof plugin.repairModule === "function") {
+            try {
+                await plugin.repairModule(active);
+                await load();
+            } catch { /* soft */ }
+        }
         recordModalRef?.openNewRecordModal(initialForm);
     }
 
@@ -579,6 +588,7 @@
         if (!ref?.columns) return;
         await openLedgerDetailDrawer({
             row,
+            rows,
             vehicleAction,
             activityTarget,
             ref: ref!,

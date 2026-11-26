@@ -5,7 +5,7 @@
     import { AVATAR_IMAGE_LIMIT, AVATAR_PRESETS, DEFAULT_AVATAR, normalizeAvatarImage, normalizeAvatarText } from "@/core/avatar";
     import UiIcon from "@/ui/icon.svelte";
     import type { HomeSettings } from "@/types";
-    import type { HomePluginLike } from "@/types/plugin";
+    import type { HomePluginLike, IHomeUIContext } from "@/types/plugin";
 
     type CropSession = {
         image: HTMLImageElement;
@@ -16,7 +16,7 @@
         pointer?: { id: number; x: number; y: number };
     };
 
-    let { plugin, t }: { plugin: HomePluginLike; t: (key: string) => string } = $props();
+    let { plugin, t }: { plugin: IHomeUIContext; t: (key: string) => string } = $props();
     // Initial settings are a snapshot; subsequent avatar writes update both local state and plugin.settings.
     // svelte-ignore state_referenced_locally
     let avatarText = $state(normalizeAvatarText(plugin.settings.avatar));

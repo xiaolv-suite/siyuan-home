@@ -94,3 +94,28 @@ export function formatMaskedRecordText(
     return title ? `${title}\n${lines.join("\n")}` : lines.join("\n");
 }
 
+export function currentLocalHHMM(now: Date = new Date()): string {
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+/** 归一化 HH:mm 时间；若未传则从 ISO 时间戳提取本地 HH:mm，再兜底当前时刻 */
+export function normalizeLifelogTime(time?: unknown, fallbackIso?: unknown): string {
+    if (typeof time === "string") {
+        const m = time.trim().match(/^(\d{1,2}):(\d{2})/);
+        if (m) {
+            const hh = Number(m[1]);
+            const mm = Number(m[2]);
+            if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+                return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+            }
+        }
+    }
+    if (typeof fallbackIso === "string" && fallbackIso.trim()) {
+        const d = new Date(fallbackIso);
+        if (!Number.isNaN(d.getTime())) {
+            return currentLocalHHMM(d);
+        }
+    }
+    return "09:00";
+}
+

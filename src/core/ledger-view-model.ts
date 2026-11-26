@@ -14,6 +14,63 @@ export const DEFAULT_LOCATIONS = ["主卧抽屉", "客厅药箱", "玄关柜", "
 
 export type LedgerTone = "danger" | "warn" | "ok" | "none";
 
+export function round2(n: number): number {
+    return Math.round(n * 100) / 100;
+}
+
+export function computeLedgerNumericSummary(
+    rows: readonly any[],
+    columns?: Record<string, string>,
+): { amount?: number; qty?: number } | null {
+    if (!columns || !Array.isArray(rows) || rows.length === 0) return null;
+    let sumAmount = 0;
+    let hasAmount = false;
+    let sumQty = 0;
+    let hasQty = false;
+
+    const amountCol = columns.amount;
+    const qtyCol = columns.qty || columns.stock_qty;
+
+    const readNum = (cell: any): number => {
+        if (cell === null || cell === undefined) return NaN;
+        if (typeof cell === "number") return cell;
+        if (cell?.number) {
+            if (cell.number.isNotEmpty === false) return NaN;
+            if (typeof cell.number.content === "number") return cell.number.content;
+            if (cell.number.content !== undefined && cell.number.content !== null && String(cell.number.content).trim() !== "") {
+                return Number(cell.number.content);
+            }
+        }
+        if (typeof cell?.text?.content === "string" && cell.text.content.trim() !== "") {
+            return Number(cell.text.content.replace(/[,\s￥¥$€£元]/g, ""));
+        }
+        return NaN;
+    };
+
+    for (const r of rows) {
+        if (amountCol) {
+            const val = readNum(r?.cells?.[amountCol]);
+            if (Number.isFinite(val) && val !== 0) {
+                sumAmount += val;
+                hasAmount = true;
+            }
+        }
+        if (qtyCol) {
+            const val = readNum(r?.cells?.[qtyCol]);
+            if (Number.isFinite(val) && val !== 0) {
+                sumQty += val;
+                hasQty = true;
+            }
+        }
+    }
+
+    if (!hasAmount && !hasQty) return null;
+    return {
+        amount: hasAmount ? round2(sumAmount) : undefined,
+        qty: hasQty ? round2(sumQty) : undefined,
+    };
+}
+
 export function formatLedgerCellText(
     v: any,
     colKey: string | undefined,
@@ -52,7 +109,15 @@ export function formatLedgerCellText(
             const list = v.mSelect?.length ? v.mSelect.map((o: any) => o?.content).filter(Boolean).join(", ") : "—";
             return colKey && list !== "—" ? optLabelText(t, colKey, list) : list;
         }
-        case "number": return typeof v.number?.content === "number" && !isNaN(v.number.content) ? String(v.number.content) : (v.number?.content !== undefined && !isNaN(Number(v.number.content)) ? String(Number(v.number.content)) : "—");
+        case "number": {
+            if (v.number?.isNotEmpty === false) return "—";
+            const rawNum = typeof v.number?.content === "number"
+                ? v.number.content
+                : (v.number?.content !== undefined && v.number?.content !== null && String(v.number.content).trim() !== ""
+                    ? Number(v.number.content)
+                    : NaN);
+            return Number.isFinite(rawNum) ? String(round2(rawNum)) : "—";
+        }
         case "url": return v.url?.content ?? "—";
         case "checkbox": return v.checkbox?.checked ? "是" : "—";
         case "block": return v.block?.content ?? "—";

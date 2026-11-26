@@ -40,14 +40,22 @@ export function cellContentText(cell: AvCellLike | undefined | null): string {
     if (!cell) return "";
     if (cell.text?.content !== undefined && cell.text?.content !== null) return String(cell.text.content);
     if (cell.block?.content !== undefined && cell.block?.content !== null) return String(cell.block.content);
+    if (cell.type === "mSelect" && Array.isArray(cell.mSelect)) {
+        const list = cell.mSelect.map((o) => o?.content).filter((c): c is string => !!c);
+        if (list.length > 0) return list.join(", ");
+    }
     const sel = selectCellContent(cell);
     if (sel) return sel;
     if (cell.number?.isNotEmpty !== false && cell.number?.content !== undefined && cell.number?.content !== null) return String(cell.number.content);
     if (cell.date?.isNotEmpty !== false && cell.date?.content !== undefined && cell.date?.content !== null) {
-        const raw = cell.date.content;
+        const raw: unknown = cell.date.content;
+        if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}(?:$|[T\s])/.test(raw.trim())) {
+            return raw.trim().slice(0, 10);
+        }
         const num = Number(raw);
         if (!isNaN(num) && (num === 0 || num <= -60000000000000)) return "";
-        const d = !isNaN(num) && num > 100000000 ? new Date(num) : new Date(String(raw));
+        const isEpochMs = (typeof raw === "number" || (typeof raw === "string" && /^-?\d+$/.test(raw.trim()))) && Math.abs(num) > 100000000;
+        const d = isEpochMs ? new Date(num) : new Date(String(raw));
         if (!isNaN(d.getTime()) && d.getFullYear() >= 1900) {
             const pad = (n: number) => String(n).padStart(2, "0");
             return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -59,22 +67,91 @@ export function cellContentText(cell: AvCellLike | undefined | null): string {
     return "";
 }
 
+/** 从 AV 行安全提取单元格字符串（兼容 date 毫秒时间戳与 mSelect 存储形态） */
+export function rowCellString(
+    row: { cells?: Record<string, AvCellLike | undefined | null> } | undefined | null,
+    keyID?: string,
+): string | undefined {
+    if (!row || !keyID) return undefined;
+    const cell = row.cells?.[keyID];
+    if (!cell) return undefined;
+    const text = cellContentText(cell).trim();
+    return text || undefined;
+}
+
+/** 构造 Format 17 KeyTypeBlock 主键单元格（覆写时默认带 rich: null） */
+export function blockCellValue(
+    itemID: string,
+    content: string,
+    opts?: { keyID?: string; isDetached?: boolean; includeRichNull?: boolean },
+): {
+    type: "block";
+    keyID?: string;
+    isDetached?: boolean;
+    itemID: string;
+    block: { id: string; content: string };
+    rich?: null;
+} {
+    const cell: {
+        type: "block";
+        keyID?: string;
+        isDetached?: boolean;
+        itemID: string;
+        block: { id: string; content: string };
+        rich?: null;
+    } = {
+        type: "block",
+        itemID,
+        isDetached: opts?.isDetached ?? true,
+        block: {
+            id: itemID,
+            content: String(content ?? ""),
+        },
+    };
+    if (opts?.keyID) cell.keyID = opts.keyID;
+    if (opts?.includeRichNull !== false) cell.rich = null;
+    return cell;
+}
+
 /** 构造思源单元格写入值对象 */
-export function cellValue(type: string, v: unknown): unknown | null {
+export function cellValue(
+    type: string,
+    v: unknown,
+    ctx?: { itemID?: string; keyID?: string; allowEmptyNumber?: boolean },
+): unknown | null {
     switch (type) {
+        case "block": {
+            if (v && typeof v === "object" && "block" in (v as Record<string, unknown>)) {
+                const raw = v as { block?: { id?: string; content?: string }; keyID?: string; isDetached?: boolean };
+                const itemID = raw.block?.id || ctx?.itemID || "";
+                return blockCellValue(itemID, String(raw.block?.content ?? ""), {
+                    keyID: raw.keyID ?? ctx?.keyID,
+                    isDetached: raw.isDetached,
+                    includeRichNull: true,
+                });
+            }
+            if (v === undefined || v === null) return null;
+            return blockCellValue(ctx?.itemID || "", String(v), {
+                keyID: ctx?.keyID,
+                includeRichNull: true,
+            });
+        }
         case "select":
             return typeof v === "string" ? selectCellValue(v) : null;
         case "checkbox":
             return { type: "checkbox", checkbox: { checked: Boolean(v) } };
         case "number": {
             if (typeof v === "number" && Number.isFinite(v)) {
-                return { type: "number", number: { content: v } };
+                return { type: "number", number: { content: v, isNotEmpty: true } };
             }
             if (typeof v === "string" && v.trim() !== "") {
                 const num = Number(v.trim());
                 if (Number.isFinite(num)) {
-                    return { type: "number", number: { content: num } };
+                    return { type: "number", number: { content: num, isNotEmpty: true } };
                 }
+            }
+            if (ctx?.allowEmptyNumber && (v === "" || v === null || v === undefined)) {
+                return { type: "number", number: { isNotEmpty: false } };
             }
             return null;
         }

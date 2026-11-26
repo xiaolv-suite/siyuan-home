@@ -108,8 +108,8 @@ export function evaluateBudgetUsage(
                 overflow,
                 status,
             });
-        } else if (spent > 0) {
-            // 无限额但有支出项
+        } else if (spent !== 0) {
+            // 无限额但有净支出或净退款项
             categories.push({
                 category: cat,
                 spent,

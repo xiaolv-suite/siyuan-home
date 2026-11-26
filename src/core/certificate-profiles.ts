@@ -4,7 +4,7 @@
  * 私有扩展字段集、到期日提醒字段映射。
  */
 
-import type { ColumnDef } from "./schema";
+import type { ColumnDef } from "./schema-types";
 
 const fld = (key: string, type: any, extra?: any): ColumnDef => (extra ? { key, type, labelKey: `field.${key}`, ...extra } : { key, type, labelKey: `field.${key}` });
 const txt = (k: string) => fld(k, "text");

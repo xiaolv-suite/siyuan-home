@@ -4,7 +4,7 @@
  */
 import type { Plugin } from "siyuan";
 import type { Reminder } from "@/types";
-import type { HubRuntime, AdhocMemo, ReminderNamedView } from "./runtime";
+import type { HubRuntime, AdhocMemo, ReminderNamedView } from "./runtime-types";
 import { lvWithSyncRetry } from "@/libs/lv-notice-kit";
 
 export const RUNTIME_NAME = "hub-runtime.json";

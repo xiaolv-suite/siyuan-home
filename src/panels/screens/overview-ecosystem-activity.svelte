@@ -19,6 +19,7 @@
     let activities = $state<LvActivityRecord[]>([]);
     let launchpadItems = $state<LvLaunchpadItem[]>([]);
     let collapsed = $state(false);
+    let auditRunning = $state(false);
     let copyBtnEl = $state<HTMLButtonElement | undefined>();
     let appendBtnEl = $state<HTMLButtonElement | undefined>();
 
@@ -50,7 +51,7 @@
         { id: "siyuan-checkin", name: "打卡", fullName: "小驴打卡", color: "#8b5cf6", desc: "习惯追踪与时间沉淀", bridgeName: "siyuanCheckin", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><path d="M8 2v4" fill="none"/><path d="M16 2v4" fill="none"/><rect width="18" height="18" x="3" y="4" rx="2" fill="none"/><path d="M3 10h18" fill="none"/><path d="m9 16 2 2 4-4" fill="none"/></svg>' },
         { id: "siyuan-contacts", name: "人脉", fullName: "小驴人脉", color: "#3b82f6", desc: "社交网络与交往纪实", bridgeName: "LvContacts", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" fill="none"/><circle cx="9" cy="7" r="4" fill="none"/><path d="M22 21v-2a4 4 0 0 0-3-3.87" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" fill="none"/></svg>' },
         { id: "siyuan-speed-switch", name: "雷切", fullName: "小驴雷切", color: "#06b6d4", desc: "切屏画板与命令中心", bridgeName: "siyuanSpeedSwitch", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><rect x="3" y="3" width="18" height="18" rx="2" fill="none"/><path d="M9 3v18" fill="none"/><path d="m15.5 8-3 4.5h3l-2.5 4.5" fill="none"/></svg>' },
-        { id: "siyuan-lv-cards", name: "闪卡", fullName: "小驴闪卡", color: "#f59e0b", desc: "FSRS 记忆与间隔复习", bridgeName: "siyuanCards", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><rect x="6" y="6" width="14" height="16" rx="2.5" fill="none"/><path d="M4 18V5a2.5 2.5 0 0 1 2.5-2.5H17" fill="none"/><path d="m10 14 2.2 2.2 4.3-4.4" fill="none"/></svg>' },
+        { id: "siyuan-lv-cards", name: "闪卡", fullName: "小驴闪卡", color: "#f59e0b", desc: "间隔复习与智能记忆", bridgeName: "siyuanCards", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><rect x="6" y="6" width="14" height="16" rx="2.5" fill="none"/><path d="M4 18V5a2.5 2.5 0 0 1 2.5-2.5H17" fill="none"/><path d="m10 14 2.2 2.2 4.3-4.4" fill="none"/></svg>' },
         { id: "siyuan-exam", name: "考试", fullName: "小驴考试", color: "#10b981", desc: "题库测验与错题复盘", bridgeName: "siyuanExam", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" fill="none"/><path d="m9 12 2 2 4-4" fill="none"/></svg>' },
         { id: "siyuan-glean", name: "拾遗", fullName: "小驴拾遗", color: "#ec4899", desc: "稍后阅读与灵感归流", bridgeName: "siyuanGlean", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><path d="M12 7v14" fill="none"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" fill="none"/></svg>' },
         { id: "xiaolv-common", name: "常用", fullName: "小驴常用", color: "#f97316", desc: "常用动作与模板热插", bridgeName: "xiaolvCommon", svgIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="fill:none!important;stroke:currentColor!important;"><rect x="4" y="3" width="16" height="18" rx="2" fill="none"/><path d="m10 10-2 2 2 2" fill="none"/><path d="m14 10 2 2-2 2" fill="none"/><path d="M9 17h6" fill="none"/></svg>' },
@@ -197,7 +198,17 @@
             <button
                 type="button"
                 class="b3-button b3-button--text"
-                onclick={() => void plugin.runLifeHealthAudit?.()}
+                disabled={auditRunning}
+                aria-busy={auditRunning}
+                onclick={async () => {
+                    if (auditRunning) return;
+                    auditRunning = true;
+                    try {
+                        await plugin.runLifeHealthAudit?.();
+                    } finally {
+                        auditRunning = false;
+                    }
+                }}
                 title={t("overview.aiAudit")}
             >
                 <UiIcon name="sparkle" size={13} /> {t("overview.aiAudit")}

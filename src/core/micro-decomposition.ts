@@ -10,6 +10,7 @@ import type { Reminder } from "@/types";
 import { localDateKey } from "./hub/rule";
 import { withRuntime } from "./hub/actions";
 import { lvAi, lvAutomation, lvLaunchpad } from "@/libs/lv-notice-kit";
+import { runUnifiedAiPrompt } from "./ai-nlp";
 
 export const STALE_POSTPONE_THRESHOLD = 3;
 export const MAX_STEP_LENGTH = 30;
@@ -93,62 +94,103 @@ export interface AiDecompositionOptions {
     reminder: Reminder;
     signal?: AbortSignal;
     chatImpl?: (opts: any) => Promise<{ content: string }>;
-    getConfigImpl?: () => { apiKey?: string; [key: string]: any } | null;
+    getConfigImpl?: () => { apiKey?: string; hasSecret?: boolean; publicFreeEnabled?: boolean; [key: string]: any } | null;
 }
 
 /**
- * 检查小驴共享 AI 是否已配置凭据
+ * 检查是否具备可用 AI 通道（小驴共享 AI / LvAiRouter / lvAiHub / 思源同源 AI）
  */
-export function isAiConfigured(getConfigImpl: () => { apiKey?: string; [key: string]: any } | null = () => lvAi.getConfig()): boolean {
+export function isAiConfigured(
+    getConfigImpl?: () => { apiKey?: string; hasSecret?: boolean; publicFreeEnabled?: boolean; [key: string]: any } | null,
+): boolean {
     try {
-        const cfg = getConfigImpl();
-        return Boolean(cfg?.apiKey && cfg.apiKey.trim().length > 0);
+        if (getConfigImpl) {
+            const cfg = getConfigImpl();
+            return Boolean(
+                cfg?.hasSecret === true ||
+                cfg?.publicFreeEnabled === true ||
+                (cfg?.apiKey && cfg.apiKey.trim().length > 0),
+            );
+        }
+        const cfg = lvAi.getConfig() as { apiKey?: string; hasSecret?: boolean; publicFreeEnabled?: boolean } | null;
+        if (cfg?.hasSecret === true || cfg?.publicFreeEnabled === true || (cfg?.apiKey && cfg.apiKey.trim().length > 0)) {
+            return true;
+        }
+        const w = (typeof window !== "undefined" ? window : {}) as Record<string, any>;
+        if ((w.LvAiRouter && typeof w.LvAiRouter.chat === "function") ||
+            (w.__LV_AI_ROUTER__ && typeof w.__LV_AI_ROUTER__.chat === "function") ||
+            (w.lvAiHub && typeof w.lvAiHub.runTask === "function") ||
+            (Array.isArray(w.siyuan?.config?.secrets?.items) && w.siyuan.config.secrets.items.length > 0)) {
+            return true;
+        }
+        return false;
     } catch {
         return false;
     }
 }
 
 /**
- * 向小驴 AI 网关请求敏捷微拆解（含畸形输出容错重试一次）
+ * 向小驴 AI 网关 / 统一路由请求敏捷微拆解（含畸形输出容错重试一次）
  */
 export async function requestAiDecomposition(options: AiDecompositionOptions): Promise<string[]> {
-    const { reminder, signal, chatImpl = (opts) => lvAi.chat(opts), getConfigImpl = () => lvAi.getConfig() } = options;
+    const { reminder, signal, chatImpl, getConfigImpl } = options;
 
-    if (!isAiConfigured(getConfigImpl)) {
+    if (getConfigImpl && !isAiConfigured(getConfigImpl)) {
+        throw new Error("AI_NOT_CONFIGURED");
+    }
+    const useCustomChat = typeof chatImpl === "function";
+    if (!getConfigImpl && useCustomChat && !isAiConfigured()) {
         throw new Error("AI_NOT_CONFIGURED");
     }
 
     const systemPrompt = "你是一位敏捷行动力专家与拖延降阻大师。用户的某个事项已拖延顺延多次，请将其拆解为 2~3 个具体、立即可执行、5 分钟内能做完的微步骤（Micro-steps）。每步不超过 25 个字，必须包含明确动词和即时终点（例如：打开XX网页、写出前两句话、找出发票拍个照）。严格只输出一个包含 3 个字符串的 JSON 数组，不要任何 markdown 标记、不要包含反引号、不要任何前言后语。示例格式：[\"步骤1\", \"步骤2\", \"步骤3\"]";
     const userPrompt = `事项名称：${reminder.title}\n逾期或距今：${Math.abs(reminder.daysLeft)}天\n请拆解为 3 个 5 分钟微步骤。`;
 
-    const messages = [
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
     ];
 
-    let response = await chatImpl({
-        source: "管家",
-        messages,
-        temperature: 0.3,
-        signal,
-    });
+    const invokeAi = async (
+        msgs: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+        temperature: number,
+    ): Promise<{ content: string }> => {
+        if (useCustomChat) {
+            return chatImpl!({
+                source: "管家",
+                messages: msgs,
+                temperature,
+                signal,
+            });
+        }
+        if (getConfigImpl) {
+            return lvAi.chat({
+                source: "管家",
+                messages: msgs,
+                temperature,
+                signal,
+            });
+        }
+        const unified = await runUnifiedAiPrompt(msgs, { temperature, signal, taskType: "decompose" });
+        if (!unified?.content) {
+            throw new Error("AI_NOT_CONFIGURED");
+        }
+        return unified;
+    };
+
+    let response = await invokeAi(messages, 0.3);
 
     let steps = extractJsonSteps(response?.content ?? "");
 
     // 容错机制：若初次输出未提取出有效 JSON 步骤，自动发起一次修正重试
     if ((!steps || steps.length === 0) && !signal?.aborted) {
-        const retryMessages = [
+        const retryMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
             ...messages,
             { role: "assistant", content: response?.content ?? "" },
             { role: "user", content: "格式错误。请严格只输出标准 JSON 字符串数组，例如 [\"第一步\", \"第二步\", \"第三步\"]，禁止任何多余解释。" },
         ];
         try {
-            response = await chatImpl({
-                source: "管家",
-                messages: retryMessages,
-                temperature: 0.1,
-                signal,
-            });
+            response = await invokeAi(retryMessages, 0.1);
             steps = extractJsonSteps(response?.content ?? "");
         } catch (err) {
             if (signal?.aborted) throw err;

@@ -19,6 +19,22 @@ export function getFormFields(schema?: Pick<ModuleSchema, "columns">): ColumnDef
     return schema?.columns.filter((column) => CAPTURE_INPUT_TYPES.has(column.type)) ?? [];
 }
 
+/** 独立返回快速记录中可挂载拍照/上传的附件列（优先按 schema.capture 顺序），不影响 CAPTURE_INPUT_TYPES 契约。 */
+export function getCaptureAssetFields(schema?: Pick<ModuleSchema, "columns" | "capture">): ColumnDef[] {
+    if (!schema?.columns?.length) return [];
+    const assetCols = schema.columns.filter((column) => column.type === "mAsset");
+    if (assetCols.length === 0) return [];
+    const order = schema.capture ?? [];
+    return [...assetCols].sort((a, b) => {
+        const ia = order.indexOf(a.key);
+        const ib = order.indexOf(b.key);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return 0;
+    });
+}
+
 function isEmpty(value: unknown): boolean {
     return value === undefined || value === null || value === "" || (typeof value === "string" && value.trim() === "");
 }

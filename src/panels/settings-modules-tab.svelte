@@ -84,7 +84,7 @@
             <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("ledger.searchEmpty")}</div>
         {:else}
             {#each currentModules as mod (mod.id)}
-                <div class="fn__flex lv-settings__row">
+                <div class="fn__flex lv-settings__row lv-settings__row--toggle">
                     <input
                         type="checkbox"
                         class="b3-switch"

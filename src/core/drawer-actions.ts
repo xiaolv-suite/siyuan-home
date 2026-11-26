@@ -338,7 +338,7 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                     try {
                         const { cellValue } = await import("./avcell");
                         const { setCell } = await import("./siyuan");
-                        const nextCell = cellValue(e.type, v);
+                        const nextCell = cellValue(e.type, v, { allowEmptyNumber: true });
                         await setCell(ref.avId!, e.keyID, row.itemID, nextCell, {
                             idempotencyKey: `ledger:detail-edit:${row.itemID}:${e.keyID}:${JSON.stringify(nextCell)}`,
                             retries: 1,
@@ -350,12 +350,12 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
                         const msg = errMsg(err);
                         if (msg.includes("key not found")) {
                             try {
-                                const { healColumnMapping } = await import("./provisioner");
+                                const { healColumnMapping } = await import("./provision-adoption");
                                 const healedKey = await healColumnMapping(plugin, active, e.colKey);
                                 if (healedKey && healedKey !== e.keyID) {
                                     const { cellValue } = await import("./avcell");
                                     const { setCell } = await import("./siyuan");
-                                    const nextCell = cellValue(e.type, v);
+                                    const nextCell = cellValue(e.type, v, { allowEmptyNumber: true });
                                     await setCell(ref.avId!, healedKey, row.itemID, nextCell, {
                                         idempotencyKey: `ledger:detail-edit:${row.itemID}:${healedKey}:${JSON.stringify(nextCell)}`,
                                         retries: 1,
@@ -435,11 +435,11 @@ export function renderDrawerDocTemplates(options: RenderDrawerDocTemplatesOption
         btn.onclick = async () => {
             try {
                 const { getTemplate, renderTemplate, sanitizeDocTitle } = await import("./templates");
-                const { sql, createDocWithMd } = await import("./siyuan");
+                const { createDocWithMd } = await import("./siyuan");
+                const { queryDocBox } = await import("./sql-coalescer");
                 const file = getTemplate(tp.file);
                 if (!file) throw new Error("template missing: " + tp.file);
-                const rows = await sql<{ box: string }>(`SELECT box FROM blocks WHERE id='${ref.docId!.replace(/'/g, "''")}' LIMIT 1`);
-                const notebook = rows[0]?.box;
+                const notebook = await queryDocBox(ref.docId!);
                 if (!notebook) throw new Error("notebook not found for " + ref.docId);
                 const vars: Record<string, string> = { name: String(cellTextFn(row.cells[ref.columns!.name])), date: localDateKey(new Date()) };
                 for (const c of schemaCols) vars[c.key] = cellTextFn(row.cells[ref.columns![c.key]]);

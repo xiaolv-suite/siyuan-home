@@ -14,14 +14,16 @@ import {
     appendBlock,
     foldBlock,
     getBlockKramdown,
+    getChildBlocks,
     renderLedgerAll,
     removeDoc,
+    sql,
     updateBlock,
     type AvRow,
 } from "./siyuan";
-import { stableAvSeed } from "./provisioner";
-import { normalizeLifelogTime } from "./quick-actions";
-import { loadRowLogs, type LogKind, type RowLog, type RowLogs } from "./rowlog";
+import { stableAvSeed } from "./provision-common";
+import { normalizeLifelogTime } from "./format";
+import { loadRowLogs, setRowLogSyncHook, type LogKind, type RowLog, type RowLogs } from "./rowlog";
 import { localDateKey } from "./hub/rule";
 import { withDocLock } from "@/libs/notice";
 import type { FamilyMember } from "@/types";
@@ -116,27 +118,81 @@ export async function upsertDocSection(
 ): Promise<string> {
     const secId = sectionBlockId(docId, sectionKey);
     const wrapped = `{{{row\n${markdownBody.trim()}\n}}}\n{: id="${secId}" custom-lvhome-sec="${sectionKey}"}`;
+    const isBlockNotFoundError = (err: unknown): boolean => {
+        const msg = err instanceof Error ? err.message.toLowerCase() : String(err ?? "").toLowerCase();
+        return (
+            msg.includes("not found") ||
+            msg.includes("invalid id") ||
+            msg.includes("未找到") ||
+            msg.includes("不存在")
+        );
+    };
 
     return withDocLock(docId, () =>
         enqueueSectionWrite(secId, async () => {
             let exists = knownSectionIds.has(secId);
+            let liveConfirmedMissing = false;
+
+            // 1. SQL 快速路径：仅当 SQL 明确命中时直接判定存在；未命中或异常绝不直接视作不存在
             if (!exists) {
                 try {
-                    const res = await getBlockKramdown(secId, { retries: 0 });
-                    exists = !!res?.id;
+                    const rows = await sql<{ id: string }>(
+                        `SELECT id FROM blocks WHERE id='${secId.replace(/'/g, "''")}' LIMIT 1`,
+                        { retries: 0 },
+                    );
+                    if (Array.isArray(rows) && rows.length > 0) {
+                        exists = true;
+                    }
                 } catch {
-                    exists = false;
+                    /* SQL 查询异常时交由实时文档子块核验 */
                 }
             }
+
+            // 2. 实时文档子块核验（查询 docId 避免触发思源原生 block not found toast）
+            if (!exists) {
+                try {
+                    const children = await getChildBlocks(docId, { retries: 0 });
+                    if (Array.isArray(children)) {
+                        exists = children.some((c) => c?.id === secId);
+                        if (!exists) {
+                            liveConfirmedMissing = true;
+                        }
+                    }
+                } catch {
+                    /* getChildBlocks 不可用时交由保守核验，绝不盲目追加 */
+                }
+            }
+
+            // 3. 当 SQL 与 getChildBlocks 均未能确凿确认（如接口失败或返回非数组）时，退回保守 getBlockKramdown 核验
+            if (!exists && !liveConfirmedMissing) {
+                try {
+                    const res = await getBlockKramdown(secId, { retries: 0 });
+                    if (res?.id) {
+                        exists = true;
+                    } else {
+                        liveConfirmedMissing = true;
+                    }
+                } catch (err) {
+                    if (!isBlockNotFoundError(err)) {
+                        throw err;
+                    }
+                    liveConfirmedMissing = true;
+                }
+            }
+
             if (exists) {
                 try {
                     await updateBlock(secId, wrapped, { retries: 0 });
                     knownSectionIds.add(secId);
                     return secId;
-                } catch {
+                } catch (err) {
                     knownSectionIds.delete(secId);
+                    if (!isBlockNotFoundError(err)) {
+                        throw err;
+                    }
                 }
             }
+
             await appendBlock(docId, wrapped, { retries: 0 });
             knownSectionIds.add(secId);
             return secId;
@@ -701,6 +757,20 @@ export async function ensureDailyJournalDoc(_plugin: any): Promise<string | unde
 }
 
 /**
+ * 生成汽车台账文档底部的思源原生动态 SQL 嵌入查询块（方案 C：零重复存储、实时汇聚各日日记中的车务记录）
+ */
+export function buildVehicleDiarySqlSectionMarkdown(): string {
+    const sqlStmt = `SELECT b.* FROM blocks b WHERE (instr(b.ial, 'custom-lv-module="vehicles"') > 0 OR instr(b.content, '#车辆') > 0) AND b.type IN ('p', 'i') ORDER BY b.created DESC LIMIT 50`;
+    return [
+        `## 🚗 日记车务动态流水（自动聚合）`,
+        ``,
+        `> 💡 自动汇聚散落在每日日记中的车辆加油、充电、维保与关联随手记，点击条目可直达原日记块。`,
+        ``,
+        `{{${sqlStmt}}}`,
+    ].join("\n");
+}
+
+/**
  * 将指定模块的 rowlogs 与续期历史按标准 LifeLog 格式同步写入对应 `/台账 · XXX` 思源文档底部
  */
 export async function syncModuleDocSection(
@@ -713,7 +783,11 @@ export async function syncModuleDocSection(
     if (!ref?.docId || !ref?.avId) return;
 
     try {
-        const logs = providedLogs ?? (await loadRowLogs(plugin));
+        if (moduleId === "vehicles") {
+            await upsertDocSection(ref.docId, "vehicle-diary-sql", buildVehicleDiarySqlSectionMarkdown());
+        }
+
+        const logs = providedLogs ?? (typeof plugin?.loadData === "function" ? await loadRowLogs(plugin) : {});
         const renewHistory = plugin.runtime?.renewHistory ?? {};
         const prefix = `${ref.avId}|`;
         const hasModuleLogs = Object.keys(logs).some((k) => k.startsWith(prefix));
@@ -856,12 +930,35 @@ export async function appendRecentRowLogToDailyNote(
         const tag = linkedSpec.tags?.length ? ` ${linkedSpec.tags.join(" ")}` : "";
         const refLink = ref.docId ? ` ((${ref.docId} "台账 · ${modTitle}"))` : "";
         const lineText = buildLifelogLine(linkedSpec.time, linkedSpec.lifelogType, `${linkedSpec.detailText}${tag}${refLink}`);
-        const lineMd = `${lineText}\n{: custom-lifelog-type="${cleanLifelogType(linkedSpec.lifelogType)}" custom-lvhome="1" }`;
 
-        const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
-        // 铁律：日常流水日志一律落入思源原生默认当日日记，绝不传入管家专属笔记本
-        const res = await appendMarkdownToDailyNote(lineMd);
-        return { ok: res.ok, line: lineText, docId: res.docId };
+        const {
+            createSiyuanDiaryTransport,
+            recordHighFrequencyDiaryEvent,
+        } = await import("./diary-envelope");
+        const { newSiYuanId } = await import("./siyuan");
+        const transport = createSiyuanDiaryTransport(plugin);
+        const eventId = typeof (latestEntry as any).diaryEventId === "string" && (latestEntry as any).diaryEventId
+            ? String((latestEntry as any).diaryEventId)
+            : `evt-${newSiYuanId()}`;
+        const blockId = newSiYuanId();
+
+        const res = await recordHighFrequencyDiaryEvent(plugin, {
+            eventId,
+            blockId,
+            module: moduleId,
+            action: String(latestKind),
+            target: String(matchedKeys[0]?.split("|")[1] || ""),
+            avId: ref.avId,
+            bizDate: linkedSpec.date,
+            recordedAt: String((latestEntry as any).at || new Date().toISOString()),
+            text: lineText,
+            extraAttrs: {
+                "custom-lifelog-type": cleanLifelogType(linkedSpec.lifelogType),
+                "custom-lvhome": "1",
+            },
+            transport,
+        });
+        return { ok: true, line: lineText, docId: res.docId };
     } catch (e) {
         return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
@@ -1002,11 +1099,17 @@ export async function appendDoneMemoToDailyNote(
         const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
         const cat = memoOrReminder.category ? ` #${String(memoOrReminder.category).replace(/\s+/g, "_")}` : "";
         const lineText = buildLifelogLine(timeStr, "备忘办结", `${title}${cat} #备忘`);
-        const lineMd = `${lineText}\n{: custom-lifelog-type="备忘办结" custom-lvhome="1" }`;
 
-        const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
-        // 铁律：备忘办结日志一律落入思源原生默认当日日记，绝不传入管家专属笔记本
-        const res = await appendMarkdownToDailyNote(lineMd);
+        const { appendXiaolvLifeLogToDailyNote } = await import("@/libs/lv-notice-kit");
+        // 铁律：备忘办结日志一律落入思源原生默认当日日记「#### 🐴 小驴记录」折叠区并附统一 LifeLog 属性
+        const res = await appendXiaolvLifeLogToDailyNote({
+            time: timeStr,
+            type: "备忘办结",
+            body: `${title}${cat} #备忘`,
+            source: "siyuan-home",
+            module: "memos",
+            extraAttrs: { "custom-lvhome": "1" },
+        });
         return { ok: res.ok, line: lineText, docId: res.docId };
     } catch {
         return { ok: false };
@@ -1084,7 +1187,7 @@ export async function syncRowLogsToSiYuanDocs(plugin: any, logs?: RowLogs): Prom
  */
 export async function appendMemoToDailyNote(
     _plugin: any,
-    memo: { title: string; dueDate: string; priority?: string; category?: string; id?: string },
+    memo: { title: string; dueDate: string; priority?: string; category?: string; id?: string; notebook?: string },
 ): Promise<{ ok: boolean; line?: string; docId?: string; blockId?: string }> {
     try {
         const title = String(memo.title || "生活备忘").replace(/[\r\n]+/g, " ").trim();
@@ -1094,10 +1197,39 @@ export async function appendMemoToDailyNote(
         const memoIdAttr = memo.id ? ` custom-lvhome-memo="${memo.id}"` : "";
         const lineMd = `- [ ] **${title}**${due}${pri}${cat} #备忘\n{: custom-lvhome="1"${memoIdAttr} }`;
 
-        const { appendMarkdownToDailyNote } = await import("@/libs/lv-notice-kit");
-        // 铁律：待办备忘新建一律落入思源原生默认当日日记，绝不传入管家专属笔记本
-        const res = await appendMarkdownToDailyNote(lineMd);
-        return { ok: res.ok, line: lineMd, docId: res.docId, blockId: res.blockId };
+        const { ensureTodayDailyNoteForMemo } = await import("./hub/actions");
+        const ensured = await ensureTodayDailyNoteForMemo(memo.notebook);
+        if (!ensured?.docId) {
+            return { ok: false, line: lineMd };
+        }
+
+        // 铁律：待办备忘新建一律落入思源原生默认当日日记「#### 🐴 小驴记录」折叠区
+        let blockId = "";
+        try {
+            const { ensureXiaolvDiaryZone } = await import("@/libs/lv-notice-kit");
+            const { post } = await import("./siyuan-transport");
+            const zonePostFn = async (endpoint: string, payload: Record<string, unknown>) => {
+                try {
+                    const data = await post(endpoint, payload, { retries: 0 });
+                    return { code: 0, data };
+                } catch (err) {
+                    return { code: -1, msg: err instanceof Error ? err.message : String(err) };
+                }
+            };
+            const zone = await ensureXiaolvDiaryZone(ensured.docId, { postFn: zonePostFn });
+            const insData = await post<any>("/api/block/insertBlock", {
+                dataType: "markdown",
+                previousID: zone.anchorBlockId,
+                parentID: ensured.docId,
+                data: lineMd,
+            }, { retries: 0 });
+            const opId = Array.isArray(insData) ? insData?.[0]?.doOperations?.[0]?.id : undefined;
+            if (typeof opId === "string" && opId) blockId = opId;
+        } catch { /* fallback to appendBlock */ }
+        if (!blockId) {
+            blockId = await appendBlock(ensured.docId, lineMd);
+        }
+        return { ok: true, line: lineMd, docId: ensured.docId, blockId: blockId || undefined };
     } catch {
         return { ok: false };
     }
@@ -1181,3 +1313,52 @@ export async function cleanupLegacyJournalDocs(plugin: any): Promise<{ cleanedCo
     }
     return { cleanedCount };
 }
+
+// 注册 rowlog 写盘后的自动同步钩子（v4：彻底关闭旧 doc-sync 尾部追写，仅对未直接落盘日记信封的兼容条目增量写入）
+setRowLogSyncHook(async (plugin, next, previous) => {
+    if (previous) {
+        const countEntries = (log?: RowLog): number => {
+            if (!log) return 0;
+            let sum = 0;
+            for (const v of Object.values(log)) {
+                if (Array.isArray(v)) sum += v.length;
+            }
+            return sum;
+        };
+        const countTotal = (logs: RowLogs): number => {
+            let sum = 0;
+            for (const log of Object.values(logs)) sum += countEntries(log);
+            return sum;
+        };
+        const currentCount = countTotal(previous);
+        const nextCount = countTotal(next);
+        if (nextCount > currentCount) {
+            for (const [key, val] of Object.entries(next)) {
+                const prevVal = previous[key];
+                if (!prevVal || countEntries(val) > countEntries(prevVal)) {
+                    const avId = key.split("|")[0];
+                    const matchedMod = Object.entries((plugin as any).settings?.dbRefs ?? {}).find(([, ref]: any) => ref?.avId === avId)?.[0];
+                    if (matchedMod === "vehicles") {
+                        await syncModuleDocSection(plugin, "vehicles", next).catch(() => undefined);
+                    }
+                    // 若新增条目已由 quick-event-saver / diary-envelope 直接写入当日日记，绝不重复双写
+                    let alreadyWrittenToDiary = false;
+                    for (const kind of ALL_LOG_KINDS) {
+                        const nextList = (val[kind] as Array<Record<string, unknown>> | undefined) ?? [];
+                        const prevList = (prevVal?.[kind] as Array<Record<string, unknown>> | undefined) ?? [];
+                        if (nextList.length > prevList.length) {
+                            const newest = nextList[nextList.length - 1];
+                            if (newest && typeof newest.diaryEventId === "string" && newest.diaryEventId) {
+                                alreadyWrittenToDiary = true;
+                            }
+                        }
+                    }
+                    if (alreadyWrittenToDiary) continue;
+                    if (matchedMod) {
+                        await appendRecentRowLogToDailyNote(plugin, matchedMod, next).catch(() => undefined);
+                    }
+                }
+            }
+        }
+    }
+});

@@ -2,76 +2,64 @@
 // ① 设计系统（docs/design/07 §3、08）—— C1-C8 全部 UI 的实现基座
 @use "./styles/design-system";
 
-// Body 级 Dialog 不在 .lv-home 的继承树中，提供同一套令牌的安全默认值，
-// 保证详情、油耗和设置弹窗在暗色与浅色主题下都不会因为变量缺失而退化。
-:root {
-    --lv-brand: #355a7b;
-    --lv-brand-soft: color-mix(in srgb, var(--lv-brand) 12%, transparent);
-    --lv-space-1: 4px; --lv-space-2: 8px; --lv-space-3: 12px; --lv-space-4: 16px;
-    --lv-space-5: 20px; --lv-space-6: 24px; --lv-space-7: 32px; --lv-space-8: 40px;
-    --lv-font-xs: 11px; --lv-font-sm: 12px; --lv-font-md: 13px;
-    --lv-font-body: 14px; --lv-font-title: 16px; --lv-font-lg: 18px; --lv-font-display: 24px;
-    --lv-leading-tight: 1.25; --lv-leading-body: 1.55; --lv-leading-relaxed: 1.65;
-    --lv-weight-regular: 400; --lv-weight-medium: 500; --lv-weight-semibold: 600;
-    --lv-control-sm: 32px; --lv-control-md: 36px; --lv-control-lg: 40px;
-    --lv-canvas: #f5f8fa;
-    --lv-surface: #ffffff;
-    --lv-surface-2: #edf2f6;
-    --lv-r-1: 6px;
-    --lv-r-2: 10px;
-    --lv-r-3: 16px;
-    --lv-r-4: 20px;
-    --lv-r-card: 20px;
-    --lv-r-inner: 12px;
-    --lv-r-control: 10px;
-    --lv-r-full: 999px;
-    --lv-line: rgba(35, 50, 77, 0.08);
-    --lv-line-strong: rgba(35, 50, 77, 0.16);
-    --lv-inset: rgba(255, 255, 255, .9);
-    --lv-shadow-1: 0 1px 2px rgba(15, 23, 42, .03), 0 3px 8px -2px rgba(15, 23, 42, .04);
-    --lv-shadow-2: 0 3px 6px rgba(15, 23, 42, .04), 0 10px 24px -4px rgba(15, 23, 42, .07);
-    --lv-shadow-3: 0 8px 16px rgba(15, 23, 42, .06), 0 24px 36px -8px rgba(15, 23, 42, .12);
-    --lv-shadow-pop: 0 4px 12px -2px rgba(49, 83, 114, 0.20), 0 12px 28px -4px rgba(49, 83, 114, 0.14);
-    --lv-accent: #315372;
-    --lv-accent-2: #213c54;
-    --lv-accent-soft: rgba(49, 83, 114, .10);
-    --lv-accent-glow: rgba(49, 83, 114, .18);
-    --lv-accent-line: rgba(49, 83, 114, .26);
-    --lv-data-accent: #0d9488;
-    --lv-data-2: #0f766e;
-    --lv-data-soft: rgba(13, 148, 136, .10);
-    --lv-data-glow: rgba(13, 148, 136, .18);
-    --lv-data-line: rgba(13, 148, 136, .26);
-    --lv-surface-accent-dark: #101726;
-    --lv-surface-accent-dark-2: #19243a;
-    --lv-tx-on-dark: #f8fafc;
-    --lv-tx-on-dark-sub: #94a3b8;
-    --lv-tx: #1e293b;
-    --lv-tx-1: #1e293b;
-    --lv-tx-2: #475569;
-    --lv-tx-3: #64748b;
-    --lv-warn: #91602e;
-    --lv-warn-soft: rgba(145, 96, 46, .10);
-    --lv-amber: #9e6b28;
-    --lv-amber-soft: rgba(158, 107, 40, .10);
-    --lv-ok: #386951;
-    --lv-ok-soft: rgba(56, 105, 81, .10);
-    --lv-danger: #a84351;
-    --lv-danger-soft: rgba(168, 67, 81, .10);
-    --lv-info: #527b98;
-    --lv-info-2: #3f6480;
-    --lv-info-soft: rgba(82, 123, 152, .12);
-    --lv-info-line: rgba(82, 123, 152, .28);
+// 严格零 :root 全局污染：所有 --lv-* 令牌收敛在管家容器与专属弹窗作用域内
+.lv-home,
+.lv-home-dialog,
+.lv-home-detail-dialog,
+.b3-dialog--lvmobile,
+.lv-energy-dialog {
+    @include design-system.light-surfaces;
+    --b3-theme-background: var(--lv-canvas);
+    --b3-theme-surface: var(--lv-surface);
+    --b3-theme-surface-light: var(--lv-surface-2);
+    --b3-theme-surface-lighter: var(--lv-surface-2);
+    --b3-theme-on-background: var(--lv-tx);
+    --b3-theme-on-surface: var(--lv-tx-2);
+    --b3-theme-on-surface-light: var(--lv-tx-3);
+    --b3-border-color: var(--lv-line);
+    --b3-theme-secondary: var(--lv-surface-2);
 }
 
-:root[data-theme-mode="dark"],
-html[data-theme-mode="dark"],
-body[data-theme-mode="dark"],
-body.body--dark,
-html.dark,
-body.theme--dark {
-    @include design-system.dark-surfaces;
-    color-scheme: dark;
+:is(html[data-theme-mode="dark"], body[data-theme-mode="dark"], [data-theme-mode="dark"], [data-appearance="dark"], html[data-theme="midnight"], body.body--dark, html.dark, body.dark, body.theme--dark) {
+    .lv-home,
+    .lv-home-dialog,
+    .lv-home-detail-dialog,
+    .b3-dialog--lvmobile,
+    .lv-energy-dialog {
+        @include design-system.dark-surfaces;
+        color-scheme: dark;
+        --b3-theme-background: var(--lv-canvas);
+        --b3-theme-surface: var(--lv-surface);
+        --b3-theme-surface-light: var(--lv-surface-2);
+        --b3-theme-surface-lighter: var(--lv-surface-2);
+        --b3-theme-on-background: var(--lv-tx);
+        --b3-theme-on-surface: var(--lv-tx-2);
+        --b3-theme-on-surface-light: var(--lv-tx-3);
+        --b3-border-color: var(--lv-line);
+        --b3-theme-secondary: var(--lv-surface-2);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme-mode="light"]) {
+        .lv-home,
+        .lv-home-dialog,
+        .lv-home-detail-dialog,
+        .b3-dialog--lvmobile,
+        .lv-energy-dialog {
+            @include design-system.dark-surfaces;
+            color-scheme: dark;
+            --b3-theme-background: var(--lv-canvas);
+            --b3-theme-surface: var(--lv-surface);
+            --b3-theme-surface-light: var(--lv-surface-2);
+            --b3-theme-surface-lighter: var(--lv-surface-2);
+            --b3-theme-on-background: var(--lv-tx);
+            --b3-theme-on-surface: var(--lv-tx-2);
+            --b3-theme-on-surface-light: var(--lv-tx-3);
+            --b3-border-color: var(--lv-line);
+            --b3-theme-secondary: var(--lv-surface-2);
+        }
+    }
 }
 
 // ② settings.svelte 现役样式（C1c 收尾完成：dashboard 已删、类名已统一 lv-settings 命名空间；
@@ -431,7 +419,7 @@ body.theme--dark {
 
 // 251 波：开关行的 switch 移到行尾（对齐原型 .togglerow 形态）——
 // 仅反转"switch 为直接子元素"的行；成员/提前量等输入行不受影响（switch 在 label 内）
-.lv-settings__row:has(> input.b3-switch) {
+.lv-settings__row.lv-settings__row--toggle {
     flex-direction: row-reverse;
 
     > .fn__flex-column {
@@ -439,13 +427,13 @@ body.theme--dark {
     }
 }
 
-.lv-settings__member {
+.lv-settings-member {
     align-items: center;
     // 255 波：控件多时允许折行；「农历」label 不收缩、文字不折行（此前被挤成竖排）
     flex-wrap: wrap;
     row-gap: 6px;
 
-    label.fn__flex {
+    .lv-settings-member__calendar {
         flex: none;
         gap: 6px;
         align-items: center;
@@ -470,9 +458,9 @@ body.theme--dark {
         white-space: normal;
         overflow-wrap: anywhere;
     }
-    .lv-settings__member > .b3-text-field,
-    .lv-settings__member > .b3-select { flex: 1 1 130px; width: auto !important; }
-    .lv-settings__member > input[type="date"] { flex-basis: 145px; }
+    .lv-settings-member__fields { grid-template-columns: minmax(0, 1fr); }
+    .lv-settings-member .b3-text-field,
+    .lv-settings-member .b3-select { width: 100%; min-width: 0; }
 }
 
 // 侧栏/分屏中浏览器 viewport 可能仍很宽，改用 .lv-home 的 inline-size 容器查询
@@ -506,7 +494,15 @@ body.theme--dark {
     }
     .lv-settings .lv-settings__footer { grid-column: 1; }
     .lv-settings .lv-setcard { padding: 12px; }
-    .lv-settings .lv-settings__row { gap: var(--lv-space-2); }
+    .lv-settings .lv-settings__row {
+        gap: var(--lv-space-2);
+        flex-wrap: wrap;
+        .b3-select {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: 0;
+        }
+    }
     .lv-settings .lv-settings__row > span:first-child {
         min-width: 0 !important;
         max-width: 100%;
@@ -514,16 +510,16 @@ body.theme--dark {
         white-space: normal;
         overflow-wrap: anywhere;
     }
-    .lv-settings .lv-settings__member > .b3-text-field,
-    .lv-settings .lv-settings__member > .b3-select {
-        flex: 1 1 130px;
-        width: auto !important;
+    .lv-settings .lv-settings-member .b3-text-field,
+    .lv-settings .lv-settings-member .b3-select {
+        width: 100%;
+        min-width: 0;
     }
-    .lv-settings .lv-settings__member > input[type="date"] { flex-basis: 145px; }
 }
 
 @container lv-home (max-width: 400px) {
     .lv-settings { gap: var(--lv-space-2); }
+    .lv-settings .lv-settings-member__fields { grid-template-columns: minmax(0, 1fr); }
     .lv-settings .lv-setnav .lv-setnav__item { padding: 6px 8px; font-size: 12px; }
     .lv-settings .lv-settings__row {
         flex-direction: column;
@@ -757,7 +753,7 @@ body.theme--dark {
 // 269 波：svelteDialog 宿主的 .dialog-content 是 display:flex（row），而 .lv-home 带
 // container-type:inline-size（尺寸包含）——flex item 无法从内容推导宽度，设置面板
 // 塌缩成 226px 竖条（真机审计截图实锤）。显式撑满：flex 拉伸 + 宽度 100%
-.dialog-content:has(.lv-home) {
+.dialog-content.lv-dialog-content--home {
     container: lv-home / inline-size;
     min-width: 0;
     width: 100%;
@@ -770,7 +766,7 @@ body.theme--dark {
 
 // 管家专属确认框样式（严格作用于管家自身的确认弹窗）
 .b3-dialog.lv-top-confirm,
-.b3-dialog:has(.lv-home-confirm) {
+.b3-dialog.lv-home-confirm-dialog {
     .b3-dialog__container {
         border-radius: 14px;
         box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
@@ -781,13 +777,10 @@ body.theme--dark {
 }
 
 // 只匹配管家专属内容，保持思源和其他插件的弹窗样式独立，绝不全局污染 .b3-dialog。
-.b3-dialog:has([id^="lv-home-"]),
-.b3-dialog:has(.lv-home),
-.b3-dialog:has(.lv-butler),
 .b3-dialog--lvmobile,
+.lv-home-detail-dialog,
 .lv-home-dialog {
     z-index: 1000 !important;
-    @include design-system.light-surfaces;
 
     .b3-dialog__container {
         max-width: calc(100vw - 20px) !important;
@@ -928,8 +921,8 @@ body.theme--dark {
 
 @media (max-width: 768px), (pointer: coarse) {
     .b3-dialog--lvmobile :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea),
-    .b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab, [class*="lv-exam-"], [class*="lv-cards"])) :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea),
-    .b3-dialog:has(.lv-home) :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea) {
+    .lv-home-detail-dialog :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea),
+    .lv-home-dialog :is(.b3-text-field:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .b3-select, textarea) {
         font-size: 16px !important;
     }
 }
@@ -945,23 +938,7 @@ body.theme--dark {
     }
 }
 
-:root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-dialog),
-body.body--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-dialog),
-html.dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-dialog),
-body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home), .b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-dialog) {
-    @include design-system.dark-surfaces;
-    .b3-button { min-height: 34px; border-radius: 10px; }
-    .ft__on-surface { color: var(--lv-tx-3); }
-
-    .lv-card {
-        background: var(--lv-surface);
-        border: 1px solid var(--lv-line);
-        border-radius: var(--lv-r-3, 18px);
-        box-shadow: none;
-    }
-}
-
-:root[data-theme-mode="light"] :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home)) {
+:root[data-theme-mode="light"] :is(.lv-home-dialog, .lv-home-detail-dialog, .b3-dialog--lvmobile) {
     @include design-system.light-surfaces;
     // 原生 Dialog 和内联统计块仍消费 b3 表面变量；别名限定在当前插件弹窗。
     --b3-theme-background: var(--lv-surface);
@@ -969,12 +946,48 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
     --b3-theme-surface: var(--lv-surface);
     --b3-theme-surface-light: var(--lv-surface-2);
     --b3-border-color: var(--lv-line);
+    --b3-theme-secondary: var(--lv-surface-2);
 
     .b3-dialog__container { box-shadow: var(--lv-shadow-3); }
 }
 
-:root[data-theme-mode="dark"] :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab)), .b3-dialog:has(.lv-home)) {
+:is(:root[data-theme-mode="dark"], html[data-theme-mode="dark"], body[data-theme-mode="dark"], [data-theme-mode="dark"], [data-appearance="dark"], html[data-theme="midnight"], body.body--dark, html.dark, body.dark, body.theme--dark) :is(.b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-detail-dialog, .lv-home-dialog) {
+    @include design-system.dark-surfaces;
     color-scheme: dark;
+    --b3-theme-background: var(--lv-canvas);
+    --b3-theme-surface: var(--lv-surface);
+    --b3-theme-surface-light: var(--lv-surface-2);
+    --b3-theme-surface-lighter: var(--lv-surface-2);
+    --b3-theme-on-background: var(--lv-tx);
+    --b3-theme-on-surface: var(--lv-tx-2);
+    --b3-theme-on-surface-light: var(--lv-tx-3);
+    --b3-border-color: var(--lv-line);
+    --b3-theme-secondary: var(--lv-surface-2);
+    .b3-button { min-height: 34px; border-radius: 10px; }
+    .ft__on-surface { color: var(--lv-tx-3); }
+
+    .lv-card {
+        background: var(--lv-surface);
+        border: 1px solid var(--lv-line);
+        border-radius: var(--lv-r-3, 12px);
+        box-shadow: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme-mode="light"]) :is(.b3-dialog--lvmobile, .lv-energy-dialog, .lv-home-detail-dialog, .lv-home-dialog) {
+        @include design-system.dark-surfaces;
+        color-scheme: dark;
+        --b3-theme-background: var(--lv-canvas);
+        --b3-theme-surface: var(--lv-surface);
+        --b3-theme-surface-light: var(--lv-surface-2);
+        --b3-theme-surface-lighter: var(--lv-surface-2);
+        --b3-theme-on-background: var(--lv-tx);
+        --b3-theme-on-surface: var(--lv-tx-2);
+        --b3-theme-on-surface-light: var(--lv-tx-3);
+        --b3-border-color: var(--lv-line);
+        --b3-theme-secondary: var(--lv-surface-2);
+    }
 }
 
 // 257 波：插件自建弹窗家族（body 层、无 .lv-home 作用域）内的辅助文字统一中性化——
@@ -996,7 +1009,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 
 // 详情采用居中窗口：标题与底栏留在 flex 流中，仅详情主体滚动。
 // 尺寸随视口和安全区收缩；表面、弱描边与留白保持和工作台相同的层级。
-.b3-dialog:has(#lv-detail-body) {
+.b3-dialog.lv-home-detail-dialog {
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
@@ -1153,11 +1166,11 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .b3-dialog:has(#lv-detail-body) .b3-dialog__container { animation: none !important; }
+    .b3-dialog.lv-home-detail-dialog .b3-dialog__container { animation: none !important; }
 }
 
 @media (max-width: 620px) {
-    .b3-dialog:has(#lv-detail-body) {
+    .b3-dialog.lv-home-detail-dialog {
         .b3-dialog__container {
             width: 100% !important;
             max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom))) !important;
@@ -1175,32 +1188,35 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 //   边界=打印输出，注释在此声明）；③ button 一刀切隐藏会连日历格（.lv-cal-cell 本身
 //   是 button）一起杀掉，补豁免。
 @media print {
-    // 269 波（审计发现）：打印时 body 级弹窗/蒙层/通知会一起打进纸——打印只关心面板内容
-    .b3-dialog,
-    .b3-mask,
-    .b3-snackbar,
-    .lv-mask,
-    .lv-modal,
-    .lv-drawer {
+    // 269 波（审计发现）：打印时仅隐藏管家自身弹窗/蒙层/操作栏，绝不污染思源宿主全局 button / .b3-dialog / .b3-mask / .b3-snackbar
+    .lv-home-dialog,
+    .lv-home-detail-dialog,
+    .b3-dialog--lvmobile,
+    .lv-energy-dialog {
         display: none !important;
     }
 
-    .lv-tabbar,
-    .filters,
-    .lv-toolbar,
-    .lv-rem-ops,
-    .lv-qbtn,
-    .lv-memo,
-    .lv-settings__footer,
-    .b3-text-field,
-    .b3-select,
-    button {
-        display: none !important;
-    }
+    .lv-home {
+        .lv-mask,
+        .lv-modal,
+        .lv-drawer,
+        .lv-tabbar,
+        .filters,
+        .lv-toolbar,
+        .lv-rem-ops,
+        .lv-qbtn,
+        .lv-memo,
+        .lv-settings__footer,
+        .b3-text-field,
+        .b3-select,
+        button {
+            display: none !important;
+        }
 
-    // 日历格豁免（见上）：格子是可点 button，打印需保留网格
-    .lv-cal-cell {
-        display: flex !important;
+        // 日历格豁免（见上）：格子是可点 button，打印需保留网格
+        .lv-cal-cell {
+            display: flex !important;
+        }
     }
 
     .lv-home {
@@ -1222,15 +1238,15 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
         &::after {
             display: none !important;
         }
-    }
 
-    .lv-card {
-        border: 1px solid #d0d7de !important;
-        break-inside: avoid;
-    }
+        .lv-card {
+            border: 1px solid #d0d7de !important;
+            break-inside: avoid;
+        }
 
-    .lv-hero h1 {
-        font-size: 1.2rem;
+        .lv-hero h1 {
+            font-size: 1.2rem;
+        }
     }
 }
 
@@ -1279,6 +1295,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
         will-change: auto !important;
         display: flex;
         flex-direction: column;
+        background: var(--lv-canvas);
+        color: var(--lv-tx);
         .b3-dialog__body,
         .b3-dialog__content {
             flex: 1 1 auto;
@@ -1351,9 +1369,10 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
     left: 0;
     right: 0;
     z-index: 100;
-    background: var(--lv-surface, var(--lv-surface, #fff));
-    border-top: 1px solid var(--lv-line, rgba(0, 0, 0, 0.08));
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+    background: var(--lv-surface);
+    color: var(--lv-tx-2);
+    border-top: 1px solid var(--lv-line);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
     padding: 6px 12px calc(8px + env(safe-area-inset-bottom, 0px));
     touch-action: manipulation;
 }
@@ -1399,20 +1418,14 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 .lv-mob-badge {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--lv-amber, #a15c07);
     position: absolute;
-    top: -4px;
-    right: -2px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 999px;
-    background: var(--lv-danger, #ef4444);
-    color: var(--b3-theme-on-error, #fff);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 16px;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    top: 1px;
+    right: 2px;
 }
 
 .lv-mob-nav-label {
@@ -1554,8 +1567,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 // ── 18. body 级插件弹窗的控件节奏 ─────────────────────────
 // 详情、油耗、购物等弹窗挂在 body，无法消费 .lv-home 内的控件原语；
 // 与内嵌录入弹层保持同一触控高度，移动端也不再出现过矮的操作按钮。
-.b3-dialog:has([id^="lv-"]),
-.b3-dialog:has(.lv-home) {
+.lv-home-dialog,
+.lv-home-detail-dialog {
     :is(.b3-button, .lv-btn) {
         min-height: var(--lv-control-md);
         border-radius: 10px;
@@ -1570,8 +1583,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 @media (max-width: 480px) {
-    .b3-dialog:has([id^="lv-"]),
-    .b3-dialog:has(.lv-home) {
+    .lv-home-dialog,
+    .lv-home-detail-dialog {
         .b3-dialog__header { padding: 12px 14px; }
         .b3-dialog__action { padding: 10px 12px; }
         .b3-dialog__action > :is(.b3-button, .lv-btn) {
@@ -1585,8 +1598,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 
 // ── 19. body 级插件弹窗高对比度与无障碍加固 (Epoch 5) ──────────────
 @media (forced-colors: active) {
-    .b3-dialog:has([id^="lv-"]),
-    .b3-dialog:has(.lv-home),
+    .lv-home-dialog,
+    .lv-home-detail-dialog,
     .b3-dialog--lvmobile,
     .lv-energy-dialog {
         --lv-surface: Canvas;
@@ -1672,8 +1685,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 @media (prefers-contrast: more) {
-    .b3-dialog:has([id^="lv-"]),
-    .b3-dialog:has(.lv-home),
+    .lv-home-dialog,
+    .lv-home-detail-dialog,
     .b3-dialog--lvmobile,
     .lv-energy-dialog {
         .b3-dialog__container {
@@ -1692,6 +1705,36 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 // 指标卡四列网格在 ≤480px（手机竖屏）降级为两列，避免文字挤压换行溢出；
 // 弹窗宽度硬编码 px 在窄屏自适应收窄。
 @media (max-width: 480px) {
+    :is(.lv-home, .lv-home-dialog, .lv-home-detail-dialog, .lv-energy-dialog) {
+        .lv-metric-grid-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .lv-metric-grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        }
+
+        .lv-life-dim-grid,
+        .lv-dialog-grid-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .lv-csv-map-line {
+            flex-wrap: wrap;
+            .b3-select {
+                width: 100%;
+            }
+        }
+
+        .lv-broken-link-row,
+        .lv-waste-item,
+        .lv-life-hero-card,
+        .lv-rewards-hero-card {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    }
+
     .lv-dialog-scroll-body {
         [style*="grid-template-columns:repeat(4, 1fr)"],
         [style*="grid-template-columns:repeat(3, 1fr)"] {
@@ -1708,8 +1751,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 // ── 21. 全局管家业务弹窗移动端自适应收敛与 body 级弹窗原语补齐 ─────────
 // body 级业务弹窗（#lv-detail-body / #lv-triage / #lv-digest-body 等）不含 .lv-home 祖先，
 // 此处补齐其内部消费的表单行、附件行、报告预格式化与徽章/按钮原语。
-.b3-dialog:has([id^="lv-"]),
-.b3-dialog:has(.lv-home),
+.lv-home-dialog,
+.lv-home-detail-dialog,
 .lv-energy-dialog {
     .lv-report-pre {
         white-space: pre-wrap;
@@ -1791,14 +1834,23 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
         &.blue { background: var(--lv-info-soft); color: var(--lv-info); }
         &.gray { background: var(--lv-surface-2); color: var(--lv-tx-3); border-color: var(--lv-line); }
     }
+    .lv-pill-chip,
+    .lv-dt-chip {
+        background: var(--lv-surface-2);
+        color: var(--lv-tx-2);
+        border: 1px solid var(--lv-line-strong);
+        border-radius: 999px;
+        &:hover { background: var(--lv-surface-hover, var(--lv-surface)); border-color: var(--lv-accent-line); color: var(--lv-tx); }
+        &.b3-chip--secondary { background: var(--lv-surface-2); color: var(--lv-tx-2); border: 1px solid var(--lv-line-strong); }
+        &.b3-chip--primary, &.is-active { background: var(--lv-accent-soft); color: var(--lv-accent); border: 1px solid var(--lv-accent); font-weight: 600; }
+    }
 }
 
 // 针对详情抽屉、分析图表、急救卡、换证链等硬编码像素宽度的弹窗，
-// 在 ≤640px 移动视口下强制自适应贴合视口，避免横向截断（排除全屏主宿主 .b3-dialog--lvmobile 及其他插件 .lv-dialog / .lv-exam-*）。
+// 在 ≤640px 移动视口下强制自适应贴合视口，避免横向截断（仅限管家自身弹窗，绝不命中他仓弹窗）。
 @media (max-width: 640px) {
-    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):not(.lv-dialog):not(.lv-dialog .b3-dialog):not(.lv-exam-mobile-dialog):not(:has(.lv-cards-dialog-content, .lv-exam-tab, [class*="lv-exam-"], [class*="lv-cards"])):has([id^="lv-"]),
-    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):has(.lv-home),
-    .b3-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog):has(#lv-detail-body) {
+    .lv-home-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog),
+    .lv-home-detail-dialog:not(.b3-dialog--lvmobile):not(.b3-dialog--lvmobile .b3-dialog) {
         padding: 0 !important;
         align-items: stretch !important;
         .b3-dialog__container {
@@ -1843,9 +1895,8 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 }
 
 @media (max-height: 500px) {
-    .b3-dialog:not(.b3-dialog--lvmobile):has([id^="lv-"]),
-    .b3-dialog:not(.b3-dialog--lvmobile):has(.lv-home),
-    .b3-dialog:not(.b3-dialog--lvmobile):has(#lv-detail-body) {
+    .lv-home-dialog:not(.b3-dialog--lvmobile),
+    .lv-home-detail-dialog:not(.b3-dialog--lvmobile) {
         .b3-dialog__header { padding: 8px 12px !important; }
         .b3-dialog__content,
         #lv-detail-body {
@@ -1859,25 +1910,42 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
     }
 }
 
-/* ══════════ 暗黑主题下管家设置页卡片与输入框高对比度强化 ══════════ */
-:is([data-theme-mode="dark"], [data-appearance="dark"], body.body--dark, body.theme--dark, html.dark, body.dark) .lv-settings {
+/* ══════════ 暗黑主题下管家设置页卡片与输入框高对比度强化 (doc#22 v2 暖炭黑) ══════════ */
+:is([data-theme-mode="dark"], [data-appearance="dark"], html[data-theme="midnight"], body.body--dark, body.theme--dark, html.dark, body.dark) .lv-settings {
+    background: var(--lv-canvas);
+    color: var(--lv-tx);
+
+    .lv-setnav {
+        background: var(--lv-canvas);
+        border-right-color: var(--lv-line);
+    }
+
+    .lv-setpane {
+        background: var(--lv-canvas);
+    }
+
     .lv-setcard {
-        background: color-mix(in srgb, var(--lv-surface, #1e222d) 94%, #000 6%);
-        border-color: color-mix(in srgb, var(--lv-line, #333a4d) 80%, rgba(255, 255, 255, 0.08) 20%);
+        background: var(--lv-surface);
+        border-color: var(--lv-line);
+    }
+
+    .lv-settings__footer {
+        background: var(--lv-surface);
+        border-color: var(--lv-line);
     }
 
     .lv-settings__row {
-        border-bottom-color: color-mix(in srgb, var(--lv-line, #333a4d) 65%, transparent);
+        border-bottom-color: var(--lv-line);
 
         > span:first-child {
-            color: var(--lv-tx, #f0f3f6);
+            color: var(--lv-tx);
         }
     }
 
     .lv-setnav__item.on,
     .lv-setnav__item[aria-current="true"] {
-        background: color-mix(in srgb, var(--lv-accent, #3b82f6) 22%, var(--lv-surface, #1e222d));
-        color: var(--lv-accent, #60a5fa);
+        background: var(--lv-accent-soft);
+        color: var(--lv-accent);
     }
 }
 
@@ -1921,7 +1989,7 @@ body.theme--dark :is(.b3-dialog:has([id^="lv-"]):not(.lv-dialog):not(.lv-dialog 
 
 /* ══════════ 移动端软键盘弹起：弹窗随 visualViewport 收缩，输入框不被遮挡 ══════════ */
 @media (max-width: 680px) {
-    :is(.lv-home-dialog, .b3-dialog:has([id^="lv-"]), .b3-dialog:has([class*="lv-"])) .b3-dialog__container {
+    :is(.lv-home-dialog, .lv-home-detail-dialog):not(.b3-dialog--lvmobile) .b3-dialog__container {
         max-width: 94vw !important;
         box-sizing: border-box !important;
     }

@@ -3,8 +3,7 @@
     import type { HomePluginLike } from "@/types/plugin";
     import { Menu } from "siyuan";
     import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
-    import { sql } from "@/core/siyuan";
-    import { memberHue } from "@/core/format";
+    import { queryDocBox } from "@/core/sql-coalescer";
     import { calculateRetirement } from "@/core/retirement";
     import { getContactsBridge } from "@/libs/contact-picker";
     import ActivityFeed from "../activity-feed.svelte";
@@ -102,8 +101,7 @@
                         let notebookId = plugin.settings?.dbRefs?.members?.notebook;
                         if (!notebookId) {
                             try {
-                                const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
-                                if (rows && rows[0]?.box) notebookId = rows[0].box;
+                                notebookId = await queryDocBox(docId);
                             } catch {}
                         }
                         if (notebookId) {
@@ -152,7 +150,7 @@
                 <img class="lv-avatar lg lv-person-avatar-image" src={new URL(avatarPath, location.origin).href}
                     alt={m.name} width="44" height="44" decoding="async" loading="lazy" />
             {:else}
-                <span class="lv-avatar lg lv-person-avatar-fallback" style="background:linear-gradient(135deg, hsl({memberHue(m.id)} 62% 52%), hsl({(memberHue(m.id) + 42) % 360} 62% 40%))">{m.name.slice(0, 1)}</span>
+                <span class="lv-avatar lg lv-person-avatar-fallback">{m.name.slice(0, 1)}</span>
             {/if}
             <div class="lv-person-name">
                 <b>{m.name}</b>

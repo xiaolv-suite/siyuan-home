@@ -73,6 +73,7 @@ export function openContactPicker(
 <div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-pick-close">${handle.t("cancel")}</button></div>`,
         width: "min(460px, 92vw)",
     });
+    dlg.element?.classList?.add?.("lv-home-dialog");
     const kw = dlg.element.querySelector("#lv-pick-kw") as HTMLInputElement;
     const list = dlg.element.querySelector("#lv-pick-list") as HTMLElement;
     (dlg.element.querySelector("#lv-pick-close") as HTMLButtonElement).onclick = () => dlg.destroy();

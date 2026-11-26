@@ -226,9 +226,10 @@
     let quickShopCategory = $state(qDefs.shoppingCategory || "daily");
     let quickShopPrice = $state<number | undefined>();
 
-    // 常用流水：随手便签
+    // 常用流水：随手便签（可选关联车辆台账对象）
     let quickSnippetText = $state("");
     let quickSnippetTag = $state(qDefs.snippetTag || "#备忘");
+    let quickSnippetTarget = $state("");
 
     const SNIPPET_TAG_SUGGESTIONS = ["#备忘", "#待办", "#灵感", "#记账", "#家庭", "#日常"];
 
@@ -396,15 +397,24 @@
         saving = true;
         saveError = "";
         try {
+            const targetVehicle = quickSnippetTarget
+                ? vehiclesList.find((v) => v.itemID === quickSnippetTarget)
+                : undefined;
+            const targetVehicleLabel = targetVehicle
+                ? `${targetVehicle.name}${targetVehicle.plate ? ` (${targetVehicle.plate})` : ""}`
+                : undefined;
             const nextLogs = await saveQuickSnippetRecord({
                 plugin,
                 date: eventDate,
                 time: eventTime,
                 text,
                 tag: quickSnippetTag,
+                linkedVehicleId: targetVehicle?.itemID,
+                linkedVehicleName: targetVehicleLabel,
             });
-            onEventSaved("snippets", nextLogs, () => {
+            onEventSaved(targetVehicle ? "vehicles" : "snippets", nextLogs, () => {
                 quickSnippetText = "";
+                quickSnippetTarget = "";
             }, continueAfter);
         } catch (e) {
             onSaveErr(e);
@@ -893,6 +903,19 @@
                 {/each}
             </div>
         </div>
+        {#if vehiclesList.length > 0}
+            <div class="lv-frow">
+                <label for="lv-snip-target">{t("capture.linkLedgerTarget")}</label>
+                <select id="lv-snip-target" class="b3-select" bind:value={quickSnippetTarget} disabled={saving}>
+                    <option value="">{t("capture.linkTargetNone")}</option>
+                    <optgroup label={t("module.vehicles")}>
+                        {#each vehiclesList as v (v.itemID)}
+                            <option value={v.itemID}>{v.name}{v.plate ? ` (${v.plate})` : ""}</option>
+                        {/each}
+                    </optgroup>
+                </select>
+            </div>
+        {/if}
     {/if}
 
     <div class="lv-frow">

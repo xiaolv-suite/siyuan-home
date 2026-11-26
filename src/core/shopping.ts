@@ -245,7 +245,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
                         rowIdentity: { avID: shoppingRef.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
                     });
                     if (shoppingRef.columns.qty) {
-                        await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty } });
+                        await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty, isNotEmpty: true } });
                     }
                 }
                 dlg.destroy();

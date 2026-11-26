@@ -9,7 +9,7 @@ import type { Plugin } from "siyuan";
 import type { FamilyMember, HomeSettings, DbRef, MemberRowCreatePending } from "@/types";
 import { addDetachedRow, newSiYuanId, setCell, renderLedgerAll, RowIdentityPendingError } from "./siyuan";
 import { saveSettings, errText } from "./settings";
-import { selectCellValue } from "./avcell";
+import { selectCellValue, blockCellValue } from "./avcell";
 
 export function colMsToLocalDate(ms?: number): string | undefined {
     if (!ms) return undefined;
@@ -44,7 +44,7 @@ async function writeMemberCells(plugin: any, ref: DbRef, itemID: string, m: Fami
         let keyId = c[colKey];
         if (!keyId && plugin) {
             try {
-                const { healColumnMapping } = await import("./provisioner");
+                const { healColumnMapping } = await import("./provision-adoption");
                 keyId = await healColumnMapping(plugin, "members", colKey);
             } catch { /* soft */ }
         }
@@ -55,7 +55,7 @@ async function writeMemberCells(plugin: any, ref: DbRef, itemID: string, m: Fami
             const errStr = String(err?.message || err || "");
             if (errStr.includes("key not found") && plugin) {
                 try {
-                    const { healColumnMapping } = await import("./provisioner");
+                    const { healColumnMapping } = await import("./provision-adoption");
                     const healedId = await healColumnMapping(plugin, "members", colKey);
                     if (healedId) {
                         c[colKey] = healedId;
@@ -68,7 +68,7 @@ async function writeMemberCells(plugin: any, ref: DbRef, itemID: string, m: Fami
         }
     }
 
-    if (m.name) await setMemberCellWithHeal("name", { type: "text", text: { content: m.name } });
+    if (m.name) await setMemberCellWithHeal("name", blockCellValue(itemID, m.name, { keyID: c["name"], includeRichNull: true }));
     if (m.role) await setMemberCellWithHeal("role", selectCellValue(m.role));
     if (m.birthday) {
         await setMemberCellWithHeal("birthday", { type: "date", date: { content: new Date(`${m.birthday}T00:00:00`).getTime(), isNotEmpty: true, isNotTime: true } });

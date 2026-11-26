@@ -5,7 +5,14 @@
 import { parseCsv } from "./csv";
 import { bindDialogA11y } from "./dialog-a11y";
 import { planImport, guessMapping } from "./importer";
-import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "./siyuan";
+import {
+    addDetachedRow,
+    buildPrimaryBlockCell,
+    idempotentAppendDetachedRows,
+    newSiYuanId,
+    setCell,
+    RowIdentityPendingError,
+} from "./siyuan";
 import { cellValue } from "./avcell";
 import { confirm } from "@/libs/dialog";
 
@@ -104,29 +111,57 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
                         const failed: number[] = [];
                         const partial: number[] = [];
                         const pending: number[] = [];
-                        for (let i = 0; i < plan.rows.length; i++) {
-                            const row = plan.rows[i];
-                            let created = false;
-                            try {
-                                const rowOperationKey = `${importOperationKey}:row:${i}`;
-                                const itemID = await addDetachedRow(ref.avId!, row.name, {
-                                    idempotencyKey: rowOperationKey,
-                                    // D02：导入行同样注入身份，避免未知结果重试时认领同名单行。
-                                    rowIdentity: { avID: ref.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
-                                });
-                                created = true;
-                                for (const c of row.cells) {
-                                    if (ref.columns?.[c.key]) {
-                                        await setCell(ref.avId!, ref.columns[c.key], itemID, cellValue(c.type, c.value), {
-                                            idempotencyKey: `${rowOperationKey}:cell:${c.key}`,
-                                        });
+                        if (ref.columns?.name && plan.rows.length > 0) {
+                            const pkKeyId = ref.columns.name;
+                            const batchRes = await idempotentAppendDetachedRows({
+                                dbRef: {
+                                    avId: ref.avId!,
+                                    avBlockId: (ref as any).avBlockId,
+                                    docId: (ref as any).docId,
+                                },
+                                extKeyID: pkKeyId,
+                                primaryKeyID: pkKeyId,
+                                rows: plan.rows,
+                                getExternalKey: (r) => r.name,
+                                toCells: (r) => {
+                                    const itemID = newSiYuanId();
+                                    const rowCells: Array<Record<string, any>> = [
+                                        buildPrimaryBlockCell({ keyID: pkKeyId, itemID, content: r.name, includeRichNull: true }),
+                                    ];
+                                    for (const c of r.cells) {
+                                        const colKeyId = ref.columns?.[c.key];
+                                        if (!colKeyId || colKeyId === pkKeyId) continue;
+                                        const val = cellValue(c.type, c.value) as Record<string, any> | null;
+                                        if (val) rowCells.push({ ...val, keyID: colKeyId, itemID });
                                     }
+                                    return rowCells;
+                                },
+                            });
+                            ok = batchRes.inserted;
+                        } else {
+                            for (let i = 0; i < plan.rows.length; i++) {
+                                const row = plan.rows[i];
+                                let created = false;
+                                try {
+                                    const rowOperationKey = `${importOperationKey}:row:${i}`;
+                                    const itemID = await addDetachedRow(ref.avId!, row.name, {
+                                        idempotencyKey: rowOperationKey,
+                                        rowIdentity: { avID: ref.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
+                                    });
+                                    created = true;
+                                    for (const c of row.cells) {
+                                        if (ref.columns?.[c.key]) {
+                                            await setCell(ref.avId!, ref.columns[c.key], itemID, cellValue(c.type, c.value), {
+                                                idempotencyKey: `${rowOperationKey}:cell:${c.key}`,
+                                            });
+                                        }
+                                    }
+                                    ok++;
+                                } catch (e) {
+                                    if (e instanceof RowIdentityPendingError) pending.push(i + 1);
+                                    else if (created) partial.push(i + 1);
+                                    else failed.push(i + 1);
                                 }
-                                ok++;
-                            } catch (e) {
-                                if (e instanceof RowIdentityPendingError) pending.push(i + 1);
-                                else if (created) partial.push(i + 1);
-                                else failed.push(i + 1);
                             }
                         }
                         if (onImportSuccess) await onImportSuccess();

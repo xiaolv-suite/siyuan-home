@@ -342,6 +342,17 @@ export async function openRewardsLedgerModal(ctx: LedgerModalContext): Promise<v
     });
 }
 
+export function parseExpenseAmountText(raw: string): number {
+    const trimmed = String(raw ?? "").trim();
+    if (!trimmed) return NaN;
+    const stripped = trimmed.replace(/[,\s￥¥$€£元]/g, "");
+    if (!stripped) return NaN;
+    const direct = Number(stripped);
+    if (Number.isFinite(direct)) return direct;
+    const match = stripped.match(/[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    return match ? Number(match[0]) : NaN;
+}
+
 export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn } = ctx;
     if (!ref?.avId) return;
@@ -358,10 +369,10 @@ export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<vo
         const entries = rows
             .map((row) => ({
                 date: cellTextFn(row.cells?.[dateCol]),
-                amount: Number(cellTextFn(row.cells?.[amountCol]).replace(/[^\d.-]/g, "")),
+                amount: parseExpenseAmountText(cellTextFn(row.cells?.[amountCol])),
                 category: ref.columns?.category ? cellTextFn(row.cells?.[ref.columns.category]) : undefined,
             }))
-            .filter((e) => e.date && Number.isFinite(e.amount) && e.amount > 0);
+            .filter((e) => e.date && Number.isFinite(e.amount) && e.amount !== 0);
 
         if (entries.length === 0) {
             showMessageFn(t("ledger.expenseTrendEmpty"), 4000, "info");

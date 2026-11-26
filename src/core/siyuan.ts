@@ -9,10 +9,29 @@
 export * from "./siyuan-transport";
 import {
     post,
+    hasCustomTransport,
     KernelError,
     isWriteResultUnknown,
     type RequestOptions,
 } from "./siyuan-transport";
+
+export const MAX_AV_BATCH_SIZE = 20;
+export const DEFAULT_AV_PAGE_SIZE = 100;
+const CUSTOM_ATTR_NAME_REGEX = /^custom-[a-z][a-z0-9-]*$/;
+
+export class AvBindingMismatchError extends Error {
+    constructor(message: string) {
+        super(`[AV-BINDING-MISMATCH] ${message}`);
+        this.name = "AvBindingMismatchError";
+    }
+}
+
+export class AvValidationError extends Error {
+    constructor(message: string) {
+        super(`[AV-VALIDATION-ERROR] ${message}`);
+        this.name = "AvValidationError";
+    }
+}
 
 // ── SQL（只读）──────────────────────────────────────────────
 
@@ -97,21 +116,212 @@ export function getBlockKramdown(id: string, options?: RequestOptions): Promise<
     return post("/api/block/getBlockKramdown", { id }, options);
 }
 
-export function setBlockAttrs(id: string, attrs: Record<string, string>, options?: RequestOptions): Promise<void> {
+export function getBlockDOM(id: string, options?: RequestOptions): Promise<{ id: string; dom: string } | null> {
+    return post<{ id: string; dom: string } | null>("/api/block/getBlockDOM", { id }, options);
+}
+
+export interface ChildBlockInfo {
+    id: string;
+    type?: string;
+    subType?: string;
+    subtype?: string;
+    content?: string;
+    markdown?: string;
+    ial?: string;
+}
+
+export function getChildBlocks(id: string, options?: RequestOptions): Promise<ChildBlockInfo[]> {
+    return post<ChildBlockInfo[]>("/api/block/getChildBlocks", { id }, options);
+}
+
+export function getBlockAttrs(id: string, options?: RequestOptions): Promise<Record<string, string> | null> {
+    return post<Record<string, string> | null>("/api/attr/getBlockAttrs", { id }, options);
+}
+
+export function setBlockAttrs(id: string, attrs: Record<string, string | null>, options?: RequestOptions): Promise<void> {
     return post("/api/attr/setBlockAttrs", { id, attrs }, options);
 }
 
+export function batchSetBlockAttrs(
+    blockAttrs: Array<{ id: string; attrs: Record<string, string | null> }>,
+    options?: RequestOptions,
+): Promise<void> {
+    return post("/api/attr/batchSetBlockAttrs", { blockAttrs }, options);
+}
+
+export function deleteBlock(id: string, options?: RequestOptions): Promise<unknown> {
+    return post("/api/block/deleteBlock", { id }, { ...options, retries: 0 });
+}
+
+export async function getFileText(filePath: string, options?: RequestOptions): Promise<string> {
+    if (hasCustomTransport()) {
+        const data = await post<unknown>("/api/file/getFile", { path: filePath }, options);
+        if (typeof data === "string") return data;
+        if (data === null || data === undefined) throw new KernelError("/api/file/getFile", 404, "file not found");
+        return JSON.stringify(data);
+    }
+    const res = await fetch("/api/file/getFile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: filePath }),
+        signal: options?.signal ?? AbortSignal.timeout(options?.timeoutMs ?? 15_000),
+    });
+    if (!res.ok) throw new KernelError("/api/file/getFile", res.status, `HTTP ${res.status}`);
+    const text = await res.text();
+    try {
+        const maybeErr = JSON.parse(text) as { code?: number; msg?: string };
+        if (maybeErr && typeof maybeErr === "object" && typeof maybeErr.code === "number" && maybeErr.code !== 0) {
+            throw new KernelError("/api/file/getFile", maybeErr.code, maybeErr.msg || "file not found");
+        }
+    } catch (err) {
+        if (err instanceof KernelError) throw err;
+    }
+    return text;
+}
+
+export async function putFileText(filePath: string, contentString: string, options?: RequestOptions): Promise<unknown> {
+    if (hasCustomTransport()) {
+        return post("/api/file/putFile", { path: filePath, isDir: false, content: contentString }, options);
+    }
+    const form = new FormData();
+    form.append("path", filePath);
+    form.append("isDir", "false");
+    form.append("modTime", String(Math.floor(Date.now() / 1000)));
+    const fileName = filePath.split("/").pop() || "data.json";
+    form.append("file", new Blob([contentString], { type: "application/json" }), fileName);
+    const res = await fetch("/api/file/putFile", {
+        method: "POST",
+        body: form,
+        signal: options?.signal ?? AbortSignal.timeout(options?.timeoutMs ?? 15_000),
+    });
+    const json = await res.json();
+    if (json && typeof json.code === "number" && json.code !== 0) {
+        throw new KernelError("/api/file/putFile", json.code, json.msg || "putFile failed");
+    }
+    return json?.data;
+}
+
 /**
- * Spike 定案（2026-10-01，docs/testing/spike-R1R2.md 已回填结论）：
- * - av 块形态：<div data-type="NodeAttributeView" data-av-id="X" data-av-type="table"></div>
- * - 建库：插入 div（自造 avIdSeed）→ SQL 找块 → renderAttributeView{createIfNotExist:true}，avID = 块 ID
- * - 加列：addAttributeViewKey{avID, keyID(自造), keyIcon:"", keyName, keyType, previousKeyID:""}
- * - 加行：addAttributeViewBlocks{avID, srcs:[{content, isDetached:true}]}（绑定真实块 isDetached:false 静默失败——
- *   非绑定行路径待后续 transactions 端点探索，TODO 记录）
- * - 写值：batchSetAttributeViewBlockAttrs{avID, values:[{keyID, itemID, value}]}（rowID 已废弃，issue #15727）
- * - 读：renderAttributeView → data.view.{columns, rows, rowCount}；行主键：getAttributeViewPrimaryKeyValues
- * - detached 行不在 blocks 表：SQL 不可查、不可块定位 → 行定位降级为打开台账文档（B4e 定案）
+ * 思源 v3.8.12 AV Format 17 定案：
+ * - 建库：dataType:"dom" 插入 <div data-type="NodeAttributeView" data-av-id="X" data-av-type="table" data-node-id="Y" custom-lv-schema="home-ledger-v2"></div>
+ * - 绑定校验：通过 getBlockDOM 解析真实 data-av-id，强校验 dbRefs.avId === data-av-id
+ * - 加列：addAttributeViewKey
+ * - 主键：KeyTypeBlock 强制 { type: "block", block: { id: itemID, content }, rich: null }
+ * - 批写：appendAttributeViewDetachedBlocksWithValues（外部主键去重 + <=20 行/批）
+ * - 写值：setAttributeViewBlockAttr 传 itemID（非废弃 rowID）
+ * - 读：renderAttributeView 传 { id: avID, blockID }，严禁 pageSize: -1
  */
+
+function escapeXmlAttr(value: string): string {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+export function buildAttributeViewDom(params: {
+    avId: string;
+    avBlockId: string;
+    avType?: "table" | "gallery" | "kanban";
+    schema?: string;
+    extraAttrs?: Record<string, string>;
+}): string {
+    if (!params.avId || !params.avBlockId) {
+        throw new AvValidationError("avId and avBlockId are required");
+    }
+    const schema = params.schema || "home-ledger-v2";
+    const attrs: Record<string, string> = {
+        "custom-lv-schema": schema,
+        ...(params.extraAttrs || {}),
+    };
+    for (const k of Object.keys(attrs)) {
+        if (!CUSTOM_ATTR_NAME_REGEX.test(k)) {
+            throw new AvValidationError(`Illegal custom attribute name "${k}"`);
+        }
+    }
+    const attrStr = Object.entries(attrs)
+        .map(([k, v]) => `${k}="${escapeXmlAttr(v)}"`)
+        .join(" ");
+    return `<div data-type="NodeAttributeView" data-av-id="${escapeXmlAttr(params.avId)}" data-av-type="${escapeXmlAttr(params.avType || "table")}" data-node-id="${escapeXmlAttr(params.avBlockId)}" ${attrStr}></div>`;
+}
+
+export function parseDataAvIdFromDom(domHtml: string | undefined | null): string | null {
+    if (!domHtml) return null;
+    const m = domHtml.match(/data-av-id="([^"]+)"/i);
+    return m ? m[1] : null;
+}
+
+export function parseAvBlockIdFromDom(domHtml: string | undefined | null): string | null {
+    if (!domHtml) return null;
+    const m =
+        domHtml.match(/data-type="NodeAttributeView"[^>]*data-node-id="([^"]+)"/i) ||
+        domHtml.match(/data-node-id="([^"]+)"[^>]*data-type="NodeAttributeView"/i);
+    return m ? m[1] : null;
+}
+
+export function buildPrimaryBlockCell(params: {
+    keyID?: string;
+    itemID: string;
+    content: string;
+    isDetached?: boolean;
+    includeRichNull?: boolean;
+}): {
+    type: "block";
+    keyID?: string;
+    isDetached: boolean;
+    itemID: string;
+    block: { id: string; content: string };
+    rich?: null;
+} {
+    if (!params.itemID) {
+        throw new AvValidationError("itemID is required for KeyTypeBlock cell");
+    }
+    const cell: {
+        type: "block";
+        keyID?: string;
+        isDetached: boolean;
+        itemID: string;
+        block: { id: string; content: string };
+        rich?: null;
+    } = {
+        ...(params.keyID ? { keyID: params.keyID } : {}),
+        isDetached: params.isDetached ?? true,
+        itemID: params.itemID,
+        type: "block",
+        block: {
+            id: params.itemID,
+            content: String(params.content ?? ""),
+        },
+    };
+    if (params.includeRichNull !== false) {
+        cell.rich = null;
+    }
+    return cell;
+}
+
+export function validateAvRowCells(cells: Array<Record<string, any>>, primaryKeyID?: string): void {
+    if (!Array.isArray(cells) || cells.length === 0) {
+        throw new AvValidationError("AV row cells must be a non-empty array");
+    }
+    for (const cell of cells) {
+        if (!cell?.keyID) {
+            throw new AvValidationError("Every AV cell must carry keyID");
+        }
+        if (primaryKeyID && cell.keyID === primaryKeyID) {
+            if (cell.type !== "block" || !cell.block || !cell.block.id) {
+                throw new AvValidationError(
+                    `Primary KeyTypeBlock (${primaryKeyID}) must use type:"block" with block.id, got type="${cell.type}"`,
+                );
+            }
+            if (cell.itemID && cell.block.id !== cell.itemID) {
+                throw new AvValidationError(
+                    `Primary cell itemID (${cell.itemID}) must match block.id (${cell.block.id})`,
+                );
+            }
+        }
+    }
+}
 
 function extractBlockOpId(d: any): string {
     const ops: any[] = Array.isArray(d) ? (d[0]?.doOperations ?? []) : (d?.doOperations ?? d?.data?.doOperations ?? []);
@@ -123,7 +333,7 @@ function extractBlockOpId(d: any): string {
     return String(d?.id ?? d?.blockID ?? d?.data?.id ?? "");
 }
 
-/** 插入 markdown 块，返回新块 ID（E9/182 波：insertBlock 响应 doOperations[].data 带 data-node-id，可同步提取；取不到回空串由调用方兜底） */
+/** 插入 markdown 块，返回新块 ID */
 export async function insertBlock(parentID: string, markdown: string, options?: RequestOptions): Promise<string> {
     const d = await post<any>("/api/block/insertBlock", { dataType: "markdown", parentID, data: markdown }, { ...options, retries: 0 });
     return extractBlockOpId(d);
@@ -135,9 +345,19 @@ export async function appendBlock(parentID: string, markdown: string, options?: 
     return extractBlockOpId(d);
 }
 
+/** 在文档末尾原子追加 DOM 块，返回操作结果（含真实 node id） */
+export async function appendBlockDom(parentID: string, domHtml: string, options?: RequestOptions): Promise<any> {
+    return post<any>("/api/block/appendBlock", { dataType: "dom", parentID, data: domHtml }, { ...options, retries: 0 });
+}
+
 /** 原地更新指定块 ID 的 markdown 内容 */
 export async function updateBlock(id: string, markdown: string, options?: RequestOptions): Promise<void> {
     await post("/api/block/updateBlock", { dataType: "markdown", id, data: markdown }, options);
+}
+
+/** 原地更新指定块 ID 的 DOM 内容 */
+export async function updateBlockDom(id: string, domHtml: string, options?: RequestOptions): Promise<void> {
+    await post("/api/block/updateBlock", { dataType: "dom", id, data: domHtml }, options);
 }
 
 /** 折叠指定标题或容器块（思源原生标题折叠，大纲与编辑器同步生效） */
@@ -178,45 +398,156 @@ export async function addAttributeViewColumn(avID: string, col: AvColumnSpec, op
     return keyID;
 }
 
-/** 在文档内插入 av 容器 div 并触发内核建库，返回真实 avID（= av 块 ID）。
- * 优先同步取 insertBlock 响应里的新块 ID（E9）；SQL 索引异步重建仅作回退（轮询 ~3s——
- * 182 波活体套件首跑实证：忙实例上 400ms 固定等待会落空）。
- * 关键：附带 Kramdown IAL `{: id="${avIdSeed}"}` 让思源块的 data-node-id 与 data-av-id 严格一致，
- * 确保用户在思源笔记树中点开台账文档时原生表格直接显示已落盘的全部列与行！ */
-export async function createAttributeView(docId: string, avIdSeed: string, options?: RequestOptions): Promise<string> {
-    const div = `<div data-type="NodeAttributeView" data-av-id="${avIdSeed}" data-av-type="table"></div>\n{: id="${avIdSeed}"}`;
+export function getAttributeViewKeysByAvID(avID: string, options?: RequestOptions): Promise<Array<{ id: string; name: string; type: string }>> {
+    return post("/api/av/getAttributeViewKeysByAvID", { avID }, options);
+}
+
+export function appendAttributeViewDetachedBlocksWithValues(
+    avID: string,
+    blocksValues: Array<Array<Record<string, unknown>>>,
+    options?: RequestOptions,
+): Promise<unknown> {
+    return post("/api/av/appendAttributeViewDetachedBlocksWithValues", { avID, blocksValues }, { ...options, retries: 0 });
+}
+
+export function getAttributeViewItemIDsByBoundIDs(
+    avID: string,
+    blockIDs: string[],
+    options?: RequestOptions,
+): Promise<Record<string, string>> {
+    return post("/api/av/getAttributeViewItemIDsByBoundIDs", { avID, blockIDs }, options);
+}
+
+export function getAttributeViewItemStatuses(
+    avID: string,
+    itemIDs: string[],
+    options?: RequestOptions,
+): Promise<Record<string, string>> {
+    return post("/api/av/getAttributeViewItemStatuses", { id: avID, itemIDs }, options);
+}
+
+/** 强校验 dbRef.avId === 文档内 live DOM 真实 data-av-id */
+export async function assertAvRefBound(
+    dbRef: { avId?: string; avBlockId?: string; docId?: string },
+    options?: RequestOptions,
+): Promise<{ avId: string; avBlockId: string; dom: string }> {
+    if (!dbRef?.avId || !dbRef?.avBlockId) {
+        throw new AvBindingMismatchError("Missing avId or avBlockId in dbRef");
+    }
+    const blockDom = await getBlockDOM(dbRef.avBlockId, options);
+    if (!blockDom || blockDom.id !== dbRef.avBlockId) {
+        throw new AvBindingMismatchError(`AV container block ${dbRef.avBlockId} does not exist in live .sy`);
+    }
+    const actualDataAvId = parseDataAvIdFromDom(blockDom.dom);
+    if (!actualDataAvId) {
+        throw new AvBindingMismatchError(`Block ${dbRef.avBlockId} DOM has no data-av-id attribute`);
+    }
+    if (actualDataAvId !== dbRef.avId) {
+        throw new AvBindingMismatchError(
+            `dbRef.avId (${dbRef.avId}) !== live data-av-id (${actualDataAvId}) on block ${dbRef.avBlockId}`,
+        );
+    }
+    return { avId: actualDataAvId, avBlockId: dbRef.avBlockId, dom: blockDom.dom };
+}
+
+/**
+ * 通过 dataType: "dom" 在文档内创建并强绑定 NodeAttributeView，回读 getBlockDOM 解析真实 data-av-id，
+ * 再以 { id: avId, blockID: avBlockId, createIfNotExist: true } 初始化内核 AV。
+ */
+export async function createAndBindAttributeView(
+    docId: string,
+    avIdSeed: string,
+    options?: RequestOptions & { avBlockId?: string; schema?: string; extraAttrs?: Record<string, string> },
+): Promise<{ avId: string; avBlockId: string }> {
     const readOptions: RequestOptions = { timeoutMs: options?.timeoutMs, signal: options?.signal, retries: 1 };
-    const findBySeed = async () => {
+    const isValidBlockId = (v: string) => /^\d{14}-[0-9a-z]{7}$/i.test(v);
+    const candidateBlockId = options?.avBlockId || (isValidBlockId(avIdSeed) ? avIdSeed : newSiYuanId());
+
+    const findBySeed = async (): Promise<{ avId: string; avBlockId: string } | null> => {
         try {
             const rows = await sql<{ id: string; markdown?: string }>(
-                `SELECT id, markdown FROM blocks WHERE type='av' AND root_id='${docId.replace(/'/g, "''")}' LIMIT 5`,
+                `SELECT id, markdown FROM blocks WHERE (type='av' OR markdown LIKE '%data-type="NodeAttributeView"%') AND root_id='${docId.replace(/'/g, "''")}' LIMIT 5`,
                 readOptions,
             );
-            if (rows.length === 0) return "";
-            const matched = rows.find((r) => r.markdown && r.markdown.includes(avIdSeed));
-            // 若匹配到 seed，或该文档仅有唯一一个 AV 块，安全返回；多块且无匹配时不抢占 rows[0]
-            return matched?.id ?? (rows.length === 1 ? rows[0].id : "");
+            if (!Array.isArray(rows) || rows.length === 0) return null;
+            for (const r of rows) {
+                try {
+                    const domRes = await getBlockDOM(r.id, readOptions);
+                    const liveAvId = parseDataAvIdFromDom(domRes?.dom);
+                    if (liveAvId && (liveAvId === avIdSeed || rows.length === 1)) {
+                        return { avId: liveAvId, avBlockId: r.id };
+                    }
+                } catch { /* soft */ }
+                if (r.markdown) {
+                    const mdAvId = parseDataAvIdFromDom(r.markdown);
+                    if (mdAvId && (mdAvId === avIdSeed || rows.length === 1)) {
+                        return { avId: mdAvId, avBlockId: r.id };
+                    }
+                }
+            }
+            if (rows.length === 1) {
+                return { avId: avIdSeed || rows[0].id, avBlockId: rows[0].id };
+            }
+            return null;
         } catch {
-            return "";
+            return null;
         }
     };
-    // A prior attempt may have inserted the block but lost its response.
-    let blockId = await findBySeed();
-    if (!blockId) {
+
+    let bound = await findBySeed();
+    if (!bound) {
+        const domHtml = buildAttributeViewDom({
+            avId: avIdSeed,
+            avBlockId: candidateBlockId,
+            avType: "table",
+            schema: options?.schema || "home-ledger-v2",
+            extraAttrs: options?.extraAttrs,
+        });
         try {
-            blockId = await insertBlock(docId, div, options);
-            if (!blockId) blockId = await findBySeed();
+            const opRes = await appendBlockDom(docId, domHtml, options);
+            const opId = extractBlockOpId(opRes);
+            const resolvedBlockId = opId || candidateBlockId;
+            try {
+                const liveDom = await getBlockDOM(resolvedBlockId, readOptions);
+                if (liveDom?.dom) {
+                    const actualDataAvId = parseDataAvIdFromDom(liveDom.dom);
+                    if (!actualDataAvId) {
+                        throw new AvBindingMismatchError(`Inserted AV block ${resolvedBlockId} DOM has no data-av-id`);
+                    }
+                    if (actualDataAvId !== avIdSeed) {
+                        throw new AvBindingMismatchError(`Inserted data-av-id (${actualDataAvId}) !== expected (${avIdSeed})`);
+                    }
+                    bound = { avId: actualDataAvId, avBlockId: resolvedBlockId };
+                } else {
+                    bound = (await findBySeed()) ?? { avId: avIdSeed, avBlockId: resolvedBlockId };
+                }
+            } catch (domErr) {
+                if (domErr instanceof AvBindingMismatchError) throw domErr;
+                bound = (await findBySeed()) ?? { avId: avIdSeed, avBlockId: resolvedBlockId };
+            }
         } catch (error) {
-            if (!isWriteResultUnknown(error)) throw error;
+            if (error instanceof AvBindingMismatchError || !isWriteResultUnknown(error)) throw error;
         }
     }
-    for (let i = 0; !blockId && i < 6; i++) {
+
+    for (let i = 0; !bound && i < 6; i++) {
         await new Promise((r) => setTimeout(r, 500));
-        blockId = await findBySeed();
+        bound = await findBySeed();
     }
-    if (!blockId) throw new KernelError("av.createAttributeView", -3, "av block not found after insert");
-    await post("/api/av/renderAttributeView", { id: blockId, createIfNotExist: true }, options);
-    return blockId;
+    if (!bound) throw new KernelError("av.createAttributeView", -3, "av block not found after insert");
+
+    await post(
+        "/api/av/renderAttributeView",
+        { id: bound.avId, blockID: bound.avBlockId, createIfNotExist: true },
+        options,
+    );
+    return bound;
+}
+
+/** 在文档内插入 av 容器 div 并触发内核建库，返回真实 data-av-id */
+export async function createAttributeView(docId: string, avIdSeed: string, options?: RequestOptions): Promise<string> {
+    const res = await createAndBindAttributeView(docId, avIdSeed, options);
+    return res.avId;
 }
 
 /**
@@ -257,33 +588,70 @@ export class RowIdentityPendingError extends Error {
     }
 }
 
-/** 从 addAttributeViewBlocks 响应收集可能的行 ID（响应形态随版本变化，仅认已知键） */
+/** 从 addAttributeViewBlocks 响应收集可信的新行 ID（仅采信明确 rowID/itemID 字段或经核实的 insertAttrViewBlock 操作行 ID） */
 function rowIDsFromAddResponse(d: any): string[] {
     const out: string[] = [];
-    const push = (v: any) => {
-        if (typeof v === "string" && v) out.push(v);
-        else if (v && typeof v === "object") {
-            const id = v.rowID || v.blockID || v.id || v.itemID;
-            if (typeof id === "string" && id) out.push(id);
+    const pushStringId = (v: any) => {
+        if (typeof v === "string" && v && !out.includes(v)) {
+            if (/^\d{14}-[0-9a-z]{7}$/i.test(v) || /^[a-z0-9_-]{5,}$/i.test(v)) {
+                out.push(v);
+            }
         }
     };
-    if (typeof d === "string" && d) push(d);
-    if (Array.isArray(d)) d.forEach(push);
+
     if (d && typeof d === "object" && !Array.isArray(d)) {
-        push(d);
-        for (const k of ["rowIDs", "blockIDs", "ids", "blocks", "operations", "doOperations", "rows", "srcs"] as const) {
-            if (Array.isArray(d[k])) d[k].forEach(push);
+        if (typeof d.rowID === "string") pushStringId(d.rowID);
+        if (typeof d.itemID === "string") pushStringId(d.itemID);
+        if (Array.isArray(d.rowIDs)) d.rowIDs.forEach(pushStringId);
+        if (Array.isArray(d.itemIDs)) d.itemIDs.forEach(pushStringId);
+        if (Array.isArray(d.doOperations)) {
+            for (const op of d.doOperations) {
+                if (op && typeof op === "object") {
+                    if (op.action !== "insertAttrViewBlock") continue;
+                    const rowId = op.rowID || op.itemID || op.id;
+                    if (typeof rowId === "string") pushStringId(rowId);
+                }
+            }
+        }
+        if (Array.isArray(d.operations)) {
+            for (const op of d.operations) {
+                if (op && typeof op === "object") {
+                    // 严格要求 action === "insertAttrViewBlock"，缺少 action、action="" 或非插入操作一律坚决不采信
+                    if (op.action !== "insertAttrViewBlock") continue;
+                    const rowId = op.rowID || op.itemID;
+                    if (typeof rowId === "string") pushStringId(rowId);
+                }
+            }
         }
     }
     return out;
 }
 
+export interface RenderedRowSnapshot {
+    id: string;
+    content: string;
+}
+
+function extractRowContent(r: any): string {
+    const cells = Array.isArray(r?.cells) ? r.cells : Object.values(r?.cells ?? {});
+    for (const c of cells) {
+        const txt = c?.value?.text?.content
+            ?? c?.text?.content
+            ?? c?.value?.content
+            ?? c?.content
+            ?? c?.block?.content
+            ?? "";
+        if (typeof txt === "string" && txt.trim()) return txt.trim();
+    }
+    return "";
+}
+
 /**
  * 加 detached 行，返回新行 itemID（D02）：
  * 1) 显式注入客户端自造 itemID（F4 端点候选强化，杜绝无脑猜 ID）；
- * 2) 响应直接携带且不在加行前集合中的 ID 唯一 → 确认；
+ * 2) 响应直接携带且不在加行前集合中的 ID 唯一 → 确认（本次请求专属可信响应凭据）；
  * 3) 短轮询对比加行前后 render row 集合（退避等待内核 SQLite 异步事务写入）；
- * 4) 确认到目标行或唯一新增行即刻返回，消除假性待确认死锁。
+ * 4) 严格基于期望 ID 或本次请求可信响应 ID 强关联确认新行（绝不以同名内容冒认他人并发新增行），否则维持待确认错误。
  */
 export async function addDetachedRow(avID: string, content: string, options?: RequestOptions & { rowIdentity?: DetachedRowIdentity }): Promise<string> {
     const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
@@ -301,7 +669,8 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
     const before = new Set(await renderRowIDs(avID, queryOptions));
     const desiredItemID = identity?.desiredItemID || newSiYuanId();
     if (identity) Object.assign(identity, { avID, desiredItemID, before: [...before] });
-    const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : !identity && list.length === 1 ? list[0] : "";
+    // 无论是否显式传递 identity，底层均强制要求期望 ID 匹配（彻底消除盲认领他人唯一新增行漏洞）
+    const findHit = (list: string[]) => list.includes(desiredItemID) ? desiredItemID : "";
     let d: any;
     try {
         if (identity) identity.submitted = true;
@@ -320,7 +689,10 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         try {
             const recovered = (await renderRowIDs(avID, recoveryOptions)).filter((id) => !before.has(id));
             const hit = findHit(recovered);
-            if (hit) return hit;
+            if (hit) {
+                if (identity) identity.desiredItemID = hit;
+                return hit;
+            }
             throw new RowIdentityPendingError(Array.from(new Set(recovered)));
         } catch (recoveryError) {
             if (recoveryError instanceof RowIdentityPendingError) throw recoveryError;
@@ -330,7 +702,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
     const fromResponse = rowIDsFromAddResponse(d).filter((id) => !before.has(id));
     // A unique ID in this add request's own response is direct identity
     // evidence, including kernels that allocate their own row ID.
-    const hitResp = findHit(fromResponse) || (fromResponse.length === 1 ? fromResponse[0] : "");
+    const hitResp = fromResponse.includes(desiredItemID) ? desiredItemID : (fromResponse.length === 1 ? fromResponse[0] : "");
     if (hitResp) {
         if (identity) identity.desiredItemID = hitResp;
         return hitResp;
@@ -343,12 +715,41 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
         try {
             added = (await renderRowIDs(avID, queryOptions)).filter((id) => !before.has(id));
             const hit = findHit(added);
-            if (hit) return hit;
+            if (hit) {
+                if (identity) identity.desiredItemID = hit;
+                return hit;
+            }
             if (added.length > 1) break; // 多候选时立即退出轮询交由人工确认
         } catch { /* soft retry */ }
     }
 
     throw new RowIdentityPendingError(added.length ? Array.from(new Set(added)) : fromResponse);
+}
+
+async function renderRowSnapshots(avID: string, options?: RequestOptions): Promise<RenderedRowSnapshot[]> {
+    const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
+    const first = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: 1 }, queryOptions);
+    const rawRows = first?.view?.rows ?? [];
+    const rows: RenderedRowSnapshot[] = rawRows.map((r: any) => ({
+        id: String(r?.id ?? ""),
+        content: extractRowContent(r),
+    })).filter((r: RenderedRowSnapshot) => Boolean(r.id));
+    const rowCount = typeof first?.view?.rowCount === "number" ? first.view.rowCount : rows.length;
+    if (rowCount <= 200) return rows;
+
+    const all = [...rows];
+    const totalPages = Math.min(50, Math.ceil(rowCount / 200));
+    for (let p = 2; p <= totalPages; p++) {
+        const next = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: p }, queryOptions).catch(() => null);
+        const nextRaw = next?.view?.rows ?? [];
+        const nextRows: RenderedRowSnapshot[] = nextRaw.map((r: any) => ({
+            id: String(r?.id ?? ""),
+            content: extractRowContent(r),
+        })).filter((r: RenderedRowSnapshot) => Boolean(r.id));
+        all.push(...nextRows);
+        if (nextRows.length < 200) break;
+    }
+    return all;
 }
 
 /**
@@ -357,21 +758,7 @@ export async function addDetachedRow(avID: string, content: string, options?: Re
  * 而非 getAttributeViewPrimaryKeyValues 返回的 PK value ID（两者是不同 ID 空间）。
  */
 async function renderRowIDs(avID: string, options?: RequestOptions): Promise<string[]> {
-    const queryOptions: RequestOptions = { ...options, idempotencyKey: undefined };
-    const first = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: 1 }, queryOptions);
-    const rows = (first?.view?.rows ?? []).map((r: any) => r.id);
-    const rowCount = typeof first?.view?.rowCount === "number" ? first.view.rowCount : rows.length;
-    if (rowCount <= 200) return rows;
-
-    const allIds = [...rows];
-    const totalPages = Math.min(50, Math.ceil(rowCount / 200));
-    for (let p = 2; p <= totalPages; p++) {
-        const next = await post<any>("/api/av/renderAttributeView", { id: avID, pageSize: 200, page: p }, queryOptions).catch(() => null);
-        const nextRows = (next?.view?.rows ?? []).map((r: any) => r.id);
-        allIds.push(...nextRows);
-        if (nextRows.length < 200) break;
-    }
-    return Array.from(new Set(allIds));
+    return (await renderRowSnapshots(avID, options)).map((r) => r.id);
 }
 
 /** 删除 av 行（detached 行删除路径；2026-10-03 真机确认参数名为 srcIDs） */
@@ -390,17 +777,45 @@ export {
     recognizeAsset,
 } from "./siyuan-asset-ocr";
 
-/** 单元格写值（value 按列类型：{type:"text",text:{content}} / {type:"date",date:{content,isNotEmpty}} / {type:"relation",relation:{blockIDs}} …）。
- * 217 波：迁移到文档化公开端点 setAttributeViewBlockAttr（itemID=render row.id，D02 一致）——
- * 此前用的 batchSetAttributeViewBlockAttrs 是未入文档的内部路由（无兼容性保证，上游 API.md 141 行明示）。 */
+/** 单元格写值（value 按列类型：{type:"block",block:{id,content},rich:null} / {type:"text",text:{content}} / {type:"date",date:{content,isNotEmpty}} / {type:"relation",relation:{blockIDs}} …）。
+ * Format 17 强制：
+ * - setAttributeViewBlockAttr 严格传 itemID（非废弃 rowID）；
+ * - KeyTypeBlock 主键覆写必须发 { type:"block", block:{ id, content }, rich: null }（防 attribute_view_primary_rich.go:97 拒写）。 */
 export async function setCell(avID: string, keyID: string, itemID: string, value: unknown, options?: RequestOptions): Promise<void> {
-    // Cell edits are last-write-wins.  A slow response from an earlier blur
-    // must never be allowed to report success after a newer value was sent.
+    if (!avID || !keyID || !itemID) {
+        throw new AvValidationError("avID, keyID, and itemID are required for setCell");
+    }
     const requestOptions = { ...options, latestKey: options?.latestKey ?? `cell:${avID}:${keyID}:${itemID}` };
-    const payloadValue = typeof value === "string" ? { type: "text", text: { content: value } }
+    let payloadValue: unknown = typeof value === "string" ? { type: "text", text: { content: value } }
         : typeof value === "number" ? { type: "number", number: { content: value, isNotEmpty: true } }
         : typeof value === "boolean" ? { type: "checkbox", checkbox: { checked: value } }
         : value;
+
+    if (payloadValue && typeof payloadValue === "object" && (payloadValue as { type?: string }).type === "block") {
+        const rawBlock = payloadValue as { block?: { id?: string; content?: string }; isDetached?: boolean };
+        payloadValue = {
+            ...rawBlock,
+            type: "block",
+            itemID,
+            block: {
+                id: rawBlock.block?.id || itemID,
+                content: String(rawBlock.block?.content ?? ""),
+            },
+            rich: null,
+        };
+    }
+
+    if (payloadValue && typeof payloadValue === "object" && (payloadValue as { type?: string }).type === "number") {
+        const rawNum = (payloadValue as { number?: { content?: unknown; isNotEmpty?: boolean } }).number;
+        if (rawNum && rawNum.isNotEmpty === undefined && typeof rawNum.content === "number" && Number.isFinite(rawNum.content)) {
+            payloadValue = {
+                ...(payloadValue as Record<string, unknown>),
+                type: "number",
+                number: { ...rawNum, isNotEmpty: true },
+            };
+        }
+    }
+
     await post("/api/av/setAttributeViewBlockAttr", { avID, keyID, itemID, value: payloadValue }, requestOptions);
 }
 
@@ -417,15 +832,22 @@ export interface LedgerRead {
     complete: boolean;
 }
 
-/** 读取台账（表格视图）列与行。cells 以列 keyID 索引；value 无 keyID 时按位置回退（Spike 未确认该字段）。
- * pageSize/page 可选（E13/183 波：内核 render 接受分页参数——50/页默认，page 翻页，pageSize 为单页上限）。 */
-export async function renderLedger(avID: string, pageSize?: number, page?: number, options?: RequestOptions): Promise<LedgerRead> {
+/** 读取台账（表格视图）列与行。cells 以列 keyID 索引；
+ * 强制禁止 pageSize: -1，传入 blockID 可兼容已解锁加密本与文档上下文。 */
+export async function renderLedger(
+    avID: string,
+    pageSize?: number,
+    page?: number,
+    options?: RequestOptions & { blockID?: string; ignoreRows?: boolean },
+): Promise<LedgerRead> {
+    if (pageSize !== undefined && (!Number.isInteger(pageSize) || pageSize < 1)) {
+        throw new AvValidationError(`Invalid pageSize=${pageSize}; pageSize:-1 is strictly forbidden`);
+    }
     const payload: Record<string, unknown> = { id: avID };
+    if (options?.blockID) payload.blockID = options.blockID;
+    if (options?.ignoreRows) payload.ignoreRows = true;
     if (pageSize) payload.pageSize = pageSize;
     if (page) payload.page = page;
-    // Each page is its own resource. Qualifying latestKey by page prevents a
-    // legitimate page 2 request from superseding page 1 during one full scan,
-    // while still ensuring a newer refresh wins for the same page.
     const pageOptions = options?.latestKey
         ? { ...options, latestKey: `${options.latestKey}:page:${page ?? 1}` }
         : options;
@@ -434,8 +856,6 @@ export async function renderLedger(avID: string, pageSize?: number, page?: numbe
     const malformed = (field: string): never => {
         throw new KernelError("/api/av/renderAttributeView", -3, `malformed ledger response: ${field}`);
     };
-    // A successful envelope is not proof of a successful read. In particular,
-    // a missing view must not erase scan state by masquerading as an empty AV.
     if (!view || !Array.isArray(view.columns) || !Array.isArray(view.rows)) malformed("view.columns/view.rows");
     const cols: any[] = view.columns;
     const rowCount = view.rowCount ?? view.rows.length;
@@ -453,8 +873,6 @@ export async function renderLedger(avID: string, pageSize?: number, page?: numbe
             const key = v.keyID ?? c.keyID ?? cols[i]?.id;
             if (key) cells[key] = v;
         });
-        // Count unique identities on the first page as well as later pages;
-        // duplicated rows otherwise make a partial read appear complete.
         if (!seen.has(r.id)) {
             seen.add(r.id);
             rows.push({ itemID: r.id, cells });
@@ -465,15 +883,18 @@ export async function renderLedger(avID: string, pageSize?: number, page?: numbe
 
 /** 全量读取台账（N7/E13）：200/页逐页累积直到 rowCount（去重防翻页重叠），扫描派生/健康检查/CSV 导出用。
  * UI 列表维持单页 renderLedger（PF11 长列表预算）；上限 100 页（2 万行）防内核异常死循环。 */
-export async function renderLedgerAll(avID: string, pageSize = 200, options?: RequestOptions): Promise<LedgerRead> {
+export async function renderLedgerAll(
+    avID: string,
+    pageSize = 200,
+    options?: RequestOptions & { blockID?: string },
+): Promise<LedgerRead> {
+    if (!Number.isInteger(pageSize) || pageSize < 1) {
+        throw new AvValidationError(`Invalid pageSize=${pageSize}; pageSize:-1 is strictly forbidden`);
+    }
     const first = await renderLedger(avID, pageSize, undefined, options);
     const rows = [...first.rows];
     const seen = new Set(rows.map((r) => r.itemID));
     let page = 2;
-    // Small ledgers keep the original one-page-at-a-time behavior so an early
-    // short/empty page still stops immediately. Once the first page is full,
-    // bounded batches reduce round trips for large ledgers without changing
-    // page order or dedupe semantics.
     const canBatch = pageSize > 0 && first.rows.length >= pageSize && first.rowCount > pageSize;
     if (canBatch) {
         while (rows.length < first.rowCount && page <= 100) {
@@ -494,11 +915,138 @@ export async function renderLedgerAll(avID: string, pageSize = 200, options?: Re
     }
     while (rows.length < first.rowCount && page <= 100) {
         const next = await renderLedger(avID, pageSize, page, options);
-        if (next.rows.length === 0) break; // 翻页越界：内核已无更多行
+        if (next.rows.length === 0) break;
         for (const r of next.rows) {
             if (!seen.has(r.itemID)) { seen.add(r.itemID); rows.push(r); }
         }
         page++;
     }
     return { columns: first.columns, rows, rowCount: first.rowCount, complete: rows.length >= first.rowCount };
+}
+
+function extractLedgerCellText(row: AvRow, keyID: string): string | null {
+    const cell = row.cells?.[keyID];
+    if (!cell || typeof cell !== "object") return null;
+    if (cell.text && typeof cell.text.content === "string") return cell.text.content;
+    if (cell.block && typeof cell.block.content === "string") return cell.block.content;
+    return null;
+}
+
+/**
+ * 幂等分批写入分离行（外部主键预查去重 + <=20 行/批），强校验绑定 + KeyTypeBlock 主键格式
+ */
+export async function idempotentAppendDetachedRows<T>(options: {
+    dbRef: { avId: string; avBlockId?: string; docId?: string };
+    extKeyID: string;
+    primaryKeyID?: string;
+    rows: T[];
+    getExternalKey: (row: T) => string;
+    toCells: (row: T) => Array<Record<string, any>>;
+    batchSize?: number;
+    pageSize?: number;
+    requestOptions?: RequestOptions;
+}): Promise<{
+    totalRequested: number;
+    skippedExisting: number;
+    inserted: number;
+    batches: number;
+}> {
+    const batchSize = Math.min(MAX_AV_BATCH_SIZE, Math.max(1, Number(options.batchSize ?? MAX_AV_BATCH_SIZE)));
+    const pageSize = Number(options.pageSize ?? DEFAULT_AV_PAGE_SIZE);
+    if (options.dbRef.avBlockId) {
+        await assertAvRefBound(options.dbRef, options.requestOptions);
+    }
+
+    const existing = await renderLedgerAll(options.dbRef.avId, pageSize, {
+        ...options.requestOptions,
+        blockID: options.dbRef.avBlockId,
+    });
+    const existingExtKeys = new Set<string>();
+    for (const r of existing.rows) {
+        const val = extractLedgerCellText(r, options.extKeyID);
+        if (val) existingExtKeys.add(val);
+    }
+
+    const seenInInput = new Set<string>();
+    const pendingCells: Array<Array<Record<string, any>>> = [];
+    for (const item of options.rows) {
+        const extVal = options.getExternalKey(item);
+        if (!extVal) {
+            throw new AvValidationError("getExternalKey returned empty external key");
+        }
+        if (existingExtKeys.has(extVal) || seenInInput.has(extVal)) {
+            continue;
+        }
+        seenInInput.add(extVal);
+        const cells = options.toCells(item);
+        validateAvRowCells(cells, options.primaryKeyID);
+        pendingCells.push(cells);
+    }
+
+    let inserted = 0;
+    let batches = 0;
+    for (let i = 0; i < pendingCells.length; i += batchSize) {
+        const chunk = pendingCells.slice(i, i + batchSize);
+        await appendAttributeViewDetachedBlocksWithValues(options.dbRef.avId, chunk, options.requestOptions);
+        inserted += chunk.length;
+        batches++;
+    }
+
+    return {
+        totalRequested: options.rows.length,
+        skippedExisting: options.rows.length - pendingCells.length,
+        inserted,
+        batches,
+    };
+}
+
+/** 临期/条件筛选（分页拉取后内存过滤，完全规避 v3.8.12 普通台账表 temporaryFilters code:-1） */
+export async function queryAvRowsInMemory(options: {
+    dbRef: { avId: string; avBlockId?: string };
+    pageSize?: number;
+    predicate?: (row: AvRow) => boolean;
+    comparator?: (a: AvRow, b: AvRow) => number;
+    requestOptions?: RequestOptions;
+}): Promise<AvRow[]> {
+    if (options.dbRef.avBlockId) {
+        await assertAvRefBound(options.dbRef, options.requestOptions);
+    }
+    const read = await renderLedgerAll(options.dbRef.avId, options.pageSize ?? DEFAULT_AV_PAGE_SIZE, {
+        ...options.requestOptions,
+        blockID: options.dbRef.avBlockId,
+    });
+    let filtered = options.predicate ? read.rows.filter(options.predicate) : [...read.rows];
+    if (options.comparator) {
+        filtered = filtered.sort(options.comparator);
+    }
+    return filtered;
+}
+
+/** Gate-4 来源失效校验（区分 bound blockIDs 与 detached itemIDs） */
+export async function checkBoundSourceStatuses(
+    dbRef: { avId: string; avBlockId?: string },
+    blockIDs: string[],
+    options?: RequestOptions,
+): Promise<Array<{ blockID: string; itemID: string | null; status: string; sourceInvalidated: boolean }>> {
+    if (dbRef.avBlockId) {
+        await assertAvRefBound(dbRef, options);
+    }
+    if (blockIDs.length === 0) return [];
+    const boundMap = (await getAttributeViewItemIDsByBoundIDs(dbRef.avId, blockIDs, options)) || {};
+    const itemIDs = Object.values(boundMap).filter(Boolean);
+    const statusMap =
+        itemIDs.length > 0
+            ? (await getAttributeViewItemStatuses(dbRef.avId, itemIDs, options)) || {}
+            : {};
+
+    return blockIDs.map((blockID) => {
+        const itemID = boundMap[blockID] || null;
+        const status = itemID ? statusMap[itemID] || "itemNotFound" : "unbound";
+        return {
+            blockID,
+            itemID,
+            status,
+            sourceInvalidated: status !== "visible",
+        };
+    });
 }

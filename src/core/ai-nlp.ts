@@ -7,6 +7,209 @@ import { parseQuickAdd, type QuickAddResult } from "./quick-add";
 import { localDateKey } from "./hub/rule";
 import type { Reminder } from "@/types";
 
+export function parseSseEventStreamText(raw: string): string {
+    if (!raw || typeof raw !== "string") return "";
+    const lines = raw.split(/\r?\n/);
+    let currentEvent = "";
+    let out = "";
+    let hasSseFrame = false;
+    for (const lineRaw of lines) {
+        const line = lineRaw.trim();
+        if (!line) {
+            currentEvent = "";
+            continue;
+        }
+        if (line.startsWith("event:")) {
+            hasSseFrame = true;
+            currentEvent = line.slice(6).trim();
+            continue;
+        }
+        if (line.startsWith("data:")) {
+            hasSseFrame = true;
+            const payload = line.slice(5).trim();
+            if (!payload || payload === "[DONE]") continue;
+            if (currentEvent === "error") return "";
+            try {
+                const obj = JSON.parse(payload);
+                if (!currentEvent || currentEvent === "content" || currentEvent === "message") {
+                    const token =
+                        obj?.token ??
+                        obj?.delta?.content ??
+                        obj?.choices?.[0]?.delta?.content ??
+                        obj?.content ??
+                        "";
+                    if (typeof token === "string") out += token;
+                }
+            } catch {
+                if (!currentEvent || currentEvent === "content" || currentEvent === "message") {
+                    out += payload;
+                }
+            }
+        }
+    }
+    return hasSseFrame ? out.trim() : "";
+}
+
+async function readSseResponseBody(res: Response): Promise<string> {
+    if (res.body && typeof (res.body as ReadableStream<Uint8Array>).getReader === "function") {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buf = "";
+        let currentEvent = "";
+        let out = "";
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split(/\r?\n/);
+            buf = lines.pop() || "";
+            for (const raw of lines) {
+                const line = raw.trim();
+                if (!line) {
+                    currentEvent = "";
+                    continue;
+                }
+                if (line.startsWith("event:")) {
+                    currentEvent = line.slice(6).trim();
+                } else if (line.startsWith("data:")) {
+                    const payload = line.slice(5).trim();
+                    if (!payload || payload === "[DONE]") continue;
+                    if (currentEvent === "error") return "";
+                    try {
+                        const obj = JSON.parse(payload);
+                        if (!currentEvent || currentEvent === "content" || currentEvent === "message") {
+                            const token =
+                                obj?.token ??
+                                obj?.delta?.content ??
+                                obj?.choices?.[0]?.delta?.content ??
+                                obj?.content ??
+                                "";
+                            if (typeof token === "string") out += token;
+                        }
+                    } catch {
+                        if (!currentEvent || currentEvent === "content" || currentEvent === "message") {
+                            out += payload;
+                        }
+                    }
+                }
+            }
+        }
+        if (buf.trim()) {
+            const tail = parseSseEventStreamText(`${currentEvent ? `event: ${currentEvent}\n` : ""}${buf}`);
+            if (tail) out += tail;
+        }
+        return out.trim();
+    }
+    if (typeof (res as { text?: () => Promise<string> }).text === "function") {
+        const text = await res.text();
+        return parseSseEventStreamText(text);
+    }
+    return "";
+}
+
+async function requestSseEditorChat(
+    messages: Array<{ role: string; content: string }>,
+    options?: { temperature?: number; signal?: AbortSignal; taskType?: string },
+): Promise<string | null> {
+    const signal = options?.signal;
+    try {
+        const w = (typeof window !== "undefined" ? window : {}) as Record<string, any>;
+        const router = w.LvAiRouter || w.__LV_AI_ROUTER__;
+        if (router && typeof router.chat === "function") {
+            const outcome = await router.chat({
+                messages,
+                taskType: options?.taskType ?? "extract",
+                temperature: options?.temperature,
+                signal,
+            });
+            if (outcome?.ok && typeof outcome.content === "string" && outcome.content.trim()) {
+                return outcome.content.trim();
+            }
+        }
+        if (w.lvAiHub && typeof w.lvAiHub.runTask === "function") {
+            const res = await w.lvAiHub.runTask({
+                capability: "L2",
+                taskType: options?.taskType ?? "extract",
+                messages,
+                signal,
+            });
+            if (res?.content && typeof res.content === "string" && res.content.trim()) return res.content.trim();
+        }
+        // 思源 v3.8.12 原生 SSE AI 端点（使用标准 taskID/ids/history/input/action 协议并逐帧解析 SSE）
+        if (typeof fetch === "function" && typeof location !== "undefined" && location.protocol?.startsWith("http")) {
+            const systemParts = messages.filter((m) => m.role === "system").map((m) => m.content.trim()).filter(Boolean);
+            const nonSystem = messages.filter((m) => m.role !== "system");
+            const lastMsg = nonSystem[nonSystem.length - 1]?.content ?? "";
+            const input = systemParts.length > 0 ? `${systemParts.join("\n")}\n\n${lastMsg}` : lastMsg;
+            const history = nonSystem.slice(0, -1).map((m) => ({
+                type: m.role === "assistant" ? "ai" : "user",
+                content: m.content,
+            }));
+            const res = await fetch("/api/ai/editor/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+                body: JSON.stringify({
+                    taskID: `lv-home-${Date.now()}`,
+                    ids: [],
+                    history,
+                    input,
+                    action: "chat",
+                }),
+                signal,
+            });
+            if (res.ok) {
+                const ct = (res.headers?.get?.("content-type") || "").toLowerCase();
+                if (ct.includes("text/event-stream")) {
+                    const sseOut = await readSseResponseBody(res);
+                    if (sseOut) return sseOut;
+                } else if (ct.includes("application/json")) {
+                    const j = await res.json();
+                    if (j?.code === undefined || j.code === 0) {
+                        const text =
+                            j?.data?.content ??
+                            (typeof j?.data === "string" ? j.data : undefined) ??
+                            j?.content ??
+                            j?.choices?.[0]?.message?.content;
+                        if (typeof text === "string" && text.trim()) return text.trim();
+                    }
+                } else {
+                    const text = await res.text();
+                    if (!text || text.startsWith("<!DOCTYPE") || text.startsWith("<html")) return null;
+                    const parsedSse = parseSseEventStreamText(text);
+                    if (parsedSse) return parsedSse;
+                    try {
+                        const j = JSON.parse(text);
+                        if (j?.code === undefined || j.code === 0) {
+                            const jt = j?.data?.content ?? (typeof j?.data === "string" ? j.data : undefined) ?? j?.content;
+                            if (typeof jt === "string" && jt.trim()) return jt.trim();
+                        }
+                        return null;
+                    } catch {
+                        if (text.trim()) return text.trim();
+                    }
+                }
+            }
+        }
+    } catch { /* fallback to lvAi.chat / local rule */ }
+    return null;
+}
+
+export async function runUnifiedAiPrompt(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    options?: { temperature?: number; signal?: AbortSignal; taskType?: string },
+): Promise<{ content: string } | null> {
+    const sseText = await requestSseEditorChat(messages, options);
+    if (sseText) return { content: sseText };
+    const response = await lvAi.chat({
+        source: "管家",
+        messages,
+        temperature: options?.temperature ?? 0.2,
+        priority: "high",
+        signal: options?.signal,
+    });
+    return response?.content ? { content: response.content } : null;
+}
+
 export interface ParsedAiQuickEntry extends QuickAddResult {
     /** 是否成功由大语言模型增强解析（false 为本地规则引擎回退） */
     isAiParsed: boolean;
@@ -48,6 +251,12 @@ export async function parseQuickEntryWithAi(
 
     // 先做一次本地基础解析作为保底
     const fallback = parseQuickAdd(raw, now);
+    if (options?.signal?.aborted) {
+        return {
+            ...fallback,
+            isAiParsed: false,
+        };
+    }
 
     try {
         const systemPrompt = `你是一个家庭生活管家 AI 助理。请从用户的日常一句话输入中，提取结构化生活备忘或记账数据。
@@ -63,16 +272,13 @@ JSON 字段规范：
 }
 当前基准日期为：${todayISO}。输入语句："${raw}"`;
 
-        const response = await lvAi.chat({
-            source: "管家",
-            messages: [
+        const response = await runUnifiedAiPrompt(
+            [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: raw },
             ],
-            temperature: 0.2,
-            priority: "high",
-            signal: options?.signal,
-        });
+            { temperature: 0.2, signal: options?.signal },
+        );
 
         const content = response?.content ? response.content.trim() : "";
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -157,6 +363,9 @@ export async function auditLifeHealthWithAi(
     };
 
     try {
+        if (options?.signal?.aborted) {
+            throw new DOMException("Aborted", "AbortError");
+        }
         const systemPrompt = `你是一位严谨专业、贴心细致的家庭生活与效期健康顾问。
 基于家庭证件、药品、保单与生活待办的效期清单，生成一份高信噪比的【小驴管家 · 生活效期全局体检洞察报告】。
 请采用 Markdown 格式，包含：
@@ -165,16 +374,13 @@ export async function auditLifeHealthWithAi(
 3. 💡 专业办事与保障避坑建议（如护照出入境建议6个月以上有效期、提前续保优惠等）
 字数控制在 280 字以内，语气亲切务实，条理清晰。`;
 
-        const res = await lvAi.chat({
-            source: "管家",
-            messages: [
+        const res = await runUnifiedAiPrompt(
+            [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: JSON.stringify(summary) },
             ],
-            temperature: 0.3,
-            priority: "high",
-            signal: options?.signal,
-        });
+            { temperature: 0.3, signal: options?.signal },
+        );
 
         if (res?.content && res.content.trim()) {
             return {

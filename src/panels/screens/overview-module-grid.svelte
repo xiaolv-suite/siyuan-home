@@ -1,7 +1,7 @@
 <script lang="ts">
     import UiIcon from "@/ui/icon.svelte";
     import { showDocTreeNativeMenu } from "@/libs/lv-notice-kit";
-    import { sql } from "@/core/siyuan";
+    import { queryDocBox } from "@/core/sql-coalescer";
     import { MODULE_GROUPS, getModule } from "@/core/modules";
     import { createDefaultGuestConfig, filterGuestVisibleModules } from "@/core/guest-mode";
     import { formatLocalDate } from "@/core/date-display";
@@ -198,10 +198,7 @@
                             if (docId) {
                                 if (!notebookId) {
                                     try {
-                                        const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
-                                        if (rows && rows[0]?.box) {
-                                            notebookId = rows[0].box;
-                                        }
+                                        notebookId = await queryDocBox(docId);
                                     } catch {}
                                 }
                                 if (notebookId) {

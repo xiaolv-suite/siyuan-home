@@ -4,7 +4,6 @@
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
     import { formatLocalTime } from "@/core/date-display";
-    import { memberHue } from "@/core/format";
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { lvLaunchpad } from "@/libs/lv-notice-kit";
@@ -62,11 +61,11 @@
     }
 
     const DAILY_FLOWS = [
-        { sub: "fuel" as const, icon: "fuel" as const, tone: "t-blue", label: "capture.actFuel", desc: "capture.flowDescFuel" },
-        { sub: "vital" as const, icon: "heartPulse" as const, tone: "t-rose", label: "capture.actVital", desc: "capture.flowDescVital" },
-        { sub: "chore" as const, icon: "checkCircle" as const, tone: "t-green", label: "capture.actChore", desc: "capture.flowDescChore" },
-        { sub: "shopping" as const, icon: "cart" as const, tone: "t-amber", label: "capture.actShopping", desc: "capture.flowDescShopping" },
-        { sub: "snippet" as const, icon: "note" as const, tone: "t-blue", label: "capture.actSnippet", desc: "capture.flowDescSnippet" },
+        { sub: "fuel" as const, icon: "fuel" as const, tone: "", label: "capture.actFuel", desc: "capture.flowDescFuel" },
+        { sub: "vital" as const, icon: "heartPulse" as const, tone: "", label: "capture.actVital", desc: "capture.flowDescVital" },
+        { sub: "chore" as const, icon: "checkCircle" as const, tone: "", label: "capture.actChore", desc: "capture.flowDescChore" },
+        { sub: "shopping" as const, icon: "cart" as const, tone: "", label: "capture.actShopping", desc: "capture.flowDescShopping" },
+        { sub: "snippet" as const, icon: "note" as const, tone: "", label: "capture.actSnippet", desc: "capture.flowDescSnippet" },
     ];
 
     let showLedgerQuickChips = $state(false);
@@ -594,7 +593,7 @@
     <button type="button" class="lv-chip {!memberFilter ? 'on' : ''}" aria-pressed={!memberFilter} onclick={() => setMemberFilter(undefined)}>{t("members.all")}</button>
     {#each members as m (m.id)}
         <button type="button" class="lv-chip {memberFilter === m.id ? 'on' : ''}" aria-pressed={memberFilter === m.id} onclick={() => setMemberFilter(m.id)}>
-            <span class="lv-avatar" aria-hidden="true" style="background:linear-gradient(135deg, hsl({memberHue(m.id)} 62% 52%), hsl({(memberHue(m.id) + 42) % 360} 62% 40%))">{m.name.slice(0, 1)}</span>{m.name}
+            <span class="lv-avatar" aria-hidden="true">{m.name.slice(0, 1)}</span>{m.name}
         </button>
     {/each}
     <button type="button" class="lv-chip" aria-label={t("add")} title={t("add")} onclick={() => onGoto("members")}><UiIcon name="add" size={15} /></button>

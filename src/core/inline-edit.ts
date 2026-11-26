@@ -14,6 +14,7 @@ export interface InlineEditOptions {
     row: any;
     ref: { avId?: string; columns?: Record<string, string> };
     active: string;
+    plugin?: any;
     t: (k: string) => string;
     rawFromValueFn: (type: string, cell: any) => any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -24,8 +25,8 @@ export interface InlineEditOptions {
 
 export function beginInlineEdit(options: InlineEditOptions): void {
     if (typeof document === "undefined") return;
-    const { col, keyID, line, valueEl, row, ref, active, t, rawFromValueFn, showMessageFn, hasContactsBridge, onPickContact, onSaveSuccess } = options;
-    const EDITABLE = new Set(["text", "number", "date", "checkbox", "select", "url"]);
+    const { col, keyID, line, valueEl, row, ref, active, plugin, t, rawFromValueFn, showMessageFn, hasContactsBridge, onPickContact, onSaveSuccess } = options;
+    const EDITABLE = new Set(["text", "number", "date", "checkbox", "select", "url", "block"]);
     if (!EDITABLE.has(col.type) || line.dataset.lvEditing === "true") return;
 
     valueEl.setAttribute("aria-hidden", "true");
@@ -120,7 +121,8 @@ export function beginInlineEdit(options: InlineEditOptions): void {
         cancel.disabled = true;
         control.disabled = true;
         try {
-            const nextCell = cellValue(col.type, value);
+            const effectiveType = col.key === "name" ? "block" : col.type;
+            const nextCell = cellValue(effectiveType, value, { itemID: row.itemID, keyID, allowEmptyNumber: true });
             let writeKey = keyID;
             try {
                 await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
@@ -130,9 +132,10 @@ export function beginInlineEdit(options: InlineEditOptions): void {
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
                 if (msg.includes("key not found")) {
-                    const { healColumnMapping } = await import("./provisioner");
-                    const healedKey = await healColumnMapping(ref, active, col.key);
+                    const { healColumnMapping } = await import("./provision-adoption");
+                    const healedKey = plugin ? await healColumnMapping(plugin, active, col.key) : undefined;
                     if (healedKey && healedKey !== writeKey) {
+                        ref.columns = { ...(ref.columns ?? {}), [col.key]: healedKey };
                         writeKey = healedKey;
                         await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
                             idempotencyKey: `ledger:inline:${row.itemID}:${writeKey}:healed:${Date.now()}`,
@@ -205,7 +208,7 @@ export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Prom
     }
     const next = Math.max(0, cur + delta);
     try {
-        await setCell(ref.avId, colId, row.itemID, { type: "number", number: { content: next } });
+        await setCell(ref.avId, colId, row.itemID, { type: "number", number: { content: next, isNotEmpty: true } });
         if (!row.cells[colId]) row.cells[colId] = { type: "number", number: {} };
         row.cells[colId].number = { content: next, isNotEmpty: true };
         showMessageFn(`${delta > 0 ? "+1" : "-1"} (${next})`, 1500, "info");

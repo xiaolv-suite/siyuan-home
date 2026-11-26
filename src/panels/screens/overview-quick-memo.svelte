@@ -1,5 +1,7 @@
 <script lang="ts">
+    import { onDestroy } from "svelte";
     import { showMessage, homeNotify } from "@/libs/notice";
+    import { mountLvAiThinkingCard, type LvAiThinkingCardHandle } from "@/libs/lv-notice-kit";
     import { parseQuickAdd } from "@/core/quick-add";
     import { parseQuickEntryWithAi } from "@/core/ai-nlp";
     import { localDateKey } from "@/core/hub/rule";
@@ -19,8 +21,18 @@
     let memoTitle = $state("");
     let memoDue = $state("");
     let memoInput: HTMLInputElement | undefined = $state();
+    let aiThinkingHost: HTMLDivElement | undefined = $state();
     let savingMemo = $state(false);
     let aiParsing = $state(false);
+    let activeThinkingHandle: LvAiThinkingCardHandle | null = null;
+    let activeAddMemoSeq = 0;
+    let persistingMemo = false;
+
+    onDestroy(() => {
+        activeThinkingHandle?.cancel();
+        activeThinkingHandle?.destroy();
+        activeThinkingHandle = null;
+    });
 
     type SyntaxMode = "none" | "date" | "priority" | "category" | "amount";
     let activeSyntaxMode = $state<SyntaxMode>("none");
@@ -113,10 +125,31 @@
     }
 
     async function triggerAiParse() {
-        if (aiParsing || !memoTitle.trim() || isGuest) return;
+        if (aiParsing || savingMemo || !memoTitle.trim() || isGuest) return;
         aiParsing = true;
+        activeThinkingHandle?.destroy();
+        const handle = mountLvAiThinkingCard(aiThinkingHost, {
+            scenario: "general",
+            stages: [
+                { afterSec: 0, text: "正在智能解析备忘时间、优先级与分类…", icon: "✨" },
+                { afterSec: 3, text: "正在识别自然语言日期与金额标签…", icon: "📅" },
+                { afterSec: 8, text: "正在提炼精简待办标题…", icon: "🏷️" },
+                { afterSec: 16, text: "AI 响应较慢，可取消后继续手动编辑…", icon: "⏳" },
+            ],
+            compact: true,
+            cancelLabel: "⏹ 取消解析",
+            onCancel: () => {
+                handle.done();
+                if (activeThinkingHandle === handle) {
+                    activeThinkingHandle = null;
+                    aiParsing = false;
+                }
+            },
+        });
+        activeThinkingHandle = handle;
         try {
-            const res = await parseQuickEntryWithAi(memoTitle);
+            const res = await parseQuickEntryWithAi(memoTitle, { signal: handle.signal });
+            if (handle.aborted) return;
             if (res.cleanTitle) memoTitle = res.cleanTitle;
             if (res.dueDate) memoDue = res.dueDate;
             if (res.isAiParsed) {
@@ -125,12 +158,16 @@
         } catch {
             /* soft */
         } finally {
-            aiParsing = false;
+            handle.done();
+            if (activeThinkingHandle === handle) {
+                activeThinkingHandle = null;
+                aiParsing = false;
+            }
         }
     }
 
     async function addMemo() {
-        if (savingMemo) return;
+        if (savingMemo || aiParsing) return;
         if (plugin.runtime?.guestModeActive) {
             showMessage(t("guest.writeBlocked"), 3500, "info");
             return;
@@ -141,7 +178,30 @@
             return;
         }
 
+        const mySeq = ++activeAddMemoSeq;
+        persistingMemo = false;
         savingMemo = true;
+        activeThinkingHandle?.destroy();
+        const handle = mountLvAiThinkingCard(aiThinkingHost, {
+            scenario: "general",
+            stages: [
+                { afterSec: 0, text: "正在极速解析自然语言并准备入库…", icon: "✨" },
+                { afterSec: 3, text: "正在推算到期日与分类标签…", icon: "📅" },
+                { afterSec: 8, text: "即将写入管家待办清单…", icon: "📝" },
+                { afterSec: 16, text: "AI 响应较慢，可随时取消…", icon: "⏳" },
+            ],
+            compact: true,
+            cancelLabel: "⏹ 取消",
+            onCancel: () => {
+                if (persistingMemo || activeAddMemoSeq !== mySeq) return;
+                handle.done();
+                if (activeThinkingHandle === handle) {
+                    activeThinkingHandle = null;
+                }
+                savingMemo = false;
+            },
+        });
+        activeThinkingHandle = handle;
         try {
             try {
                 lvLaunchpad.haptic(10);
@@ -149,13 +209,20 @@
                 /* soft */
             }
             // 自然语言智能极速解析（大模型优先，本地规则兜底）
-            const parsed = await parseQuickEntryWithAi(memoTitle);
+            const parsed = await parseQuickEntryWithAi(memoTitle, { signal: handle.signal });
+            if (handle.aborted || activeAddMemoSeq !== mySeq) return;
             let title = parsed.cleanTitle || memoTitle.trim();
             let due = memoDue || parsed.dueDate;
             if (parsed.dueDate && !memoDue) {
                 showMessage(t("memo.dateParsed").replace("${d}", parsed.dueDate), 2500, "info");
             }
             if (!title) return;
+            // AI 解析结束、即将进入持久化写入：立即撤除等待卡与取消按钮，保持 savingMemo 锁定直到 addMemo 真正 settle
+            persistingMemo = true;
+            handle.done();
+            if (activeThinkingHandle === handle) {
+                activeThinkingHandle = null;
+            }
             // 默认到期日走本地时区（33.3：禁 toISOString，UTC+8 夜间会偏一天）
             const d = due || localDateKey(new Date(Date.now() + 3 * 86400000));
 
@@ -172,9 +239,18 @@
             // 2026-11-17 走查：微胶囊在总览面板遮挡区易被忽略，成功回执兜底思源原生 toast
             homeNotify(t("memo.added"), 2500, "info", { fallbackToNative: true });
         } catch (e) {
-            showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            if ((!handle.aborted || persistingMemo) && activeAddMemoSeq === mySeq) {
+                showMessage(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
+            }
         } finally {
-            savingMemo = false;
+            handle.done();
+            if (activeThinkingHandle === handle) {
+                activeThinkingHandle = null;
+            }
+            if (activeAddMemoSeq === mySeq) {
+                persistingMemo = false;
+                savingMemo = false;
+            }
         }
     }
 </script>
@@ -192,7 +268,7 @@
             placeholder={isGuest ? t("guest.writeBlocked") : t("memo.placeholder")}
             aria-label={t("memo.placeholder")}
             bind:value={memoTitle}
-            disabled={savingMemo || isGuest}
+            disabled={savingMemo || aiParsing || isGuest}
             oninput={detectSyntaxMode}
             onclick={detectSyntaxMode}
             onkeyup={detectSyntaxMode}
@@ -228,12 +304,14 @@
                 </span>
             {/if}
         {/if}
-        <input class="b3-text-field lv-memo-date" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} disabled={savingMemo || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
-        <button type="button" class="b3-button b3-button--text" title={t("memo.aiParse")} aria-label={t("memo.aiParse")} disabled={aiParsing || !memoTitle.trim() || isGuest} onclick={() => void triggerAiParse()}>
+        <input class="b3-text-field lv-memo-date" type="date" aria-label={t("hub.planDateLabel")} bind:value={memoDue} disabled={savingMemo || aiParsing || isGuest} onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter" && !e.isComposing) void addMemo(); }} />
+        <button type="button" class="b3-button b3-button--text" title={t("memo.aiParse")} aria-label={t("memo.aiParse")} disabled={aiParsing || savingMemo || !memoTitle.trim() || isGuest} aria-busy={aiParsing} onclick={() => void triggerAiParse()}>
             <UiIcon name="sparkle" size={13} />
         </button>
-        <button type="button" class="lv-btn primary" disabled={savingMemo || !memoTitle.trim() || isGuest} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
+        <button type="button" class="lv-btn primary" disabled={savingMemo || aiParsing || !memoTitle.trim() || isGuest} aria-busy={savingMemo} onclick={() => void addMemo()}>{savingMemo ? t("ledger.saving") : t("memo.add")}</button>
     </div>
+
+    <div bind:this={aiThinkingHost} class="lv-memo-ai-thinking"></div>
 
     <!-- 手机键盘语法提示条 (Mobile Spec v1: 快速备忘 @日期 / !优先级 / #分类 chips) -->
     <div class="lv-syntax-bar" role="toolbar" aria-label={t("memo.syntaxToolbar")}>

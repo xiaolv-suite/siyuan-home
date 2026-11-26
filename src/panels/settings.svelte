@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
@@ -13,7 +14,6 @@
     import SettingsRemindersTab from "@/panels/settings-reminders-tab.svelte";
     import SettingsDataTab from "@/panels/settings-data-tab.svelte";
     import SettingsAboutTab from "@/panels/settings-about-tab.svelte";
-    import SettingsAppearanceTab from "@/panels/settings-appearance-tab.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
 
@@ -42,6 +42,10 @@
     } = $props();
 
     let settingsRootEl: HTMLElement | undefined = $state();
+    onMount(() => {
+        settingsRootEl?.closest?.(".dialog-content")?.classList?.add?.("lv-dialog-content--home");
+        settingsRootEl?.closest?.(".b3-dialog")?.classList?.add?.("lv-home-panel-dialog");
+    });
     function handleCloseSettings() {
         if (onClose) {
             onClose();
@@ -69,12 +73,11 @@
         return t("settings.provisionPartial").replace("${modules}", modules);
     }
 
-    type SettingsArea = "modules" | "members" | "reminders" | "appearance" | "data" | "about";
+    type SettingsArea = "modules" | "members" | "reminders" | "data" | "about";
     const areas: { id: SettingsArea; labelKey: string; icon: UiIconName }[] = [
         { id: "modules", labelKey: "tabModules", icon: "archive" },
         { id: "members", labelKey: "tabMembers", icon: "users" },
         { id: "reminders", labelKey: "tabReminders", icon: "bell" },
-        { id: "appearance", labelKey: "tabAppearance", icon: "sparkle" },
         { id: "data", labelKey: "settings.dataTitle", icon: "bank" },
         { id: "about", labelKey: "tabAbout", icon: "info" },
     ];
@@ -481,8 +484,6 @@
             {t}
             onSwitchArea={(a) => (area = a)}
         />
-    {:else if area === "appearance"}
-        <SettingsAppearanceTab {t} />
     {:else if area === "data"}
         <SettingsDataTab
             {plugin}

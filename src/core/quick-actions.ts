@@ -55,31 +55,8 @@ export interface QuickChoreInput {
     note?: string;
 }
 
-/** 获取当前本地时间的 HH:mm 字符串（LifeLog 标准 24 小时制行首格式） */
-export function currentLocalHHMM(now = new Date()): string {
-    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
-
-/** 归一化 HH:mm 时间；若未传则从 ISO 时间戳提取本地 HH:mm，再兜底当前时刻 */
-export function normalizeLifelogTime(time?: unknown, fallbackIso?: unknown): string {
-    if (typeof time === "string") {
-        const m = time.trim().match(/^(\d{1,2}):(\d{2})/);
-        if (m) {
-            const hh = Number(m[1]);
-            const mm = Number(m[2]);
-            if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-                return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-            }
-        }
-    }
-    if (typeof fallbackIso === "string" && fallbackIso.trim()) {
-        const d = new Date(fallbackIso);
-        if (!Number.isNaN(d.getTime())) {
-            return currentLocalHHMM(d);
-        }
-    }
-    return "09:00";
-}
+import { currentLocalHHMM, normalizeLifelogTime } from "./format";
+export { currentLocalHHMM, normalizeLifelogTime };
 
 /** 将 YYYY-MM-DD 与可选 HH:mm 合成为带准确本地时刻的 ISO 字符串 */
 export function composeLifelogIsoAt(dateStr: string, timeStr?: string, now = new Date()): string {

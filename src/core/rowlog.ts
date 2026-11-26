@@ -233,6 +233,32 @@ export async function loadRowLogs(plugin: Plugin): Promise<RowLogs> {
     return upgradeLegacyRowLogs(data as RowLogs);
 }
 
+export type RowLogSyncHook = (plugin: Plugin, next: RowLogs, previous?: RowLogs) => Promise<void> | void;
+export type RowLogSyncLoader = () => Promise<unknown>;
+
+let rowLogSyncHook: RowLogSyncHook | null = null;
+let rowLogSyncLoader: RowLogSyncLoader | null = null;
+
+export function setRowLogSyncHook(hook: RowLogSyncHook | null): void {
+    rowLogSyncHook = hook;
+}
+
+export function setRowLogSyncLoader(loader: RowLogSyncLoader | null): void {
+    rowLogSyncLoader = loader;
+}
+
+export async function ensureRowLogSyncHook(): Promise<RowLogSyncHook | null> {
+    if (rowLogSyncHook) return rowLogSyncHook;
+    if (rowLogSyncLoader) {
+        try {
+            await rowLogSyncLoader();
+        } catch (e) {
+            console.warn("[LvHome] rowlog sync loader failed:", e);
+        }
+    }
+    return rowLogSyncHook;
+}
+
 export async function saveRowLogs(plugin: Plugin, logs: RowLogs): Promise<void> {
     // Row-log editors are independent dialogs and can finish concurrently.
     // Serialize snapshots per plugin so a slow delete cannot overwrite a
@@ -242,10 +268,12 @@ export async function saveRowLogs(plugin: Plugin, logs: RowLogs): Promise<void> 
     await enqueueRowLogWrite(plugin, async () => {
         await plugin.saveData(ROWLOGS_NAME, snapshot);
         if ((plugin as any)?.app && (plugin as any)?.settings?.dbRefs) {
-            try {
-                const { syncRowLogsToSiYuanDocs } = await import("./doc-sync");
-                await syncRowLogsToSiYuanDocs(plugin, snapshot);
-            } catch { /* soft */ }
+            const hook = await ensureRowLogSyncHook();
+            if (hook) {
+                try {
+                    await hook(plugin, snapshot);
+                } catch { /* soft */ }
+            }
         }
     });
 }
@@ -268,7 +296,7 @@ function countRowLogEntries(log?: RowLog): number {
     return sum;
 }
 
-function countTotalLogEntries(logs: RowLogs): number {
+export function countTotalLogEntries(logs: RowLogs): number {
     let sum = 0;
     for (const log of Object.values(logs)) {
         sum += countRowLogEntries(log);
@@ -286,26 +314,12 @@ export function updateRowLogs(plugin: Plugin, update: (current: RowLogs) => RowL
         const snapshot = JSON.parse(JSON.stringify(next)) as RowLogs;
         await plugin.saveData(ROWLOGS_NAME, snapshot);
         if ((plugin as any)?.app && (plugin as any)?.settings?.dbRefs) {
-            try {
-                const { syncRowLogsToSiYuanDocs, appendRecentRowLogToDailyNote } = await import("./doc-sync");
-                await syncRowLogsToSiYuanDocs(plugin, snapshot);
-
-                // 若本次为新增流水操作，自动统一增量同步一条标准 LifeLog 至当日日记
-                const currentCount = countTotalLogEntries(current);
-                const nextCount = countTotalLogEntries(next);
-                if (nextCount > currentCount) {
-                    for (const [key, val] of Object.entries(next)) {
-                        const prevVal = current[key];
-                        if (!prevVal || countRowLogEntries(val) > countRowLogEntries(prevVal)) {
-                            const avId = key.split("|")[0];
-                            const matchedMod = Object.entries((plugin as any).settings.dbRefs).find(([, ref]: any) => ref?.avId === avId)?.[0];
-                            if (matchedMod) {
-                                await appendRecentRowLogToDailyNote(plugin, matchedMod, next).catch(() => undefined);
-                            }
-                        }
-                    }
-                }
-            } catch { /* soft */ }
+            const hook = await ensureRowLogSyncHook();
+            if (hook) {
+                try {
+                    await hook(plugin, snapshot, current);
+                } catch { /* soft */ }
+            }
         }
         return snapshot;
     });

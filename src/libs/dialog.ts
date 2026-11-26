@@ -26,7 +26,7 @@ export const confirm = (
             const dialogs = document.querySelectorAll<HTMLElement>(".b3-dialog");
             if (dialogs.length > 0) {
                 const top = dialogs[dialogs.length - 1];
-                top.classList.add("lv-top-confirm");
+                top.classList.add("lv-top-confirm", "lv-home-dialog");
                 top.style.setProperty("z-index", "2000", "important");
                 const cancelBtn = top.querySelector<HTMLButtonElement>(".b3-button--cancel");
                 cancelBtn?.focus();
@@ -105,7 +105,8 @@ export const simpleDialog = (args: {
             }
         }
     });
-    dialog.element.querySelector(".dialog-content").appendChild(args.ele);
+    const dialogContent = dialog.element.querySelector(".dialog-content");
+    dialogContent?.appendChild(args.ele);
     const closeDialog = () => {
         if (!closed) {
             closed = true;
@@ -116,6 +117,11 @@ export const simpleDialog = (args: {
     try {
         dialog.element?.classList?.add?.("lv-home-dialog");
         dialog.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-dialog");
+        if (dialogContent?.querySelector?.(".lv-home") || (args.ele as HTMLElement)?.classList?.contains?.("lv-home")) {
+            dialogContent?.classList?.add?.("lv-dialog-content--home");
+            dialog.element?.classList?.add?.("lv-home-panel-dialog");
+            dialog.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-panel-dialog");
+        }
         // 移动端软键盘视口守卫：挂在弹窗根节点上，CSS 按 --lv-vv-h 收缩高度
         bindKeyboardViewport(dialog.element);
         const outerClose = dialog.element?.querySelector?.(".b3-dialog__container > .b3-dialog__close") as HTMLElement | SVGElement | null;

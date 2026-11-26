@@ -97,6 +97,50 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
         },
     });
 
+    // v3.8.12 移动端原生 #mobileBottomBar 接入：支持将小驴管家钉入原生底栏
+    let dockElement: HTMLElement | undefined;
+    if (typeof plugin.addDock === "function") {
+        try {
+            plugin.addDock({
+                config: {
+                    position: "RightBottom",
+                    size: { width: 340, height: 0 },
+                    icon: "iconLvHome",
+                    title: String(i18n.butler ?? "小驴管家"),
+                },
+                data: {},
+                type: "lv-home-dock",
+                init(dock: { element: HTMLElement }) {
+                    if (mountTab && dock?.element) {
+                        dockElement = dock.element;
+                        const um = mountTab(dock.element);
+                        if (um) unmounts.set(dock.element, um);
+                    }
+                },
+                destroy(this: { element?: HTMLElement }) {
+                    const targetEl = this?.element ?? dockElement;
+                    if (targetEl) {
+                        const um = unmounts.get(targetEl);
+                        if (um) {
+                            unmounts.delete(targetEl);
+                            try { um(); } catch { /* soft unmount */ }
+                        }
+                        if (targetEl === dockElement) dockElement = undefined;
+                    }
+                },
+                mobileModel(element: Element) {
+                    const um = mountTab ? mountTab(element) : undefined;
+                    return {
+                        element,
+                        destroy: () => {
+                            try { um?.(); } catch { /* soft */ }
+                        },
+                    } as any;
+                },
+            });
+        } catch { /* fallback to mobileController */ }
+    }
+
     // 启动前排查并清除任何残留的历史顶栏与状态栏节点，确保全局唯一
     if (typeof document !== "undefined") {
         const staleIcons = document.querySelectorAll(
@@ -222,7 +266,7 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
     plugin.addCommand({
         langKey: "openButler",
         langText: `${butlerLabel}：${t("openButler")}`,
-        hotkey: "Ctrl+Alt+H",
+        hotkey: "⌥⌘H",
         callback: () => showTab(),
     });
 
@@ -358,6 +402,15 @@ export function registerPluginEntrypoints(options: PluginEntrypointsOptions): Pl
         if (typeof document !== "undefined") {
             document.querySelectorAll(".lv-statusbar").forEach((el) => el.remove());
         }
+        if (dockElement) {
+            const um = unmounts.get(dockElement);
+            if (um) {
+                unmounts.delete(dockElement);
+                try { um(); } catch { /* soft cleanup */ }
+            }
+            dockElement = undefined;
+        }
+        plugin.protyleSlash = [];
         mobileController?.dispose();
     }
 

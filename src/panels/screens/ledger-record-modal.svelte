@@ -164,7 +164,22 @@
     }
 
     export function openNewRecordModal(initialForm?: Record<string, any>) {
-        if (!ref?.avId) {
+        const targetRef = ref?.avId ? ref : plugin.settings?.dbRefs?.[active];
+        if (!targetRef?.avId) {
+            if (typeof plugin.repairModule === "function") {
+                showMessage(t("wiz.provisioningShort") || "正在初始化台账...", 3000, "info");
+                void plugin.repairModule(active).then(() => {
+                    const freshRef = plugin.settings?.dbRefs?.[active];
+                    if (freshRef?.avId) {
+                        openNewRecordModal(initialForm);
+                    } else {
+                        showMessage(t("ledger.notProvisionedHint"), 4500, "info");
+                    }
+                }).catch(() => {
+                    showMessage(t("ledger.notProvisionedHint"), 4500, "info");
+                });
+                return;
+            }
             showMessage(t("ledger.notProvisionedHint"), 4500, "info");
             return;
         }
@@ -282,7 +297,8 @@
 
     async function createRow() {
         handleNewRecordNameBlur();
-        if (!ref?.avId || saving || identityPending || duplicateConfirmPending) return;
+        const effectiveRef = ref?.avId ? ref : plugin.settings?.dbRefs?.[active];
+        if (!effectiveRef?.avId || saving || identityPending || duplicateConfirmPending) return;
         if (plugin.runtime?.guestModeActive) {
             showMessage(t("guest.writeBlocked"), 4000, "info");
             return;
@@ -318,7 +334,7 @@
             return;
         }
         const dupName = String(form.name ?? "").trim();
-        const nameKey = ref.columns?.name;
+        const nameKey = effectiveRef.columns?.name;
         if (dupName && !pendingItemID && !rowIdentity?.submitted && nameKey) {
             const dupCount = rows.filter((r) => String(r.cells?.[nameKey]?.text?.content ?? "").trim() === dupName).length;
             if (dupCount > 0) {
@@ -336,13 +352,14 @@
     }
 
     async function doCreateRow() {
-        if (!ref?.avId || saving) return;
+        const effectiveRef = ref?.avId ? ref : plugin.settings?.dbRefs?.[active];
+        if (!effectiveRef?.avId || saving) return;
         const hadIdentityPending = identityPending;
         if (!recordOperationKey) {
             try { recordOperationKey = `ledger:${crypto.randomUUID()}`; }
             catch { recordOperationKey = `ledger:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
         }
-        rowIdentity ??= { avID: ref.avId, desiredItemID: "", before: [], submitted: false };
+        rowIdentity ??= { avID: effectiveRef.avId, desiredItemID: "", before: [], submitted: false };
         identityPending = false;
         saving = true;
         saveError = "";
@@ -351,7 +368,7 @@
             const res = await executeLedgerRecordSave({
                 plugin,
                 active,
-                ref: ref as { avId: string; docId?: string; columns?: Record<string, string> },
+                ref: effectiveRef as { avId: string; docId?: string; columns?: Record<string, string> },
                 form,
                 supportableCols,
                 certificateScalarCols,

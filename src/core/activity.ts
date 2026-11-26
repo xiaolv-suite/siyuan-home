@@ -6,6 +6,7 @@ import type { Plugin } from "siyuan";
 import type { HomePluginLike } from "@/types/plugin";
 import { renderLedgerAll, type AvRow, type RequestOptions } from "./siyuan";
 import { loadRowLogs, type LogKind, type RowLogs } from "./rowlog";
+import { queryDiaryEventsFromSql, type QueriedDiaryEvent } from "./diary-envelope";
 import type { ModuleSchema } from "./schema";
 
 export interface ActivityDetail {
@@ -28,8 +29,18 @@ export interface ActivityRecord {
     recordedAt?: string;
     /** 供排序；优先真实录入时间，其次事项日期。 */
     sortAt: number;
-    source: "ledger" | "rowlog";
+    source: "ledger" | "rowlog" | "diary";
     logKind?: LogKind;
+    /** 日记流水来源标识（支持一键跳回源日记块） */
+    eventId?: string;
+    diaryBlockId?: string;
+    diaryDocId?: string;
+    /** Gate-4：源台账资产行已删除/失效时标灰提示，但历史金额与统计 0 丢失 */
+    sourceInvalidated?: boolean;
+    /** 金额与符号（支持退款 sign=-1 与账户互转 flowScope='neutral' 过滤） */
+    amount?: number;
+    sign?: number;
+    flowScope?: string;
     details: ActivityDetail[];
 }
 
@@ -281,6 +292,90 @@ async function mapLimit<T, R>(items: T[], limit: number, run: (item: T) => Promi
     return output;
 }
 
+/** 将日记流水投影为跨层聚合记录（含 Gate-4 来源失效标灰与 0 金额丢失） */
+export function projectDiaryActivities(input: {
+    events: QueriedDiaryEvent[];
+    liveRowIdsByModule: Map<string, Set<string>>;
+    rowTitleById?: Map<string, string>;
+    memberByRowId?: Map<string, string>;
+}): ActivityRecord[] {
+    const out: ActivityRecord[] = [];
+    for (const ev of input.events) {
+        const mod = ev.module || "general";
+        const liveSet = input.liveRowIdsByModule.get(mod);
+        const sourceInvalidated = Boolean(ev.target && liveSet && !liveSet.has(ev.target));
+        const eventDate = validDate(ev.bizDate) || validDate(ev.recordedAt);
+        const recordedAt = normalizedTimestamp(ev.recordedAt);
+        const sortAt = recordedAt ? new Date(recordedAt).getTime() : (eventTimestamp(eventDate) ?? Date.now());
+        const resolvedTitle =
+            (ev.target ? input.rowTitleById?.get(ev.target) : undefined) ||
+            ev.content.replace(/^\[补记\s+\d{4}-\d{2}-\d{2}\]\s*/, "").slice(0, 60) ||
+            "日记流水";
+        const details: ActivityDetail[] = [];
+        if (ev.amount !== undefined) {
+            const signed = ev.sign === -1 ? -ev.amount : ev.amount;
+            details.push({ key: "amount", value: `¥${signed.toFixed(2)}` });
+        }
+        if (ev.attrs["custom-lv-quantity"]) {
+            details.push({ key: "quantity", value: ev.attrs["custom-lv-quantity"] });
+        }
+        if (ev.attrs["custom-lv-odometer"]) {
+            details.push({ key: "odometer", value: ev.attrs["custom-lv-odometer"] });
+        }
+        if (ev.action) {
+            details.push({ key: "action", value: ev.action });
+        }
+
+        const logKind: LogKind | undefined =
+            ev.action === "fuel" || ev.action === "fuelings"
+                ? "fuelings"
+                : ev.action === "charging" || ev.action === "chargings"
+                    ? "chargings"
+                    : ev.action === "maintenance"
+                        ? "maintenance"
+                        : ev.action.startsWith("vital") || ev.action === "vitals"
+                            ? "vitals"
+                            : ev.action === "chore-done" || ev.action === "chexecs"
+                                ? "chexecs"
+                                : undefined;
+
+        out.push({
+            id: `diary|${ev.eventId}`,
+            moduleId: mod,
+            avId: ev.avId || "",
+            rowId: ev.target || ev.blockId,
+            title: resolvedTitle,
+            memberId: ev.target ? input.memberByRowId?.get(ev.target) : undefined,
+            eventDate,
+            recordedAt,
+            sortAt,
+            source: "diary",
+            logKind,
+            eventId: ev.eventId,
+            diaryBlockId: ev.blockId,
+            diaryDocId: ev.docId,
+            sourceInvalidated,
+            amount: ev.amount,
+            sign: ev.sign,
+            flowScope: ev.flowScope,
+            details: details.slice(0, 4),
+        });
+    }
+    return out;
+}
+
+/** 聚合净支出统计：严格过滤 flowScope === 'neutral' 的账户互转，并计入退款 sign=-1 */
+export function computeNetExpenseTotal(records: readonly ActivityRecord[]): number {
+    let sum = 0;
+    for (const r of records) {
+        if (r.flowScope === "neutral") continue;
+        if (typeof r.amount === "number" && Number.isFinite(r.amount)) {
+            sum += (r.sign === -1 ? -1 : 1) * r.amount;
+        }
+    }
+    return Number(sum.toFixed(2));
+}
+
 export async function loadActivitySnapshot(plugin: HomePluginLike, options: { force?: boolean; revision?: number; signal?: AbortSignal; onProgress?: (done: number, total: number) => void } = {}): Promise<ActivitySnapshot> {
     const revision = options.revision ?? 0;
     const cache = activityCache.get(plugin) ?? { snapshots: new Map<number, ActivitySnapshot>(), inFlight: new Map<number, Promise<ActivitySnapshot>>() };
@@ -295,7 +390,7 @@ export async function loadActivitySnapshot(plugin: HomePluginLike, options: { fo
             const ref = plugin.settings.dbRefs?.[moduleId];
             const schema = plugin.schemaCatalog?.[moduleId];
             if (!ref?.avId || !schema) return [];
-            return [{ moduleId, avId: ref.avId, columns: ref.columns, schema }];
+            return [{ moduleId, avId: ref.avId, avBlockId: (ref as any).avBlockId as string | undefined, columns: ref.columns, schema }];
         });
         const memberByAvItem = new Map((plugin.settings.members ?? []).flatMap((member) => member.avItemId ? [[member.avItemId, member.id] as const] : []));
         const errors: ActivityReadError[] = [];
@@ -308,22 +403,63 @@ export async function loadActivitySnapshot(plugin: HomePluginLike, options: { fo
         } catch (error) {
             errors.push({ moduleId: "rowlogs", message: error instanceof Error ? error.message : String(error) });
         }
-        const eligible = modules.filter(({ avId, schema }) => schema.activity || Object.keys(logs).some((key) => key.startsWith(`${avId}|`)));
+
+        // 查询日记信封流水（双读去重安全窗）
+        let diaryEvents: QueriedDiaryEvent[] = [];
+        try {
+            diaryEvents = await queryDiaryEventsFromSql(undefined, { verifyLiveDom: true });
+        } catch {
+            diaryEvents = [];
+        }
+        const diaryModules = new Set(diaryEvents.map((e) => e.module).filter(Boolean));
+        const diaryEventIdSet = new Set(diaryEvents.map((e) => e.eventId));
+
+        const eligible = modules.filter(({ moduleId, avId, schema }) =>
+            schema.activity ||
+            diaryModules.has(moduleId) ||
+            Object.keys(logs).some((key) => key.startsWith(`${avId}|`)),
+        );
         let done = 0;
         options.onProgress?.(0, eligible.length);
+        const liveRowIdsByModule = new Map<string, Set<string>>();
+        const rowTitleById = new Map<string, string>();
+        const memberByRowId = new Map<string, string>();
+
         const moduleResults = await mapLimit(eligible, 2, async (module) => {
             try {
-                const requestOptions: RequestOptions = {
+                const requestOptions: RequestOptions & { blockID?: string } = {
                     signal: options.signal,
                     latestKey: `activity:${module.moduleId}`,
+                    ...(module.avBlockId ? { blockID: module.avBlockId } : {}),
                 };
                 const read = await renderLedgerAll(module.avId, 200, requestOptions);
                 if (!read.complete) throw new Error(`读取不完整：${read.rows.length}/${read.rowCount}`);
+                const liveSet = new Set<string>();
+                for (const row of read.rows) {
+                    liveSet.add(row.itemID);
+                    const t = rowName(row, module.columns);
+                    if (t) rowTitleById.set(row.itemID, t);
+                    const m = relationMember(row, module.columns, memberByAvItem);
+                    if (m) memberByRowId.set(row.itemID, m);
+                }
+                liveRowIdsByModule.set(module.moduleId, liveSet);
+
                 const projected = read.rows.flatMap((row) => {
                     const activity = projectLedgerActivity({ ...module, row, memberByAvItem });
                     return activity ? [activity] : [];
                 });
-                const logProjection = projectRowLogActivities({ moduleId: module.moduleId, avId: module.avId, rows: read.rows, logs, columns: module.columns, memberByAvItem });
+                // 双读期按 eventId 去重：已被日记覆盖的 rowlog 不重复出现
+                const dedupedLogs: RowLogs = {};
+                for (const [k, g] of Object.entries(logs)) {
+                    if (!k.startsWith(`${module.avId}|`) || !g) continue;
+                    const cloned: Record<string, unknown[]> = {};
+                    for (const [kind, arr] of Object.entries(g)) {
+                        if (!Array.isArray(arr)) continue;
+                        cloned[kind] = arr.filter((item: any) => !item?.diaryEventId || !diaryEventIdSet.has(String(item.diaryEventId)));
+                    }
+                    dedupedLogs[k] = cloned as any;
+                }
+                const logProjection = projectRowLogActivities({ moduleId: module.moduleId, avId: module.avId, rows: read.rows, logs: dedupedLogs, columns: module.columns, memberByAvItem });
                 done++;
                 options.onProgress?.(done, eligible.length);
                 return { moduleId: module.moduleId, records: projected.concat(logProjection.records), orphaned: logProjection.orphaned };
@@ -340,7 +476,27 @@ export async function loadActivitySnapshot(plugin: HomePluginLike, options: { fo
             orphanedRowLogs += result.orphaned;
             records.push(...result.records);
         }
-        records.sort((a, b) => b.sortAt - a.sortAt || b.id.localeCompare(a.id));
+        if (diaryEvents.length > 0) {
+            const diaryRecords = projectDiaryActivities({
+                events: diaryEvents,
+                liveRowIdsByModule,
+                rowTitleById,
+                memberByRowId,
+            });
+            records.push(...diaryRecords);
+        }
+        const dayKey = (ts: number) => {
+            const d = new Date(ts);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        };
+        const sourceWeight = (s: ActivityRecord["source"]) => (s === "diary" || s === "rowlog" ? 1 : 0);
+        records.sort((a, b) => {
+            const dayCmp = dayKey(b.sortAt).localeCompare(dayKey(a.sortAt));
+            if (dayCmp !== 0) return dayCmp;
+            const srcCmp = sourceWeight(b.source) - sourceWeight(a.source);
+            if (srcCmp !== 0) return srcCmp;
+            return b.sortAt - a.sortAt || b.id.localeCompare(a.id);
+        });
         return { records, errors, coveredModules, eligibleModules: eligible.length, orphanedRowLogs, loadedAt: new Date().toISOString() };
     })();
     cache.inFlight.set(revision, promise);

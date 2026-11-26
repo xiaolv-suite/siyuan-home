@@ -42,7 +42,59 @@
     let importInput: HTMLInputElement | undefined = $state();
     let ecoImportInput: HTMLInputElement | undefined = $state();
     let ecoBackupBusy = $state(false);
+    let v2MigrationBusy = $state(false);
+    let v2MigrationStatus = $state("");
     let trashRevision = $state(0);
+
+    async function handleV2MigrationDryRun() {
+        if (v2MigrationBusy) return;
+        v2MigrationBusy = true;
+        try {
+            const { executeHomeV2Migration } = await import("@/core/migration-v2");
+            const res = await executeHomeV2Migration(plugin, { dryRunOnly: true });
+            v2MigrationStatus = `${t("settings.v2MigrateDryRunOk")} (${res.manifest.expectedTotals.count})`;
+            homeNotify(v2MigrationStatus, 3000, "info");
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            v2MigrationBusy = false;
+        }
+    }
+
+    async function handleV2MigrationRun() {
+        if (v2MigrationBusy) return;
+        v2MigrationBusy = true;
+        try {
+            const { executeHomeV2Migration } = await import("@/core/migration-v2");
+            const res = await executeHomeV2Migration(plugin, { dryRunOnly: false });
+            v2MigrationStatus = `${t("settings.v2MigrateDone")} (+${res.newlyWrittenCount} / skip ${res.skippedExistingCount})`;
+            homeNotify(v2MigrationStatus, 3500, "info");
+            plugin.emitHubChanged?.();
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 5000, "error");
+        } finally {
+            v2MigrationBusy = false;
+        }
+    }
+
+    async function handleV2MigrationRollback() {
+        if (v2MigrationBusy) return;
+        const { confirm } = await import("@/libs/dialog");
+        confirm(t("settings.v2RollbackTitle"), t("settings.v2RollbackConfirm"), async () => {
+            v2MigrationBusy = true;
+            try {
+                const { executeHomeV2Rollback } = await import("@/core/migration-v2");
+                const res = await executeHomeV2Rollback(plugin);
+                v2MigrationStatus = `${t("settings.v2RollbackDone")} (${res.deletedUnmodifiedCount})`;
+                homeNotify(v2MigrationStatus, 3500, "info");
+                plugin.emitHubChanged?.();
+            } catch (err) {
+                homeNotify(String(err instanceof Error ? err.message : err), 5000, "error");
+            } finally {
+                v2MigrationBusy = false;
+            }
+        });
+    }
     const trashItems = $derived.by(() => {
         void trashRevision;
         return plugin.runtime?.trash ?? [];
@@ -106,6 +158,9 @@
     <button type="button" class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
 </nav>
 <div class="lv-settings__scroll">
+<input type="file" accept="application/json,.json" class="fn__none"
+    aria-label={t("settings.importEcoFull")}
+    bind:this={ecoImportInput} onchange={(e) => handleImportEcoFull(e)} />
 {#if dataSection === "migration"}
     <div class="lv-card lv-setcard">
         <div class="lv-setcard__title">{t("settings.targetNotebook")}</div>
@@ -125,7 +180,7 @@
                         showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
                     }
                 }}>
-                <option value="">🏠 {t("settings.targetNotebookHint")}</option>
+                <option value="">🏠 {t("butler")}</option>
                 {#each notebookList as nb (nb.id)}
                     <option value={nb.id}>📚 {nb.name}</option>
                 {/each}
@@ -194,12 +249,21 @@
                 bind:this={importInput} onchange={(e) => onImportSettings(e)} />
             <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={handleExportEcoFull}>🐴 {t("settings.exportEcoFull")}</button>
             <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={() => ecoImportInput?.click()}>🐴 {t("settings.importEcoFull")}</button>
-            <input type="file" accept="application/json,.json" class="fn__none"
-                aria-label={t("settings.importEcoFull")}
-                bind:this={ecoImportInput} onchange={(e) => handleImportEcoFull(e)} />
             {#if preImportBackupExists}
                 <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
             {/if}
+        </div>
+    </div>
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.v2MigrateTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.v2MigrateHint")}</div>
+        {#if v2MigrationStatus}
+            <div class="lv-caption lv-tx-accent" style="margin-bottom:8px;">{v2MigrationStatus}</div>
+        {/if}
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationDryRun}>{t("settings.v2MigrateDryRun")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationRun}>{t("settings.v2MigrateRun")}</button>
+            <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationRollback}>{t("settings.v2RollbackBtn")}</button>
         </div>
     </div>
     {:else if dataSection === "trash"}

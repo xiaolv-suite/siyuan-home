@@ -199,32 +199,33 @@ export function calculateNextRecurrenceDate(
         return addDays(startPoint, 1);
     }
 
-    // anchor === "due"：按日历固定周期滚动到今天以后（若已到期或提前完成，必须至少递增一个周期推进）
+    // anchor === "due"：按日历固定周期滚动到今天及以后（到期当天留在待办列表中；若已逾期则至少推进到下一个不早于今天的周期）
     if (c === "day") {
         const diff = differenceInCalendarDays(today0, startPoint);
-        if (diff < 0) return startPoint;
-        return addDays(startPoint, Math.max(1, diff === 0 ? 1 : diff));
+        if (diff <= 0) return startPoint;
+        return addDays(startPoint, diff);
     }
     if (c === "week") {
         const diff = differenceInCalendarDays(today0, startPoint);
-        if (diff < 0) return startPoint;
-        const steps = diff === 0 ? 1 : Math.ceil(diff / 7);
+        if (diff <= 0) return startPoint;
+        const steps = Math.ceil(diff / 7);
         return addDays(startPoint, steps * 7);
     }
     const months = CYCLE_MONTHS[c] ?? (monthMatch ? parseInt(monthMatch[1], 10) : 0);
     if (months > 0) {
+        if (startPoint >= today0) return startPoint;
         const diff = (today0.getFullYear() - startPoint.getFullYear()) * 12 + (today0.getMonth() - startPoint.getMonth());
-        if (diff < 0 || (diff === 0 && startPoint > today0)) return startPoint;
-        const k = Math.max(1, Math.ceil((diff === 0 ? 1 : diff) / months));
+        const k = Math.max(1, Math.ceil(diff / months));
         const next = addMonths(startPoint, k * months);
-        return next <= today0 ? addMonths(next, months) : next;
+        // 必须基于原始 startPoint 递增 (k + 1) * months，防止 31 号 / 2-29 经过平年 2 月后永久退化为 28 号
+        return next < today0 ? addMonths(startPoint, (k + 1) * months) : next;
     }
     if (dayMatch) {
         const step = parseInt(dayMatch[1], 10);
         if (step > 0) {
             const diff = differenceInCalendarDays(today0, startPoint);
-            if (diff < 0) return startPoint;
-            const steps = diff === 0 ? 1 : Math.ceil(diff / step);
+            if (diff <= 0) return startPoint;
+            const steps = Math.ceil(diff / step);
             return addDays(startPoint, steps * step);
         }
     }
@@ -232,8 +233,8 @@ export function calculateNextRecurrenceDate(
         const step = parseInt(weekMatch[1], 10) * 7;
         if (step > 0) {
             const diff = differenceInCalendarDays(today0, startPoint);
-            if (diff < 0) return startPoint;
-            const steps = diff === 0 ? 1 : Math.ceil(diff / step);
+            if (diff <= 0) return startPoint;
+            const steps = Math.ceil(diff / step);
             return addDays(startPoint, steps * step);
         }
     }

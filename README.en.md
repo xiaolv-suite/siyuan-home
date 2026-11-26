@@ -1,5 +1,4 @@
-> **Beta Note**: Lv Home is undergoing continuous and stable refinement. Community feedback and feature requests are welcome in QQ Group **871707735**.
-> The current build **v0.5.199** is protected by 200+ test suites (1,200+ automated unit tests) and 5 strict quality gates, safe and ready for daily production use.
+> **Production Readiness**: **v0.5.200** is guarded by 230+ test suites (1,470+ automated tests) and strict isolated SiYuan browser E2E verification. Community feedback and feature requests are welcome in QQ Group **871707735**.
 
 <div align="center">
 
@@ -9,7 +8,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.199-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.200-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -21,14 +20,13 @@
 
 ---
 
-## 🚀 What's New in v0.5.199 (Cumulative Updates)
+## 🚀 What's New in v0.5.200 (2026-11-26 Milestone Release)
 
-- **Zero Typing Latency**: WebSocket listener front-line eliminates editor text `transactions`, eradicating background scans and CPU spikes during continuous writing;
-- **Eliminated SiYuan v3.8.10 Invalid ID Errors**: Completely eradicated custom dummy block IDs (`{: id="h2-pending-memos"}`) in Kramdown, migrating entirely to SiYuan kernel-native 22-character block IDs;
-- **Multi-Device Daily Note Sync Hardening**: Decoupled monolithic daily journal overwrites into LifeLog incremental appends into SiYuan's native today daily note with in-memory concurrency mutex and double conflict file filtering;
-- **Persistent Multi-Day Snooze**: Expiry reminders (certificates, insurance, medicine) integrated into unified notification center; "Do not disturb for 3 days / 1 week" strictly honored across restarts;
-- **Launchpad Anchor Stabilization**: Jitter-free topbar presence with instant Bento Launchpad access even in single-plugin installations;
-- **Settings UX & Low Power**: Form inputs aligned with `$ui-checker` 47-point standards, and background sentinel timers extended to 30s.
+- **Shared Ecosystem Hubs & Block Assistant**: Deeply integrated with Launchpad, unified AI router, Block Assistant 1–8 native base + custom double-click, Ecosystem Activity Feed, Backup/Restore, and Notice Center; daily flows write strictly inside `#### 🐴 小驴记录` 4-level collapsible diary zone with multi-device conflict locks;
+- **Vehicle Ledger A+C Synergy**: Fuel, charging, and maintenance logs automatically sync back to the vehicle master table summary columns and embed a dynamic diary vehicle-log feed without duplication;
+- **Universal Camera Capture & Local Upload**: Quick Capture, full ledger create/edit modals, and detail drawers support **📷 Take Photo + Local Upload + SiYuan Asset Picker** with automatic ≤300KB compression;
+- **Unified `.lv-ai-thinking` AI / OCR Waiting Experience**: Quick Memo AI parsing, AI Life Health Audit, 5-minute micro-step decomposition, and attachment OCR mount unified `.lv-ai-thinking` progress cards with elapsed timer, `AbortSignal` cancellation, and write-phase save locks;
+- **60fps Zero `:has()` / Zero Heavy-Blur & Stacking Isolation**: Eliminated CSS `:has()` selectors and `blur(>=15px)`, isolated `.lv-home` stacking context so topbars never overlap host dialogs, and refined `390×844` mobile & light/dark contrast.
 
 ---
 
@@ -125,7 +123,7 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 | **Data & Migration** | Settings Export & Import | Settings ➔ Data ➔ Migration | — | Export settings as a JSON file for backup or cross-device migration. Automatically creates a backup snapshot before importing. |
 | **Data & Migration** | Safe Trash | Settings ➔ Data ➔ Trash | Holds up to 50 snapshots | Retains full row snapshots from single and batch deletions. Losslessly restore records to their ledgers; clear trash prompts for double confirmation. |
 | **Data & Migration** | Demo Data | Settings ➔ Data ➔ Demo Data | — | Generate sanitized demo data to explore capabilities; provides a one-click clean button to remove demo rows without residue. |
-| **About & Diagnostic** | Health Check & Rebuild | Settings ➔ About & Diagnostics | — | Scan attribute view integrity and repair missing schema columns; reset onboarding wizard. |
+| **About & Diagnostic** | Health Check & Rebuild | Settings ➔ About & Diagnostics | — | Scan attribute view integrity and repair missing standard columns; reset onboarding wizard. |
 
 ---
 
@@ -182,22 +180,24 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 - **Supported OS**: Windows, macOS, Linux, Android, iOS, HarmonyOS, Docker Web.
 
 ### Installation Methods
-- **Method 1: SiYuan Marketplace (Recommended)**
-  Open SiYuan Note, navigate to **Settings ➔ Marketplace ➔ Plugins**, search for `siyuan-home` or `小驴管家`, and click Install.
-- **Method 2: Offline Manual Installation**
+> **Publishing Status**: `plugin.json` currently has `disabledInPublish: true`, so it is not yet listed on the official SiYuan Marketplace. Please install via Method 1 or Method 2 below.
+
+- **Method 1: Offline Manual Installation (Recommended)**
   1. Download the latest `package.zip` from [GitHub Releases](https://github.com/xiaolv-suite/siyuan-home/releases/latest);
   2. Unzip and rename the folder to `siyuan-home`;
   3. Move it to your SiYuan workspace plugins directory: `data/plugins/siyuan-home/`;
   4. Restart SiYuan Note and enable it under **Settings ➔ Plugins**.
+- **Method 2: Build from Source**
+  1. Requires Node.js `>= 24.0.0` and pnpm `12.x`;
+  2. Run `pnpm install && pnpm build`, then `pnpm make-install` (or `pnpm make-link`).
 
 ---
 
 ## 📝 Changelog
 
-- **SiYuan 3.8.10+ Native Adaptations**: Family member avatars support selecting images directly from SiYuan asset storage via `openNativeAssetPicker`; ledger cards and reminder tasks link directly to native document tree context menus (`showDocTreeNativeMenu`).
-- **Input Method & Keyboard Defense**: In-line table edit saving and Spotlight search keyboard navigation yield during IME composition, preventing premature saves with raw Pinyin input.
-- **Resource & Memory Hardening**: AI health audit report copy failure handling with bilingual notices; share card preview Blob URLs revoked immediately after image decode to prevent memory retention; ecosystem-wide clipboard error-handling contracts enforced.
-- **Responsive & Mobile Polish**: Spotlight and toolbar controls use 16px baseline to eliminate iOS WebView auto-zoom; screen container padding smoothed against edge-sticking; viewport and quick-capture scroll listeners converted to passive.
+- **v0.5.200 (2026-11-26)**: Milestone release with shared Launchpad/AI Router/Block Assistant 1–8 hubs, `#### 🐴 小驴记录` 4-level diary zone, `.lv-ai-thinking` AI/OCR waiting cards, Vehicle Ledger A+C sync, universal camera capture, `.lv-home` stacking isolation, and zero `:has()` / zero heavy-blur 60fps polish.
+- **v0.5.199 (2026-11-26)**: Vehicle Ledger A+C summary sync & dynamic diary log section; universal Camera Capture + Local Upload; unified `.lv-ai-thinking` AI/OCR waiting cards; 4-level collapsible `#### 🐴 小驴记录` diary zone; zero CSS `:has()` selectors & mobile refinements.
+- **v0.5.198 / v0.5.197 / v0.5.196**: WebSocket typing micro-transaction filter, SiYuan v3.8.10+ native asset picker & doc tree menu, LifeLog photo stream & atomic undo, Launchpad topbar debounce, and full-ecosystem disaster recovery.
 
 <details>
 <summary><b>View Historical Releases (v0.5.194 and earlier)</b></summary>

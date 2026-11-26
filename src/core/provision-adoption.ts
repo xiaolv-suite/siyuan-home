@@ -8,7 +8,7 @@ import type { ModuleSchema } from "./schema";
 import {
     sql,
     getHPathByID,
-    createAttributeView,
+    createAndBindAttributeView,
     openNotebook,
 } from "./siyuan";
 import { errText } from "./settings";
@@ -20,10 +20,11 @@ import {
     ensureNotebook,
     ledgerHPath,
     findLedgerDoc,
-    findAvBlockInDoc,
+    findAvBlockRefInDoc,
+    verifyAvRefBound,
     ensureColumns,
     stableAvSeed,
-} from "./provisioner";
+} from "./provision-common";
 
 export interface DuplicateFinding {
     hpath: string;
@@ -82,24 +83,32 @@ export async function bindExistingDoc(
     const notebookRows = await sql<{ box: string }>(`SELECT box FROM blocks WHERE id='${docId.replace(/'/g, "''")}' LIMIT 1`);
     const notebookId = notebookRows[0]?.box;
 
-    let avId = await findAvBlockInDoc(docId);
+    let avRef = await findAvBlockRefInDoc(docId);
     let provisional = false;
     let provisionError: string | undefined;
 
-    if (!avId) {
+    if (!avRef) {
         try {
-            avId = await createAttributeView(docId, stableAvSeed(moduleId, docId), { idempotencyKey: `bind:av:${moduleId}:${docId}` });
+            const bound = await createAndBindAttributeView(docId, stableAvSeed(moduleId, docId), {
+                idempotencyKey: `bind:av:${moduleId}:${docId}`,
+                schema: "home-ledger-v2",
+            });
+            avRef = { avId: bound.avId, avBlockId: bound.avBlockId, fromLiveDom: true };
         } catch (e) {
             provisional = true;
             provisionError = errText(e);
         }
     }
 
+    const avId = avRef?.avId;
     const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
     const { columns, error } = await ensureColumns(avId, schema, undefined, moduleId, opts, memberAvId);
     const dbRef: DbRef = {
         docId,
         avId: avId ?? undefined,
+        avBlockId: avRef?.avBlockId,
+        schema: "home-ledger-v2",
+        schemaVersion: 2,
         notebook: notebookId,
         provisional,
         columns,
@@ -128,6 +137,7 @@ export async function discoverAndAdoptAllLedgers(
     settings: HomeSettings,
     schemaCatalog: Record<string, ModuleSchema>,
     resolveName: (k: string) => string = (k) => k,
+    resolveModuleTitle?: (moduleId: string) => string,
 ): Promise<AdoptionReport> {
     const report: AdoptionReport = {
         adoptedCount: 0,
@@ -145,6 +155,7 @@ export async function discoverAndAdoptAllLedgers(
             try {
                 const hp = await getHPathByID(existing.docId);
                 if (hp) {
+                    await verifyAvRefBound(existing);
                     const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
                     const { columns, error } = await ensureColumns(existing.avId, schema, existing.columns, moduleId, { resolveName }, memberAvId);
                     existing.columns = columns;
@@ -152,11 +163,16 @@ export async function discoverAndAdoptAllLedgers(
                     report.alreadyReadyCount++;
                     continue;
                 }
-            } catch { /* doc missing or invalid */ }
+            } catch { /* doc missing or binding torn */ }
         }
 
         // 尝试自动找回
-        const titleI18n = resolveName(`module.${moduleId}`);
+        const resolvedByKey = resolveName(`module.${moduleId}`);
+        const titleI18n = resolveModuleTitle
+            ? resolveModuleTitle(moduleId)
+            : (resolvedByKey && !resolvedByKey.startsWith("field.") && resolvedByKey !== `module.${moduleId}`
+                ? resolvedByKey
+                : moduleId);
         const hpath = ledgerHPath(titleI18n);
         const found = await findLedgerDoc(existing?.notebook || defaultNbId, hpath, moduleId);
 
@@ -166,22 +182,28 @@ export async function discoverAndAdoptAllLedgers(
                 await openNotebook(actualNb, { retries: 1 });
             } catch { /* ignore */ }
 
-            let avId = await findAvBlockInDoc(found.id);
-            if (!avId) {
+            let avRef = await findAvBlockRefInDoc(found.id);
+            if (!avRef) {
                 try {
-                    avId = await createAttributeView(found.id, stableAvSeed(moduleId, found.id), {
+                    const bound = await createAndBindAttributeView(found.id, stableAvSeed(moduleId, found.id), {
                         idempotencyKey: `adopt:av:${moduleId}:${found.id}`,
+                        schema: "home-ledger-v2",
                     });
+                    avRef = { avId: bound.avId, avBlockId: bound.avBlockId, fromLiveDom: true };
                 } catch {
                     // provisional
                 }
             }
+            const avId = avRef?.avId;
             const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
             const { columns, error } = await ensureColumns(avId, schema, existing?.columns, moduleId, { resolveName }, memberAvId);
             settings.dbRefs[moduleId] = {
                 ...existing,
                 docId: found.id,
                 avId: avId ?? undefined,
+                avBlockId: avRef?.avBlockId ?? existing?.avBlockId,
+                schema: "home-ledger-v2",
+                schemaVersion: 2,
                 notebook: actualNb,
                 columns,
                 provisional: !avId,
@@ -217,12 +239,18 @@ export async function healColumnMapping(
         const { renderLedger, addAttributeViewColumn } = await import("./siyuan");
         const av = await renderLedger(ref.avId);
         const knownColumns: any[] = av?.columns ?? [];
-        const schemaCol = plugin.schemaCatalog?.[moduleId]?.columns?.find((c: any) => c.key === colKey);
-        const colName = (plugin.i18n?.[`field.${colKey}`] ?? schemaCol?.name ?? colKey) as string;
+        const { SCHEMA_CATALOG } = await import("./schema-catalog");
+        const schemaCol = (plugin.schemaCatalog?.[moduleId] ?? SCHEMA_CATALOG[moduleId])?.columns?.find((c: any) => c.key === colKey);
+        const i18nKey = `field.${colKey}`;
+        const fromI18n = plugin.i18n?.[i18nKey] ?? (typeof plugin.i18nText === "function" ? plugin.i18nText(i18nKey) : undefined);
+        const colName = (fromI18n && fromI18n !== i18nKey ? fromI18n : undefined)
+            ?? COMMON_COLUMN_ALIASES[colKey]?.[0]
+            ?? schemaCol?.name
+            ?? colKey;
         const colAliases = new Set([colName, colKey, ...(COMMON_COLUMN_ALIASES[colKey] ?? [])]);
 
         // 1. 尝试在思源当前真实列中通过别名匹配已有列
-        const matched = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName));
+        const matched = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName) || (colKey === "name" && c?.type === "block"));
         if (matched?.id) {
             const realId = String(matched.id);
             ref.columns = { ...(ref.columns ?? {}), [colKey]: realId };

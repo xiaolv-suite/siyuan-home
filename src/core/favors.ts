@@ -4,6 +4,7 @@
  * 并支持格式化导出为结构化文本分享。
  */
 import type { AvRow } from "@/core/siyuan";
+import { rowCellString } from "@/core/avcell";
 import { formatAmount } from "@/core/format";
 
 export interface FavorsPersonStat {
@@ -34,14 +35,7 @@ export interface FavorsReport {
 }
 
 function cellString(row: AvRow, keyID?: string): string | undefined {
-    if (!keyID) return undefined;
-    const cell = row.cells?.[keyID];
-    if (!cell) return undefined;
-    if (cell.type === "text" && cell.text?.content) return String(cell.text.content).trim();
-    if (cell.type === "block" && cell.block?.content) return String(cell.block.content).trim();
-    if (cell.type === "date" && cell.date?.content) return String(cell.date.content).trim();
-    if (cell.type === "select" && cell.select?.content) return String(cell.select.content).trim();
-    return undefined;
+    return rowCellString(row, keyID);
 }
 
 function cellNumber(row: AvRow, keyID?: string): number | undefined {

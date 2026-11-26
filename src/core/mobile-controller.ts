@@ -112,8 +112,8 @@ export function createMobileController(options: MobileControllerOptions): Mobile
             return;
         }
 
-        dialog.element.classList.add("b3-dialog--lvmobile");
-        dialog.element.querySelector?.(".b3-dialog")?.classList.add("b3-dialog--lvmobile");
+        dialog.element.classList.add("b3-dialog--lvmobile", "lv-home-dialog", "lv-home-panel-dialog");
+        dialog.element.querySelector?.(".b3-dialog")?.classList.add("b3-dialog--lvmobile", "lv-home-dialog", "lv-home-panel-dialog");
 
         // visualViewport 动态高度与软键盘自适应监听
         if (typeof window !== "undefined") {

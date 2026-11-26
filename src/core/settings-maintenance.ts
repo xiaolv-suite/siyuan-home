@@ -266,7 +266,7 @@ export async function executeDuplicateLedgerCheck(
     showMessageFn: (msg: string, timeout?: number, type?: string) => void,
 ): Promise<void> {
     try {
-        const { findDuplicateLedgers } = await import("./provisioner");
+        const { findDuplicateLedgers } = await import("./provision-adoption");
         const dups = await findDuplicateLedgers(plugin.settings);
         showMessageFn(dups.length === 0 ? t("diag.dupNone") : t("diag.dupFound").replace("${n}", String(dups.length)) + ": " + dups.map((d: any) => d.hpath).join(", "), 6000, dups.length ? "error" : "info");
     } catch (error) {

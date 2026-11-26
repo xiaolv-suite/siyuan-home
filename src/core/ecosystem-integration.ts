@@ -1,7 +1,8 @@
 import { mountLvHomeBridge } from "@/bridge/external-bridge";
 import { registerRaikiriModuleSafely } from "@/libs/ecosystem-bridge-kit";
+import type { IDisposable } from "./disposer";
 
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.199";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.200";
 
 export interface EcosystemIntegrationOptions {
     plugin: any;
@@ -15,7 +16,7 @@ export interface EcosystemIntegrationOptions {
     emitHubChanged: () => void;
 }
 
-export interface EcosystemController {
+export interface EcosystemController extends IDisposable {
     pullCheckinSummary(): Promise<void>;
     buildHomeSummarySnapshot(): Record<string, unknown>;
     ensureSpeedSwitchActions(attempt?: number): void;
@@ -64,7 +65,7 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
                 windowDays: summary.windowDays,
                 pulledAt: Date.now(),
             };
-            const { saveRuntime } = await import("@/core/hub/runtime");
+            const { saveRuntime } = await import("@/core/hub/runtime-store");
             await saveRuntime(plugin, plugin.runtime);
             emitHubChanged();
         } catch (e) {
@@ -211,7 +212,7 @@ export function initEcosystemIntegration(options: EcosystemIntegrationOptions): 
             const generatedAt = Number(detail.generatedAt);
             if (![streak, accuracy, attempts, generatedAt].every((n) => Number.isFinite(n))) return;
             plugin.runtime.lastExamStats = { streak, accuracy, attempts, generatedAt };
-            import("@/core/hub/runtime").then((m) => m.saveRuntime(plugin, plugin.runtime)).catch(() => undefined);
+            import("@/core/hub/runtime-store").then((m) => m.saveRuntime(plugin, plugin.runtime)).catch(() => undefined);
             emitHubChanged();
         };
         window.addEventListener("lv-exam:stats", examStatsHandler);

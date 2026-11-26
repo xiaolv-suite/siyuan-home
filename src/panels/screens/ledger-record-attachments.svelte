@@ -5,10 +5,14 @@
 </script>
 
 <script lang="ts">
+    import { Dialog } from "siyuan";
     import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { setCell } from "@/core/siyuan";
+    import { assetHref, isImageAsset } from "@/core/assets";
+    import { capturePhotoFromDevice, preparePhotoFile } from "@/core/camera-capture";
     import { openNativeAssetPicker } from "@/libs/lv-notice-kit";
+    import UiIcon from "@/ui/icon.svelte";
 
     let {
         certificateFiles = $bindable<Record<string, File[]>>({}),
@@ -93,9 +97,48 @@
         }
     }
 
+    function previewThumb(node: HTMLImageElement, file: File) {
+        let objectUrl = "";
+        const bind = (f: File) => {
+            if (objectUrl) {
+                try { URL.revokeObjectURL(objectUrl); } catch { /* soft */ }
+                objectUrl = "";
+            }
+            if (f?.type?.startsWith("image/") && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+                try {
+                    objectUrl = URL.createObjectURL(f);
+                    node.src = objectUrl;
+                } catch { /* soft */ }
+            }
+        };
+        bind(file);
+        return {
+            update(nextFile: File) { bind(nextFile); },
+            destroy() {
+                if (objectUrl) {
+                    try { URL.revokeObjectURL(objectUrl); } catch { /* soft */ }
+                }
+            },
+        };
+    }
+
     function selectedFileText(key: string): string {
         const count = (certificateFiles[key]?.length ?? 0) + (uploadedCertificateFiles[key]?.length ?? 0);
-        return count > 0 ? t("ledger.selectedFiles").replace("${n}", String(count)) : t("ledger.chooseAttachment");
+        return count > 0 ? t("ledger.selectedFiles").replace("${n}", String(count)) : t("ledger.uploadLocal");
+    }
+
+    function triggerCameraCapture(key: string) {
+        const inputEl = document.getElementById(`lv-new-camera-${key}`) as HTMLInputElement | null;
+        void capturePhotoFromDevice({
+            DialogCls: Dialog,
+            t,
+            showMessageFn: showMessage,
+            fallbackFileInput: () => inputEl?.click(),
+            onFileCaptured: async (file) => {
+                const compressed = await preparePhotoFile(file);
+                setCertificateFiles(key, [compressed]);
+            },
+        });
     }
 </script>
 
@@ -109,13 +152,41 @@
                 <div class="lv-record-field lv-record-field-wide">
                     <label for="lv-new-file-{target.key}">{target.labelKey ? t(target.labelKey) : fieldLabel(target.key)}</label>
                     <div class="lv-record-file-picker" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <label class="b3-button b3-button--outline lv-record-file-btn" for="lv-new-file-{target.key}">
-                            {selectedFileText(target.key)}
-                        </label>
-                        <input id="lv-new-file-{target.key}" type="file" multiple accept={active === "vehicles" && target.key === "attachments" ? "image/*" : "image/*,.pdf"} disabled={saving || identityPending} onchange={(event) => setCertificateFiles(target.key, Array.from((event.currentTarget as HTMLInputElement).files ?? []))} />
                         <button
                             type="button"
                             class="b3-button b3-button--outline"
+                            disabled={saving || identityPending}
+                            onclick={() => triggerCameraCapture(target.key)}
+                        >
+                            <UiIcon name="camera" size={13} /> <span>{t("ledger.takePhoto")}</span>
+                        </button>
+                        <input
+                            id="lv-new-camera-{target.key}"
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            aria-label={t("ledger.takePhoto")}
+                            style="display:none;"
+                            disabled={saving || identityPending}
+                            onchange={async (event) => {
+                                const raw = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
+                                (event.currentTarget as HTMLInputElement).value = "";
+                                if (raw.length === 0) return;
+                                const prepared = await Promise.all(raw.map((f) => preparePhotoFile(f)));
+                                setCertificateFiles(target.key, prepared);
+                            }}
+                        />
+                        <label class="b3-button b3-button--outline lv-record-file-btn" for="lv-new-file-{target.key}">
+                            <UiIcon name="upload" size={13} /> <span>{selectedFileText(target.key)}</span>
+                        </label>
+                        <input id="lv-new-file-{target.key}" type="file" multiple accept={active === "vehicles" && target.key === "attachments" ? "image/*" : "image/*,.pdf"} disabled={saving || identityPending} onchange={(event) => {
+                            const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
+                            (event.currentTarget as HTMLInputElement).value = "";
+                            setCertificateFiles(target.key, files);
+                        }} />
+                        <button
+                            type="button"
+                            class="b3-button b3-button--text"
                             title={t("ledger.pickFromAssets")}
                             disabled={saving || identityPending}
                             onclick={async () => {
@@ -130,18 +201,24 @@
                                     };
                                 }
                             }}
-                        >📁 选资源</button>
+                        ><UiIcon name="link" size={12} /> <span>{t("ledger.pickExistingAsset")}</span></button>
                     </div>
                     {#if localFiles.length > 0 || uploadedFiles.length > 0}
                         <div class="lv-record-file-list" aria-label={target.labelKey ? t(target.labelKey) : fieldLabel(target.key)}>
                             {#each uploadedFiles as file, index (`uploaded:${target.key}:${file.content}`)}
                                 <div class="lv-record-file-item">
+                                    {#if isImageAsset(file.content)}
+                                        <img src={assetHref(file.content)} alt={file.name} style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none;" />
+                                    {/if}
                                     <span>{file.name}</span>
                                     <button type="button" class="b3-button b3-button--text" onclick={() => void removeCertificateFile(target.key, "uploaded", index)} disabled={saving || identityPending}>{t("delete")}</button>
                                 </div>
                             {/each}
                             {#each localFiles as file, index (`local:${target.key}:${fileFingerprint(file)}`)}
                                 <div class="lv-record-file-item">
+                                    {#if file.type?.startsWith("image/")}
+                                        <img use:previewThumb={file} alt={file.name} style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none;" />
+                                    {/if}
                                     <span>{file.name}</span>
                                     <button type="button" class="b3-button b3-button--text" onclick={() => void removeCertificateFile(target.key, "local", index)} disabled={saving || identityPending}>{t("delete")}</button>
                                 </div>

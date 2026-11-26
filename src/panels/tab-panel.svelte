@@ -9,18 +9,18 @@
     import TabGuestBanner from "./tab-guest-banner.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import type { UiIconName } from "@/ui/icons";
-    import type { HomePluginLike } from "@/types/plugin";
+    import type { HomePluginLike, IHomeUIContext } from "@/types/plugin";
     import type { ActivityTarget } from "@/core/activity";
     import { formatLocalTime } from "@/core/date-display";
     import { panelSession, type PluginScreen } from "./panel-session";
 
-    let { plugin, onMobileClose }: { plugin: HomePluginLike; onMobileClose?: () => void } = $props();
+    let { plugin, onMobileClose }: { plugin: IHomeUIContext; onMobileClose?: () => void } = $props();
     // i18n 取值统一转 string（1.2.8 起 JSONValue；screens 以 props 接收 string 返回的 t）
     const t = (key: string) => String(plugin.i18n[key] ?? key);
 
     type ScreenId = PluginScreen;
     type ScreenProps = {
-        plugin: HomePluginLike;
+        plugin: IHomeUIContext;
         t: (key: string) => string;
         version?: number;
         initialScanError?: string;
@@ -28,7 +28,7 @@
         onCapture?: (moduleId?: string) => void;
         onGoto?: (screen: ScreenId) => void;
     };
-    type CaptureProps = { plugin: HomePluginLike; t: (key: string) => string; version?: number; open?: boolean; onClose?: () => void };
+    type CaptureProps = { plugin: IHomeUIContext; t: (key: string) => string; version?: number; open?: boolean; onClose?: () => void };
     type ScreenComponent = Component<ScreenProps>;
     // The plugin instance is stable for the lifetime of this panel; the
     // session store is intentionally keyed to that initial instance.
@@ -313,7 +313,7 @@
             if (document.querySelector("dialog[open], .b3-dialog:not(.b3-dialog--lvmobile), .lv-modal.open, .lv-spotlight-dialog-body")) return;
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
                 // 仅当焦点落在小驴管家宿主容器内部且非编辑器内部时响应，避免抢占思源官方插入超链接快捷键
-                if (homeEl && homeEl.contains(el) && !el?.isContentEditable) {
+                if (homeEl && homeEl.contains(el) && !homeEl.closest(".fn__none") && !el?.isContentEditable && !el?.closest?.("[contenteditable='true']")) {
                     e.preventDefault();
                     void openSpotlight();
                     return;
@@ -323,7 +323,9 @@
             if (captureOpen) return;
             if (e.key !== "n" && e.key !== "N") return;
             if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey) return;
-            if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
+            // 严格限定焦点在小驴管家容器内且不在输入元素内才触发单键 N，绝不劫持思源其他区域或兄弟插件
+            if (!homeEl || !homeEl.contains(el) || homeEl.closest(".fn__none")) return;
+            if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable || el.closest?.("[contenteditable='true']"))) return;
             e.preventDefault();
             openCapture();
         };
@@ -370,10 +372,10 @@
     async function applyGuestMode(next: boolean) {
         try {
             plugin.runtime.guestModeActive = next;
-            const { saveRuntime } = await import("@/core/hub/runtime");
-            await saveRuntime(plugin, plugin.runtime);
             version += 1;
             plugin.emitHubChanged?.();
+            const { saveRuntime } = await import("@/core/hub/runtime");
+            await saveRuntime(plugin as any, plugin.runtime);
             showMessage(t(next ? "guest.modeActive" : "guest.modeInactive"), 3000, "info");
         } catch {
             showMessage(t("ledger.saveFailed"), 4000, "error");
@@ -494,7 +496,7 @@
     });
 </script>
 
-<div class="lv-home lv-tab" bind:this={homeEl}>
+<div class="lv-home lv-tab" bind:this={homeEl} tabindex="-1">
     <div class="lv-shell-frame">
         <!-- 1. 左侧极窄导航栏（Rail Navigation） -->
         <TabRailNav
@@ -552,7 +554,7 @@
                     <!-- 搜索/快速记录/设置在宽屏由左侧导航栏承担，顶栏同名按钮只在窄屏（无侧栏）出现 -->
                     <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("spotlight.title")} title={onMobileClose ? t("spotlight.title") : `${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
                     <button type="button" class="lv-iconbtn" class:orange={isGuestMode} aria-label={t("guest.modeToggle")} title={t("guest.modeToggle")} onclick={toggleGuestMode}><UiIcon name="shield" size={16} /></button>
-                    <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("capture.title")} title={onMobileClose ? t("capture.title") : `${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
+                    <button type="button" class="lv-iconbtn lv-rail-dup lv-rail-dup--capture" aria-label={t("capture.title")} title={onMobileClose ? t("capture.title") : `${t("capture.title")} (N)`} onclick={(event) => openCapture(undefined, event)}><UiIcon name="bolt" size={16} /></button>
                     <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("tab.settings")} title={t("tab.settings")} onclick={() => plugin.openSetting()}><UiIcon name="settings" size={16} /></button>
                     {#if onMobileClose}
                         <button type="button" class="lv-iconbtn lv-mobile-close" aria-label={t("close")} title={t("close")} onclick={onMobileClose}><UiIcon name="close" size={16} /></button>
@@ -568,7 +570,7 @@
                 />
             {/if}
 
-            {#key `${screen}:${version}`}
+            {#key screen}
                 <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
                     <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
                         {#if screenLoadError}
@@ -608,10 +610,10 @@
                 <span class="lv-mob-nav-icon">
                     <UiIcon name={s.icon} size={20} />
                     {#if s.id === "reminders" && pendingTotal > 0}
-                        <span class="lv-mob-badge">{pendingTotal > 99 ? "99+" : pendingTotal}</span>
+                        <span class="lv-mob-badge" aria-hidden="true"></span>
                     {/if}
                 </span>
-                <span class="lv-mob-nav-label">{t(s.mobileKey)}</span>
+                <span class="lv-mob-nav-label">{t(s.mobileKey)}{s.id === "reminders" && pendingTotal > 0 ? ` · ${pendingTotal > 99 ? "99+" : pendingTotal}` : ""}</span>
             </button>
         {/each}
     </nav>

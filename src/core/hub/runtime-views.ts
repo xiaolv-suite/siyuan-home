@@ -1,5 +1,5 @@
 import { localDateKey } from "./rule";
-import type { HubRuntime, ReminderNamedView } from "./runtime";
+import type { HubRuntime, ReminderNamedView } from "./runtime-types";
 
 /**
  * 提醒命名视图、计划处理日（双日期排期）与置顶状态管理引擎

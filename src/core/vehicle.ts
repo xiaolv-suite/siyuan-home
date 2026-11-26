@@ -122,9 +122,10 @@ export function calculateVehicleCostSummary(
     const fuel = calculateEnergyStats(fuelRecords, "fuel");
     const charging = calculateEnergyStats(chargingRecords, "charging");
     const maintenance = calculateMaintenanceStats(maintenanceRecords, asOfDate, currentOdometer);
-    const fuelCost = fuel.totalCost;
-    const chargingCost = charging.totalCost;
-    const maintenanceCost = maintenance.totalCost;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+    const fuelCost = round2(fuel.totalCost);
+    const chargingCost = round2(charging.totalCost);
+    const maintenanceCost = round2(maintenance.totalCost);
     const allDates = [
         ...normalizeEnergyRecords(fuelRecords, "fuel").map((record) => record.date),
         ...normalizeEnergyRecords(chargingRecords, "charging").map((record) => record.date),
@@ -137,7 +138,7 @@ export function calculateVehicleCostSummary(
         fuelCost,
         chargingCost,
         maintenanceCost,
-        totalCost: fuelCost + chargingCost + maintenanceCost,
+        totalCost: round2(fuelCost + chargingCost + maintenanceCost),
         costComplete: (fuel.recordCount === 0 || fuel.costComplete)
             && (charging.recordCount === 0 || charging.costComplete)
             && (maintenance.recordCount === 0 || maintenance.costRecordCount === maintenance.recordCount),
@@ -191,6 +192,7 @@ export function calculateMaintenanceStats(
     asOfDate = localDateKey(),
     currentOdometer?: number,
 ): MaintenanceStats {
+    const round2 = (n: number) => Math.round(n * 100) / 100;
     const valid = normalizeMaintenanceRecords(records);
     const byCategory: Record<string, MaintenanceCategoryStats> = {};
     let totalCost = 0;
@@ -199,8 +201,8 @@ export function calculateMaintenanceStats(
         const bucket = byCategory[record.category] ?? { count: 0, cost: 0 };
         bucket.count += 1;
         if (record.cost !== undefined) {
-            bucket.cost += record.cost;
-            totalCost += record.cost;
+            bucket.cost = round2(bucket.cost + record.cost);
+            totalCost = round2(totalCost + record.cost);
             costRecordCount += 1;
         }
         byCategory[record.category] = bucket;
@@ -230,8 +232,8 @@ export function calculateMaintenanceStats(
     return {
         recordCount: valid.length,
         costRecordCount,
-        totalCost,
-        averageCost: costRecordCount > 0 ? totalCost / costRecordCount : undefined,
+        totalCost: round2(totalCost),
+        averageCost: costRecordCount > 0 ? round2(totalCost / costRecordCount) : undefined,
         byCategory,
         latest: valid.length > 0 ? valid[valid.length - 1] : undefined,
         nextDate: dateDue,

@@ -4,7 +4,7 @@ const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
  */
 
 import { sql } from "./siyuan";
-import { bindExistingDoc } from "./provisioner";
+import { bindExistingDoc } from "./provision-adoption";
 import { saveSettings } from "./settings";
 import type { ModuleSchema } from "./schema";
 import { uiIcon } from "@/ui/icons";

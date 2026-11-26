@@ -2,7 +2,7 @@
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { showDocTreeNativeMenu, lvLaunchpad } from "@/libs/lv-notice-kit";
-    import { sql } from "@/core/siyuan";
+    import { queryDocBox } from "@/core/sql-coalescer";
     import { onDestroy } from "svelte";
     // DL2 阶段3：空态吉祥物（mascot 偏好门控，关闭回退线性图标）
     import { lvMascot } from "@/libs/ui/mascots";
@@ -85,7 +85,7 @@
         activeController?.abort();
         activeController = undefined;
     });
-    const pageSize = $derived(compact ? 3 : 8);
+    const pageSize = $derived(compact ? 3 : 20);
 
     const records = $derived.by(() => {
         void version;
@@ -153,6 +153,7 @@
 </div>`,
                 width: "600px",
             });
+            dlg.element?.classList?.add?.("lv-home-dialog");
             const pre = dlg.element.querySelector("pre");
             if (pre) pre.textContent = text;
             (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
@@ -214,6 +215,10 @@
     });
 
     function open(record: ActivityRecord) {
+        if (record.source === "diary" && record.diaryDocId && plugin.showTabDocs) {
+            plugin.showTabDocs(record.diaryDocId, record.diaryBlockId);
+            return;
+        }
         if (!plugin.openActivityTarget) {
             showMessage(t("activity.navigationUnavailable"), 4000, "error");
             return;
@@ -221,7 +226,7 @@
         plugin.openActivityTarget({
             moduleId: record.moduleId,
             rowId: record.rowId,
-            source: record.source,
+            source: record.source === "diary" ? "rowlog" : record.source,
             logKind: record.logKind,
             entryAt: record.recordedAt,
             eventDate: record.eventDate,
@@ -294,7 +299,9 @@
     }
 </script>
 
-    <section class="lv-activity" aria-labelledby={memberId ? `lv-activity-${memberId}` : "lv-activity-title"}>
+    <section class="lv-activity" aria-labelledby={memberId ? `lv-activity-${memberId}` : "lv-activity-title"}
+        data-covered={snapshot ? JSON.stringify(snapshot.coveredModules) : ""}
+        data-errors={snapshot?.errors?.length ? JSON.stringify(snapshot.errors) : ""}>
     <div class="lv-activity-head">
         <div class="lv-activity-heading">
             <h2 id={memberId ? `lv-activity-${memberId}` : "lv-activity-title"} class="lv-title-sec">{memberId ? t("activity.memberTimeline") : t("activity.title")}</h2>
@@ -400,6 +407,17 @@
                                         <b>{record.title || t("ledger.unnamed")}</b>
                                         <span class="lv-activity-module">{t(`module.${record.moduleId}`)}{record.memberId ? ` · ${memberName(record.memberId)}` : ` · ${t("members.unassigned")}`}</span>
                                     </button>
+                                    {#if record.sourceInvalidated}
+                                        <span class="lv-badge amber lv-badge--xs">{t("activity.sourceInvalidated")}</span>
+                                    {/if}
+                                    {#if record.diaryDocId && record.diaryBlockId && plugin.showTabDocs}
+                                        <button type="button" class="b3-button b3-button--text lv-activity-doc-btn"
+                                            title={t("activity.jumpDiary")}
+                                            aria-label={t("activity.jumpDiary")}
+                                            onclick={() => plugin.showTabDocs?.(record.diaryDocId, record.diaryBlockId)}>
+                                            <UiIcon name="note" size={13} />
+                                        </button>
+                                    {/if}
                                     {#if plugin.settings?.dbRefs?.[record.moduleId]?.docId}
                                         <button type="button" class="b3-button b3-button--text lv-activity-doc-btn"
                                             title={`${t("ledger.openDoc")}（右键打开原生文档树菜单）`}
@@ -413,8 +431,7 @@
                                                 if (docId) {
                                                     if (!notebookId) {
                                                         try {
-                                                            const rows = await sql<any>(`SELECT box FROM blocks WHERE id = '${docId.replace(/'/g, "''")}' LIMIT 1`);
-                                                            if (rows && rows[0]?.box) notebookId = rows[0].box;
+                                                            notebookId = await queryDocBox(docId);
                                                         } catch {}
                                                     }
                                                     if (notebookId) {

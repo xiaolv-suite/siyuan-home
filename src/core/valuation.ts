@@ -4,6 +4,7 @@
  * 提供购物记录向实物资产建档的纯函数字段映射。
  */
 import type { AvRow } from "@/core/siyuan";
+import { rowCellString } from "@/core/avcell";
 import type { RowLogs, ValuationEntry } from "@/core/rowlog";
 import { getValuations } from "@/core/rowlog";
 import { calculateAssetDepreciation } from "./depreciation";
@@ -63,14 +64,7 @@ export interface ShoppingToAssetDraft {
 }
 
 function cellString(row: AvRow, keyID?: string): string | undefined {
-    if (!keyID) return undefined;
-    const cell = row.cells?.[keyID];
-    if (!cell) return undefined;
-    if (cell.type === "text" && cell.text?.content) return String(cell.text.content).trim();
-    if (cell.type === "block" && cell.block?.content) return String(cell.block.content).trim();
-    if (cell.type === "date" && cell.date?.content) return String(cell.date.content).trim();
-    if (cell.type === "select" && cell.select?.content) return String(cell.select.content).trim();
-    return undefined;
+    return rowCellString(row, keyID);
 }
 
 function cellNumber(row: AvRow, keyID?: string): number | undefined {

@@ -18,7 +18,7 @@ import {
     looksLikeAuthFailure,
     dispatchAuthExpired,
     post,
-} from "./siyuan";
+} from "./siyuan-transport";
 
 export type UploadTransport = (formData: FormData, options?: TransportOptions) => Promise<IRawResponse>;
 
@@ -169,7 +169,11 @@ export async function getImageOCRText(path: string, options?: RequestOptions): P
 
 /** 按当前思源 OCR 提供商识别图片；内核会保存结果并更新 OCR 索引。 */
 export async function recognizeAsset(path: string, options?: RequestOptions): Promise<{ text: string; ocrJSON: Record<string, string>[] }> {
-    const data = await post<{ text?: string; ocrJSON?: Record<string, string>[] }>("/api/asset/ocr", { path }, options);
+    const reqOptions: RequestOptions = {
+        ...options,
+        timeoutMs: options?.timeoutMs ?? 60_000,
+    };
+    const data = await post<{ text?: string; ocrJSON?: Record<string, string>[] }>("/api/asset/ocr", { path }, reqOptions);
     return {
         text: typeof data?.text === "string" ? data.text : "",
         ocrJSON: Array.isArray(data?.ocrJSON) ? data.ocrJSON : [],

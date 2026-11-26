@@ -19,6 +19,7 @@ import { bindDialogA11y } from "./dialog-a11y";
 
 export interface OpenLedgerDetailDrawerOptions {
     row: any;
+    rows?: any[];
     vehicleAction?: "fuel" | "charging" | "maintenance" | "edit";
     activityTarget?: ActivityTarget;
     ref: { avId?: string; docId?: string; columns?: Record<string, string> };
@@ -63,6 +64,8 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         width: "min(520px, 94vw)",
     });
 
+    dlg.element?.classList?.add?.("lv-home-detail-dialog");
+    dlg.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-detail-dialog");
     const body = dlg.element.querySelector("#lv-detail-body") as HTMLElement;
     bindDialogA11y({ dlg, defaultFocus: "#lv-detail-close" });
     const vehicleActionQueue = createVehicleActionQueue();
@@ -80,7 +83,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
     const activeCertFields = active === "certs" ? new Set(getCertificateProfile(rowCategory).fieldKeys) : null;
     const schemaCols: any[] = (plugin.schemaCatalog?.[active]?.columns ?? []).filter((col: any) =>
         active !== "certs" || !String(col.key).startsWith("x_cert_") || activeCertFields?.has(col.key));
-    const EDITABLE = new Set(["text", "number", "date", "select", "url", "checkbox"]);
+    const EDITABLE = new Set(["text", "number", "date", "select", "url", "checkbox", "block"]);
     const colLabel = (col: any) => (t(`field.${col.key}`) !== `field.${col.key}` ? t(`field.${col.key}`) : col.key);
 
     function labelSpan(col: any) {
@@ -97,7 +100,8 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
 
     function rawFromValue(type: string, v: any): any {
         switch (type) {
-            case "number": return v?.number?.isNotEmpty && typeof v.number.content === "number" ? v.number.content : "";
+            case "block": return v?.block?.content ?? v?.text?.content ?? "";
+            case "number": return v?.number?.isNotEmpty !== false && typeof v?.number?.content === "number" ? v.number.content : "";
             case "date": {
                 if (!v?.date || v.date.isNotEmpty === false || !v.date.content) return "";
                 const num = Number(v.date.content);
@@ -137,6 +141,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 row,
                 ref,
                 active,
+                plugin,
                 t,
                 rawFromValueFn: rawFromValue,
                 showMessageFn,
@@ -146,8 +151,9 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                     await onReload();
                     try { await plugin.refreshHub([active]); } catch { /* soft */ }
                     dlg.destroy();
-                    const fresh = (await renderLedgerAllFn(ref.avId!)).rows.find((entry) => entry.itemID === row.itemID);
-                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh });
+                    const allRows = (await renderLedgerAllFn(ref.avId!)).rows;
+                    const fresh = allRows.find((entry) => entry.itemID === row.itemID);
+                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
                 },
             });
         });
@@ -442,7 +448,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             showMessageFn,
         });
 
-        import("./drawer-sections").then(({
+        import("./drawer-sections").then(async ({
             renderRxToMedicineButton,
             renderStockInButton,
             renderShoppingToAssetButton,
@@ -452,10 +458,15 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             renderRxToMedicineButton({ body, row, ref, active, plugin, t, showMessageFn, cellTextFn });
             renderStockInButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
             renderShoppingToAssetButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
+            const certRows = active === "certs" && ref.columns?.renewed_to
+                ? (Array.isArray(options.rows) && options.rows.length > 0
+                    ? options.rows
+                    : ((await renderLedgerAllFn(ref.avId!).catch(() => ({ rows: [] }))).rows ?? []))
+                : [];
             renderRenewChainSection({
                 body,
                 row,
-                rows: [],
+                rows: certRows,
                 ref,
                 active,
                 t,
@@ -465,8 +476,10 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 onChainUpdated: async (targetRowId: string) => {
                     await onReload();
                     try { await plugin.refreshHub([active]); } catch { /* ignore */ }
-                    const fresh = (await renderLedgerAllFn(ref.avId!)).rows.find((x) => x.itemID === targetRowId);
-                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh });
+                    dlg.destroy();
+                    const allRows = (await renderLedgerAllFn(ref.avId!)).rows;
+                    const fresh = allRows.find((x) => x.itemID === targetRowId);
+                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
                 },
             });
 

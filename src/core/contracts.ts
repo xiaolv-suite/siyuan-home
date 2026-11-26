@@ -4,6 +4,7 @@
  * 租赁、物业服务等协议，核对当前保修/合同有效期、联系人与到期状态。
  */
 import type { AvRow } from "@/core/siyuan";
+import { rowCellString } from "@/core/avcell";
 import { localDateKey } from "@/core/hub/rule";
 
 export interface MatchedHouseContract {
@@ -49,14 +50,7 @@ function parseDaysLeft(expiry: string, today: string): number {
 }
 
 function cellString(row: AvRow, keyID?: string): string | undefined {
-    if (!keyID) return undefined;
-    const cell = row.cells?.[keyID];
-    if (!cell) return undefined;
-    if (cell.type === "text" && cell.text?.content) return String(cell.text.content).trim();
-    if (cell.type === "block" && cell.block?.content) return String(cell.block.content).trim();
-    if (cell.type === "date" && cell.date?.content) return String(cell.date.content).trim();
-    if (cell.type === "select" && cell.select?.content) return String(cell.select.content).trim();
-    return undefined;
+    return rowCellString(row, keyID);
 }
 
 function cellMemberId(row: AvRow, keyID?: string): string | undefined {

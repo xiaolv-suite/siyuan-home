@@ -7,6 +7,7 @@ import { Dialog } from "siyuan";
 import type { Reminder } from "@/types";
 import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
+import { mountLvAiThinkingCard, type LvAiThinkingCardHandle } from "@/libs/lv-notice-kit";
 import {
     isAiConfigured,
     requestAiDecomposition,
@@ -56,14 +57,16 @@ export function openMicroDecompositionDialog(options: OpenMicroDecompositionDial
             </div>
 
             <div class="lv-stale-ai-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                <button type="button" id="lv-stale-ai-btn" class="b3-button b3-button--outline lv-btn-ai-decompose" ${aiReady ? "" : "disabled"} style="display: inline-flex; align-items: center; gap: 6px;">
+                <button type="button" id="lv-stale-ai-btn" class="b3-button b3-button--outline lv-btn-ai-decompose" style="display: inline-flex; align-items: center; gap: 6px;">
                     <span>🤖</span>
                     <span id="lv-stale-ai-label">${esc(t("stale.aiDecompose") || "AI 帮我拆解")}</span>
                 </button>
                 <span id="lv-stale-ai-tip" class="lv-caption" style="font-size: 11.5px; color: var(--lv-tx-3);">
-                    ${aiReady ? (t("stale.aiReadyHint") || "小驴 AI 专家一键解析为 3 条极小微行动") : (t("stale.aiNotConfigured") || "未配置小驴共享 AI，可在设置中配置（手动拆解随时可用）")}
+                    ${aiReady ? (t("stale.aiReadyHint") || "小驴 AI 专家一键解析为 3 条极小微行动") : (t("stale.aiNotConfigured") || "未检测到独立 AI 密钥时将自动尝试思源/共享 AI 路由（点击查看引导，手动拆解随时可用）")}
                 </span>
             </div>
+
+            <div id="lv-stale-ai-thinking-host" style="display: none;"></div>
 
             <div class="lv-stale-inputs" style="display: flex; flex-direction: column; gap: 10px;">
                 <label class="lv-stale-step-row" style="display: flex; flex-direction: column; gap: 4px;">
@@ -109,28 +112,65 @@ export function openMicroDecompositionDialog(options: OpenMicroDecompositionDial
     const aiBtn = dlg.element.querySelector("#lv-stale-ai-btn") as HTMLButtonElement;
     const aiLabel = dlg.element.querySelector("#lv-stale-ai-label") as HTMLElement;
     const aiTip = dlg.element.querySelector("#lv-stale-ai-tip") as HTMLElement;
+    const thinkingHost = dlg.element.querySelector("#lv-stale-ai-thinking-host") as HTMLElement | null;
     const errEl = dlg.element.querySelector("#lv-stale-err") as HTMLElement;
     const cancelBtn = dlg.element.querySelector("#lv-stale-cancel") as HTMLButtonElement;
     const submitBtn = dlg.element.querySelector("#lv-stale-submit") as HTMLButtonElement;
+    let activeThinking: LvAiThinkingCardHandle | null = null;
 
     // 绑定 a11y 焦点与 Esc/移动端 ✕ 支持
     bindDialogA11y({
         dlg,
         defaultFocus: step1Inp,
+        onClose: () => {
+            activeThinking?.cancel();
+            activeThinking?.done();
+            activeThinking = null;
+        },
     });
 
     cancelBtn.onclick = () => dlg.destroy();
 
-    // AI 帮拆逻辑
-    if (aiBtn && aiReady) {
+    // AI 帮拆逻辑（不永久禁用按钮；未配置时点击给出清晰中文引导）
+    if (aiBtn) {
         aiBtn.onclick = async () => {
             if (aiBtn.disabled) return;
             aiBtn.disabled = true;
             aiLabel.textContent = t("stale.aiDecomposing") || "AI 正在敏捷拆解中...";
+            if (aiTip) aiTip.textContent = "正在连接 AI 拆解为 3 个 5 分钟微步骤…";
             errEl.textContent = "";
 
+            if (thinkingHost) thinkingHost.style.display = "block";
+            const thinking = mountLvAiThinkingCard(thinkingHost, {
+                scenario: "general",
+                stages: [
+                    { afterSec: 0, text: "正在分析事项卡点与拖延阻力…", icon: "🧩" },
+                    { afterSec: 3, text: "正在拆解 3 个 5 分钟破冰微步骤…", icon: "⚡" },
+                    { afterSec: 8, text: "正在精简动作指令与即时终点…", icon: "✨" },
+                    { afterSec: 16, text: "AI 仍在思考，可随时取消或手动填写…", icon: "⏳" },
+                ],
+                title: "AI 敏捷微步骤拆解",
+                compact: true,
+                cancelLabel: "⏹ 取消拆解",
+                onCancel: () => {
+                    thinking.done();
+                    if (thinkingHost) thinkingHost.style.display = "none";
+                    if (activeThinking === thinking) activeThinking = null;
+                    aiBtn.disabled = false;
+                    aiLabel.textContent = t("stale.aiDecompose") || "AI 帮我拆解";
+                    if (aiTip) aiTip.textContent = "已取消 AI 拆解，可随时重试或直接手动填写";
+                },
+            });
+            // 避免 dialog-a11y 的 MutationObserver 将卡片内取消按钮误绑为关闭整座拆解弹窗
+            const cardCancelBtn = thinking.element?.querySelector?.(".lv-ai-thinking__cancel") as HTMLButtonElement | null;
+            if (cardCancelBtn) {
+                cardCancelBtn.setAttribute("data-lv-close-bound", "1");
+            }
+            activeThinking = thinking;
+
             try {
-                const steps = await requestAiDecomposition({ reminder });
+                const steps = await requestAiDecomposition({ reminder, signal: thinking.signal });
+                if (thinking.aborted) return;
                 if (steps.length > 0) {
                     if (steps[0]) step1Inp.value = steps[0];
                     if (steps[1]) step2Inp.value = steps[1];
@@ -141,13 +181,24 @@ export function openMicroDecompositionDialog(options: OpenMicroDecompositionDial
                     errEl.textContent = t("stale.aiEmptyTip") || "AI 未返回有效步骤，可直接在下方手动输入";
                 }
             } catch (err) {
-                const isNoCfg = err instanceof Error && err.message.includes("AI_NOT_CONFIGURED");
+                if (thinking.aborted) return;
+                const msg = err instanceof Error ? err.message : String(err);
+                const isNoCfg = msg.includes("AI_NOT_CONFIGURED") || /未配置.*API\s*Key|未配置可用\s*AI/i.test(msg);
+                const guideMsg = "尚未配置可用 AI 服务：请在「小驴罗盘 → AI 设置」或「思源设置 → AI」配置模型与密钥后重试（当前可直接在下方手动填写 1～3 步微行动）";
                 errEl.textContent = isNoCfg
-                    ? (t("stale.aiNotConfigured") || "未配置 AI 凭据")
-                    : (t("stale.aiFailed") || `AI 请求失败: ${err instanceof Error ? err.message : String(err)}`);
+                    ? guideMsg
+                    : (t("stale.aiFailed") !== "stale.aiFailed" && t("stale.aiFailed") ? t("stale.aiFailed") : `AI 请求失败: ${err instanceof Error ? err.message : String(err)}`);
+                if (isNoCfg && aiTip) {
+                    aiTip.textContent = "可在小驴罗盘 AI 设置中一键配置，或直接手动拆解";
+                }
             } finally {
-                aiBtn.disabled = false;
-                aiLabel.textContent = t("stale.aiDecompose") || "AI 帮我拆解";
+                thinking.done();
+                if (activeThinking === thinking) {
+                    activeThinking = null;
+                    if (thinkingHost) thinkingHost.style.display = "none";
+                    aiBtn.disabled = false;
+                    aiLabel.textContent = t("stale.aiDecompose") || "AI 帮我拆解";
+                }
             }
         };
     }

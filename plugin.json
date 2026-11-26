@@ -2,7 +2,7 @@
   "name": "siyuan-home",
   "author": "xiaolv-suite",
   "url": "https://github.com/xiaolv-suite/siyuan-home",
-  "version": "0.5.199",
+  "version": "0.5.200",
   "minAppVersion": "3.8.4",
   "settingsWindow": true,
   "kernels": [
@@ -33,7 +33,7 @@
   ],
   "displayName": {
     "default": "Lv Home",
-    "zh-CN": "小驴管家（内测版）"
+    "zh-CN": "小驴管家"
   },
   "description": {
     "default": "Family & life butler: members, assets, education, health, media, travel - local-first, database-powered, with a unified expiry reminder hub.",

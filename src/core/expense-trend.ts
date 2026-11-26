@@ -66,7 +66,7 @@ export function calculateExpenseTrend(
         if (!e) continue;
         const month = toMonthKey(e.date);
         const amount = Number(e.amount);
-        if (!month || !Number.isFinite(amount) || amount <= 0) continue;
+        if (!month || !Number.isFinite(amount) || amount === 0) continue;
         const cur = bucket.get(month);
         if (cur) {
             cur.total += amount;
@@ -158,7 +158,7 @@ export function calculateFixedVsVariable(entries: ExpenseEntry[]): FixedVsVariab
     for (const e of entries ?? []) {
         if (!e) continue;
         const amount = Number(e.amount);
-        if (!Number.isFinite(amount) || amount <= 0) continue;
+        if (!Number.isFinite(amount) || amount === 0) continue;
         const cat = String(e.category ?? "").trim().toLowerCase();
         const isFixed = FIXED_CATEGORIES.has(cat) || /rent|mortgage|insurance|loan|tuition|房租|房贷|物业|保险|学费|订阅|会员|宽带/i.test(cat);
         if (isFixed) {
@@ -173,7 +173,7 @@ export function calculateFixedVsVariable(entries: ExpenseEntry[]): FixedVsVariab
     const total = round2(fixedTotal + variableTotal);
     fixedTotal = round2(fixedTotal);
     variableTotal = round2(variableTotal);
-    const fixedPct = total > 0 ? Math.round((fixedTotal / total) * 100) : 0;
+    const fixedPct = total > 0 ? Math.max(0, Math.min(100, Math.round((fixedTotal / total) * 100))) : 0;
     const variablePct = total > 0 ? 100 - fixedPct : 0;
 
     return {

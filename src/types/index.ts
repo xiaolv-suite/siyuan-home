@@ -148,8 +148,14 @@ export interface HubState {
 /** 模块台账落点映射（provisioner 维护，幂等）；provisional=等 Spike 的占位建库（C7） */
 export interface DbRef {
     docId?: string;
-    /** av 实体 ID（Spike 定案 = av 块 ID） */
+    /** av 实体 ID（强绑定文档内 NodeAttributeView 的 data-av-id） */
     avId?: string;
+    /** 文档内 NodeAttributeView 容器块 ID（data-node-id） */
+    avBlockId?: string;
+    /** 台账数据架构版本（2 = home-ledger-v2） */
+    schemaVersion?: 1 | 2;
+    /** schema 标记（如 "home-ledger-v2"） */
+    schema?: string;
     notebook?: string;
     provisional?: boolean;
     /** 字典列 key → av 列 keyID（provisioner 建列时记录；读取行的唯一稳定依据） */

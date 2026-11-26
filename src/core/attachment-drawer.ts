@@ -4,10 +4,11 @@
 
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset, compressImageTo300KB } from "./assets";
+import { capturePhotoFromDevice } from "./camera-capture";
 import { bindDialogA11y } from "./dialog-a11y";
-import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, setCell, uploadAsset } from "./siyuan";
+import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, isRequestAborted, setCell, uploadAsset } from "./siyuan";
 import { confirm } from "@/libs/dialog";
-import { lvLaunchpad } from "@/libs/lv-notice-kit";
+import { lvLaunchpad, mountLvAiThinkingCard } from "@/libs/lv-notice-kit";
 import { uiIcon } from "@/ui/icons";
 
 const mk = (t: string, c = "", s = "") => {
@@ -76,7 +77,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         }
     }
 
-    async function recognizeImage(path: string, fileName: string, button: HTMLButtonElement) {
+    async function recognizeImage(path: string, fileName: string, button: HTMLButtonElement, ocrHost?: HTMLElement | null) {
         const previousLabel = button.textContent;
         button.disabled = true;
         try {
@@ -98,7 +99,10 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 await new Promise<void>((resolve) => {
                     confirm(
                         t("ledger.ocrAIConfirmTitle"),
-                        t("ledger.ocrAIConfirmBody").replace("${engine}", model.name || provider),
+                        t("ledger.ocrAIConfirmBody")
+                            .replace("${provider}", provider || "AI")
+                            .replace("${model}", model.name || model.id || provider || "AI")
+                            .replace("${engine}", model.name || provider || "AI"),
                         async () => {
                             try {
                                 await runRecognition();
@@ -127,12 +131,41 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         async function runRecognition() {
             button.disabled = true;
             button.textContent = t("ledger.ocrRunning");
+            if (ocrHost) ocrHost.style.display = "block";
+            const thinking = mountLvAiThinkingCard(ocrHost ?? body, {
+                scenario: "doc-judge",
+                stages: [
+                    { afterSec: 0, text: "正在将图片发送至思源 OCR 识别引擎…", icon: "🔍" },
+                    { afterSec: 3, text: "正在识别图片中的文字与版面结构…", icon: "🖼️" },
+                    { afterSec: 8, text: "正在整理识别文本与缓存索引…", icon: "📝" },
+                    { afterSec: 16, text: "图片内容较多，仍在持续识别中…", icon: "⏳" },
+                ],
+                title: fileName ? `OCR 识别 · ${fileName}` : "图片 OCR 识别",
+                compact: true,
+                cancelLabel: "⏹ 取消识别",
+                replaceContent: Boolean(ocrHost),
+                onCancel: () => {
+                    thinking.done();
+                    if (ocrHost) ocrHost.style.display = "none";
+                    button.disabled = false;
+                    button.textContent = previousLabel;
+                },
+            });
             try {
-                const result = await recognizeAsset(path);
-                showOCRText(fileName, result.text, () => { void recognizeImage(path, fileName, button); });
+                const result = await recognizeAsset(path, { signal: thinking.signal, timeoutMs: 60_000 });
+                if (thinking.aborted) return;
+                thinking.done();
+                if (ocrHost) ocrHost.style.display = "none";
+                showOCRText(fileName, result.text, () => { void recognizeImage(path, fileName, button, ocrHost); });
             } catch (error) {
+                if (thinking.aborted || isRequestAborted(error)) {
+                    showMessageFn("已取消图片 OCR 识别", 2000, "info");
+                    return;
+                }
                 showMessageFn(t("ledger.ocrFailed").replace("${msg}", errMsg(error)), 7000, "error");
             } finally {
+                thinking.done();
+                if (ocrHost) ocrHost.style.display = "none";
                 button.disabled = false;
                 button.textContent = previousLabel;
             }
@@ -149,6 +182,16 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         const existing = (row.cells[attKeyID]?.mAsset ?? []) as { name?: string; content?: string }[];
         for (const f of existing) {
             const line = mk("div", isVeh ? "lv-att-row lv-detail-wide" : "lv-att-row");
+            let ocrHost: HTMLElement | null = null;
+            if (f.content && isImageAsset(f.content)) {
+                try {
+                    const thumb = document.createElement("img");
+                    thumb.src = assetHref(f.content);
+                    thumb.alt = f.name ?? "";
+                    thumb.style.cssText = "width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none;";
+                    line.appendChild(thumb);
+                } catch { /* soft */ }
+            }
             const name = mk("span", "lv-att-name");
             name.innerHTML = `${uiIcon("paperclip", "", 13)} <span> ${esc(f.name ?? f.content ?? "?")}</span>`;
             line.appendChild(name);
@@ -184,6 +227,8 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     encryptedHint.textContent = t("ledger.ocrEncrypted");
                     line.appendChild(encryptedHint);
                 } else if (isImageAsset(f.content)) {
+                    ocrHost = mk("div", isVeh ? "lv-att-ocr-host lv-detail-wide" : "lv-att-ocr-host");
+                    ocrHost.style.display = "none";
                     const ocr = document.createElement("button");
                     ocr.type = "button";
                     ocr.className = "b3-button b3-button--text lv-att-btn";
@@ -192,8 +237,8 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                         ocr.disabled = true;
                         try {
                             const text = await getImageOCRText(f.content!);
-                            if (text) showOCRText(f.name ?? f.content!, text, () => { void recognizeImage(f.content!, f.name ?? f.content!, ocr); });
-                            else await recognizeImage(f.content!, f.name ?? f.content!, ocr);
+                            if (text) showOCRText(f.name ?? f.content!, text, () => { void recognizeImage(f.content!, f.name ?? f.content!, ocr, ocrHost); });
+                            else await recognizeImage(f.content!, f.name ?? f.content!, ocr, ocrHost);
                         } catch (error) {
                             if (isKernelError(error)) showOCRGuide();
                             else showMessageFn(t("ledger.ocrConfigFailed").replace("${msg}", errMsg(error)), 7000, "error");
@@ -205,6 +250,7 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 }
             }
             body.appendChild(line);
+            if (ocrHost) body.appendChild(ocrHost);
         }
 
         if (existing.length === 0) {
@@ -271,68 +317,85 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
 
         body.appendChild(uploadBtn);
 
-        // 移动端/证件专项：拍照留存直起相机拍摄并压缩 ≤300KB
-        if (active === "certs") {
-            const cameraBtn = document.createElement("button");
-            cameraBtn.type = "button";
-            cameraBtn.className = "b3-button b3-button--outline lv-att-camera-btn";
-            cameraBtn.textContent = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
+        // 全台账模块（实物资产/囤货/药品/车辆/证件等）统一支持：直接唤起相机拍照（桌面端走 getUserMedia 取景，无摄像头自动回退本地上传）并智能压缩 ≤300KB
+        const cameraBtn = document.createElement("button");
+        cameraBtn.type = "button";
+        cameraBtn.className = `b3-button b3-button--outline lv-att-camera-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
+        const defaultCameraLabel = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
+        cameraBtn.textContent = defaultCameraLabel;
 
-            const cameraInput = document.createElement("input");
-            cameraInput.type = "file";
-            cameraInput.accept = "image/*";
-            cameraInput.setAttribute("capture", "environment");
-            cameraInput.style.display = "none";
-            cameraBtn.onclick = () => cameraInput.click();
+        const cameraInput = document.createElement("input");
+        cameraInput.type = "file";
+        cameraInput.accept = "image/*";
+        cameraInput.setAttribute("capture", "environment");
+        cameraInput.style.display = "none";
 
-            cameraInput.onchange = async () => {
-                const files = Array.from(cameraInput.files ?? []);
-                if (files.length === 0) return;
-                const defaultLabel = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
-                cameraBtn.disabled = true;
-                cameraBtn.textContent = `⏳ ${t("certs.compressing") || "压缩处理中..."}`;
-                try {
-                    const rawFile = files[0];
-                    let targetFile = rawFile;
-                    let isCompressed = false;
-                    try {
-                        const compressed = await compressImageTo300KB(rawFile);
-                        if (compressed) {
-                            targetFile = compressed;
-                            isCompressed = true;
-                        }
-                    } catch {
-                        targetFile = rawFile;
-                    }
-                    cameraBtn.textContent = `☁️ ${t("certs.uploading") || "上传保存中..."}`;
-                    const { name, path } = await uploadAsset(targetFile, "/assets/siyuan-home/", {
-                        idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${targetFile.name}:${targetFile.size}`,
-                        retries: 1,
-                    });
-                    const appended = [...existing, { name, content: path }];
-                    await setCell(ref.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
-                        idempotencyKey: `ledger:detail-photo-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
-                        retries: 1,
-                    });
-                    try {
-                        lvLaunchpad.haptic(10);
-                    } catch {
-                        /* soft */
-                    }
-                    const successTip = isCompressed && targetFile.size <= 300 * 1024
-                        ? (t("certs.photoSaved") || "证件照片已拍照并压缩留存（≤300KB）")
-                        : (t("ledger.uploadDone") || "已保存原始照片");
-                    showMessageFn(successTip, 4000, "info");
-                    if (onUploadSuccess) await onUploadSuccess();
-                } catch (e) {
-                    showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");
-                } finally {
-                    cameraBtn.disabled = false;
-                    cameraBtn.textContent = defaultLabel;
+        const processCapturedFile = async (rawFile: File) => {
+            if (active === "vehicles" && attCol.key === "attachments") {
+                if (!rawFile.type.startsWith("image/") || rawFile.size > 5 * 1024 * 1024) {
+                    showMessageFn(t("vehicle.photoInvalid"), 4500, "error");
+                    return;
                 }
-            };
+            }
+            cameraBtn.disabled = true;
+            cameraBtn.textContent = `⏳ ${t("certs.compressing") || "压缩处理中..."}`;
+            try {
+                let targetFile = rawFile;
+                let isCompressed = false;
+                try {
+                    const compressed = await compressImageTo300KB(rawFile);
+                    if (compressed) {
+                        targetFile = compressed;
+                        isCompressed = true;
+                    }
+                } catch {
+                    targetFile = rawFile;
+                }
+                cameraBtn.textContent = `☁️ ${t("certs.uploading") || "上传保存中..."}`;
+                const { name, path } = await uploadAsset(targetFile, "/assets/siyuan-home/", {
+                    idempotencyKey: `ledger:detail-photo:${row.itemID}:${attCol.key}:${targetFile.name}:${targetFile.size}`,
+                    retries: 1,
+                });
+                const appended = [...existing, { name, content: path }];
+                await setCell(ref.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
+                    idempotencyKey: `ledger:detail-photo-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
+                    retries: 1,
+                });
+                try {
+                    lvLaunchpad.haptic(10);
+                } catch {
+                    /* soft */
+                }
+                const successTip = isCompressed && targetFile.size <= 300 * 1024
+                    ? (t("certs.photoSaved") || "照片已拍照并压缩留存（≤300KB）")
+                    : (t("ledger.uploadDone") || "已保存照片");
+                showMessageFn(successTip, 4000, "info");
+                if (onUploadSuccess) await onUploadSuccess();
+            } catch (e) {
+                showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(e)), 6000, "error");
+            } finally {
+                cameraBtn.disabled = false;
+                cameraBtn.textContent = defaultCameraLabel;
+            }
+        };
 
-            body.appendChild(cameraBtn);
-        }
+        cameraInput.onchange = async () => {
+            const files = Array.from(cameraInput.files ?? []);
+            cameraInput.value = "";
+            if (files.length === 0) return;
+            await processCapturedFile(files[0]);
+        };
+
+        cameraBtn.onclick = () => {
+            void capturePhotoFromDevice({
+                DialogCls,
+                t,
+                showMessageFn,
+                fallbackFileInput: () => cameraInput.click(),
+                onFileCaptured: processCapturedFile,
+            });
+        };
+
+        body.appendChild(cameraBtn);
     }
 }

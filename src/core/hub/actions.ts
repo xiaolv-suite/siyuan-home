@@ -9,7 +9,8 @@
  */
 import type { Plugin } from "siyuan";
 import type { Reminder } from "@/types";
-import { setCell } from "../siyuan";
+import { listNotebooks, setCell, sql } from "../siyuan";
+import { post } from "../siyuan-transport";
 import { addDays, calculateNextRecurrenceDate, localDateKey, parseDate } from "./rule";
 import { loadRuntime, persistRuntimeUnderLock, withRuntimeSaveLock, reminderKind, toggleReminderPinInRuntime, type HubRuntime, type HandledRecord } from "./runtime";
 
@@ -234,6 +235,23 @@ export async function renew(
         await setCell(dbRef.avId, targetKey, r.rowId, nextCell, {
             idempotencyKey: `renew:${r.rowId}:${targetKey}:${newDueISO}`,
         });
+        // v4：同步写入当日日记证件换证/续期事件（保留 AV renewed_to 链，不再依赖私有 runtime.renewHistory）
+        try {
+            const { recordHighFrequencyDiaryEvent } = await import("../diary-envelope");
+            await recordHighFrequencyDiaryEvent(plugin, {
+                module: r.moduleId,
+                action: "renew",
+                target: r.rowId,
+                avId: dbRef.avId,
+                bizDate: localDateKey(),
+                recordedAt: new Date().toISOString(),
+                text: `🪪 证件续期：${r.title} (${r.dueDate} → ${newDueISO}) #证件 #续期`,
+                extraAttrs: {
+                    "custom-lv-from-date": r.dueDate,
+                    "custom-lv-to-date": newDueISO,
+                },
+            });
+        } catch { /* soft: diary failure does not roll back AV renew */ }
         return await withRuntime(plugin, (rt) => {
             delete rt.snoozed[r.id];
             delete rt.muted[r.id];
@@ -280,6 +298,65 @@ export interface AddMemoOptions {
     category?: string;
     recurrenceAnchor?: "due" | "completion";
     cycle?: string;
+    notebook?: string;
+}
+
+const PLUGIN_NOTEBOOK_NAME_RE = /小驴|管家|人脉|题库|闪卡|拾遗|生态|空间|exam|contacts|home|checkin|glean/i;
+
+/**
+ * 自动探测可用于创建/定位今日日记的开放笔记本 ID（规避未初始化笔记本首调 createDailyNote({}) 报 Field [notebook] is required）。
+ */
+export async function resolveOpenNotebookForMemo(preferredNotebook?: string): Promise<string | undefined> {
+    const notebooks = await listNotebooks().catch(() => []);
+    if (!Array.isArray(notebooks) || notebooks.length === 0) return undefined;
+    const open = notebooks.filter((nb) => !nb.closed);
+    if (open.length === 0) return undefined;
+    const preferred = preferredNotebook?.trim();
+    if (preferred) {
+        const hit = open.find((nb) => nb.id === preferred && !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name));
+        if (hit) return hit.id;
+    }
+    const primary = open.find((nb) => !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name)) ?? open[0];
+    return primary?.id;
+}
+
+/**
+ * 确保今日日记存在；新建时显式传入 `{ notebook }`，避免空参触发 `Field [notebook] is required`。
+ */
+export async function ensureTodayDailyNoteForMemo(
+    preferredNotebook?: string,
+    today = new Date(),
+): Promise<{ docId: string; notebookId: string } | null> {
+    const todayCompact = localDateKey(today).replace(/-/g, "");
+    const notebooks = await listNotebooks().catch(() => []);
+    const openIds = new Set(notebooks.filter((nb) => !nb.closed).map((nb) => nb.id));
+    const nonPluginIds = new Set(notebooks.filter((nb) => !nb.closed && !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name)).map((nb) => nb.id));
+    const hasNbCatalog = notebooks.length > 0;
+    try {
+        const existing = await sql<{ id?: string; box?: string }>(
+            `SELECT DISTINCT b.id, b.box FROM attributes a JOIN blocks b ON b.id = a.block_id WHERE a.name = 'custom-dailynote-${todayCompact}' AND b.type='d' ORDER BY b.created ASC, b.id ASC`,
+        );
+        if (Array.isArray(existing) && existing.length > 0) {
+            const validRows = existing.filter((r) => r?.id && (!hasNbCatalog || !r.box || openIds.has(String(r.box))));
+            const preferred = validRows.find((r) => !hasNbCatalog || !r.box || nonPluginIds.has(String(r.box))) ?? validRows[0];
+            if (preferred?.id) {
+                const notebookId = preferred.box || (await resolveOpenNotebookForMemo(preferredNotebook)) || "";
+                return { docId: String(preferred.id), notebookId };
+            }
+        }
+    } catch {
+        /* fallback to notebook probe */
+    }
+    const notebookId = await resolveOpenNotebookForMemo(preferredNotebook);
+    if (!notebookId) return null;
+    try {
+        const created = await post<{ id?: string } | string>("/api/filetree/createDailyNote", { notebook: notebookId });
+        const docId = typeof created === "string" ? created : String(created?.id ?? "");
+        if (!docId) return null;
+        return { docId, notebookId };
+    } catch {
+        return null;
+    }
 }
 
 export async function addMemo(

@@ -169,7 +169,7 @@
         <div class="lv-card lv-setcard">
             <div class="lv-setcard__title">{t("settings.webhookTitle")}</div>
             <div class="lv-setcard__hint">{t("settings.webhookHint")}</div>
-            <div class="fn__flex lv-settings__row">
+            <div class="fn__flex lv-settings__row lv-settings__row--toggle">
                 <span class="lv-settings__label">{t("settings.webhookEnable")}</span>
                 <input type="checkbox" class="b3-switch" aria-label={t("settings.webhookEnable")} bind:checked={draftWebhookEnabled} />
                 <span class="lv-caption fn__flex-1"></span>

@@ -15,6 +15,7 @@ export interface DialogA11yOptions {
 
 export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () => void; destroy: () => void } {
     const { dlg, defaultFocus, onClose, trapFocus = true } = options;
+    dlg.element?.classList?.add?.("lv-home-dialog");
     const triggerEl = (typeof document !== "undefined" ? document.activeElement : null) as HTMLElement | null;
 
     const restoreFocus = () => {

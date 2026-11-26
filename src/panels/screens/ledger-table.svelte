@@ -3,6 +3,7 @@
     import { onDestroy } from "svelte";
     import { Menu } from "siyuan";
     import { showMessage } from "@/libs/notice";
+    import { computeLedgerNumericSummary, round2 } from "@/core/ledger-view-model";
     import type { TableDensity } from "../panel-session";
 
     type LedgerTone = "danger" | "warn" | "ok" | "none";
@@ -105,43 +106,7 @@
     }
 
     const numericSummaries = $derived.by(() => {
-        if (!ref?.columns || filteredRows.length === 0) return null;
-        let sumAmount = 0;
-        let hasAmount = false;
-        let sumQty = 0;
-        let hasQty = false;
-
-        const amountCol = ref.columns.amount;
-        const qtyCol = ref.columns.qty || ref.columns.stock_qty;
-
-        for (const r of filteredRows) {
-            if (amountCol) {
-                const cell = r.cells?.[amountCol];
-                const val = typeof cell?.number?.content === "number" ? cell.number.content
-                    : typeof cell === "number" ? cell
-                    : Number(cell?.text?.content || 0);
-                if (Number.isFinite(val) && val > 0) {
-                    sumAmount += val;
-                    hasAmount = true;
-                }
-            }
-            if (qtyCol) {
-                const cell = r.cells?.[qtyCol];
-                const val = typeof cell?.number?.content === "number" ? cell.number.content
-                    : typeof cell === "number" ? cell
-                    : Number(cell?.text?.content || 0);
-                if (Number.isFinite(val) && val > 0) {
-                    sumQty += val;
-                    hasQty = true;
-                }
-            }
-        }
-
-        if (!hasAmount && !hasQty) return null;
-        return {
-            amount: hasAmount ? sumAmount : undefined,
-            qty: hasQty ? sumQty : undefined,
-        };
+        return computeLedgerNumericSummary(filteredRows, ref?.columns);
     });
 
     // 列宽拖拽与持久化记忆 (CAND-27)
@@ -506,7 +471,7 @@
             {#if numericSummaries.qty !== undefined}
                 <span class="lv-table-summary-item">
                     <span class="lv-table-summary-label">{t("ledger.summaryQty")}:</span>
-                    <b class="lv-num">{numericSummaries.qty}</b>
+                    <b class="lv-num">{round2(numericSummaries.qty).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</b>
                 </span>
             {/if}
             {#if selectedItemIds.length > 0}

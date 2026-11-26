@@ -4,6 +4,7 @@
  * 并提供汇总报告与结构化文本导出。
  */
 import type { AvRow } from "@/core/siyuan";
+import { rowCellString } from "@/core/avcell";
 import { bindDialogA11y } from "./dialog-a11y";
 import { uiIcon } from "@/ui/icons";
 
@@ -39,14 +40,7 @@ function isValidHttpUrl(str: string): boolean {
 }
 
 function cellString(row: AvRow, keyID?: string): string | undefined {
-    if (!keyID) return undefined;
-    const cell = row.cells?.[keyID];
-    if (!cell) return undefined;
-    if (cell.type === "url" && cell.url?.content) return String(cell.url.content).trim();
-    if (cell.type === "text" && cell.text?.content) return String(cell.text.content).trim();
-    if (cell.type === "block" && cell.block?.content) return String(cell.block.content).trim();
-    if (cell.type === "select" && cell.select?.content) return String(cell.select.content).trim();
-    return undefined;
+    return rowCellString(row, keyID);
 }
 
 /**

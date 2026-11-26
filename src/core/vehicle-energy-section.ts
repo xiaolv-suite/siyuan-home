@@ -4,6 +4,7 @@
  */
 
 import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "./rowlog";
+import { syncVehicleSummaryToAv } from "./vehicle-summary-sync";
 import { bindDialogA11y } from "./dialog-a11y";
 import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "./fuel";
 import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "./chart";
@@ -218,6 +219,14 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                     return appendEntry(base, ref.avId!, row.itemID, logKind, { ...entry, at: new Date().toISOString() });
                 });
                 logs = next;
+                await syncVehicleSummaryToAv(plugin, row.itemID, next, {
+                    energyType: vehicleEnergyType,
+                    vRef: ref,
+                    mileage: Number.isFinite(odometer) && (!Number.isFinite(currentOdometer) || odometer > currentOdometer) ? odometer : undefined,
+                }).catch(() => undefined);
+                await import("./doc-sync")
+                    .then(({ syncModuleDocSection }) => syncModuleDocSection(plugin, "vehicles", next))
+                    .catch(() => undefined);
                 dialog.destroy();
                 renderEnergy();
                 if (onLogUpdated) await onLogUpdated();
@@ -377,7 +386,12 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                     del.disabled = true;
                     try {
                         const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>));
-                        logs = next; renderEnergy();
+                        logs = next;
+                        await syncVehicleSummaryToAv(plugin, row.itemID, next, {
+                            energyType: vehicleEnergyType,
+                            vRef: ref,
+                        }).catch(() => undefined);
+                        renderEnergy();
                         if (onLogUpdated) await onLogUpdated();
                     } catch (error) {
                         del.disabled = false;

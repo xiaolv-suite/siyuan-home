@@ -10,11 +10,13 @@
  * 单格失败不抛出，按字段 key 收集到 failed，由调用方决定是否继续后续动作。
  */
 import { SCHEMA_CATALOG } from "./schema-catalog";
-import { cellValue, selectCellValue } from "./avcell";
+import { blockCellValue, cellValue, selectCellValue } from "./avcell";
 import { addDetachedRow, setCell, type RequestOptions } from "./siyuan";
 
 export interface LedgerWriteTarget {
     avId?: string;
+    avBlockId?: string;
+    docId?: string;
     columns?: Record<string, string>;
 }
 
@@ -36,8 +38,19 @@ export function resolveMemberItemId(raw: unknown, members: readonly WriterMember
 }
 
 /** 按列类型把原始值转为内核单元格载荷；无法表示时返回 null。 */
-export function toLedgerCell(type: string, raw: unknown, members?: readonly WriterMember[]): unknown | null {
+export function toLedgerCell(
+    type: string,
+    raw: unknown,
+    members?: readonly WriterMember[],
+    ctx?: { itemID?: string; keyID?: string },
+): unknown | null {
     switch (type) {
+        case "block": {
+            if (raw === undefined || raw === null) return null;
+            const content = String(raw);
+            if (!ctx?.itemID) return cellValue("text", content);
+            return blockCellValue(ctx.itemID, content, { keyID: ctx.keyID, includeRichNull: true });
+        }
         case "select":
             return typeof raw === "string" && raw ? selectCellValue(raw) : null;
         case "mSelect": {
@@ -61,7 +74,7 @@ export function toLedgerCell(type: string, raw: unknown, members?: readonly Writ
 }
 
 export function columnTypeOf(moduleId: string, key: string): string {
-    if (key === "name") return "text";
+    if (key === "name") return "block";
     return SCHEMA_CATALOG[moduleId]?.columns?.find((c) => c.key === key)?.type ?? "text";
 }
 
@@ -91,6 +104,10 @@ export async function writeLedgerRow(opts: WriteLedgerRowOptions): Promise<Write
     const write = opts.setCellFn ?? setCell;
     const avId = target.avId;
     if (!avId) throw new Error(`ledger not provisioned: ${moduleId}`);
+    if (target.avBlockId || target.docId) {
+        const { verifyAvRefBound } = await import("./provision-common");
+        await verifyAvRefBound(target);
+    }
     const name = String(opts.name ?? "").trim();
     const itemID = opts.itemId ?? await addRow(avId, name, operationKey ? { idempotencyKey: `${operationKey}:row` } : undefined);
     if (!itemID) throw new Error(`row not created: ${moduleId}`);
@@ -109,7 +126,7 @@ export async function writeLedgerRow(opts: WriteLedgerRowOptions): Promise<Write
             if (key !== "name") failed.push(key);
             continue;
         }
-        const cell = toLedgerCell(columnTypeOf(moduleId, key), value, members);
+        const cell = toLedgerCell(columnTypeOf(moduleId, key), value, members, { itemID, keyID: keyId });
         if (cell === null) { failed.push(key); continue; }
         try {
             await write(avId, keyId, itemID, cell, operationKey ? { idempotencyKey: `${operationKey}:cell:${key}` } : undefined);

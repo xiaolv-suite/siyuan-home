@@ -154,9 +154,10 @@ function normalizeDbRefs(raw: unknown, fallback: HomeSettings["dbRefs"]): HomeSe
     for (const [moduleId, value] of Object.entries(raw)) {
         if (!isPlainObject(value)) continue;
         const ref = { ...value } as Record<string, unknown>;
-        for (const key of ["docId", "avId", "notebook", "provisionError"] as const) {
+        for (const key of ["docId", "avId", "avBlockId", "schema", "notebook", "provisionError"] as const) {
             if (ref[key] !== undefined && typeof ref[key] !== "string") delete ref[key];
         }
+        if (ref.schemaVersion !== undefined && ref.schemaVersion !== 1 && ref.schemaVersion !== 2) delete ref.schemaVersion;
         if (ref.provisional !== undefined && typeof ref.provisional !== "boolean") delete ref.provisional;
         if (ref.columns !== undefined) {
             ref.columns = isPlainObject(ref.columns)

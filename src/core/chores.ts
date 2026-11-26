@@ -5,7 +5,7 @@
  * 纯函数，无网络，100% 可单元测试。
  */
 
-import { calculateNextRecurrenceDate, localDateKey, parseDate, differenceInCalendarDays } from "./hub/rule";
+import { addDays, calculateNextRecurrenceDate, localDateKey, parseDate, differenceInCalendarDays } from "./hub/rule";
 
 export interface ChoreRotationMember {
     /** 成员 id（settings.members[].id） */
@@ -244,10 +244,14 @@ export function advanceChoreRecurrence(
     const compDate = parseDate(completionDate) ?? new Date();
     const dueDate = parseDate(input.dueDate) ?? compDate;
 
+    const refToday = anchor === "due"
+        ? addDays(dueDate >= compDate ? dueDate : compDate, 1)
+        : compDate;
+
     const nextDate = calculateNextRecurrenceDate(dueDate, input.cycle, {
         anchor,
         completionDate: compDate,
-        today: compDate,
+        today: refToday,
     });
 
     const nextDueDateStr = localDateKey(nextDate);

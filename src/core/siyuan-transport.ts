@@ -38,8 +38,14 @@ const READ_RETRY_ENDPOINTS = new Set([
     "/api/notebook/lsNotebooks",
     "/api/filetree/getHPathByID",
     "/api/block/getBlockKramdown",
+    "/api/block/getBlockDOM",
+    "/api/attr/getBlockAttrs",
     "/api/av/renderAttributeView",
     "/api/av/getAttributeViewPrimaryKeyValues",
+    "/api/av/getAttributeViewKeysByAvID",
+    "/api/av/getAttributeViewItemIDsByBoundIDs",
+    "/api/av/getAttributeViewItemStatuses",
+    "/api/file/getFile",
     "/api/asset/getOCRConfig",
     "/api/asset/getImageOCRText",
 ]);
@@ -55,7 +61,9 @@ const NON_REPLAYABLE_WRITE_ENDPOINTS = new Set([
     "/api/notebook/createNotebook",
     "/api/filetree/createDocWithMd",
     "/api/block/insertBlock",
+    "/api/block/appendBlock",
     "/api/av/addAttributeViewBlocks",
+    "/api/av/appendAttributeViewDetachedBlocksWithValues",
     "/api/av/addAttributeViewKey",
     "/api/asset/upload",
 ]);
@@ -111,7 +119,35 @@ export function setTransport(t: Transport | null): void {
     latestVersions.clear();
 }
 
+export function hasCustomTransport(): boolean {
+    return transport !== null;
+}
+
+const NON_BLOCKING_FETCH_ENDPOINTS = new Set([
+    "/api/av/renderAttributeView",
+    "/api/asset/ocr",
+]);
+
 async function defaultTransport(endpoint: string, payload: object, options?: TransportOptions): Promise<IRawResponse> {
+    // 思源 v3.8.12 的 fetchSyncPost 对 /api/av/renderAttributeView 会触发 beginTemplateHTTPRequest：
+    // 若对应文档页签切到后台 (.fn__none)，内核前端会自动 abort 该请求并报 net::ERR_ABORTED；
+    // 对耗时较长的 /api/asset/ocr 会触发思源原生全屏 "Requesting..." 阻塞遮罩。
+    // 在浏览器同源环境中，白名单端点直接走原生 fetch 并透传 AbortSignal，彻底避开误杀与全屏遮罩。
+    if (
+        NON_BLOCKING_FETCH_ENDPOINTS.has(endpoint) &&
+        typeof fetch === "function" &&
+        typeof location !== "undefined" &&
+        location.protocol?.startsWith("http")
+    ) {
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: options?.signal,
+        });
+        if (res.status === 401 || res.status === 403) return { code: res.status, msg: "token expired" };
+        return (await res.json()) as IRawResponse;
+    }
     const { fetchSyncPost } = require("siyuan") as {
         fetchSyncPost: (url: string, data: object, headers?: Record<string, string>, process?: boolean, signal?: AbortSignal) => Promise<IRawResponse>;
     };

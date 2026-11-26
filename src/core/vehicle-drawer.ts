@@ -7,6 +7,7 @@
  */
 
 import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "./rowlog";
+import { recordHighFrequencyDiaryEvent, deleteDiaryEventWithTombstone, queryDiaryEventsFromSql } from "./diary-envelope";
 import { bindDialogA11y } from "./dialog-a11y";
 import type { EnergyRecord } from "./fuel";
 import { renderVehicleEnergySection } from "./vehicle-energy-section";
@@ -276,10 +277,28 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                     ...(value("note") ? { note: value("note") } : {}),
                 };
                 try {
+                    let diaryMeta: Record<string, string> = {};
+                    try {
+                        const res = await recordHighFrequencyDiaryEvent(plugin, {
+                            module: "vehicles",
+                            action: "maintenance",
+                            target: row.itemID,
+                            avId: ref.avId,
+                            bizDate: date,
+                            recordedAt: new Date().toISOString(),
+                            text: `🔧 车辆维保：${categoryLabel(category)} · ${odometer}km${costText ? ` · ¥${costText}` : ""}${value("shop") ? ` · ${value("shop")}` : ""} #车辆 #维保`,
+                            amount: costText || undefined,
+                            odometer,
+                        });
+                        diaryMeta = { diaryEventId: res.eventId, diaryBlockId: res.blockId, diaryDocId: res.docId };
+                    } catch { /* soft */ }
                     const next = await updateRowLogs(plugin, (latest) => {
                         const base = existing ? removeEntry(latest, ref.avId!, row.itemID, "maintenance", existing as unknown as Record<string, unknown>) : latest;
-                        return appendEntry(base, ref.avId!, row.itemID, "maintenance", { ...entry, at: new Date().toISOString() });
+                        return appendEntry(base, ref.avId!, row.itemID, "maintenance", { ...entry, ...diaryMeta, at: new Date().toISOString() });
                     });
+                    await import("./doc-sync")
+                        .then(({ syncModuleDocSection }) => syncModuleDocSection(plugin, "vehicles", next))
+                        .catch(() => undefined);
                     records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance");
                     dialog.destroy(); render();
                     if (onLogUpdated) await onLogUpdated();
@@ -340,6 +359,17 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                 del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => {
                     del.disabled = true;
                     try {
+                        const rawRec = entry as unknown as Record<string, any>;
+                        if (rawRec.diaryEventId && rawRec.diaryBlockId) {
+                            await deleteDiaryEventWithTombstone(plugin, {
+                                eventId: String(rawRec.diaryEventId),
+                                blockId: String(rawRec.diaryBlockId),
+                                module: "vehicles",
+                                action: "maintenance",
+                                target: row.itemID,
+                                bizDate: entry.date,
+                            });
+                        }
                         const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>));
                         records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance");
                         render();
@@ -385,4 +415,66 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
     } catch (error) {
         failVehicleActions(["maintenance"], error);
     }
+
+    // 4. 关联随手记与车务日记时间轴（方案 A：自由随手记可选挂车辆 + 车辆相关日记流聚合）
+    try {
+        const notesWrap = document.createElement("section");
+        notesWrap.id = "lv-vehicle-notes";
+        notesWrap.className = "lv-detail-section lv-domain-sec";
+        body.appendChild(notesWrap);
+        notesWrap.appendChild(mk("h3", "lv-h3-title", t("vehicle.notes.title")));
+
+        const logs = await loadRowLogs(plugin);
+        const quickNotes = getEntries<Record<string, any>>(logs, ref.avId!, row.itemID, "quickflows");
+        const sqlNotes = await queryDiaryEventsFromSql(undefined, { moduleId: "vehicles", targetId: row.itemID }).catch(() => []);
+
+        const merged: Array<{
+            key: string;
+            date: string;
+            summary: string;
+            docId?: string;
+            blockId?: string;
+        }> = [];
+        const seen = new Set<string>();
+        for (const n of [...quickNotes].reverse()) {
+            const key = String(n.diaryEventId || n.diaryBlockId || `${n.date}:${n.detail || n.title || ""}`);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push({
+                key,
+                date: String(n.date || ""),
+                summary: `${n.date || ""}${n.time ? ` ${n.time}` : ""} · ${n.detail || n.title || ""}${n.tag ? ` ${n.tag}` : ""}`.trim(),
+                docId: n.diaryDocId,
+                blockId: n.diaryBlockId,
+            });
+        }
+        for (const ev of sqlNotes) {
+            const key = String(ev.eventId || ev.blockId);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push({
+                key,
+                date: ev.bizDate || "",
+                summary: `${ev.bizDate ? `${ev.bizDate} · ` : ""}${ev.content || ""}`.trim(),
+                docId: ev.docId,
+                blockId: ev.blockId,
+            });
+        }
+        merged.sort((a, b) => b.date.localeCompare(a.date));
+
+        if (merged.length === 0) {
+            notesWrap.appendChild(mk("div", "ft__on-surface lv-caption", t("vehicle.notes.empty")));
+        } else {
+            for (const item of merged.slice(0, 10)) {
+                const line = mk("div", "lv-vehicle-log-row");
+                line.appendChild(mk("span", "lv-flex-wrap-anywhere", item.summary));
+                if (item.docId && typeof plugin.showTabDocs === "function") {
+                    const jumpBtn = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("vehicle.notes.openDiary")) as HTMLButtonElement;
+                    jumpBtn.onclick = () => plugin.showTabDocs(item.docId, item.blockId);
+                    line.appendChild(jumpBtn);
+                }
+                notesWrap.appendChild(line);
+            }
+        }
+    } catch { /* soft */ }
 }

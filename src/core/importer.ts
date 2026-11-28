@@ -4,6 +4,8 @@
  * 语义：无名称的行跳过（UI05 同款）；非法数字/日期记入该行错误并剔除该单元格（不整行废弃）。
  */
 
+import { normalizeSelectValue } from "./avcell";
+
 export interface ImportCell {
     key: string;
     type: string;
@@ -24,6 +26,13 @@ export interface ImportPlan {
     skipped: number;
 }
 
+export interface PlanImportOptions {
+    /** 本地化选项标签函数：用于将 CSV 中的展示名（如“有效”）归一化为 schema 枚举键（如“valid”） */
+    labelOf?: (colKey: string, opt: string) => string;
+    /** 为带 schema.default 的空/未映射 select 列自动补齐默认值 */
+    fillDefaults?: boolean;
+}
+
 const DATE_RE = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/;
 
 function normalizeDate(raw: string): string | undefined {
@@ -38,7 +47,13 @@ function normalizeDate(raw: string): string | undefined {
     return `${yearText}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function coerce(type: string, raw: string, options?: string[]): { value?: string | boolean; error?: string } {
+function coerce(
+    type: string,
+    raw: string,
+    options?: string[],
+    defaultOpt?: string,
+    labelOfOpt?: (opt: string) => string,
+): { value?: string | boolean; error?: string } {
     const v = raw.trim();
     if (v === "—" && type !== "text") return { value: "" };
     switch (type) {
@@ -57,11 +72,13 @@ function coerce(type: string, raw: string, options?: string[]): { value?: string
             if (/^(false|0|no|n|✗|否|—)$/i.test(v)) return { value: false };
             return { error: `「${raw}」不是有效的是/否值` };
         case "select": {
-            if (v === "" || v === "—") return { value: "" };
-            if (!options || options.includes(v)) return { value: v };
-            // 容错：查找是否为大小写或包含关系
-            const matched = options.find((opt) => opt.toLowerCase() === v.toLowerCase());
-            return matched ? { value: matched } : { error: `「${raw}」不是该字段的有效选项` };
+            if (v === "" || v === "—") return { value: defaultOpt ?? "" };
+            if (!options || options.length === 0) return { value: v };
+            const normalized = normalizeSelectValue(v, { options, default: defaultOpt }, {
+                fallbackToDefault: false,
+                labelOf: labelOfOpt,
+            });
+            return normalized ? { value: normalized } : { error: `「${raw}」不是该字段的有效选项` };
         }
         default:
             return { value: v === "—" ? "" : raw };
@@ -72,8 +89,9 @@ export function planImport(
     csv: string[][],
     /** CSV 列索引 → schema 列 key（undefined = 跳过该列） */
     mapping: Record<number, string | undefined>,
-    schemaColumns: { key: string; type: string; options?: string[] }[],
+    schemaColumns: { key: string; type: string; options?: string[]; default?: string }[],
     nameKey: string,
+    opts?: PlanImportOptions,
 ): ImportPlan {
     const columnOf = new Map(schemaColumns.map((c) => [c.key, c]));
     const supported = new Set(["text", "number", "date", "checkbox", "select"]);
@@ -86,6 +104,7 @@ export function planImport(
         const cells: ImportCell[] = [];
         const warnings: { key: string; message: string }[] = [];
         const seenKeys = new Set<string>();
+        const invalidSelectKeys = new Set<string>();
         for (const [idx, key] of Object.entries(mapping)) {
             if (!key || key === nameKey) continue;
             if (seenKeys.has(key)) {
@@ -102,9 +121,29 @@ export function planImport(
                 warnings.push({ key, message: "该字段类型暂不支持 CSV 导入" });
                 continue;
             }
-            const res = coerce(type, raw, column.options);
-            if (res.error) { warnings.push({ key, message: res.error }); continue; }
+            const res = coerce(
+                type,
+                raw,
+                column.options,
+                opts?.fillDefaults ? column.default : undefined,
+                opts?.labelOf ? (opt) => opts.labelOf!(column.key, opt) : undefined,
+            );
+            if (res.error) {
+                if (type === "select") invalidSelectKeys.add(key);
+                warnings.push({ key, message: res.error });
+                continue;
+            }
+            if (res.value === "" && type === "select") continue;
             cells.push({ key, type, value: res.value as string | boolean });
+        }
+        if (opts?.fillDefaults) {
+            for (const column of schemaColumns) {
+                if (column.key === nameKey || column.type !== "select" || column.default === undefined) continue;
+                if (invalidSelectKeys.has(column.key)) continue;
+                if (!cells.some((c) => c.key === column.key)) {
+                    cells.push({ key: column.key, type: "select", value: column.default });
+                }
+            }
         }
         plan.rows.push({ name, cells, warnings });
     }

@@ -3,8 +3,8 @@
  * 下沉建库基础常量、笔记本守卫、文档定位与列结构自愈函数，彻底切断 provisioner 与 provision-adoption 循环依赖。
  */
 
-import type { DbRef } from "@/types";
-import type { ModuleSchema } from "./schema-types";
+import type { DbRef, SchemaColumnIssue } from "@/types";
+import type { ModuleSchema, ColumnDef } from "./schema-types";
 import {
     sql,
     listNotebooks,
@@ -16,6 +16,7 @@ import {
     parseDataAvIdFromDom,
     AvBindingMismatchError,
     addAttributeViewColumn,
+    syncAttributeViewColumnOptions,
     idempotentAppendDetachedRows,
     buildPrimaryBlockCell,
     isWriteResultUnknown,
@@ -520,7 +521,178 @@ export interface ProvisionOptions {
     reconcileGhostColumns?: boolean;
 }
 
-/** 补列（D08 只增不改）：跳过已登记列；返回完整 keyID 映射与首个失败摘要（undefined = 全部就绪） */
+export type ColumnTypeDriftIssue = SchemaColumnIssue;
+
+export interface SelectEnumCoverageIssue {
+    moduleId: string;
+    colKey: string;
+    expectedOptions: string[];
+    liveOptions: string[];
+    missingOptions: string[];
+    defaultOption?: string;
+    kernelOptionsAvailable: boolean;
+    guidance: string;
+}
+
+export interface LiveColumnsReconcileResult {
+    columns: Record<string, string>;
+    missingColumns: string[];
+    ghostColumns: string[];
+    typeDrifts: ColumnTypeDriftIssue[];
+    selectCoverage: SelectEnumCoverageIssue[];
+}
+
+/**
+ * 判断思源真实列类型与 schema 声明类型是否兼容。
+ * - 若真实列元数据缺少 type（旧版或轻量测试桩），视为兼容；
+ * - 主键列 name 在 schema 中声明为 text，在思源 AV 中实际类型为 block（亦兼容 text）。
+ */
+export function isCompatibleLiveColumnType(
+    colKey: string,
+    expectedType: string | undefined,
+    actualType: string | undefined,
+): boolean {
+    if (!expectedType || !actualType) return true;
+    if (colKey === "name" && expectedType === "text") {
+        return actualType === "block" || actualType === "text";
+    }
+    return actualType === expectedType;
+}
+
+export function formatTypeDriftGuidance(
+    moduleId: string,
+    colKey: string,
+    colName: string,
+    expectedType: string,
+    actualType: string,
+): string {
+    return `[${moduleId}.${colKey}] 列「${colName}」真实类型为 "${actualType}"，期望 "${expectedType}"。为保护原数据，系统严禁覆盖或删除原列；请保留原列数据，或执行非破坏性补建「${colName} (${expectedType})」后手动迁移。`;
+}
+
+/**
+ * 真实列元数据对账（供 ensureColumns 与 health 共用）：
+ * 1) 校验 dbRef.columns[key] 是否存在于 live AV 列集合中（识别 ghost mapping）；
+ * 2) 校验真实列 type 是否与 schema.columns[i].type 一致（识别类型漂移，绝不覆盖或删除原列）；
+ * 3) 检查 select / mSelect 列枚举在真实 AV 列元数据上的覆盖状态。
+ */
+export function reconcileLiveColumns(params: {
+    moduleId: string;
+    schema: { columns?: Array<Pick<ColumnDef, "key"> & Partial<Pick<ColumnDef, "type" | "options" | "default">>> };
+    existing?: Record<string, string>;
+    knownColumns: any[];
+    resolveName?: (colKey: string) => string;
+    reconcileGhostColumns?: boolean;
+}): LiveColumnsReconcileResult {
+    const { moduleId, schema, existing, knownColumns, resolveName, reconcileGhostColumns } = params;
+    const columns: Record<string, string> = { ...(existing ?? {}) };
+    const missingColumns: string[] = [];
+    const ghostColumns: string[] = [];
+    const typeDrifts: ColumnTypeDriftIssue[] = [];
+    const selectCoverage: SelectEnumCoverageIssue[] = [];
+
+    const hasLiveColumns = Array.isArray(knownColumns) && knownColumns.length > 0;
+    const byId = new Map<string, any>();
+    for (const c of knownColumns ?? []) {
+        if (c?.id) byId.set(String(c.id), c);
+    }
+
+    const matchLiveByAlias = (colKey: string, expectedType?: string) => {
+        const columnName = resolveName?.(colKey) ?? colKey;
+        const colAliases = new Set([columnName, colKey, ...(COMMON_COLUMN_ALIASES[colKey] ?? [])]);
+        const candidates = (knownColumns ?? []).filter((c: any) =>
+            colAliases.has(c?.name) || colAliases.has(c?.keyName) || (colKey === "name" && c?.type === "block"),
+        );
+        if (candidates.length === 0) return undefined;
+        return candidates.find((c: any) => isCompatibleLiveColumnType(colKey, expectedType, c?.type)) ?? candidates[0];
+    };
+
+    for (const col of schema.columns ?? []) {
+        const columnName = resolveName?.(col.key) ?? col.key;
+        const registeredId = columns[col.key];
+        let liveCol: any;
+
+        if (registeredId) {
+            if (hasLiveColumns) {
+                liveCol = byId.get(registeredId);
+                if (!liveCol) {
+                    ghostColumns.push(col.key);
+                    if (reconcileGhostColumns) {
+                        const matched = matchLiveByAlias(col.key, col.type);
+                        if (matched?.id) {
+                            columns[col.key] = String(matched.id);
+                            liveCol = matched;
+                        } else {
+                            delete columns[col.key];
+                            missingColumns.push(col.key);
+                        }
+                    } else {
+                        missingColumns.push(col.key);
+                    }
+                }
+            }
+        } else if (hasLiveColumns) {
+            const usedColIds = new Set(Object.values(columns).filter(Boolean));
+            const matched = matchLiveByAlias(col.key, col.type);
+            if (matched?.id && !usedColIds.has(String(matched.id))) {
+                if (reconcileGhostColumns) {
+                    columns[col.key] = String(matched.id);
+                    liveCol = matched;
+                } else {
+                    missingColumns.push(col.key);
+                }
+            } else {
+                missingColumns.push(col.key);
+            }
+        } else {
+            missingColumns.push(col.key);
+        }
+
+        if (liveCol) {
+            const actualType = liveCol.type ? String(liveCol.type) : undefined;
+            if (col.type && actualType && !isCompatibleLiveColumnType(col.key, col.type, actualType)) {
+                typeDrifts.push({
+                    moduleId,
+                    colKey: col.key,
+                    expectedType: col.type,
+                    actualType,
+                    liveColumnId: String(liveCol.id),
+                    liveColumnName: liveCol.name ?? liveCol.keyName,
+                    guidance: formatTypeDriftGuidance(moduleId, col.key, columnName, col.type, actualType),
+                });
+            }
+            if ((col.type === "select" || col.type === "mSelect") && col.options?.length) {
+                const rawLiveOpts = Array.isArray(liveCol.options) ? liveCol.options : undefined;
+                const liveOptions = (rawLiveOpts ?? [])
+                    .map((o: any) => (typeof o === "string" ? o : String(o?.name ?? o?.content ?? "")).trim())
+                    .filter(Boolean);
+                const missingOpts = col.options.filter((opt) => !liveOptions.includes(opt));
+                const kernelOptionsAvailable = Array.isArray(rawLiveOpts) && liveOptions.length > 0;
+                selectCoverage.push({
+                    moduleId,
+                    colKey: col.key,
+                    expectedOptions: [...col.options],
+                    liveOptions,
+                    missingOptions: missingOpts,
+                    defaultOption: col.default,
+                    kernelOptionsAvailable,
+                    guidance: kernelOptionsAvailable && missingOpts.length === 0
+                        ? "已与思源 AV 原生列选项同步"
+                        : "当前仅应用层表单/读取/导入强制枚举约束与默认值兜底，原生 AV 表格直接编辑可能产生枚举外值",
+                });
+            }
+        }
+    }
+
+    return {
+        columns,
+        missingColumns,
+        ghostColumns,
+        typeDrifts,
+        selectCoverage,
+    };
+}
+
+/** 补列（D08 只增不改）：先做真实列元数据对账（含类型漂移检测，绝不覆盖用户原列），再安全找回或补齐缺失列 */
 export async function ensureColumns(
     avId: string | undefined,
     schema: ModuleSchema,
@@ -528,43 +700,88 @@ export async function ensureColumns(
     moduleId: string,
     opts: ProvisionOptions,
     memberAvId?: string,
-): Promise<{ columns: Record<string, string>; error?: string }> {
-    const columns: Record<string, string> = { ...(existing ?? {}) };
+): Promise<{
+    columns: Record<string, string>;
+    error?: string;
+    typeDrifts?: ColumnTypeDriftIssue[];
+    schemaIssues?: SchemaColumnIssue[];
+}> {
+    const baseColumns: Record<string, string> = { ...(existing ?? {}) };
     let error: string | undefined;
-    if (!avId) return { columns, error: error ?? "av unavailable" };
+    if (!avId) return { columns: baseColumns, error: "av unavailable" };
     let knownColumns: any[];
     try {
         knownColumns = (await renderLedger(avId)).columns ?? [];
     } catch (e) {
-        return { columns, error: `column preflight: ${errText(e)}` };
+        return { columns: baseColumns, error: `column preflight: ${errText(e)}` };
     }
+
+    const reconciled = reconcileLiveColumns({
+        moduleId,
+        schema,
+        existing: baseColumns,
+        knownColumns,
+        resolveName: opts.resolveName,
+        reconcileGhostColumns: opts.reconcileGhostColumns,
+    });
+    const columns: Record<string, string> = { ...reconciled.columns };
+    const typeDrifts: ColumnTypeDriftIssue[] = [...reconciled.typeDrifts];
     const knownIds = new Set(knownColumns.map((c: any) => c?.id));
+
     let lastKeyID = String(
         knownColumns.find((c: any) => c?.type === "block")?.id
         ?? knownColumns[knownColumns.length - 1]?.id
         ?? "",
     );
+
     for (const col of schema.columns) {
         const columnName = opts.resolveName?.(col.key) ?? col.key;
         const colAliases = new Set([columnName, col.key, ...(COMMON_COLUMN_ALIASES[col.key] ?? [])]);
+
         if (columns[col.key]) {
-            if (!opts.reconcileGhostColumns || knownIds.has(columns[col.key]) || knownColumns.length === 0) {
+            const liveCol = knownColumns.find((c: any) => String(c?.id) === columns[col.key]);
+            if (liveCol) {
+                // 类型漂移时严禁删除或覆盖用户原列，保留映射并在 typeDrifts/schemaIssues 上报
+                if (
+                    (col.type === "select" || col.type === "mSelect") &&
+                    col.options?.length &&
+                    Array.isArray(liveCol.options) &&
+                    col.options.some((opt) => !liveCol.options.some((lo: any) => (typeof lo === "string" ? lo : lo?.name) === opt))
+                ) {
+                    await syncAttributeViewColumnOptions(avId, String(liveCol.id), col.options, {
+                        idempotencyKey: `pcol-opt:${avId}:${col.key}`,
+                        retries: 0,
+                    });
+                }
                 lastKeyID = columns[col.key];
                 continue;
             }
-            const match = knownColumns.find((c: any) => colAliases.has(c?.name) || colAliases.has(c?.keyName) || (col.key === "name" && c?.type === "block"));
-            if (match?.id) {
-                columns[col.key] = String(match.id);
+            if (!opts.reconcileGhostColumns || knownColumns.length === 0) {
                 lastKeyID = columns[col.key];
                 continue;
             }
             delete columns[col.key];
         }
+
         const keyID = newSiYuanId();
         const usedColIds = new Set(Object.values(columns).filter(Boolean));
         const currentMatches = knownColumns.filter((c: any) => !usedColIds.has(String(c?.id)) && (c?.id === keyID || colAliases.has(c?.name) || colAliases.has(c?.keyName) || (col.key === "name" && c?.type === "block")));
         if (currentMatches.length >= 1 && currentMatches[0]?.id) {
-            columns[col.key] = String(currentMatches[0].id);
+            const matched = currentMatches[0];
+            columns[col.key] = String(matched.id);
+            if (matched.type && !isCompatibleLiveColumnType(col.key, col.type, String(matched.type))) {
+                if (!typeDrifts.some((d) => d.colKey === col.key)) {
+                    typeDrifts.push({
+                        moduleId,
+                        colKey: col.key,
+                        expectedType: col.type,
+                        actualType: String(matched.type),
+                        liveColumnId: String(matched.id),
+                        liveColumnName: matched.name ?? matched.keyName,
+                        guidance: formatTypeDriftGuidance(moduleId, col.key, columnName, col.type, String(matched.type)),
+                    });
+                }
+            }
             lastKeyID = columns[col.key];
             continue;
         }
@@ -579,10 +796,11 @@ export async function ensureColumns(
                 type: col.type,
                 relationTargetAvID: col.type === "relation" ? memberAvId : undefined,
                 previousKeyID: lastKeyID,
+                options: col.options,
             }, { idempotencyKey: `pcol:${avId}:${col.key}:${Date.now().toString(36)}`, retries: 0 });
             columns[col.key] = keyID;
             lastKeyID = keyID;
-            knownColumns.push({ id: keyID, name: columnName });
+            knownColumns.push({ id: keyID, name: columnName, type: col.type });
             knownIds.add(keyID);
         } catch (e) {
             let recovered: any;
@@ -608,5 +826,97 @@ export async function ensureColumns(
             console.warn(`[LvHome] column "${col.key}" on "${moduleId}" deferred:`, error);
         }
     }
-    return { columns, error };
+
+    if (!error && typeDrifts.length > 0) {
+        error = `column type drift: ${typeDrifts.map((d) => `${d.colKey}(expected ${d.expectedType}, actual ${d.actualType})`).join(", ")}`;
+    }
+    return {
+        columns,
+        error,
+        typeDrifts,
+        schemaIssues: typeDrifts.length > 0 ? typeDrifts : undefined,
+    };
+}
+
+export interface NonDestructiveColumnRecreateResult {
+    newKeyID: string;
+    newColumnName: string;
+    preservedOldColumnId?: string;
+    preservedOldColumnName?: string;
+    guidance: string;
+}
+
+/**
+ * 显式非破坏性补建新列辅助：
+ * 当列发生类型漂移且用户明确确认需要迁移时，绝不删除/覆盖原有列，
+ * 而是创建一个不重名的新列（如“里程 (number)”）并将 dbRef.columns[colKey] 指向新列。
+ */
+export async function createNonDestructiveTypedColumn(params: {
+    avId: string;
+    moduleId: string;
+    schemaCol: Pick<ColumnDef, "key" | "type" | "options">;
+    ref: DbRef;
+    memberAvId?: string;
+    resolveName?: (colKey: string) => string;
+}): Promise<NonDestructiveColumnRecreateResult> {
+    const { avId, moduleId, schemaCol, ref, memberAvId, resolveName } = params;
+    const baseName = resolveName?.(schemaCol.key) ?? schemaCol.key;
+    const view = await renderLedger(avId);
+    const knownColumns: any[] = view.columns ?? [];
+    const oldId = ref.columns?.[schemaCol.key];
+    const oldCol = oldId ? knownColumns.find((c: any) => String(c?.id) === oldId) : undefined;
+
+    const existingNames = new Set(knownColumns.map((c: any) => String(c?.name ?? c?.keyName ?? "")));
+    let newColumnName = `${baseName} (${schemaCol.type})`;
+    let suffix = 2;
+    while (existingNames.has(newColumnName)) {
+        newColumnName = `${baseName} (${schemaCol.type}) #${suffix++}`;
+    }
+
+    if (schemaCol.type === "relation" && !memberAvId) {
+        throw new Error(`relation column "${schemaCol.key}" cannot be created while members ledger is unavailable`);
+    }
+
+    const lastKeyID = String(knownColumns[knownColumns.length - 1]?.id ?? "");
+    const newKeyID = await addAttributeViewColumn(avId, {
+        name: newColumnName,
+        type: schemaCol.type,
+        options: schemaCol.options,
+        relationTargetAvID: schemaCol.type === "relation" ? memberAvId : undefined,
+        previousKeyID: lastKeyID,
+    }, { idempotencyKey: `recreate:${avId}:${schemaCol.key}:${Date.now().toString(36)}`, retries: 0 });
+
+    ref.columns = { ...(ref.columns ?? {}), [schemaCol.key]: newKeyID };
+    if (Array.isArray(ref.schemaIssues)) {
+        const remaining = ref.schemaIssues.filter((issue) => !(issue.moduleId === moduleId && issue.colKey === schemaCol.key));
+        ref.schemaIssues = remaining.length > 0 ? remaining : undefined;
+    }
+
+    const oldName = oldCol?.name ?? oldCol?.keyName ?? oldId;
+    return {
+        newKeyID,
+        newColumnName,
+        preservedOldColumnId: oldId,
+        preservedOldColumnName: oldName ? String(oldName) : undefined,
+        guidance: `已非破坏性补建新列「${newColumnName}」，原列「${oldName ?? schemaCol.key}」及其数据已完整保留，可按需人工对照迁移。`,
+    };
+}
+
+/** 实时校验辅助：读取真实 AV 列并对账（只读，不修改思源数据） */
+export async function validateLiveSchemaColumns(params: {
+    avId: string;
+    moduleId: string;
+    schema: { columns?: Array<Pick<ColumnDef, "key"> & Partial<Pick<ColumnDef, "type" | "options" | "default">>> };
+    existing?: Record<string, string>;
+    resolveName?: (colKey: string) => string;
+}): Promise<LiveColumnsReconcileResult> {
+    const view = await renderLedger(params.avId);
+    return reconcileLiveColumns({
+        moduleId: params.moduleId,
+        schema: params.schema,
+        existing: params.existing,
+        knownColumns: view.columns ?? [],
+        resolveName: params.resolveName,
+        reconcileGhostColumns: false,
+    });
 }

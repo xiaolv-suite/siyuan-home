@@ -17,6 +17,7 @@
         notes = $bindable(""),
         plugin,
         t,
+        guestMode = false,
         onSaved,
         onCancel,
         onPickAvatar,
@@ -31,7 +32,8 @@
         notes?: string;
         plugin: any;
         t: (k: string) => string;
-        onSaved?: () => Promise<void>;
+        guestMode?: boolean;
+        onSaved?: (savedName?: string) => Promise<void>;
         onCancel?: () => void;
         onPickAvatar?: () => void;
     } = $props();
@@ -130,7 +132,12 @@
     }
 
     async function doSave(clearAfterCreate = true) {
-        if (!name.trim() || memberSaving) return;
+        const savedName = name.trim();
+        if (!savedName || memberSaving) return;
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 4000, "info");
+            return;
+        }
         memberSaving = true;
         try {
             try {
@@ -139,7 +146,7 @@
                     if (target) {
                         await updateMember(plugin, plugin.settings, {
                             ...target,
-                            name: name.trim(),
+                            name: savedName,
                             role,
                             sex: sex || undefined,
                             birthday: birthday || undefined,
@@ -149,11 +156,10 @@
                     }
                     cancelEdit();
                 } else {
-                    const submittedName = name.trim();
                     pendingNewMemberId ??= newSiYuanId();
                     await addMember(plugin, plugin.settings, {
                         id: pendingNewMemberId,
-                        name: submittedName,
+                        name: savedName,
                         role,
                         sex: sex || undefined,
                         birthday: birthday || undefined,
@@ -177,7 +183,7 @@
             }
             try {
                 if (onSaved) {
-                    await onSaved();
+                    await onSaved(savedName);
                 } else {
                     await plugin.refreshHub?.(undefined, true);
                 }
@@ -269,7 +275,7 @@
             {#if editorOpen}
                 <button type="button" class="b3-button b3-button--outline" onclick={cancelEdit} disabled={memberSaving}>{t("cancel")}</button>
             {/if}
-            <button type="button" class="lv-btn primary sm" onclick={save} disabled={memberSaving} aria-busy={memberSaving}>
+            <button type="button" class="lv-btn primary sm" onclick={save} disabled={memberSaving || guestMode} aria-busy={memberSaving}>
                 {#if !editId}<UiIcon name="add" size={13} /> {/if}{memberSaving ? t("ledger.saving") : editId ? t("save") : t("add")}
             </button>
         </div>

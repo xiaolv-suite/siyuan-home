@@ -1,5 +1,5 @@
 import { showMessage } from "@/libs/notice";
-import { addDetachedRow, setCell, buildPrimaryBlockCell, RowIdentityPendingError, uploadAsset, type DetachedRowIdentity } from "@/core/siyuan";
+import { addDetachedRow, setCellResilient, buildPrimaryBlockCell, RowIdentityPendingError, uploadAsset, type DetachedRowIdentity } from "@/core/siyuan";
 import { verifyAvRefBound } from "@/core/provision-common";
 import { saveRuntime } from "@/core/hub/runtime";
 import { captureCellValue, getCaptureAssetFields, validateCaptureInput } from "@/core/capture";
@@ -154,29 +154,24 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
     }
 
     const setCellSafe = async (key: string, value: unknown) => {
-        let keyID = r.columns?.[key];
-        if (!keyID) {
-            try {
-                const { healColumnMapping } = await import("@/core/provision-adoption");
-                keyID = await healColumnMapping(plugin, moduleId, key);
-            } catch { /* soft */ }
-        }
-        if (!keyID) throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(captureFields.find((field) => field.key === key) ?? { key, type: "text" })));
         for (let attempt = 0; ; attempt++) {
             try {
-                await setCell(r.avId, keyID, itemID!, value, { idempotencyKey: `${saveOperationKey}:cell:${key}` });
+                await setCellResilient({
+                    avID: r.avId,
+                    keyID: r.columns?.[key],
+                    itemID: itemID!,
+                    value,
+                    plugin,
+                    moduleId,
+                    colKey: key,
+                    ref: r as any,
+                    requestOptions: { idempotencyKey: `${saveOperationKey}:cell:${key}` },
+                });
                 return;
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
-                if (/(key not found|key not exist|not found|not exist|不存在)/i.test(msg)) {
-                    try {
-                        const { healColumnMapping } = await import("@/core/provision-adoption");
-                        const healedId = await healColumnMapping(plugin, moduleId, key);
-                        if (healedId && healedId !== keyID) {
-                            keyID = healedId;
-                            continue;
-                        }
-                    } catch { /* soft */ }
+                if (/missing column mapping/i.test(msg)) {
+                    throw new Error(t("capture.missingColumn").replace("${field}", fieldLabel(captureFields.find((field) => field.key === key) ?? { key, type: "text" })));
                 }
                 if (attempt >= 2) throw err;
                 await new Promise((res) => setTimeout(res, 400));
@@ -184,47 +179,56 @@ export async function executeQuickCaptureSave(options: ExecuteQuickCaptureSaveOp
         }
     };
 
-    if (r.columns?.["name"]) {
-        await setCellSafe("name", buildPrimaryBlockCell({
-            keyID: r.columns["name"],
-            itemID: itemID!,
-            content: title,
-            includeRichNull: true,
-        }));
-    }
-    for (const f of captureFields) {
-        if (f.key === "name" || f.type === "mAsset") continue;
-        const v = values[f.key];
-        if (v === undefined || v === null || (v === "" && f.type !== "checkbox")) continue;
-        const cell = captureCellValue(f, v);
-        if (cell !== undefined) await setCellSafe(f.key, cell);
-    }
+    try {
+        if (r.columns?.["name"]) {
+            await setCellSafe("name", buildPrimaryBlockCell({
+                keyID: r.columns["name"],
+                itemID: itemID!,
+                content: title,
+                includeRichNull: true,
+            }));
+        }
+        for (const f of captureFields) {
+            if (f.key === "name" || f.type === "mAsset") continue;
+            const v = values[f.key];
+            if (v === undefined || v === null || (v === "" && f.type !== "checkbox")) continue;
+            const cell = captureCellValue(f, v);
+            if (cell !== undefined) await setCellSafe(f.key, cell);
+        }
 
-    // 处理拍照/本地上传附件列（覆盖 captureFields 中与 schema mAsset 列）
-    const schema = plugin?.schemaCatalog?.[moduleId] ?? SCHEMA_CATALOG[moduleId];
-    const assetCols = [
-        ...captureFields.filter((f) => f.type === "mAsset"),
-        ...getCaptureAssetFields(schema).filter((af) => !captureFields.some((cf) => cf.key === af.key)),
-    ];
-    for (const af of assetCols) {
-        const rawList = values[af.key];
-        if (!Array.isArray(rawList) || rawList.length === 0) continue;
-        const mAsset: Array<{ name: string; content: string }> = [];
-        for (const item of rawList) {
-            if (typeof File !== "undefined" && item instanceof File) {
-                const prepared = await preparePhotoFile(item);
-                const uploaded = await uploadAsset(prepared, "/assets/siyuan-home/", {
-                    idempotencyKey: `${saveOperationKey}:asset:${af.key}:${prepared.name}:${prepared.size}`,
-                    retries: 1,
-                });
-                mAsset.push({ name: uploaded.name, content: uploaded.path });
-            } else if (item && typeof item === "object" && typeof item.content === "string" && item.content) {
-                mAsset.push({ name: String(item.name || "asset"), content: item.content });
+        // 处理拍照/本地上传附件列（覆盖 captureFields 中与 schema mAsset 列）
+        const schema = plugin?.schemaCatalog?.[moduleId] ?? SCHEMA_CATALOG[moduleId];
+        const assetCols = [
+            ...captureFields.filter((f) => f.type === "mAsset"),
+            ...getCaptureAssetFields(schema).filter((af) => !captureFields.some((cf) => cf.key === af.key)),
+        ];
+        for (const af of assetCols) {
+            const rawList = values[af.key];
+            if (!Array.isArray(rawList) || rawList.length === 0) continue;
+            const mAsset: Array<{ name: string; content: string }> = [];
+            for (const item of rawList) {
+                if (typeof File !== "undefined" && item instanceof File) {
+                    const prepared = await preparePhotoFile(item);
+                    const uploaded = await uploadAsset(prepared, "/assets/siyuan-home/", {
+                        idempotencyKey: `${saveOperationKey}:asset:${af.key}:${prepared.name}:${prepared.size}`,
+                        retries: 1,
+                    });
+                    mAsset.push({ name: uploaded.name, content: uploaded.path });
+                } else if (item && typeof item === "object" && typeof item.content === "string" && item.content) {
+                    mAsset.push({ name: String(item.name || "asset"), content: item.content });
+                }
+            }
+            if (mAsset.length > 0) {
+                await setCellSafe(af.key, { type: "mAsset", mAsset });
             }
         }
-        if (mAsset.length > 0) {
-            await setCellSafe(af.key, { type: "mAsset", mAsset });
-        }
+    } catch (err) {
+        return {
+            success: false,
+            pendingRowId: itemID,
+            pendingModuleId: moduleId,
+            error: t("capture.partialFailed").replace("${msg}", err instanceof Error ? err.message : String(err)),
+        };
     }
 
     // 运行态偏好保存

@@ -7,12 +7,14 @@
 
 import { extractBlockId, parseBlockToLedgerRow, formatBlockIngestSnippet } from "./block-ingest";
 import { bindDialogA11y } from "./dialog-a11y";
+import { setCellResilient } from "./siyuan";
 import { uiIcon } from "@/ui/icons";
 
 export interface BlockIngestDialogOptions {
     t: (k: string) => string;
     currentModule?: string;
     plugin: {
+        runtime?: { guestModeActive?: boolean };
         settings: {
             enabledModules?: string[];
             dbRefs: Record<string, { avId?: string; columns?: Record<string, string> }>;
@@ -79,6 +81,11 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
     const contentInp = dlg.element.querySelector("#lv-ingest-content") as HTMLTextAreaElement;
     const previewEl = dlg.element.querySelector("#lv-ingest-preview") as HTMLElement;
     const submitBtn = dlg.element.querySelector("#lv-ingest-submit") as HTMLButtonElement;
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
+    if (isGuest) {
+        submitBtn.disabled = true;
+        submitBtn.title = t("guest.writeBlocked");
+    }
     (dlg.element.querySelector(".b3-button--cancel") as HTMLButtonElement).onclick = () => dlg.destroy();
     bindDialogA11y({ dlg, defaultFocus: "#lv-ingest-link" });
 
@@ -115,6 +122,10 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
     contentInp.oninput = updatePreview;
 
     submitBtn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         const blockId = extractBlockId(linkInp.value.trim());
         if (!blockId) {
             showMessageFn(t("capture.ingestInvalidLink"), 4000, "error");
@@ -142,15 +153,50 @@ export function openBlockIngestDialog(opts: BlockIngestDialogOptions): void {
             if (!rowId) throw new Error("Failed to create ledger row");
 
             if (res.rowPayload.date) {
-                const dateKey = dbRef.columns.expiry || dbRef.columns.date || dbRef.columns.due;
-                if (dateKey) await setCellFn(dbRef.avId, dateKey, rowId, { type: "date", date: { content: new Date(`${res.rowPayload.date}T00:00:00`).getTime(), isNotEmpty: true } });
+                const dateColKey = dbRef.columns.expiry ? "expiry" : dbRef.columns.date ? "date" : dbRef.columns.due ? "due" : "date";
+                const dateKey = dbRef.columns[dateColKey];
+                await setCellResilient({
+                    avID: dbRef.avId,
+                    keyID: dateKey,
+                    itemID: rowId,
+                    value: { type: "date", date: { content: new Date(`${res.rowPayload.date}T00:00:00`).getTime(), isNotEmpty: true } },
+                    plugin,
+                    moduleId: targetMod,
+                    colKey: dateColKey,
+                    ref: dbRef as any,
+                    schemaCol: { key: dateColKey, type: "date" },
+                    setCellFn,
+                });
             }
             if (res.rowPayload.amount !== undefined) {
-                const amtKey = dbRef.columns.amount || dbRef.columns.deposit || dbRef.columns.premium;
-                if (amtKey) await setCellFn(dbRef.avId, amtKey, rowId, { type: "number", number: { content: res.rowPayload.amount, isNotEmpty: true } });
+                const amtColKey = dbRef.columns.amount ? "amount" : dbRef.columns.deposit ? "deposit" : dbRef.columns.premium ? "premium" : "amount";
+                const amtKey = dbRef.columns[amtColKey];
+                await setCellResilient({
+                    avID: dbRef.avId,
+                    keyID: amtKey,
+                    itemID: rowId,
+                    value: { type: "number", number: { content: res.rowPayload.amount, isNotEmpty: true } },
+                    plugin,
+                    moduleId: targetMod,
+                    colKey: amtColKey,
+                    ref: dbRef as any,
+                    schemaCol: { key: amtColKey, type: "number" },
+                    setCellFn,
+                });
             }
-            if (res.rowPayload.note && dbRef.columns.note) {
-                await setCellFn(dbRef.avId, dbRef.columns.note, rowId, { type: "text", text: { content: res.rowPayload.note } });
+            if (res.rowPayload.note) {
+                await setCellResilient({
+                    avID: dbRef.avId,
+                    keyID: dbRef.columns.note,
+                    itemID: rowId,
+                    value: { type: "text", text: { content: res.rowPayload.note } },
+                    plugin,
+                    moduleId: targetMod,
+                    colKey: "note",
+                    ref: dbRef as any,
+                    schemaCol: { key: "note", type: "text" },
+                    setCellFn,
+                });
             }
 
             // 复制反向收录标注

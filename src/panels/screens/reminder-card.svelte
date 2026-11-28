@@ -82,6 +82,7 @@
     const stageLabel = $derived(stageLabelOf(r));
     const isItemPinned = $derived(isPinned(r));
     const isBusy = $derived(reminderBusy.has(r.id));
+    const isGuestMode = $derived(Boolean(plugin?.runtime?.guestModeActive));
     const isExpanded = $derived(expandedReminders.has(r.id));
     const isSelected = $derived(selected.has(r.id));
 
@@ -255,11 +256,11 @@
     {#if isOverdue}
         <div class="lv-rem-swipe-actions" class:is-revealed={swipeOffset < 0} aria-label={t("reminder.swipeAria")} aria-hidden={swipeOffset === 0 ? "true" : undefined}>
             {#if isStale}
-                <button type="button" class="lv-swipe-chip stale" disabled={isBusy} onclick={() => void openDecompositionModal()}>{t("reminder.chipDecompose")}</button>
+                <button type="button" class="lv-swipe-chip stale" disabled={isBusy || isGuestMode} onclick={() => void openDecompositionModal()}>{t("reminder.chipDecompose")}</button>
             {/if}
-            <button type="button" class="lv-swipe-chip day1" disabled={isBusy} onclick={() => quickSnooze(1, t("reminder.postpone1Day"))}>{t("reminder.postpone1Day")}</button>
-            <button type="button" class="lv-swipe-chip week1" disabled={isBusy} onclick={() => quickSnooze(7, t("reminder.postpone1Week"))}>{t("reminder.postpone1Week")}</button>
-            <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy} onclick={() => quickSnooze(1, t("reminder.tomorrow"))}>{t("reminder.tomorrow")}</button>
+            <button type="button" class="lv-swipe-chip day1" disabled={isBusy || isGuestMode} onclick={() => quickSnooze(1, t("reminder.postpone1Day"))}>{t("reminder.postpone1Day")}</button>
+            <button type="button" class="lv-swipe-chip week1" disabled={isBusy || isGuestMode} onclick={() => quickSnooze(7, t("reminder.postpone1Week"))}>{t("reminder.postpone1Week")}</button>
+            <button type="button" class="lv-swipe-chip tmrw" disabled={isBusy || isGuestMode} onclick={() => quickSnooze(1, t("reminder.tomorrow"))}>{t("reminder.tomorrow")}</button>
         </div>
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -367,7 +368,7 @@
                 <UiIcon name="folder" size={13} />
             </button>
         {/if}
-        <button type="button" class="b3-button b3-button--text" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => {
+        <button type="button" class="b3-button b3-button--text" disabled={batchBusy || isBusy || isGuestMode} aria-busy={isBusy} onclick={() => {
             onRunAction?.(async () => {
                 await plugin.complete(r);
                 try {
@@ -386,26 +387,26 @@
                 onclick={() => { moreOpen = !moreOpen; }}>{t("ledger.detailMore")} <UiIcon name={moreOpen ? "chevronUp" : "chevronDown"} size={11} /></button>
             <div bind:this={moreMenuEl} id={`lv-rem-more-${r.id}`} class="lv-rem-more-menu" role="menu" tabindex="-1" aria-label={t("ledger.detailMore")} data-open={moreOpen ? "true" : "false"} onkeydown={handleMenuKeydown}>
                 {#if ["certs", "insurance", "contracts"].includes(r.moduleId)}
-                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} onclick={() => handleMoreAction(() => onRenew?.(r))}>{t("act.renew")}</button>
                 {/if}
                 {#if hasTargetDoc}
                     <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} title={`${t("act.locate")}（右键打开原生菜单）`} onclick={() => handleMoreAction(() => void openReminderDoc())} oncontextmenu={async (e) => { e.preventDefault(); e.stopPropagation(); moreOpen = false; await openReminderDocTreeMenu(e); }}>{t("act.locate")}</button>
                 {/if}
-                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} onclick={() => handleMoreAction(() => onSchedulePlan?.(r))}>{plan.hasPlan ? t("hub.editPlanDate") : t("hub.setPlanDate")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={() => handleMoreAction(() => onCopyTask?.(r))}>{t("hub.copyTaskBlock")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy} onclick={(e) => handleMoreAction(async () => {
                     const { copyReminderFamilyNotice } = await import("@/core/reminders-view-model");
                     await copyReminderFamilyNotice(r, t, showMessage, { memberName: member?.name, targetEl: e.currentTarget as HTMLElement });
                 })}>{t("hub.copyFamilyNotice")}</button>
                 <button type="button" class="b3-button b3-button--text" role="menuitem" title={isItemPinned ? t("act.unpin") : t("act.pin")}
-                    disabled={batchBusy || isBusy} aria-busy={isBusy}
+                    disabled={batchBusy || isBusy || isGuestMode} aria-busy={isBusy}
                     onclick={() => handleMoreAction(() => onTogglePin?.(r))}>{isBusy ? t("ledger.saving") : (isItemPinned ? t("act.unpin") : t("act.pin"))}</button>
-                <button type="button" class="b3-button b3-button--text" role="menuitem" aria-haspopup="menu" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : t("act.snooze")} <UiIcon name="chevronDown" size={11} /></button>
-                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" aria-haspopup="menu" disabled={batchBusy || isBusy || isGuestMode} aria-busy={isBusy} onclick={(e) => handleMoreAction(() => onSnooze?.(r, e))}>{isBusy ? t("ledger.saving") : t("act.snooze")} <UiIcon name="chevronDown" size={11} /></button>
+                <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} aria-busy={isBusy} onclick={() => handleMoreAction(() => onRunAction?.(() => plugin.mute(r.id), r.id))}>{isBusy ? t("ledger.saving") : t("act.mute")}</button>
                 {#if r.moduleId === "adhoc"}
-                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
-                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
-                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy} onclick={() => handleMoreAction(() => onTriage?.(r))}>{t("triage.title")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} onclick={() => handleMoreAction(() => onEditMemo?.(r))}>{t("memo.edit")}</button>
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} onclick={() => handleMoreAction(() => onDeleteMemo?.(r))}>{t("delete")}</button>
+                    <button type="button" class="b3-button b3-button--text" role="menuitem" disabled={batchBusy || isBusy || isGuestMode} onclick={() => handleMoreAction(() => onTriage?.(r))}>{t("triage.title")}</button>
                 {/if}
             </div>
         </div>

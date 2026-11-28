@@ -11,9 +11,8 @@ import { normalizeEnergyRecords, type EnergyRecord } from "./fuel";
 import { loadRowLogs, getEntries, type RowLogs } from "./rowlog";
 import { cellValue } from "./avcell";
 import { round2 } from "./ledger-view-model";
-import { addAttributeViewColumn, renderLedger, setCell } from "./siyuan";
+import { addAttributeViewColumn, renderLedger, setCellResilient } from "./siyuan";
 import { COMMON_COLUMN_ALIASES } from "./provision-common";
-import { healColumnMapping } from "./provision-adoption";
 import { saveSettings } from "./settings";
 
 export const VEHICLE_SUMMARY_COLUMN_KEYS = [
@@ -189,27 +188,23 @@ export async function syncVehicleSummaryToAv(
         });
         if (payload === null) continue;
         try {
-            await setCell(avId, keyID, vehicleId, payload, {
-                idempotencyKey: `veh-summary:${avId}:${vehicleId}:${item.key}:${JSON.stringify(payload)}`,
-                retries: 1,
+            await setCellResilient({
+                avID: avId,
+                keyID,
+                itemID: vehicleId,
+                value: payload,
+                plugin,
+                moduleId: "vehicles",
+                colKey: item.key,
+                ref: vRef as any,
+                schemaCol: { key: item.key, type: item.type },
+                requestOptions: {
+                    idempotencyKey: `veh-summary:${avId}:${vehicleId}:${item.key}:${JSON.stringify(payload)}`,
+                    retries: 1,
+                },
             });
             updatedFields.push(item.key);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            if (msg.includes("key not found")) {
-                try {
-                    const healedKey = await healColumnMapping(plugin, "vehicles", item.key);
-                    if (healedKey && healedKey !== keyID) {
-                        keyID = healedKey;
-                        await setCell(avId, keyID, vehicleId, payload, {
-                            idempotencyKey: `veh-summary:${avId}:${vehicleId}:${item.key}:healed:${JSON.stringify(payload)}`,
-                            retries: 1,
-                        });
-                        updatedFields.push(item.key);
-                        continue;
-                    }
-                } catch { /* fall through to failed */ }
-            }
+        } catch {
             failed.push(item.key);
         }
     }

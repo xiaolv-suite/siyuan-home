@@ -16,7 +16,7 @@
     } = $props();
 </script>
 
-<details class="lv-start-guide" open aria-labelledby="lv-start-guide-title">
+<details class="lv-start-guide" aria-labelledby="lv-start-guide-title">
     <summary class="lv-start-guide__summary">
         <span class="lv-start-guide__copy">
             <span class="lv-kicker">{t("startGuide.kicker")}</span>

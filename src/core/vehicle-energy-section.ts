@@ -3,10 +3,11 @@
  * 解耦自 vehicle-drawer.ts，提升模块可维护度
  */
 
-import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "./rowlog";
+import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry, type RowLogs } from "./rowlog";
+import { deleteDiaryEventWithTombstone, recordHighFrequencyDiaryEvent } from "./diary-envelope";
 import { syncVehicleSummaryToAv } from "./vehicle-summary-sync";
 import { bindDialogA11y } from "./dialog-a11y";
-import { calculateEnergyStats, type EnergyKind, type EnergyRecord } from "./fuel";
+import { calculateEnergyStats, normalizeEnergyRecords, type EnergyKind, type EnergyRecord } from "./fuel";
 import { pointsToSmoothBezierPath, pointsToAreaBezierPath } from "./chart";
 import { rowLogActivityId, markActivityLine, type ActivityTarget } from "./activity";
 import { formatAmount } from "./format";
@@ -31,7 +32,7 @@ export interface VehicleEnergySectionOptions {
         fail: (action: VehicleQuickAction, error: string) => boolean;
         request: (action: VehicleQuickAction) => { status: "ready" | "queued" | "failed"; error?: string };
     };
-    onLogUpdated?: () => Promise<void>;
+    onLogUpdated?: (logs?: RowLogs) => Promise<void>;
 }
 
 export async function renderVehicleEnergySection(options: VehicleEnergySectionOptions): Promise<void> {
@@ -77,7 +78,13 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
     const entriesFor = (kind: EnergyKind) => getEntries<EnergyRecord>(logs, ref.avId!, row.itemID, kind === "fuel" ? "fuelings" : "chargings");
     const compactNumber = (value: number | undefined, digits = 2) => value === undefined || !Number.isFinite(value) ? "—" : String(Number(value.toFixed(digits)));
 
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
+
     function openEnergyForm(kind: EnergyKind, existing?: EnergyRecord) {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         const isFuel = kind === "fuel";
         const dialog = new DialogCls({
             title: t(existing ? "fuel.editRecord" : isFuel ? "fuel.addFuel" : "fuel.addCharging"),
@@ -179,21 +186,30 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
         const save = dialog.element.querySelector("#lv-energy-save") as HTMLButtonElement;
         cancel.onclick = () => dialog.destroy();
         save.onclick = async () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             clearFieldErrors();
-            const date = (controls.date as HTMLInputElement).value;
-            const odometer = Number((controls.odometer as HTMLInputElement).value);
-            const quantity = Number((controls.quantity as HTMLInputElement).value);
+            const date = (controls.date as HTMLInputElement).value || localDateKey(new Date());
+            const odometerText = (controls.odometer as HTMLInputElement).value.trim();
+            const quantityText = (controls.quantity as HTMLInputElement).value.trim();
+            const odometer = odometerText ? Number(odometerText) : 0;
+            const quantity = quantityText ? Number(quantityText) : 0;
             const priceText = (controls.unitPrice as HTMLInputElement).value.trim();
             const costText = (controls.totalCost as HTMLInputElement).value.trim();
             const unitPrice = priceText ? Number(priceText) : undefined;
             const totalCost = costText ? Number(costText) : undefined;
 
             const invalid: string[] = [];
-            if (!date) invalid.push("date");
-            if (!Number.isFinite(odometer) || odometer <= 0) invalid.push("odometer");
-            if (!Number.isFinite(quantity) || quantity <= 0) invalid.push("quantity");
+            if (odometerText !== "" && (!Number.isFinite(odometer) || odometer < 0)) invalid.push("odometer");
+            if (quantityText !== "" && (!Number.isFinite(quantity) || quantity < 0)) invalid.push("quantity");
             if (unitPrice !== undefined && (!Number.isFinite(unitPrice) || unitPrice < 0)) invalid.push("unitPrice");
             if (totalCost !== undefined && (!Number.isFinite(totalCost) || totalCost < 0)) invalid.push("totalCost");
+            const hasAnyMeasurement = odometer > 0 || quantity > 0 || (totalCost !== undefined && totalCost > 0);
+            if (!hasAnyMeasurement && invalid.length === 0) {
+                invalid.push("quantity");
+            }
             if (invalid.length) {
                 const first = invalid[0];
                 for (const key of invalid) markFieldError(key, t("fuel.invalidField").replace("${field}", t(`fuel.field.${key}`)));
@@ -213,23 +229,67 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                     ...((controls.station as HTMLInputElement).value.trim() ? { station: (controls.station as HTMLInputElement).value.trim() } : {}),
                     ...((controls.note as HTMLInputElement).value.trim() ? { note: (controls.note as HTMLInputElement).value.trim() } : {}),
                 };
+                const rawExisting = existing as unknown as Record<string, any> | undefined;
+                let diaryMeta: Record<string, string> = rawExisting?.diaryBlockId
+                    ? {
+                        ...(rawExisting.diaryEventId ? { diaryEventId: String(rawExisting.diaryEventId) } : {}),
+                        diaryBlockId: String(rawExisting.diaryBlockId),
+                        ...(rawExisting.diaryDocId ? { diaryDocId: String(rawExisting.diaryDocId) } : {}),
+                    }
+                    : {};
+                try {
+                    if (rawExisting?.diaryBlockId) {
+                        await deleteDiaryEventWithTombstone(plugin, {
+                            eventId: String(rawExisting.diaryEventId || rawExisting.diaryBlockId),
+                            blockId: String(rawExisting.diaryBlockId),
+                            module: "vehicles",
+                            action: String(rawExisting.kind || kind),
+                            target: row.itemID,
+                            bizDate: existing!.date,
+                        });
+                        diaryMeta = {};
+                    }
+                    const effectiveAmount = totalCost !== undefined
+                        ? totalCost
+                        : (unitPrice !== undefined && quantity > 0 ? quantity * unitPrice : undefined);
+                    const fullText = full.checked ? (isFuel ? "已加满" : "已充满") : "";
+                    const qtyPart = quantity > 0 ? `${quantity}${isFuel ? "L" : "kWh"}` : "";
+                    const amtPart = effectiveAmount !== undefined ? `¥${effectiveAmount.toFixed(2)}` : "";
+                    const stationText = entry.station ? `${entry.station}` : "";
+                    const details = [qtyPart, amtPart, fullText, stationText].filter(Boolean).join(" · ");
+                    const milePart = odometer > 0 ? ` (${odometer}km)` : "";
+                    const diaryText = `${isFuel ? "🚗 车辆加油" : "🚗 车辆充电"}${details ? `：${details}` : ""}${milePart} #车辆 #${isFuel ? "加油" : "充电"}`;
+                    const res = await recordHighFrequencyDiaryEvent(plugin, {
+                        module: "vehicles",
+                        action: kind,
+                        target: row.itemID,
+                        avId: ref.avId,
+                        bizDate: date,
+                        recordedAt: new Date().toISOString(),
+                        text: diaryText,
+                        amount: effectiveAmount !== undefined ? effectiveAmount.toFixed(2) : undefined,
+                        quantity: quantity > 0 ? quantity : undefined,
+                        odometer: odometer > 0 ? odometer : undefined,
+                    });
+                    diaryMeta = { diaryEventId: res.eventId, diaryBlockId: res.blockId, diaryDocId: res.docId };
+                } catch { /* soft */ }
                 const logKind = kind === "fuel" ? "fuelings" : "chargings";
                 const next = await updateRowLogs(plugin, (latest) => {
                     const base = existing ? removeEntry(latest, ref.avId!, row.itemID, logKind, existing as unknown as Record<string, unknown>) : latest;
-                    return appendEntry(base, ref.avId!, row.itemID, logKind, { ...entry, at: new Date().toISOString() });
+                    return appendEntry(base, ref.avId!, row.itemID, logKind, { ...entry, ...diaryMeta, at: new Date().toISOString() });
                 });
                 logs = next;
                 await syncVehicleSummaryToAv(plugin, row.itemID, next, {
                     energyType: vehicleEnergyType,
                     vRef: ref,
-                    mileage: Number.isFinite(odometer) && (!Number.isFinite(currentOdometer) || odometer > currentOdometer) ? odometer : undefined,
+                    mileage: Number.isFinite(odometer) && odometer > 0 && (!Number.isFinite(currentOdometer) || odometer > currentOdometer) ? odometer : undefined,
                 }).catch(() => undefined);
                 await import("./doc-sync")
                     .then(({ syncModuleDocSection }) => syncModuleDocSection(plugin, "vehicles", next))
                     .catch(() => undefined);
                 dialog.destroy();
                 renderEnergy();
-                if (onLogUpdated) await onLogUpdated();
+                if (onLogUpdated) await onLogUpdated(next);
                 showMessageFn(t(existing ? "fuel.updated" : "fuel.saved"), 2500, "info");
             } catch (error) {
                 showMessageFn(t("ledger.logSaveFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 6000, "error");
@@ -265,6 +325,10 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             const heading = mk("b", "", t(isFuel ? "fuel.fuelTitle" : "fuel.chargingTitle"));
             const add = mk("button", "b3-button b3-button--outline", `+ ${t(isFuel ? "fuel.addFuel" : "fuel.addCharging")}`) as HTMLButtonElement;
             add.dataset.lvVehicleAction = kind;
+            if (isGuest) {
+                add.disabled = true;
+                add.title = t("guest.writeBlocked");
+            }
             add.onclick = () => openEnergyForm(kind);
             head.append(heading, add);
             section.appendChild(head);
@@ -332,10 +396,12 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
             }
 
             const monthlyCosts = new Map<string, { amount: number; count: number }>();
-            for (const entry of records) {
-                const amount = typeof entry.totalCost === "number" && Number.isFinite(entry.totalCost)
+            for (const entry of normalizeEnergyRecords(records, kind)) {
+                const amount = typeof entry.totalCost === "number" && Number.isFinite(entry.totalCost) && entry.totalCost >= 0
                     ? entry.totalCost
-                    : typeof entry.unitPrice === "number" && Number.isFinite(entry.unitPrice) ? entry.quantity * entry.unitPrice : undefined;
+                    : typeof entry.unitPrice === "number" && Number.isFinite(entry.unitPrice) && entry.unitPrice >= 0 && entry.quantity > 0
+                        ? entry.quantity * entry.unitPrice
+                        : undefined;
                 if (amount === undefined) continue;
                 const month = entry.date.slice(0, 7);
                 const current = monthlyCosts.get(month) ?? { amount: 0, count: 0 };
@@ -374,17 +440,41 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                 line.dataset.lvActivityId = rowLogActivityId(active, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>);
                 if (line.dataset.lvActivityId === activityTarget?.activityId) markActivityLine(line);
 
-                const volume = `${compactNumber(entry.quantity)} ${unit}`;
+                const volume = entry.quantity > 0 ? `${compactNumber(entry.quantity)} ${unit}` : "";
                 const type = isFuel ? (entry.fuelGrade ? t(`fuel.option.${entry.fuelGrade}`) : "") : (entry.chargingMode ? t(`fuel.option.${entry.chargingMode}`) : "");
+                const odoStr = entry.odometer > 0 ? `${formatAmount(entry.odometer)} ${t("fuel.km")}` : "";
                 const price = typeof entry.totalCost === "number" ? `${formatAmount(entry.totalCost)} ${t("fuel.currency")}` : typeof entry.unitPrice === "number" ? `${compactNumber(entry.unitPrice)} ${t("fuel.unitPrice")}` : t("fuel.costUnknown");
-                const descText = `${entry.date} · ${volume}${type ? ` · ${type}` : ""} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.full ? ` · ${t(isFuel ? "fuel.fullTankShort" : "fuel.fullChargeShort")}` : ""} · ${price}${entry.station ? ` · ${entry.station}` : ""}`;
+                const fullStr = entry.full ? t(isFuel ? "fuel.fullTankShort" : "fuel.fullChargeShort") : "";
+                const descText = [entry.date, volume, type, odoStr, fullStr, price, entry.station].filter(Boolean).join(" · ");
                 const desc = mk("span", "lv-flex-wrap-anywhere", descText);
                 const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
                 const edit = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("members.edit")) as HTMLButtonElement;
+                if (isGuest) {
+                    edit.disabled = true;
+                    edit.title = t("guest.writeBlocked");
+                    del.disabled = true;
+                    del.title = t("guest.writeBlocked");
+                }
                 edit.onclick = () => openEnergyForm(kind, entry);
-                del.onclick = () => confirm(t("fuel.deleteEntry"), t("fuel.deleteEntryConfirm"), async () => {
+                del.onclick = () => {
+                    if (plugin?.runtime?.guestModeActive) {
+                        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                        return;
+                    }
+                    confirm(t("fuel.deleteEntry"), t("fuel.deleteEntryConfirm"), async () => {
                     del.disabled = true;
                     try {
+                        const rawRec = entry as unknown as Record<string, any>;
+                        if (rawRec.diaryBlockId) {
+                            await deleteDiaryEventWithTombstone(plugin, {
+                                eventId: String(rawRec.diaryEventId || rawRec.diaryBlockId),
+                                blockId: String(rawRec.diaryBlockId),
+                                module: "vehicles",
+                                action: String(rawRec.kind || kind),
+                                target: row.itemID,
+                                bizDate: entry.date,
+                            });
+                        }
                         const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, kind === "fuel" ? "fuelings" : "chargings", entry as unknown as Record<string, unknown>));
                         logs = next;
                         await syncVehicleSummaryToAv(plugin, row.itemID, next, {
@@ -392,12 +482,13 @@ export async function renderVehicleEnergySection(options: VehicleEnergySectionOp
                             vRef: ref,
                         }).catch(() => undefined);
                         renderEnergy();
-                        if (onLogUpdated) await onLogUpdated();
+                        if (onLogUpdated) await onLogUpdated(next);
                     } catch (error) {
                         del.disabled = false;
                         showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
                     }
                 });
+                };
                 line.append(desc, edit, del);
                 section.appendChild(line);
             }

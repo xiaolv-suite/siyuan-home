@@ -20,6 +20,13 @@ import { syncVehicleSummaryToAv } from "./vehicle-summary-sync";
 import { syncModuleDocSection } from "./doc-sync";
 import { homeNotify } from "@/libs/notice";
 
+function warnIfPartialFields(failed: string[], context: string): void {
+    if (!failed || failed.length === 0) return;
+    try {
+        homeNotify(`${context}：行已保存，但部分字段写入失败（${failed.join(", ")}）`, 5000, "error");
+    } catch { /* ignore */ }
+}
+
 async function recordDiarySafely(
     plugin: any,
     input: RecordDiaryEventInput,
@@ -37,7 +44,18 @@ async function recordDiarySafely(
     }
 }
 
-export async function ensureModuleTargetRef(plugin: any, mod: string): Promise<any> {
+export async function ensureModuleTargetRef(
+    plugin: any,
+    mod: string,
+    options: { autoEnable?: boolean } = {},
+): Promise<any> {
+    if (options.autoEnable && Array.isArray(plugin.settings?.enabledModules) && !plugin.settings.enabledModules.includes(mod)) {
+        plugin.settings.enabledModules = [...plugin.settings.enabledModules, mod];
+        try {
+            const { saveSettings } = await import("./settings");
+            await saveSettings(plugin, plugin.settings);
+        } catch { /* soft */ }
+    }
     let r = plugin.settings.dbRefs?.[mod];
     if (!r?.avId) {
         await plugin.repairModule?.(mod);
@@ -62,19 +80,20 @@ export interface QuickFuelingSaveParams {
     vehicleId: string;
     kind: EnergyKind;
     amount?: number;
-    liters: number;
-    mileage: number;
+    liters?: number;
+    mileage?: number;
     unitPrice?: number;
     isFull?: boolean;
     fuelGrade?: string;
     chargingMode?: string;
+    note?: string;
     createHistoryDiaryDoc?: boolean;
 }
 
 export async function saveQuickFuelingRecord(params: QuickFuelingSaveParams): Promise<any> {
     const {
-        plugin, date, time, vehicleId, kind, amount, liters,
-        mileage, unitPrice, isFull = false, fuelGrade, chargingMode,
+        plugin, date, time, vehicleId, kind, amount, liters = 0,
+        mileage = 0, unitPrice, isFull = false, fuelGrade, chargingMode, note,
         createHistoryDiaryDoc,
     } = params;
     const isCharging = kind === "charging";
@@ -89,11 +108,17 @@ export async function saveQuickFuelingRecord(params: QuickFuelingSaveParams): Pr
         full: isFull,
         fuelGrade: !isCharging ? fuelGrade : undefined,
         chargingMode: isCharging ? chargingMode : undefined,
+        note,
     });
-    const vRef = await ensureModuleTargetRef(plugin, "vehicles");
+    const vRef = await ensureModuleTargetRef(plugin, "vehicles", { autoEnable: true });
     const diaryEventId = `evt-${newSiYuanId()}`;
     const fullText = isFull ? (isCharging ? "已充满" : "已加满") : "";
-    const lineText = `${time || "00:00"} ${isCharging ? "🚗 车辆充电" : "🚗 车辆加油"}：${liters}${isCharging ? "kWh" : "L"}${amount !== undefined ? ` · ¥${amount.toFixed(2)}` : ""}${fullText ? ` · ${fullText}` : ""} (${mileage}km) #车辆 #${isCharging ? "充电" : "加油"}`;
+    const qtyPart = liters > 0 ? `${liters}${isCharging ? "kWh" : "L"}` : "";
+    const amtPart = amount !== undefined ? `¥${amount.toFixed(2)}` : "";
+    const milePart = mileage > 0 ? `(${mileage}km)` : "";
+    const notePart = note?.trim() ? note.trim() : "";
+    const detailParts = [qtyPart, amtPart, fullText, notePart].filter(Boolean).join(" · ");
+    const lineText = `${time || "00:00"} ${isCharging ? "🚗 车辆充电" : "🚗 车辆加油"}${detailParts ? `：${detailParts}` : ""}${milePart ? ` ${milePart}` : ""} #车辆 #${isCharging ? "充电" : "加油"}`;
 
     const diaryRes = await recordDiarySafely(plugin, {
         eventId: diaryEventId,
@@ -105,8 +130,8 @@ export async function saveQuickFuelingRecord(params: QuickFuelingSaveParams): Pr
         recordedAt: new Date().toISOString(),
         text: lineText,
         amount: amount !== undefined ? amount.toFixed(2) : undefined,
-        quantity: liters,
-        odometer: mileage,
+        quantity: liters > 0 ? liters : undefined,
+        odometer: mileage > 0 ? mileage : undefined,
         createHistoryDiaryDoc,
     });
 
@@ -117,8 +142,29 @@ export async function saveQuickFuelingRecord(params: QuickFuelingSaveParams): Pr
     const nextLogs = await updateRowLogs(plugin, (cur) =>
         appendEntry(cur, vRef.avId!, vehicleId, isCharging ? "chargings" : "fuelings", logWithDiary));
 
+    let currentMileage: number | undefined;
+    if (vRef.avId && vRef.columns?.mileage) {
+        try {
+            const allVehicles = await renderLedgerAll(vRef.avId);
+            const currentRow = allVehicles.rows.find((r) => r.itemID === vehicleId);
+            const mileageCell = currentRow?.cells?.[vRef.columns.mileage];
+            if (
+                mileageCell?.number?.isNotEmpty !== false &&
+                typeof mileageCell?.number?.content === "number" &&
+                Number.isFinite(mileageCell.number.content)
+            ) {
+                currentMileage = mileageCell.number.content;
+            }
+        } catch { /* soft */ }
+    }
+    const shouldWriteMileage =
+        typeof mileage === "number" &&
+        Number.isFinite(mileage) &&
+        mileage > 0 &&
+        (currentMileage === undefined || mileage > currentMileage);
+
     await syncVehicleSummaryToAv(plugin, vehicleId, nextLogs, {
-        mileage: mileage || undefined,
+        mileage: shouldWriteMileage ? mileage : undefined,
         vRef,
     });
     await syncModuleDocSection(plugin, "vehicles", nextLogs).catch(() => undefined);
@@ -184,7 +230,8 @@ export async function saveQuickVitalRecord(params: QuickVitalSaveParams): Promis
     const targetMember = plugin.settings.members?.find((m: any) => m.avItemId === memberId || m.id === memberId);
     const memberName = targetMember ? `${targetMember.name}健康档案` : "家庭健康档案";
 
-    const summaryDiag = metricType === "bp" ? `血压 ${sys}/${dia} mmHg${pulse ? ` · 心率 ${pulse} bpm` : ""}`
+    const bpText = sys && dia ? `${sys}/${dia}` : sys ? `${sys}` : dia ? `${dia}` : "";
+    const summaryDiag = metricType === "bp" ? `血压 ${bpText} mmHg${pulse ? ` · 心率 ${pulse} bpm` : ""}`
         : metricType === "glucose" ? `${timing === "postprandial" ? "餐后" : "空腹"}血糖 ${glucose} mmol/L`
         : metricType === "weight" ? `体重 ${weight} kg`
         : `体温 ${temp} ℃`;
@@ -198,24 +245,29 @@ export async function saveQuickVitalRecord(params: QuickVitalSaveParams): Promis
     };
 
     if (!row) {
-        const { itemID } = await writeLedgerRow({
+        const writeRes = await writeLedgerRow({
             moduleId: "health",
             target: healthRef,
             name: memberName,
-            members: plugin.settings.members,
+            plugin,
+            members: plugin.settings?.members,
             operationKey: `vital:init:${memberId || "default"}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
             fields: vitalFields,
         });
-        row = { itemID, cells: {} };
+        warnIfPartialFields(writeRes.failed, "健康体征");
+        row = { itemID: writeRes.itemID, cells: {} };
     } else {
-        await writeLedgerRow({
+        const writeRes = await writeLedgerRow({
             moduleId: "health",
             target: healthRef,
             itemId: row.itemID,
             name: "",
-            members: plugin.settings.members,
+            plugin,
+            members: plugin.settings?.members,
+            operationKey: `vital:upd:${row.itemID}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
             fields: vitalFields,
         });
+        warnIfPartialFields(writeRes.failed, "健康体征");
     }
 
     const vitalDiaryRes = await recordDiarySafely(plugin, {
@@ -304,16 +356,20 @@ export async function saveQuickChoreRecord(params: QuickChoreSaveParams): Promis
             ...(choreDiaryRes ? { diaryEventId: choreDiaryRes.eventId, diaryBlockId: choreDiaryRes.blockId, diaryDocId: choreDiaryRes.docId } : {}),
         }));
 
-    await writeLedgerRow({
+    const choreWriteRes = await writeLedgerRow({
         moduleId: "chores",
         target: choreRef,
         itemId: choreRowId,
         name: "",
+        plugin,
+        members: plugin.settings?.members,
+        operationKey: `quick:chore:${choreRowId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
         fields: {
             date,
             member: memberIds.length > 1 ? memberIds : (memberIds[0] || ""),
         },
     });
+    warnIfPartialFields(choreWriteRes.failed, "家务打卡");
 
     saveQuickDefaults(plugin, {
         choreRowId,
@@ -356,20 +412,29 @@ export interface QuickShoppingSaveParams {
 
 export async function saveQuickShoppingRecord(params: QuickShoppingSaveParams): Promise<any> {
     const { plugin, date, time, name, qty, price, category } = params;
+    if (typeof qty !== "number" || !Number.isFinite(qty) || qty <= 0) {
+        throw new Error("数量必须大于 0");
+    }
+    if (price !== undefined && price !== null && (typeof price !== "number" || !Number.isFinite(price) || price < 0)) {
+        throw new Error("单价不能小于 0");
+    }
     const normalizedCategory = category === "food" ? "food_sh" : category === "other" ? "other_sh" : (category || "daily");
     const shopRef = await ensureModuleTargetRef(plugin, "shopping");
-    const { itemID } = await writeLedgerRow({
+    const { itemID, failed: shopFailed } = await writeLedgerRow({
         moduleId: "shopping",
         target: shopRef,
         name,
+        plugin,
+        members: plugin.settings?.members,
         operationKey: `quick:shop:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
         fields: {
             qty: qty || 1,
             date,
             category: normalizedCategory,
-            ...(price ? { price } : {}),
+            ...(price !== undefined && price !== null ? { price } : {}),
         },
     });
+    warnIfPartialFields(shopFailed, "待买清单");
     const shopDiaryRes = await recordDiarySafely(plugin, {
         module: "shopping",
         action: "quick-shop",
@@ -414,10 +479,12 @@ export async function saveQuickSnippetRecord(params: QuickSnippetSaveParams): Pr
     const { plugin, date, time, text, tag, linkedVehicleId, linkedVehicleName } = params;
     const snipRef = await ensureModuleTargetRef(plugin, "snippets");
     const title = text.slice(0, 30);
-    const { itemID } = await writeLedgerRow({
+    const { itemID, failed: snipFailed } = await writeLedgerRow({
         moduleId: "snippets",
         target: snipRef,
         name: title,
+        plugin,
+        members: plugin.settings?.members,
         operationKey: `quick:snip:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
         fields: {
             content: text,
@@ -425,6 +492,7 @@ export async function saveQuickSnippetRecord(params: QuickSnippetSaveParams): Pr
             note: linkedVehicleName ? `[关联车辆: ${linkedVehicleName}] ${text}` : text,
         },
     });
+    warnIfPartialFields(snipFailed, "随手便签");
 
     const trimmedVehicleId = linkedVehicleId?.trim() || "";
     const vRef = trimmedVehicleId ? (plugin.settings?.dbRefs?.vehicles ?? await ensureModuleTargetRef(plugin, "vehicles").catch(() => undefined)) : undefined;

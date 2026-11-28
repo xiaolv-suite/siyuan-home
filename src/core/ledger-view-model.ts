@@ -5,8 +5,8 @@
 
 import { optLabel, optLabelText, SENSITIVE_CREDENTIAL_KEYS } from "./format";
 import { maskCredentialNumber, maskIdNumber } from "./idcard";
-import { selectCellContent, selectCellValue, cellContentText } from "./avcell";
-import { localDateKey } from "./hub/rule";
+import { selectCellContent, selectCellValue, cellContentText, relationCellBlockIDs } from "./avcell";
+import { localDateKey, parseDate } from "./hub/rule";
 import { searchMatch } from "./pinyin";
 import { maskValueForGuest, createDefaultGuestConfig } from "./guest-mode";
 
@@ -343,4 +343,49 @@ export function buildLedgerCellPayload(type: string, v: any, members?: any[]): u
         case "checkbox": return { type: "checkbox", checkbox: { checked: !!v } };
         default: return { type: "text", text: { content: String(v) } };
     }
+}
+
+/** 从已有台账行提取「复制此行」所需的表单初始值（relation 列提取 blockIDs 而非展示名） */
+export function buildDuplicateRowValues(options: {
+    row: any;
+    columns?: Record<string, string>;
+    schemaCols: any[];
+    cellTextFn: (cell: any, key?: string) => string;
+}): Record<string, any> {
+    const { row, columns, schemaCols, cellTextFn } = options;
+    const rawRowName = (columns?.name && cellTextFn(row?.cells?.[columns.name])) || "";
+    const rowName = rawRowName === "—" ? "" : rawRowName;
+    const cloneName = rowName ? `${rowName} (副本)` : "";
+    const copiedValues: Record<string, any> = { name: cloneName };
+    for (const col of schemaCols) {
+        if (col.key === "name" || ["asset", "mAsset"].includes(col.type)) continue;
+        const keyID = columns?.[col.key];
+        const v = keyID ? row?.cells?.[keyID] : undefined;
+        if (!v) continue;
+        if (col.type === "select") {
+            copiedValues[col.key] = selectCellContent(v);
+        } else if (col.type === "number") {
+            if (v.number?.isNotEmpty === false || (v as any).value?.number?.isNotEmpty === false) continue;
+            const raw = v.number?.content ?? (v as any).content ?? (v as any).value?.number?.content ?? v;
+            const num = Number(raw);
+            copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
+        } else if (col.type === "date") {
+            if (v.date?.isNotEmpty === false || (v as any).value?.date?.isNotEmpty === false) continue;
+            const raw = v.date?.content ?? (v as any).content ?? (v as any).value?.date?.content;
+            if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
+            else if (typeof raw === "string" && raw.trim()) {
+                const parsed = parseDate(raw.trim());
+                copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
+            }
+        } else if (col.type === "checkbox") {
+            copiedValues[col.key] = v.checkbox?.checked ?? (v as any).checked ?? (v as any).value?.checkbox?.checked;
+        } else if (col.type === "relation") {
+            const ids = relationCellBlockIDs(v);
+            copiedValues[col.key] = ids.length > 1 ? ids : (ids[0] ?? "");
+        } else {
+            const text = cellTextFn(v, col.key);
+            copiedValues[col.key] = text === "—" ? "" : text;
+        }
+    }
+    return copiedValues;
 }

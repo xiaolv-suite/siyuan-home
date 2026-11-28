@@ -35,20 +35,29 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
     const name = String(cellTextFn(row.cells?.[ref.columns.name]));
     if (!name || name === "—") return;
 
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = t("ledger.rxToMedicine");
+    if (isGuest) {
+        btn.disabled = true;
+        btn.title = t("guest.writeBlocked");
+    }
 
     let pendingMedicineID: string | null = null;
     let medicineOperationKey: string | null = null;
 
     btn.onclick = () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (btn.disabled) return;
         confirm(t("ledger.rxToMedicine"), t("ledger.rxToMedicineBody").replace("${name}", name), async () => {
             btn.disabled = true;
             try {
-                const { addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
+                const { addDetachedRow, newSiYuanId, setCellResilient } = await import("./siyuan");
                 const { selectCellValue } = await import("./avcell");
                 if (!medicineOperationKey) medicineOperationKey = `ledger:rx-to-medicine:${row.itemID}:${Date.now()}`;
                 const itemID = pendingMedicineID ?? await addDetachedRow(medRef.avId!, name, {
@@ -57,17 +66,37 @@ export function renderRxToMedicineButton(options: RxToMedicineButtonOptions): vo
                     rowIdentity: { avID: medRef.avId!, desiredItemID: newSiYuanId(), before: [], submitted: false },
                 });
                 pendingMedicineID = itemID;
-                const catKey = medRef.columns?.category;
-                if (catKey) await setCell(medRef.avId!, catKey, itemID, selectCellValue("rx"), {
-                    idempotencyKey: `${medicineOperationKey}:category`,
-                    retries: 1,
+                await setCellResilient({
+                    avID: medRef.avId!,
+                    keyID: medRef.columns?.category,
+                    itemID,
+                    value: selectCellValue("rx"),
+                    plugin,
+                    moduleId: "medicine",
+                    colKey: "category",
+                    ref: medRef,
+                    requestOptions: {
+                        idempotencyKey: `${medicineOperationKey}:category`,
+                        retries: 1,
+                    },
                 });
-                const memKey = medRef.columns?.member;
                 const relBlock = row.cells?.[ref.columns!.member]?.relation?.blockIDs?.[0];
-                if (memKey && relBlock) await setCell(medRef.avId!, memKey, itemID, { type: "relation", relation: { blockIDs: [relBlock], contents: null } }, {
-                    idempotencyKey: `${medicineOperationKey}:member`,
-                    retries: 1,
-                });
+                if (relBlock) {
+                    await setCellResilient({
+                        avID: medRef.avId!,
+                        keyID: medRef.columns?.member,
+                        itemID,
+                        value: { type: "relation", relation: { blockIDs: [relBlock], contents: null } },
+                        plugin,
+                        moduleId: "medicine",
+                        colKey: "member",
+                        ref: medRef,
+                        requestOptions: {
+                            idempotencyKey: `${medicineOperationKey}:member`,
+                            retries: 1,
+                        },
+                    });
+                }
                 showMessageFn(t("ledger.rxToMedicineDone").replace("${name}", name), 3000, "info");
                 pendingMedicineID = null;
                 medicineOperationKey = null;
@@ -112,10 +141,15 @@ export function renderStockInButton(options: StockInButtonOptions): void {
     const qtyRaw = cellTextFn(row.cells?.[ref.columns.qty]);
     const qty = qtyRaw !== "—" && qtyRaw !== "" && Number.isFinite(Number(qtyRaw)) && Number(qtyRaw) > 0 ? Number(qtyRaw) : 1;
 
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = t("ledger.stockIn");
+    if (isGuest) {
+        btn.disabled = true;
+        btn.title = t("guest.writeBlocked");
+    }
 
     let pendingStockItemID: string | null = null;
     let stockOperationKey: string | null = null;
@@ -123,15 +157,26 @@ export function renderStockInButton(options: StockInButtonOptions): void {
     let stockInBusy = false;
 
     btn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (stockInBusy) return;
         stockInBusy = true;
         btn.disabled = true;
         try {
-            const { renderLedgerAll, addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
+            const { renderLedgerAll, addDetachedRow, newSiYuanId, setCellResilient } = await import("./siyuan");
             const res = await renderLedgerAll(medRef.avId!);
             if (!res.complete) throw new Error(t("ledger.loadIncomplete"));
             const nameKey = medRef.columns?.name;
-            const stockKey = medRef.columns?.stock ?? medRef.columns?.stock_qty;
+            const stockColKey = medRef.columns?.stock ? "stock" : "stock_qty";
+            let stockKey = medRef.columns?.stock ?? medRef.columns?.stock_qty;
+            if (!stockKey) {
+                try {
+                    const { healColumnMapping } = await import("./provision-adoption");
+                    stockKey = await healColumnMapping(plugin, "medicine", stockColKey);
+                } catch { /* soft */ }
+            }
             if (!nameKey || !stockKey) throw new Error("stock column is unavailable");
 
             const matches = res.rows.filter((r) => String(cellTextFn(r.cells?.[nameKey])).trim() === name);
@@ -171,9 +216,19 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                                 const curVal = cur?.isNotEmpty && typeof cur.content === "number" ? cur.content : 0;
                                 stockWrite = { itemID: target.itemID, value: curVal + qty, idempotencyKey: `${stockOperationKey}:cell:${target.itemID}` };
                             }
-                            await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
-                                idempotencyKey: stockWrite.idempotencyKey,
-                                retries: 1,
+                            await setCellResilient({
+                                avID: medRef.avId!,
+                                keyID: stockKey,
+                                itemID: stockWrite.itemID,
+                                value: { type: "number", number: { content: stockWrite.value, isNotEmpty: true } },
+                                plugin,
+                                moduleId: "medicine",
+                                colKey: stockColKey,
+                                ref: medRef,
+                                requestOptions: {
+                                    idempotencyKey: stockWrite.idempotencyKey,
+                                    retries: 1,
+                                },
                             });
                         } else {
                             const itemID = pendingStockItemID ?? await addDetachedRow(medRef.avId!, name, {
@@ -183,9 +238,19 @@ export function renderStockInButton(options: StockInButtonOptions): void {
                             });
                             pendingStockItemID = itemID;
                             if (!stockWrite) stockWrite = { itemID, value: qty, idempotencyKey: `${stockOperationKey}:cell:${itemID}` };
-                            await setCell(medRef.avId!, stockKey, stockWrite.itemID, { type: "number", number: { content: stockWrite.value, isNotEmpty: true } }, {
-                                idempotencyKey: stockWrite.idempotencyKey,
-                                retries: 1,
+                            await setCellResilient({
+                                avID: medRef.avId!,
+                                keyID: stockKey,
+                                itemID: stockWrite.itemID,
+                                value: { type: "number", number: { content: stockWrite.value, isNotEmpty: true } },
+                                plugin,
+                                moduleId: "medicine",
+                                colKey: stockColKey,
+                                ref: medRef,
+                                requestOptions: {
+                                    idempotencyKey: stockWrite.idempotencyKey,
+                                    retries: 1,
+                                },
                             });
                             pendingStockItemID = null;
                         }
@@ -246,13 +311,22 @@ export function renderShoppingToAssetButton(options: ShoppingToAssetButtonOption
     const name = String(cellTextFn(row.cells?.[ref.columns.name]));
     if (!name || name === "—") return;
 
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn lv-ml-6";
     btn.textContent = t("ledger.shoppingToAsset");
+    if (isGuest) {
+        btn.disabled = true;
+        btn.title = t("guest.writeBlocked");
+    }
 
     let busy = false;
     btn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (busy) return;
         busy = true;
         btn.disabled = true;

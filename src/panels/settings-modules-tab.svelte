@@ -96,12 +96,11 @@
                     <div class="fn__flex-1 fn__flex-column">
                         <span>
                             {t(`module.${mod.id}`)}
-                            {#if mod.alwaysOn}<span class="lv-badge gray">{t("alwaysOn")}</span>{/if}
-                            {#if mod.devStatus === "ready"}
+                            {#if mod.alwaysOn}
+                                <span class="lv-badge gray">{t("lib.alwaysOnBadge")}</span>
+                            {:else if enabledIds.has(mod.id)}
                                 <span class="lv-badge green">{t("ready")}</span>
-                            {:else if mod.devStatus === "skeleton"}
-                                <span class="lv-badge gray">{t("skeleton")}</span>
-                            {:else if mod.devStatus === "planned"}
+                            {:else}
                                 <span class="lv-badge gray">{t("planned")}</span>
                             {/if}
                         </span>

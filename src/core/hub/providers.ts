@@ -9,7 +9,7 @@ import { CERTS_SCHEMA, MEMBERS_SCHEMA, type ModuleSchema, type NumericRuleSpec }
 import type { DbRef, HomeSettings } from "@/types";
 import { getEntries, type RowLogs } from "../rowlog";
 import { normalizeMaintenanceRecords, type MaintenanceRecord } from "../vehicle";
-import type { AvCellLike } from "../avcell";
+import { normalizedSelectCellContent, type AvCellLike } from "../avcell";
 
 export interface DataProvider {
     readonly moduleId: string;
@@ -59,9 +59,15 @@ function textFromValue(v: AvCellLike | null | undefined): string | undefined {
     return undefined;
 }
 
-/** select 单选值（certs status 过滤用） */
-function selectFromValue(v: AvCellLike | null | undefined): string | undefined {
-    return v?.select?.content ?? v?.mSelect?.[0]?.content ?? undefined;
+/** select 单选值（支持按 schema 枚举归一化与默认值兜底） */
+function selectFromValue(
+    v: AvCellLike | null | undefined,
+    col?: { options?: readonly string[]; default?: string },
+    fallbackToDefault = false,
+    preserveUnknown = false,
+): string | undefined {
+    if (!col) return v?.select?.content ?? v?.mSelect?.[0]?.content ?? undefined;
+    return normalizedSelectCellContent(v, col, { fallbackToDefault, preserveUnknown });
 }
 
 /** number 列值（H15）：0 算有值，但思源 Go 内核未填写数字列为 { content: 0, isNotEmpty: false }，须严格区分 */
@@ -130,9 +136,10 @@ export class CertsProvider implements DataProvider {
         const { rows } = read;
         // relation 列（成员）→ 行 itemID → settings.members（avItemId 反查，成员过滤键）
         const members = this.deps.settings.members ?? [];
+        const statusCol = schema.columns.find((c) => c.key === "status");
         for (const row of rows) {
             const cell = (key: string) => row.cells[ref.columns![key]];
-            const status = selectFromValue(cell("status"));
+            const status = selectFromValue(cell("status"), statusCol, statusCol?.default !== undefined);
             if (status && status !== "valid") continue;
             const name = textFromValue(cell("name")) ?? "未命名证件";
             const relBlockIDs: string[] | undefined = cell("member")?.relation?.blockIDs ?? undefined;
@@ -193,9 +200,10 @@ export class SchemaLedgerProvider implements DataProvider {
             : undefined;
         // 通用终态过滤：状态命中即跳过（字典 status 枚举的非活跃值）
         const skip = new Set(["archived", "void", "expired", "renewed", "refunded", "discarded", "surrendered", "ins_expired", "med_expired", "m_expired"]);
+        const statusCol = this.schema.columns.find((c) => c.key === "status");
         for (const row of rows) {
             const cell = (key: string) => row.cells[ref.columns![key]];
-            if (skip.has(selectFromValue(cell("status")) ?? "")) continue;
+            if (skip.has(selectFromValue(cell("status"), statusCol, statusCol?.default !== undefined) ?? "")) continue;
             const name = textFromValue(cell("name")) ?? this.moduleId;
             const rel: string[] | undefined = cell("member")?.relation?.blockIDs ?? undefined;
             const member = rel?.[0] ? members.find((m) => m.avItemId === rel[0]) : undefined;
@@ -214,14 +222,16 @@ export class SchemaLedgerProvider implements DataProvider {
             for (const rule of this.schema.reminders ?? []) {
                 // onlyIf（190 波）：仅当指定 select 列值匹配时才派生（favors 只对收礼 direction=in 回礼）
                 if (rule.onlyIf) {
-                    const actual = selectFromValue(cell(rule.onlyIf.field)) ?? "";
+                    const onlyIfCol = this.schema.columns.find((c) => c.key === rule.onlyIf!.field);
+                    const actual = selectFromValue(cell(rule.onlyIf.field), onlyIfCol) ?? "";
                     if (actual !== rule.onlyIf.equals) continue;
                 }
                 const v = cell(rule.field);
                 const fieldValue = dateFromValue(v) ?? textFromValue(v);
                 if (!fieldValue) continue;
                 const cycleKey = rule.cycleField ?? "cycle";
-                const rawCycle = selectFromValue(cell(cycleKey)) ?? textFromValue(cell(cycleKey));
+                const cycleCol = this.schema.columns.find((c) => c.key === cycleKey);
+                const rawCycle = selectFromValue(cell(cycleKey), cycleCol, false, true) ?? textFromValue(cell(cycleKey));
                 const isRecurring = rule.kind === "recurring" || (this.moduleId === "chores" && !!rawCycle);
                 const effectiveRule: ReminderRuleSpec = isRecurring && rule.kind !== "recurring"
                     ? { ...rule, kind: "recurring" }

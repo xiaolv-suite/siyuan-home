@@ -45,6 +45,8 @@
     let v2MigrationBusy = $state(false);
     let v2MigrationStatus = $state("");
     let trashRevision = $state(0);
+    let restoringTrashIds = $state<Set<string>>(new Set());
+    const isGuestMode = $derived(Boolean(plugin?.runtime?.guestModeActive));
 
     async function handleV2MigrationDryRun() {
         if (v2MigrationBusy) return;
@@ -282,36 +284,52 @@
                             </div>
                             <div class="lv-trash-ops">
                                 <span class="lv-badge gray lv-badge--xs">{t("settings.trashTitle")}</span>
-                                <button type="button" class="b3-button b3-button--outline lv-btn-xs" onclick={async () => {
-                                    const { restoreTrashItem } = await import("@/core/trash");
-                                    const res = await restoreTrashItem(plugin, item.id);
-                                    if (res.success) {
-                                        trashRevision += 1;
-                                        plugin.emitHubChanged?.();
-                                        showMessage(t("settings.trashRestored"), 3000, "info");
-                                    } else {
-                                        showMessage(res.error || t("ledger.saveFailed"), 5000, "error");
-                                    }
-                                }}>
-                                    {t("settings.trashRestore")}
+                                <button type="button" class="b3-button b3-button--outline lv-btn-xs"
+                                    disabled={isGuestMode || restoringTrashIds.has(item.id)}
+                                    aria-busy={restoringTrashIds.has(item.id)}
+                                    onclick={async () => {
+                                        if (plugin.runtime?.guestModeActive) {
+                                            showMessage(t("guest.writeBlocked"), 4000, "info");
+                                            return;
+                                        }
+                                        if (restoringTrashIds.has(item.id)) return;
+                                        restoringTrashIds = new Set([...restoringTrashIds, item.id]);
+                                        try {
+                                            const { restoreTrashItem } = await import("@/core/trash");
+                                            const res = await restoreTrashItem(plugin, item.id);
+                                            if (res.success) {
+                                                trashRevision += 1;
+                                                plugin.emitHubChanged?.();
+                                                showMessage(t("settings.trashRestored"), 3000, "info");
+                                            } else {
+                                                showMessage(res.error || t("ledger.saveFailed"), 5000, "error");
+                                            }
+                                        } finally {
+                                            const next = new Set(restoringTrashIds);
+                                            next.delete(item.id);
+                                            restoringTrashIds = next;
+                                        }
+                                    }}>
+                                    {restoringTrashIds.has(item.id) ? t("ledger.saving") : t("settings.trashRestore")}
                                 </button>
                             </div>
                         </div>
                     {/each}
-                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-self-start lv-mt-8" onclick={async () => {
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-self-start lv-mt-8" disabled={isGuestMode} onclick={async () => {
+                        if (plugin.runtime?.guestModeActive) {
+                            showMessage(t("guest.writeBlocked"), 4000, "info");
+                            return;
+                        }
                         const { confirm } = await import("@/libs/dialog");
                         confirm(
                             t("settings.trashClear"),
                             t("settings.trashClearConfirm"),
                             async () => {
-                                if (plugin.runtime) {
-                                    plugin.runtime.trash = [];
-                                    const { saveRuntime } = await import("@/core/hub/runtime");
-                                    await saveRuntime(plugin, plugin.runtime);
-                                    trashRevision += 1;
-                                    plugin.emitHubChanged?.();
-                                    showMessage(t("saved"), 2000, "info");
-                                }
+                                const { withRuntime } = await import("@/core/hub/actions");
+                                await withRuntime(plugin, (rt) => { rt.trash = []; });
+                                trashRevision += 1;
+                                plugin.emitHubChanged?.();
+                                showMessage(t("saved"), 2000, "info");
                             }
                         );
                     }}>

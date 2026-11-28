@@ -8,7 +8,7 @@
     import { Dialog } from "siyuan";
     import { showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
-    import { setCell } from "@/core/siyuan";
+    import { setCellResilient } from "@/core/siyuan";
     import { assetHref, isImageAsset } from "@/core/assets";
     import { capturePhotoFromDevice, preparePhotoFile } from "@/core/camera-capture";
     import { openNativeAssetPicker } from "@/libs/lv-notice-kit";
@@ -83,10 +83,20 @@
                         operation = { signature, key: newOperationKey(`ledger:${pendingItemID}:attachment:${key}`) };
                         attachmentWriteKeys.set(slot, operation);
                     }
-                    await setCell(ref.avId, ref.columns[key], pendingItemID, {
-                        type: "mAsset",
-                        mAsset: next.map(({ name, content }) => ({ name, content })),
-                    }, { idempotencyKey: operation.key, retries: 1 });
+                    await setCellResilient({
+                        avID: ref.avId,
+                        keyID: ref.columns[key],
+                        itemID: pendingItemID,
+                        value: {
+                            type: "mAsset",
+                            mAsset: next.map(({ name, content }) => ({ name, content })),
+                        },
+                        moduleId: active,
+                        colKey: key,
+                        ref: ref as any,
+                        schemaCol: { key, type: "mAsset" },
+                        requestOptions: { idempotencyKey: operation.key, retries: 1 },
+                    });
                     attachmentWriteKeys.delete(slot);
                 } catch (e) {
                     showMessage(t("ledger.attachmentRemoveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");

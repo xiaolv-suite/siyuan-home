@@ -5,6 +5,7 @@
 
 import { confirm } from "@/libs/dialog";
 import { bindDialogA11y } from "./dialog-a11y";
+import { escapeHtml } from "./modal-shell";
 import { localDateKey } from "./hub/rule";
 import { uiIcon } from "@/ui/icons";
 import type { HomeSettings } from "@/types";
@@ -68,7 +69,7 @@ export async function openDiagnosticsPreviewDialog(
             <div class="lv-diag-grid">
                 <div class="lv-diag-stat-card">
                     <span class="lv-caption">插件版本</span>
-                    <b style="color:var(--lv-tx)">v${payload.plugin || "0.5.x"}</b>
+                    <b style="color:var(--lv-tx)">v${escapeHtml(payload.plugin || "0.5.x")}</b>
                 </div>
                 <div class="lv-diag-stat-card">
                     <span class="lv-caption">已启用模块</span>
@@ -86,13 +87,13 @@ export async function openDiagnosticsPreviewDialog(
             ${errorCount > 0 ? `
                 <div class="lv-diag-error-card">
                     <b>异常摘要：</b>
-                    ${payload.scanErrors.map((e: any) => `<div>· ${e.moduleId}: ${e.message}</div>`).join("")}
+                    ${payload.scanErrors.map((e: any) => `<div>· ${escapeHtml(e.moduleId)}: ${escapeHtml(e.message)}</div>`).join("")}
                 </div>
             ` : ""}
             <div class="lv-caption ft__on-surface">
-                <div>· 运行平台：${payload.platform}</div>
-                <div>· 最近扫描：${payload.scannedAt ? new Date(payload.scannedAt).toLocaleString() : "尚未完成扫描"}</div>
-                <div>· 诊断生成时间：${payload.generatedAt}</div>
+                <div>· 运行平台：${escapeHtml(payload.platform)}</div>
+                <div>· 最近扫描：${escapeHtml(payload.scannedAt ? new Date(payload.scannedAt).toLocaleString() : "尚未完成扫描")}</div>
+                <div>· 诊断生成时间：${escapeHtml(payload.generatedAt)}</div>
             </div>
         </div>
         <div class="b3-dialog__action">

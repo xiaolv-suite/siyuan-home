@@ -1,4 +1,4 @@
-import { selectCellValue } from "@/core/avcell";
+import { normalizeSelectValue, selectCellValue } from "@/core/avcell";
 import type { ColumnDef, ModuleSchema } from "@/core/schema";
 
 export type CaptureInputError = "required" | "number" | "min" | "max" | "step" | "date" | "url" | "option";
@@ -81,7 +81,10 @@ export function validateCaptureInput(field: ColumnDef, value: unknown): CaptureI
 export function captureCellValue(field: ColumnDef, value: unknown): unknown | undefined {
     if (value === undefined || value === null || value === "") return undefined;
     switch (field.type) {
-        case "select": return selectCellValue(String(value));
+        case "select": {
+            const normalized = normalizeSelectValue(value, field, { fallbackToDefault: field.default !== undefined }) ?? String(value);
+            return selectCellValue(normalized);
+        }
         case "relation": {
             const id = String(value).trim();
             return id ? { type: "relation", relation: { blockIDs: [id], contents: null } } : undefined;

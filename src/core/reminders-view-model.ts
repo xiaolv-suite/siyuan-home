@@ -218,3 +218,29 @@ export async function toggleReminderQuickPlanToday(
         showMessage(t("hub.filterSaveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
     }
 }
+
+export interface ReminderFilterRuntimeSlice {
+    hubFilter?: string;
+    hubMemberId?: string;
+    hubModuleId?: string;
+    hubDueWithin?: string;
+    activeNamedViewId?: string;
+}
+
+/** 首页「临期证件/保单/合同/药品 · 查看全部」：清模块/成员/状态筛选，保留 30 天临期窗口 */
+export function applyExpiringRemindersFilter(rt: ReminderFilterRuntimeSlice): void {
+    rt.hubFilter = "all";
+    rt.hubMemberId = undefined;
+    rt.hubModuleId = undefined;
+    rt.hubDueWithin = "30";
+    rt.activeNamedViewId = undefined;
+}
+
+/** 模块卡下钻提醒页：仅锁定目标模块，并复位历史残留的状态/成员/时间窗筛选 */
+export function applyRemindersDrillFilter(rt: ReminderFilterRuntimeSlice, moduleId: string): void {
+    rt.hubFilter = "all";
+    rt.hubMemberId = undefined;
+    rt.hubModuleId = moduleId;
+    rt.hubDueWithin = "all";
+    rt.activeNamedViewId = undefined;
+}

@@ -236,7 +236,7 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
             }
             writeBtn.disabled = true;
             try {
-                const { addDetachedRow, newSiYuanId, setCell } = await import("./siyuan");
+                const { addDetachedRow, newSiYuanId, setCellResilient } = await import("./siyuan");
                 for (let i = 0; i < items.length; i++) {
                     const it = items[i];
                     const buyQty = Math.max(1, Math.floor(Number(qtyInputs[i]?.value) || 1));
@@ -244,9 +244,17 @@ export function openLowStockShoppingDialog(options: LowStockShoppingDialogOption
                         idempotencyKey: `stock:to-shop:${it.name}:${Date.now()}`,
                         rowIdentity: { avID: shoppingRef.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
                     });
-                    if (shoppingRef.columns.qty) {
-                        await setCell(shoppingRef.avId, shoppingRef.columns.qty, rowId, { type: "number", number: { content: buyQty, isNotEmpty: true } });
-                    }
+                    await setCellResilient({
+                        avID: shoppingRef.avId,
+                        keyID: shoppingRef.columns.qty,
+                        itemID: rowId,
+                        value: { type: "number", number: { content: buyQty, isNotEmpty: true } },
+                        plugin,
+                        moduleId: "shopping",
+                        colKey: "qty",
+                        ref: shoppingRef,
+                        schemaCol: { key: "qty", type: "number" },
+                    });
                 }
                 dlg.destroy();
                 showMessageFn(t("ledger.shopWritten"), 3000, "info");

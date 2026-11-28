@@ -421,16 +421,17 @@
             demoAction = null;
         }
     };
-    const clearDemo = () => {
+    const clearDemo = async () => {
         if (demoBusy || saving || migrationBusy) return;
         demoBusy = true;
         demoAction = "clear";
-        import("@/core/settings-maintenance").then((m) => {
-            m.executeClearDemo(plugin, t, showMessage);
-        }).finally(() => {
+        try {
+            const { executeClearDemo } = await import("@/core/settings-maintenance");
+            await executeClearDemo(plugin, t, showMessage);
+        } finally {
             demoBusy = false;
             demoAction = null;
-        });
+        }
     };
 </script>
 

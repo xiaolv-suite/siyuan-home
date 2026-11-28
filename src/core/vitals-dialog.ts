@@ -17,7 +17,10 @@ function clsOrText(c: string) { return c.length > 0; }
 
 export interface VitalsSectionOptions {
     t: (k: string) => string;
-    plugin: { saveData: (name: string, data: unknown) => Promise<unknown> };
+    plugin: {
+        runtime?: { guestModeActive?: boolean };
+        saveData: (name: string, data: unknown) => Promise<unknown>;
+    };
     avId: string;
     rowId: string;
     body: HTMLElement;
@@ -26,6 +29,7 @@ export interface VitalsSectionOptions {
 
 export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<void> {
     const { t, plugin, avId, rowId, body, showMessageFn } = opts;
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
 
     body.appendChild(mk("div", "ft__on-surface lv-dialog-sec-head", t("ledger.vitalsTitle")));
 
@@ -55,6 +59,10 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
     val2Inp.style.width = "80px";
 
     const addBtn = mk("button", "b3-button b3-button--outline lv-select-sm", t("ledger.valAdd")) as HTMLButtonElement;
+    if (isGuest) {
+        addBtn.disabled = true;
+        addBtn.title = t("guest.writeBlocked");
+    }
     form.append(typeSel, dateInp, val1Inp, val2Inp, addBtn);
     body.appendChild(form);
 
@@ -96,7 +104,15 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
             line.style.padding = "2px 0";
             const valStr = r.val2 !== undefined ? `${r.val1}/${r.val2}` : String(r.val1);
             const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
+            if (isGuest) {
+                del.disabled = true;
+                del.title = t("guest.writeBlocked");
+            }
             del.onclick = async () => {
+                if (plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 del.disabled = true;
                 try {
                     logs = await rl.updateRowLogs(plugin as never, (cur) => rl.removeEntry(cur, avId, rowId, "vitals", r as unknown as Record<string, unknown>));
@@ -114,6 +130,10 @@ export async function addVitalsSectionImpl(opts: VitalsSectionOptions): Promise<
     typeSel.onchange = render;
 
     addBtn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         const val1 = Number(val1Inp.value);
         if (!dateInp.value || !Number.isFinite(val1) || val1 <= 0) {
             showMessageFn(t("ledger.logInvalid"), 3000, "error");

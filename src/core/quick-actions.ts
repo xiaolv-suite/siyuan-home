@@ -83,24 +83,33 @@ export function composeLifelogIsoAt(dateStr: string, timeStr?: string, now = new
 
 const positive = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 
-/** 加油/充电输入校验：返回缺失的字段 key，空数组表示可提交 */
+/** 加油/充电输入校验：金额、油量/电量、里程任填一项即可提交（不可为负），空数组表示可提交 */
 export function validateFuelingInput(input: Partial<QuickFuelingInput>): Array<"mileage" | "quantity" | "amount"> {
-    const missing: Array<"mileage" | "quantity" | "amount"> = [];
-    if (!positive(input.mileage)) missing.push("mileage");
-    if (!positive(input.quantity)) missing.push("quantity");
-    if (input.amount !== undefined && input.amount !== null && !(typeof input.amount === "number" && Number.isFinite(input.amount) && input.amount >= 0)) missing.push("amount");
-    return missing;
+    const invalid: Array<"mileage" | "quantity" | "amount"> = [];
+    if (input.mileage !== undefined && input.mileage !== null && !(typeof input.mileage === "number" && Number.isFinite(input.mileage) && input.mileage >= 0)) invalid.push("mileage");
+    if (input.quantity !== undefined && input.quantity !== null && !(typeof input.quantity === "number" && Number.isFinite(input.quantity) && input.quantity >= 0)) invalid.push("quantity");
+    if (input.amount !== undefined && input.amount !== null && !(typeof input.amount === "number" && Number.isFinite(input.amount) && input.amount >= 0)) invalid.push("amount");
+    if (invalid.length > 0) return invalid;
+    const hasAny = positive(input.mileage) || positive(input.quantity) || positive(input.amount);
+    return hasAny ? [] : ["amount", "quantity", "mileage"];
 }
 
-/** 血压/血糖/体重/体温输入校验：返回缺失的字段 key，空数组表示可提交 */
+/** 血压/血糖/体重/体温输入校验：仅保留核心读数必填（血压填高压即可，低压选填），空数组表示可提交 */
 export function validateVitalInput(input: Partial<QuickVitalInput>): Array<"systolic" | "diastolic" | "glucose" | "weight" | "temperature"> {
     if (input.metricType === "glucose") return positive(input.glucose) ? [] : ["glucose"];
     if (input.metricType === "weight") return positive(input.weight) ? [] : ["weight"];
     if (input.metricType === "temp") return positive(input.temperature) ? [] : ["temperature"];
-    const missing: Array<"systolic" | "diastolic"> = [];
-    if (!positive(input.systolic)) missing.push("systolic");
-    if (!positive(input.diastolic)) missing.push("diastolic");
-    return missing;
+    if (positive(input.systolic) || positive(input.diastolic)) return [];
+    return ["systolic"];
+}
+
+/** 快捷待买输入校验：名称必填，数量必须 > 0，单价（若填写）必须 >= 0 */
+export function validateShoppingInput(input: { name?: string; qty?: number | null; price?: number | null }): Array<"name" | "qty" | "price"> {
+    const invalid: Array<"name" | "qty" | "price"> = [];
+    if (!input.name || !String(input.name).trim()) invalid.push("name");
+    if (typeof input.qty !== "number" || !Number.isFinite(input.qty) || input.qty <= 0) invalid.push("qty");
+    if (input.price !== undefined && input.price !== null && (typeof input.price !== "number" || !Number.isFinite(input.price) || input.price < 0)) invalid.push("price");
+    return invalid;
 }
 
 /** 构建加油/充电流水（EnergyRecord，与车辆抽屉录入同结构） */
@@ -151,12 +160,12 @@ export function buildVitalLog(input: QuickVitalInput): VitalReading[] {
         }
         return readings;
     }
-    if (positive(input.systolic)) {
+    if (positive(input.systolic) || positive(input.diastolic)) {
         readings.push({
             date,
             type: "bp",
-            val1: input.systolic,
-            ...(positive(input.diastolic) ? { val2: input.diastolic } : {}),
+            val1: positive(input.systolic) ? input.systolic : (input.diastolic ?? 0),
+            ...(positive(input.systolic) && positive(input.diastolic) ? { val2: input.diastolic } : {}),
             ...(positive(input.pulse) ? { pulse: input.pulse } : {}),
             ...extra,
         });

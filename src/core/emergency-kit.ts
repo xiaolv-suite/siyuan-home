@@ -289,8 +289,9 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
         let created = 0;
         try {
             const { writeLedgerRow } = await import("./ledger-writer");
+            const partialFailed: string[] = [];
             for (const r of newRows) {
-                await writeLedgerRow({
+                const writeRes = await writeLedgerRow({
                     moduleId: "stock",
                     target: ref,
                     name: r.name,
@@ -298,9 +299,14 @@ export function openEmergencyKitDialog(options: EmergencyKitDialogOptions): void
                     addRowFn: addDetachedRowFn,
                     setCellFn,
                 });
+                if (writeRes.failed.length > 0) partialFailed.push(`${r.name}(${writeRes.failed.join(",")})`);
                 created++;
             }
-            showMessageFn(t("ledger.emergencyKitImportSuccess").replace("${n}", String(created)), 3000, "info");
+            if (partialFailed.length > 0) {
+                showMessageFn(t("ledger.savePartial").replace("${fields}", partialFailed.join("；")), 6000, "error");
+            } else {
+                showMessageFn(t("ledger.emergencyKitImportSuccess").replace("${n}", String(created)), 3000, "info");
+            }
             dlg.destroy();
             onCreatedCallback?.();
         } catch (e) {

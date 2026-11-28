@@ -6,6 +6,7 @@ import type { ModuleSchema } from "./schema-types";
 export * from "./schema-types";
 
 export * from "./schema-catalog";
+export * from "./field-capability-matrix";
 
 /**
  * 证件分类与细分画像档案（解耦至 certificate-profiles.ts）

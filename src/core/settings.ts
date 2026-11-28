@@ -205,6 +205,9 @@ export async function loadSettings(plugin: Plugin): Promise<HomeSettings> {
             )
         )
         : defaults.columnVisibility;
+    const pinnedLedgers = Array.isArray(data.pinnedLedgers)
+        ? [...new Set(data.pinnedLedgers.filter((id: unknown): id is string => typeof id === "string" && known.has(id) && id !== "members"))]
+        : undefined;
     const ledgerSort = isPlainObject(data.ledgerSort)
         ? Object.fromEntries(
             Object.entries(data.ledgerSort).filter(
@@ -258,6 +261,7 @@ export async function loadSettings(plugin: Plugin): Promise<HomeSettings> {
         columnVisibility,
         ledgerSort,
         targetNotebookId: typeof data.targetNotebookId === "string" && data.targetNotebookId ? data.targetNotebookId : undefined,
+        ...(pinnedLedgers !== undefined ? { pinnedLedgers } : {}),
     };
     lastSerializedSettingsByPlugin.set(plugin, JSON.stringify(result));
     return result;
@@ -384,6 +388,9 @@ export function normalizeImportedSettings(input: unknown): NormalizedImport {
                 )
             )
             : {},
+        ...(Array.isArray(data.pinnedLedgers)
+            ? { pinnedLedgers: [...new Set(data.pinnedLedgers.filter((id: unknown): id is string => typeof id === "string" && known.has(id) && id !== "members"))] }
+            : {}),
     };
     return { settings, droppedModules, repairedMembers };
 }

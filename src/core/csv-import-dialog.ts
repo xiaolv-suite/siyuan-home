@@ -10,16 +10,18 @@ import {
     buildPrimaryBlockCell,
     idempotentAppendDetachedRows,
     newSiYuanId,
-    setCell,
+    setCellResilient,
     RowIdentityPendingError,
 } from "./siyuan";
 import { cellValue } from "./avcell";
+import { optLabel } from "./format";
 import { confirm } from "@/libs/dialog";
 
 export interface CsvImportDialogOptions {
     active: string;
     ref: { avId?: string; columns?: Record<string, string> };
     schemaCols: any[];
+    plugin?: any;
     t: (k: string) => string;
     DialogCls: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -28,7 +30,7 @@ export interface CsvImportDialogOptions {
 
 export function openCsvImportDialog(options: CsvImportDialogOptions): void {
     if (typeof document === "undefined") return;
-    const { active, ref, schemaCols, t, DialogCls, showMessageFn, onImportSuccess } = options;
+    const { active, ref, schemaCols, plugin, t, DialogCls, showMessageFn, onImportSuccess } = options;
     if (!ref?.avId) return;
 
     const input = document.createElement("input");
@@ -90,7 +92,10 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
                 showMessageFn(t("ledger.importNoMap"), 4000, "error");
                 return;
             }
-            const plan = planImport(table, mapping, schemaCols, "name");
+            const plan = planImport(table, mapping, schemaCols, "name", {
+                labelOf: (colKey, opt) => optLabel(t, colKey, opt),
+                fillDefaults: true,
+            });
             if (plan.rows.length === 0) {
                 showMessageFn(t("ledger.importNoRows"), 4000, "error");
                 return;
@@ -111,6 +116,25 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
                         const failed: number[] = [];
                         const partial: number[] = [];
                         const pending: number[] = [];
+                        const neededColKeys = new Set<string>();
+                        for (const r of plan.rows) {
+                            for (const c of r.cells) neededColKeys.add(c.key);
+                        }
+                        const missingColKeys = [...neededColKeys].filter((k) => !ref.columns?.[k]);
+                        if (missingColKeys.length > 0 && ref.avId) {
+                            try {
+                                const { healColumnMapping } = await import("./provision-adoption");
+                                const healPlugin = plugin ?? {
+                                    settings: { dbRefs: { [active]: ref } },
+                                    schemaCatalog: { [active]: { columns: schemaCols } },
+                                    i18nText: (k: string) => t(k),
+                                };
+                                for (const colKey of missingColKeys) {
+                                    const healedId = await healColumnMapping(healPlugin, active, colKey);
+                                    if (healedId) ref.columns = { ...(ref.columns ?? {}), [colKey]: healedId };
+                                }
+                            } catch { /* soft heal before batch import */ }
+                        }
                         if (ref.columns?.name && plan.rows.length > 0) {
                             const pkKeyId = ref.columns.name;
                             const batchRes = await idempotentAppendDetachedRows({
@@ -150,11 +174,22 @@ export function openCsvImportDialog(options: CsvImportDialogOptions): void {
                                     });
                                     created = true;
                                     for (const c of row.cells) {
-                                        if (ref.columns?.[c.key]) {
-                                            await setCell(ref.avId!, ref.columns[c.key], itemID, cellValue(c.type, c.value), {
+                                        const schemaCol = schemaCols.find((sc: any) => sc.key === c.key);
+                                        await setCellResilient({
+                                            avID: ref.avId!,
+                                            keyID: ref.columns?.[c.key],
+                                            itemID,
+                                            value: cellValue(c.type, c.value),
+                                            plugin,
+                                            moduleId: active,
+                                            colKey: c.key,
+                                            ref: ref as any,
+                                            schemaCol,
+                                            resolveName: labelOf,
+                                            requestOptions: {
                                                 idempotencyKey: `${rowOperationKey}:cell:${c.key}`,
-                                            });
-                                        }
+                                            },
+                                        });
                                     }
                                     ok++;
                                 } catch (e) {

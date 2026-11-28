@@ -145,6 +145,16 @@ export interface HubState {
 
 // ── 设置（docs/design/01 ADR-7：只放设置与运行态）───────────
 
+export interface SchemaColumnIssue {
+    moduleId: string;
+    colKey: string;
+    expectedType: string;
+    actualType: string;
+    liveColumnId?: string;
+    liveColumnName?: string;
+    guidance: string;
+}
+
 /** 模块台账落点映射（provisioner 维护，幂等）；provisional=等 Spike 的占位建库（C7） */
 export interface DbRef {
     docId?: string;
@@ -162,6 +172,8 @@ export interface DbRef {
     columns?: Record<string, string>;
     /** 最近一次建库/补列失败的摘要（33.2 journal 最小版；成功后清除） */
     provisionError?: string;
+    /** 真实 AV 列与 schema 不一致的告警（如列类型漂移；绝不覆盖用户原列） */
+    schemaIssues?: SchemaColumnIssue[];
 }
 
 /** 插件设置（持久化到 data/storage/petal/siyuan-home/settings.json） */
@@ -217,6 +229,8 @@ export interface HomeSettings {
     ledgerColumnWidths?: Record<string, Record<string, number>>;
     /** 流水与备忘落地存储模式："dailyNote"（默认推荐 · 写入日记模式，彻底杜绝多端冲突） | "legacyDoc"（旧版兼容 · 集中独立文档） */
     ledgerJournalMode?: "dailyNote" | "legacyDoc";
+    /** 左侧导航「我的常用」置顶台账 id 列表（undefined 表示使用系统默认推荐；空数组表示用户显式取消全部置顶） */
+    pinnedLedgers?: string[];
 }
 
 /** EC09：打卡绑定。metric 显式区分（不把次数当体重）；itemName 为绑定时点快照（展示用） */

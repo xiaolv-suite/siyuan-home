@@ -6,7 +6,7 @@ const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
 import { assetHref, downloadAsset, isImageAsset, isEncryptedNotebookAsset, compressImageTo300KB } from "./assets";
 import { capturePhotoFromDevice } from "./camera-capture";
 import { bindDialogA11y } from "./dialog-a11y";
-import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, isRequestAborted, setCell, uploadAsset } from "./siyuan";
+import { getOCRConfig, getImageOCRText, recognizeAsset, isKernelError, isRequestAborted, setCellResilient, uploadAsset } from "./siyuan";
 import { confirm } from "@/libs/dialog";
 import { lvLaunchpad, mountLvAiThinkingCard } from "@/libs/lv-notice-kit";
 import { uiIcon } from "@/ui/icons";
@@ -25,6 +25,7 @@ export interface AttachmentDrawerSectionOptions {
     ref: { avId?: string; columns?: Record<string, string> };
     row: any;
     active: string;
+    plugin?: any;
     t: (k: string) => string;
     DialogCls: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -33,7 +34,7 @@ export interface AttachmentDrawerSectionOptions {
 
 export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOptions): void {
     if (typeof document === "undefined") return;
-    const { body, assetCols, ref, row, active, t, DialogCls, showMessageFn, onUploadSuccess } = options;
+    const { body, assetCols, ref, row, active, plugin, t, DialogCls, showMessageFn, onUploadSuccess } = options;
     if (!ref.columns) return;
 
     const colLabel = (col: any) => (t(`field.${col.key}`) !== `field.${col.key}` ? t(`field.${col.key}`) : col.name || col.key);
@@ -260,10 +261,15 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
             body.appendChild(none);
         }
 
+        const isGuest = Boolean(plugin?.runtime?.guestModeActive);
         const uploadBtn = document.createElement("button");
         uploadBtn.type = "button";
         uploadBtn.className = `b3-button b3-button--outline lv-att-upload-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
         uploadBtn.textContent = t("ledger.upload");
+        if (isGuest) {
+            uploadBtn.disabled = true;
+            uploadBtn.title = t("guest.writeBlocked");
+        }
 
         const fileInput = document.createElement("input");
         fileInput.type = "file";
@@ -271,7 +277,13 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         fileInput.multiple = attCol.key === "attachments";
         if (active === "certs" && attCol.key !== "attachments") fileInput.setAttribute("capture", "environment");
         fileInput.style.display = "none";
-        uploadBtn.onclick = () => fileInput.click();
+        uploadBtn.onclick = () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
+            fileInput.click();
+        };
 
         fileInput.onchange = async () => {
             let files = Array.from(fileInput.files ?? []);
@@ -299,9 +311,20 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                 }
                 if (appended.length !== existing.length) {
                     try {
-                        await setCell(ref.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
-                            idempotencyKey: `ledger:detail-asset-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
-                            retries: 1,
+                        await setCellResilient({
+                            avID: ref.avId!,
+                            keyID: attKeyID,
+                            itemID: row.itemID,
+                            value: { type: "mAsset", mAsset: appended },
+                            plugin,
+                            moduleId: active,
+                            colKey: attCol.key,
+                            ref,
+                            schemaCol: attCol,
+                            requestOptions: {
+                                idempotencyKey: `ledger:detail-asset-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
+                                retries: 1,
+                            },
                         });
                         const msg = failed.length ? t("ledger.uploadFailed").replace("${msg}", failed.join("; ")) : t("ledger.uploadDone");
                         showMessageFn(msg, 5000, failed.length ? "error" : "info");
@@ -323,6 +346,10 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         cameraBtn.className = `b3-button b3-button--outline lv-att-camera-btn${active === "vehicles" ? " lv-detail-wide" : ""}`;
         const defaultCameraLabel = `📷 ${t("certs.capturePhoto") || "拍照留存"}`;
         cameraBtn.textContent = defaultCameraLabel;
+        if (isGuest) {
+            cameraBtn.disabled = true;
+            cameraBtn.title = t("guest.writeBlocked");
+        }
 
         const cameraInput = document.createElement("input");
         cameraInput.type = "file";
@@ -357,9 +384,20 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
                     retries: 1,
                 });
                 const appended = [...existing, { name, content: path }];
-                await setCell(ref.avId!, attKeyID, row.itemID, { type: "mAsset", mAsset: appended }, {
-                    idempotencyKey: `ledger:detail-photo-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
-                    retries: 1,
+                await setCellResilient({
+                    avID: ref.avId!,
+                    keyID: attKeyID,
+                    itemID: row.itemID,
+                    value: { type: "mAsset", mAsset: appended },
+                    plugin,
+                    moduleId: active,
+                    colKey: attCol.key,
+                    ref,
+                    schemaCol: attCol,
+                    requestOptions: {
+                        idempotencyKey: `ledger:detail-photo-cell:${row.itemID}:${attCol.key}:${appended.map((asset) => asset.content).join("|")}`,
+                        retries: 1,
+                    },
                 });
                 try {
                     lvLaunchpad.haptic(10);
@@ -387,6 +425,10 @@ export function renderAttachmentDrawerSection(options: AttachmentDrawerSectionOp
         };
 
         cameraBtn.onclick = () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             void capturePhotoFromDevice({
                 DialogCls,
                 t,

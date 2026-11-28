@@ -9,6 +9,7 @@
         currentLocalHHMM,
         validateFuelingInput,
         validateVitalInput,
+        validateShoppingInput,
     } from "@/core/quick-actions";
     import type { EnergyKind } from "@/core/fuel";
     import { loadQuickDefaults } from "@/core/quick-defaults";
@@ -108,23 +109,34 @@
     // 补能三数联动自动计算（图1需求：油价相对固定，填价格自动算升数；修改升数按固定油价变动价格；修改油价变动价格）
     const currentPrice = () => (fuelingKind === "charging" ? chargePrice : fuelPrice);
 
+    function parseOptionalNumber(raw: string): number | undefined {
+        if (raw.trim() === "") return undefined;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : undefined;
+    }
+
     function onAmountInput(val?: number) {
         fuelingAmount = val;
         const p = currentPrice();
-        fuelingLiters = val && p ? Number((val / p).toFixed(2)) : undefined;
+        if (val === undefined) fuelingLiters = undefined;
+        else if (val > 0 && p !== undefined && p > 0) fuelingLiters = Number((val / p).toFixed(2));
     }
 
     function onLitersInput(val?: number) {
         fuelingLiters = val;
         const p = currentPrice();
-        fuelingAmount = val && p ? Number((val * p).toFixed(2)) : undefined;
+        if (val === undefined) fuelingAmount = undefined;
+        else if (p !== undefined && p >= 0) fuelingAmount = Number((val * p).toFixed(2));
     }
 
     function onPriceInput(val?: number) {
         if (fuelingKind === "charging") chargePrice = val;
         else fuelPrice = val;
-        if (val && fuelingLiters) fuelingAmount = Number((fuelingLiters * val).toFixed(2));
-        else if (val && fuelingAmount) fuelingLiters = Number((fuelingAmount / val).toFixed(2));
+        if (val !== undefined && val >= 0 && fuelingLiters !== undefined && fuelingLiters > 0) {
+            fuelingAmount = Number((fuelingLiters * val).toFixed(2));
+        } else if (val !== undefined && val > 0 && fuelingAmount !== undefined && fuelingAmount > 0) {
+            fuelingLiters = Number((fuelingAmount / val).toFixed(2));
+        }
     }
 
     const currentPresetAmounts = $derived.by(() => {
@@ -272,8 +284,8 @@
                 vehicleId: selectedVehicleId,
                 kind: fuelingKind,
                 amount: fuelingAmount,
-                liters: fuelingLiters!,
-                mileage: fuelingMileage!,
+                liters: fuelingLiters ?? 0,
+                mileage: fuelingMileage ?? 0,
                 unitPrice,
                 isFull: isEnergyFull,
                 fuelGrade: !isCharging ? fuelGrade : undefined,
@@ -290,10 +302,6 @@
 
     async function submitQuickVital(continueAfter = false) {
         if (saving) return;
-        if (!vitalMemberId) {
-            saveError = t("members.reassignSelectTo");
-            return;
-        }
         const missing = validateVitalInput({
             metricType: vitalMetricType,
             systolic: vitalSys,
@@ -313,7 +321,7 @@
                 plugin,
                 date: eventDate,
                 time: eventTime,
-                memberId: vitalMemberId,
+                memberId: vitalMemberId || "",
                 metricType: vitalMetricType,
                 sys: vitalSys,
                 dia: vitalDia,
@@ -361,8 +369,15 @@
     async function submitQuickShopping(continueAfter = false) {
         if (saving) return;
         const name = quickShopName.trim();
-        if (!name) {
-            saveError = t("form.required");
+        const invalid = validateShoppingInput({ name, qty: quickShopQty, price: quickShopPrice });
+        if (invalid.length > 0) {
+            if (invalid.includes("name")) {
+                saveError = t("form.required");
+            } else if (invalid.includes("qty")) {
+                saveError = t("capture.validation.min").replace("${field}", t("field.qty")).replace("${min}", "1");
+            } else {
+                saveError = t("capture.validation.min").replace("${field}", t("capture.shopPrice")).replace("${min}", "0");
+            }
             return;
         }
         saving = true;
@@ -373,7 +388,7 @@
                 date: eventDate,
                 time: eventTime,
                 name,
-                qty: quickShopQty || 1,
+                qty: quickShopQty,
                 price: quickShopPrice,
                 category: quickShopCategory || "daily",
             });
@@ -429,15 +444,21 @@
                 vehiclesList = (res.rows ?? []).map((r) => {
                     const name = String(r.cells?.[vRef.columns!.name]?.text?.content ?? r.cells?.[vRef.columns!.name]?.block?.content ?? t("module.vehicles")).trim();
                     const plate = String(r.cells?.[vRef.columns!.plate ?? ""]?.text?.content ?? "").trim();
-                    const mileage = Number(r.cells?.[vRef.columns!.mileage ?? ""]?.number?.content);
-                    return { itemID: r.itemID, name, plate, mileage: isNaN(mileage) ? undefined : mileage };
+                    const mileageCell = r.cells?.[vRef.columns!.mileage ?? ""]?.number;
+                    const rawMileage = mileageCell?.isNotEmpty !== false && mileageCell?.content !== undefined && mileageCell?.content !== null
+                        ? Number(mileageCell.content)
+                        : NaN;
+                    return { itemID: r.itemID, name, plate, mileage: Number.isFinite(rawMileage) ? rawMileage : undefined };
                 });
                 if (vehiclesList.length > 0) {
+                    const prevSelected = selectedVehicleId;
                     if (!selectedVehicleId || !vehiclesList.some((v) => v.itemID === selectedVehicleId)) {
                         selectedVehicleId = vehiclesList[0].itemID;
                     }
                     const curVeh = vehiclesList.find((v) => v.itemID === selectedVehicleId);
-                    if (curVeh?.mileage && fuelingMileage === undefined) {
+                    if (selectedVehicleId !== prevSelected) {
+                        fuelingMileage = curVeh?.mileage ?? undefined;
+                    } else if (curVeh?.mileage !== undefined && fuelingMileage === undefined) {
                         fuelingMileage = curVeh.mileage;
                     }
                 }
@@ -536,7 +557,7 @@
                 <label for="lv-fuel-veh">{t("capture.selectVehicle")}</label>
                 <select id="lv-fuel-veh" class="b3-select" bind:value={selectedVehicleId} disabled={saving} onchange={(e) => {
                     const sel = vehiclesList.find((v) => v.itemID === (e.currentTarget as HTMLSelectElement).value);
-                    if (sel?.mileage) fuelingMileage = sel.mileage;
+                    fuelingMileage = sel?.mileage ?? undefined;
                 }}>
                     {#each vehiclesList as v (v.itemID)}
                         <option value={v.itemID}>{v.name} {v.plate ? `(${v.plate})` : ""}</option>
@@ -562,7 +583,7 @@
                         }}
                         disabled={saving}
                     >
-                        ⛽ {t("fuel.fuelTitle")}
+                        {t("fuel.fuelTitle")}
                     </button>
                     <button
                         type="button"
@@ -579,7 +600,7 @@
                         }}
                         disabled={saving}
                     >
-                        ⚡ {t("fuel.chargingTitle")}
+                        {t("fuel.chargingTitle")}
                     </button>
                 </div>
             </div>
@@ -610,13 +631,13 @@
                     step="0.01"
                     placeholder={fuelingKind === "fuel" ? t("capture.phUnitPrice") : t("capture.phChargeUnitPrice")}
                     value={fuelingKind === "charging" ? chargePrice : fuelPrice}
-                    oninput={(e) => onPriceInput(Number(e.currentTarget.value) || undefined)}
+                    oninput={(e) => onPriceInput(parseOptionalNumber(e.currentTarget.value))}
                     disabled={saving}
                 />
             </div>
 
             <div class="lv-frow">
-                <label for="lv-fuel-amount">{t("capture.amountCny")} *</label>
+                <label for="lv-fuel-amount">{t("capture.amountCny")}</label>
                 <div class="lv-col-stretch" style="width: 100%;">
                     <input
                         id="lv-fuel-amount"
@@ -627,7 +648,7 @@
                         step="any"
                         placeholder={t("capture.phAmount")}
                         value={fuelingAmount}
-                        oninput={(e) => onAmountInput(Number(e.currentTarget.value) || undefined)}
+                        oninput={(e) => onAmountInput(parseOptionalNumber(e.currentTarget.value))}
                         disabled={saving}
                         onkeydown={onEnter(submitQuickFueling)}
                     />
@@ -650,7 +671,7 @@
             </div>
 
             <div class="lv-frow">
-                <label for="lv-fuel-liters">{t("capture.fuelLiters")} *</label>
+                <label for="lv-fuel-liters">{t("capture.fuelLiters")}</label>
                 <input
                     id="lv-fuel-liters"
                     class="b3-text-field"
@@ -658,10 +679,9 @@
                     inputMode="numeric"
                     min="0"
                     step="any"
-                    required
                     placeholder={t("capture.phQuantity")}
                     value={fuelingLiters}
-                    oninput={(e) => onLitersInput(Number(e.currentTarget.value) || undefined)}
+                    oninput={(e) => onLitersInput(parseOptionalNumber(e.currentTarget.value))}
                     disabled={saving}
                     onkeydown={onEnter(submitQuickFueling)}
                 />
@@ -688,7 +708,7 @@
             </div>
 
             <div class="lv-frow">
-                <label for="lv-fuel-mileage">{t("capture.currentMileage")} *</label>
+                <label for="lv-fuel-mileage">{t("capture.currentMileage")}</label>
                 <div class="lv-col-stretch" style="width: 100%;">
                     <input
                         id="lv-fuel-mileage"
@@ -696,7 +716,6 @@
                         type="number"
                         inputMode="numeric"
                         min="0"
-                        required
                         placeholder={t("capture.phMileage")}
                         bind:value={fuelingMileage}
                         disabled={saving}
@@ -721,6 +740,7 @@
         <div class="lv-frow">
             <label for="lv-vital-mem">{t("field.member")}</label>
             <select id="lv-vital-mem" class="b3-select" bind:value={vitalMemberId} disabled={saving}>
+                <option value="">{t("members.unassigned")}</option>
                 {#each plugin.settings.members ?? [] as m (m.avItemId ?? m.id)}
                     <option value={m.avItemId ?? m.id}>{m.name}</option>
                 {/each}
@@ -742,7 +762,7 @@
                 <input id="lv-vital-sys" class="b3-text-field" type="number" inputMode="numeric" min="40" max="250" placeholder={t("capture.phSystolic")} bind:value={vitalSys} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">
-                <label for="lv-vital-dia">{t("capture.diastolic")} *</label>
+                <label for="lv-vital-dia">{t("capture.diastolic")}</label>
                 <input id="lv-vital-dia" class="b3-text-field" type="number" inputMode="numeric" min="30" max="150" placeholder={t("capture.phDiastolic")} bind:value={vitalDia} disabled={saving} onkeydown={onEnter(submitQuickVital)} />
             </div>
             <div class="lv-frow">

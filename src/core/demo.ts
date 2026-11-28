@@ -5,7 +5,7 @@
  */
 import type { Plugin } from "siyuan";
 import type { HomeSettings, MemberRole } from "@/types";
-import { addDetachedRow, setCell, removeLedgerRows, newSiYuanId, RowIdentityPendingError } from "./siyuan";
+import { addDetachedRow, setCellResilient, removeLedgerRows, newSiYuanId, RowIdentityPendingError } from "./siyuan";
 import { selectCellValue } from "./avcell";
 import { addMember, removeMember } from "./members";
 import { saveSettings } from "./settings";
@@ -55,8 +55,19 @@ async function demoRow(
     };
     await saveSettings(plugin, settings);
     const write = async (key: string, value: unknown) => {
-        if (!cols[key]) return;
-        await setCell(ref.avId!, cols[key], itemID, value, { idempotencyKey: `${operationKey}:cell:${key}` });
+        const schemaCol = (schemaCatalog[moduleId]?.columns ?? []).find((c: any) => c.key === key);
+        await setCellResilient({
+            avID: ref.avId!,
+            keyID: cols[key],
+            itemID,
+            value,
+            plugin,
+            moduleId,
+            colKey: key,
+            ref,
+            schemaCol,
+            requestOptions: { idempotencyKey: `${operationKey}:cell:${key}` },
+        });
     };
     for (const [key, v] of Object.entries(fields)) {
         // 269 波：名称列必须显式写——addDetachedRow 的标题不落到 av 名称列

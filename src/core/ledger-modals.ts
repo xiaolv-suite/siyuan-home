@@ -37,7 +37,11 @@ async function loadAllRows(renderLedgerAllFn: any, avId: string, showMessageFn: 
 
 export async function openEnergyDashboardModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, active, t, plugin, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn, selectContentFn, onOpenNewRecord, onOpenDetail } = ctx;
-    if (!ref?.avId || active !== "vehicles") return;
+    if (active !== "vehicles") return;
+    if (!ref?.avId) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     try {
         const { openEnergyDashboardDialog } = await import("@/core/fuel");
         await openEnergyDashboardDialog({
@@ -76,7 +80,10 @@ export async function openGrowthChartModal(ctx: LedgerModalContext): Promise<voi
 
 export async function openVaccineScheduleModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, plugin, t, DialogCls, showMessageFn, cellTextFn, onReload } = ctx;
-    if (!ref?.avId || !ref.columns) return;
+    if (!ref?.avId || !ref.columns) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     try {
         const { openVaccineScheduleDialog } = await import("@/core/growth-dialog");
         await openVaccineScheduleDialog({
@@ -122,7 +129,10 @@ export async function openShoppingListModal(ctx: LedgerModalContext): Promise<vo
 
 export async function openFavorsReportModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, t, DialogCls, showMessageFn, renderLedgerAllFn } = ctx;
-    if (!ref?.avId || !ref.columns) return;
+    if (!ref?.avId || !ref.columns) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     const { openFavorsReportDialog } = await import("@/core/favors-dialog");
     return openFavorsReportDialog({
         ref,
@@ -355,7 +365,10 @@ export function parseExpenseAmountText(raw: string): number {
 
 export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn } = ctx;
-    if (!ref?.avId) return;
+    if (!ref?.avId) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     const amountCol = ref.columns?.amount;
     const dateCol = ref.columns?.date ?? ref.columns?.expiry;
     if (!amountCol || !dateCol) {
@@ -394,7 +407,10 @@ export async function openExpenseTrendModal(ctx: LedgerModalContext): Promise<vo
 
 export async function openUtilityTiersModal(ctx: LedgerModalContext): Promise<void> {
     const { ref, plugin, t, DialogCls, showMessageFn, renderLedgerAllFn, cellTextFn } = ctx;
-    if (!ref?.avId || !ref.columns?.name) return;
+    if (!ref?.avId || !ref.columns?.name) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     try {
         const rows = await loadAllRows(renderLedgerAllFn, ref.avId, showMessageFn, t);
         if (!rows) return;
@@ -507,7 +523,10 @@ export async function openEmergencyKitModal(ctx: LedgerModalContext): Promise<vo
 
 export async function openCsvImportModal(ctx: LedgerModalContext): Promise<void> {
     const { active, ref, plugin, t, DialogCls, showMessageFn, onReload } = ctx;
-    if (!ref?.avId) return;
+    if (!ref?.avId) {
+        showMessageFn(t("diag.missing"), 3000, "info");
+        return;
+    }
     if (plugin.runtime?.guestModeActive) {
         showMessageFn(t("guest.writeBlocked"), 4000, "info");
         return;
@@ -520,6 +539,7 @@ export async function openCsvImportModal(ctx: LedgerModalContext): Promise<void>
             active,
             ref,
             schemaCols,
+            plugin,
             t,
             DialogCls,
             showMessageFn,

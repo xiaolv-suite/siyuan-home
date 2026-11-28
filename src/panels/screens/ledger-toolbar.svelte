@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onDestroy } from "svelte";
     import type { HomePluginLike } from "@/types/plugin";
     import type { TableDensity } from "../panel-session";
     import { optLabel } from "@/core/format";
@@ -21,6 +22,7 @@
         categoryCol,
         availableCategories = [],
         filterCategory = $bindable(""),
+        filterStatus = $bindable<"all" | "soon" | "ok">("all"),
         exporting = false,
         printing = false,
         schemaKeys = [] as string[],
@@ -57,6 +59,7 @@
         categoryCol?: string;
         availableCategories?: string[];
         filterCategory: string;
+        filterStatus?: "all" | "soon" | "ok";
         exporting?: boolean;
         printing?: boolean;
         schemaKeys?: string[];
@@ -82,7 +85,7 @@
     let colVisDetails: HTMLDetailsElement | undefined = $state();
     let mobileFilterOpen = $state(false);
     const activeLedgerFilterCount = $derived(
-        (filterMemberId ? 1 : 0) + (filterCategory ? 1 : 0) + (tableDensity === "compact" ? 1 : 0),
+        (filterMemberId ? 1 : 0) + (filterCategory ? 1 : 0) + (filterStatus !== "all" ? 1 : 0) + (tableDensity === "compact" ? 1 : 0),
     );
 
     const resolveFieldLabel = (k: string) => {
@@ -116,6 +119,10 @@
         onSearchClear?.();
         requestAnimationFrame(() => searchInputEl?.focus());
     }
+
+    onDestroy(() => {
+        if (searchTimer !== undefined) window.clearTimeout(searchTimer);
+    });
 
     function handleWindowPointerDown(e: PointerEvent) {
         const target = e.target as Node | null;
@@ -170,6 +177,18 @@
 
 <svelte:window onpointerdowncapture={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
 
+<div class="lv-ledger-head">
+    <div>
+        <h1>{ledgers.length > 0 ? t(`module.${active}`) : t("tab.ledger")}</h1>
+        <p>{ledgers.length > 0 && t(`module.${active}.desc`) !== `module.${active}.desc` ? t(`module.${active}.desc`) : t("ledger.subtitle")}</p>
+    </div>
+    {#if ledgers.length > 0 && ref?.avId}
+        <span class="lv-pill-badge lv-num">
+            {filteredRowsCount} {t("mod.records")}
+        </span>
+    {/if}
+</div>
+
 <div class="lv-toolbar lv-ledger-toolbar" class:is-mobile-filter-open={mobileFilterOpen}>
     {#if ledgers.length > 0}
         <select class="b3-select lv-ledger-mod-select" value={active} onchange={handleSwitchLedger} aria-label={t("ledger.switchLedger")}>
@@ -187,7 +206,6 @@
             <button type="button" class="b3-button b3-button--outline" onclick={() => plugin.openSetting()}>{t("startGuide.openSettings")}</button>
         </div>
     {/if}
-    <span class="fn__flex-1"></span>
     {#if rebuilding}
         <span class="lv-caption">{t("diag.rebuilding")}</span>
     {:else if ledgers.length === 0}
@@ -210,41 +228,6 @@
                     title={t("clear")} aria-label={t("clear")} onclick={handleSearchClear}><UiIcon name="close" size={12} /></button>
             {/if}
         </div>
-        <button type="button" class="b3-button b3-button--outline lv-density-btn"
-            title={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-            aria-label={tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-            onclick={onToggleDensity}>
-            {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
-        </button>
-        {#if schemaKeys.length > 0}
-            <details class="lv-col-vis-details" bind:this={colVisDetails}>
-                <summary class="b3-button b3-button--outline lv-col-vis-btn" title={t("ledger.columnVisibility")}>
-                    <UiIcon name="layout" size={13} /> <span>{t("ledger.columnVisibility")}</span>
-                </summary>
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                <div class="lv-col-vis__menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()}>
-                    <div class="lv-col-vis__header">{t("ledger.columnSelect")}</div>
-                    <div class="lv-col-vis__list">
-                        {#each schemaKeys as k (k)}
-                            <label class="lv-col-vis__item">
-                                <input type="checkbox" class="b3-checkbox" checked={tableKeys.includes(k)} aria-label={resolveFieldLabel(k)} onchange={() => onToggleColumn?.(k)} />
-                                <span>{resolveFieldLabel(k)}</span>
-                            </label>
-                        {/each}
-                    </div>
-                    <div class="lv-col-vis__footer">
-                        <button type="button" class="b3-button b3-button--text b3-button--small" onclick={() => { onResetColumns?.(); if (colVisDetails) colVisDetails.open = false; }}>
-                            {t("ledger.columnReset")}
-                        </button>
-                    </div>
-                </div>
-            </details>
-        {/if}
-        <button type="button" class="b3-button b3-button--outline lv-open-doc-btn" disabled={!ref?.docId}
-            title={t("ledger.openDoc")} onclick={() => plugin.showTabDocs(ref?.docId)}>
-            <UiIcon name="folder" size={13} /> <span>{t("ledger.openDoc")}</span>
-        </button>
         <button type="button" class="lv-btn primary lv-ledger-new-btn" onclick={onOpenNewRecord} disabled={rebuilding}><UiIcon name="add" size={13} /> {t("ledger.newRecord")}</button>
         <button
             type="button"
@@ -266,6 +249,35 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <div class="lv-ledger-more__menu" role="menu" tabindex="-1" onclick={() => { if (ledgerMoreDetails) ledgerMoreDetails.open = false; }}>
+                <button type="button" role="menuitem" class="b3-button b3-button--outline"
+                    onclick={onToggleDensity}>
+                    {tableDensity === "compact" ? t("ledger.densityComfortable") : t("ledger.densityCompact")}
+                </button>
+                {#if schemaKeys.length > 0}
+                    <details class="lv-col-vis-details" bind:this={colVisDetails} onclick={(e) => e.stopPropagation()}>
+                        <summary class="b3-button b3-button--outline lv-col-vis-btn" title={t("ledger.columnVisibility")}>
+                            <UiIcon name="layout" size={13} /> <span>{t("ledger.columnVisibility")}</span>
+                        </summary>
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                        <div class="lv-col-vis__menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+                            <div class="lv-col-vis__header">{t("ledger.columnSelect")}</div>
+                            <div class="lv-col-vis__list">
+                                {#each schemaKeys as k (k)}
+                                    <label class="lv-col-vis__item">
+                                        <input type="checkbox" class="b3-checkbox" checked={tableKeys.includes(k)} aria-label={resolveFieldLabel(k)} onchange={() => onToggleColumn?.(k)} />
+                                        <span>{resolveFieldLabel(k)}</span>
+                                    </label>
+                                {/each}
+                            </div>
+                            <div class="lv-col-vis__footer">
+                                <button type="button" class="b3-button b3-button--text b3-button--small" onclick={() => { onResetColumns?.(); if (colVisDetails) colVisDetails.open = false; }}>
+                                    {t("ledger.columnReset")}
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                {/if}
                 <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.exportCsvTip")}
                     disabled={filteredRowsEmpty || exporting || printing} aria-busy={exporting} onclick={onExportCsv}>{exporting ? t("ledger.saving") : t("ledger.exportCsv")}</button>
                 <button type="button" role="menuitem" class="b3-button b3-button--outline" title={t("ledger.exportIcsTip")}
@@ -303,10 +315,21 @@
     {/if}
 </div>
 
-{#if pinnedLedgers.length > 1 || (memberCol && (plugin.settings.members?.length ?? 0) > 0) || (categoryCol && availableCategories.length > 0)}
+{#if ref?.avId}
     <div class="lv-filter-bar" class:is-mobile-filter-open={mobileFilterOpen}>
+        <div class="lv-filter-pill-group" role="group" aria-label={t("filter")}>
+            <button type="button" class="lv-preset-tag" class:active={filterStatus === "all"} aria-pressed={filterStatus === "all"} onclick={() => { filterStatus = "all"; }}>
+                {t("ledger.statusAll")}
+            </button>
+            <button type="button" class="lv-preset-tag" class:active={filterStatus === "soon"} aria-pressed={filterStatus === "soon"} onclick={() => { filterStatus = "soon"; }}>
+                {t("ledger.statusSoon")}
+            </button>
+            <button type="button" class="lv-preset-tag" class:active={filterStatus === "ok"} aria-pressed={filterStatus === "ok"} onclick={() => { filterStatus = "ok"; }}>
+                {t("ledger.statusOk")}
+            </button>
+        </div>
         {#if pinnedLedgers.length > 1}
-            <div class="lv-ledger-pinned-bar lv-filter-pill-group">
+            <div class="lv-ledger-pinned-bar lv-filter-pill-group lv-rail-dup">
                 <span class="lv-caption lv-pinned-icon"><UiIcon name="bookmark" size={13} /></span>
                 {#each pinnedLedgers as pid (pid)}
                     <button type="button" class="lv-preset-tag" class:active={active === pid}

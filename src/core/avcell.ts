@@ -22,9 +22,75 @@ export interface AvCellLike {
     [key: string]: unknown;
 }
 
+export interface SelectNormalizationSpec {
+    options?: readonly string[];
+    default?: string;
+}
+
+export interface NormalizeSelectOptions {
+    /** 无值或不在枚举内时，若字段声明了 default（或 fallbackAnyFirst=true），则兜底返回默认值 */
+    fallbackToDefault?: boolean;
+    /** 即便字段未显式声明 default，也允许回退到 options[0] */
+    fallbackToFirstOption?: boolean;
+    /** 若值不在 options 内，是否保留去空白后的原值（如 chores.cycle 支持 "14d" 自定义周期） */
+    preserveUnknown?: boolean;
+    /** 可选的本地化标签解析器，用于把“有效”等展示名归一化回 schema 枚举键 */
+    labelOf?: (opt: string) => string;
+}
+
+/**
+ * 归一化 select 枚举值：
+ * 1) 去除首尾空白，精确命中优先；
+ * 2) 忽略大小写命中次之；
+ * 3) 若提供 labelOf，则按展示标签反查标准枚举键；
+ * 4) 空白或越界值按需兜底到 schema.default（或 options[0]）。
+ */
+export function normalizeSelectValue(
+    raw: unknown,
+    spec?: SelectNormalizationSpec | null,
+    opts?: NormalizeSelectOptions,
+): string | undefined {
+    const trimmed = typeof raw === "string" ? raw.trim() : (raw !== undefined && raw !== null ? String(raw).trim() : "");
+    const options = spec?.options ?? [];
+    const fallback = (opts?.fallbackToDefault || opts?.fallbackToFirstOption)
+        ? (spec?.default !== undefined && (options.length === 0 || options.includes(spec.default))
+            ? spec.default
+            : (opts?.fallbackToFirstOption && options.length > 0 ? options[0] : undefined))
+        : undefined;
+
+    if (!trimmed || trimmed === "—") {
+        return fallback;
+    }
+    if (options.length === 0) {
+        return trimmed;
+    }
+    if (options.includes(trimmed)) {
+        return trimmed;
+    }
+    const lower = trimmed.toLowerCase();
+    const caseHit = options.find((o) => o.toLowerCase() === lower);
+    if (caseHit) return caseHit;
+    if (opts?.labelOf) {
+        const labelHit = options.find((o) => {
+            const lbl = opts.labelOf!(o)?.trim();
+            return lbl && lbl.toLowerCase() === lower;
+        });
+        if (labelHit) return labelHit;
+    }
+    if (opts?.preserveUnknown) {
+        return trimmed;
+    }
+    return fallback;
+}
+
 /** 写入：select 列统一双形态 payload（内核 3.8.x 读 MSelect 数组） */
-export function selectCellValue(content: string): { type: string; select: { content: string }; mSelect: { content: string }[] } {
-    return { type: "select", select: { content }, mSelect: [{ content }] };
+export function selectCellValue(
+    content: string,
+    spec?: SelectNormalizationSpec | null,
+    opts?: NormalizeSelectOptions,
+): { type: string; select: { content: string }; mSelect: { content: string }[] } {
+    const normalized = spec ? (normalizeSelectValue(content, spec, opts) ?? content) : content;
+    return { type: "select", select: { content: normalized }, mSelect: [{ content: normalized }] };
 }
 
 /** 读取：select 单元格内容（mSelect 优先——内核存储形态；select 单值为旧数据兼容） */
@@ -33,6 +99,24 @@ export function selectCellContent(cell: AvCellLike | undefined | null): string |
     const m = cell.mSelect?.map((o) => o?.content).filter((c): c is string => !!c) ?? [];
     if (m.length > 0) return m[0];
     return cell.select?.content || undefined;
+}
+
+/** 读取：relation 单元格关联的 blockIDs（无关联时返回空数组） */
+export function relationCellBlockIDs(cell: AvCellLike | undefined | null): string[] {
+    if (!cell) return [];
+    const raw = cell.relation?.blockIDs ?? (cell as any).value?.relation?.blockIDs;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((id) => String(id ?? "").trim()).filter(Boolean);
+}
+
+/** 读取并归一化 select 单元格内容（先 mSelect 后 select，再按 schema options/default 归一化兜底） */
+export function normalizedSelectCellContent(
+    cell: AvCellLike | undefined | null,
+    spec?: SelectNormalizationSpec | null,
+    opts?: NormalizeSelectOptions,
+): string | undefined {
+    const raw = selectCellContent(cell) ?? (typeof cell?.text?.content === "string" ? cell.text.content : undefined);
+    return normalizeSelectValue(raw, spec, opts);
 }
 
 /** 提取单元格展示文本（无 UI 依赖纯函数） */
@@ -138,6 +222,15 @@ export function cellValue(
         }
         case "select":
             return typeof v === "string" ? selectCellValue(v) : null;
+        case "mSelect": {
+            const rawList = Array.isArray(v)
+                ? v
+                : typeof v === "string"
+                    ? v.split(/[,，、;；]+/)
+                    : [];
+            const list = Array.from(new Set(rawList.map((item) => String(item ?? "").trim()).filter(Boolean)));
+            return { type: "mSelect", mSelect: list.map((content) => ({ content })) };
+        }
         case "checkbox":
             return { type: "checkbox", checkbox: { checked: Boolean(v) } };
         case "number": {

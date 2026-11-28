@@ -6,6 +6,46 @@
  * 4. 键盘 Tab / Shift+Tab 焦点环（Focus Trap），防止焦点泄露到底层界面
  */
 
+function isHiddenDialogElement(d: HTMLElement): boolean {
+    if (d.classList?.contains?.("fn__none")) return true;
+    if (d.style?.display === "none") return true;
+    if (typeof getComputedStyle === "function") {
+        try {
+            if (getComputedStyle(d).display === "none") return true;
+        } catch { /* soft */ }
+    }
+    return false;
+}
+
+export function hasBlockingDialogAbove(modalEl?: HTMLElement | null): boolean {
+    if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return false;
+    const dialogs = Array.from(document.querySelectorAll<HTMLElement>(".b3-dialog"));
+    for (const d of dialogs) {
+        if (!d.isConnected || d.hasAttribute?.("inert")) continue;
+        if (isHiddenDialogElement(d)) continue;
+        if (d.classList?.contains?.("b3-dialog--lvmobile")) continue;
+        if (modalEl && typeof d.contains === "function" && d.contains(modalEl)) continue;
+        return true;
+    }
+    return false;
+}
+
+function isTopmostDialogElement(dlgElement: HTMLElement): boolean {
+    if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return true;
+    const dialogs = Array.from(document.querySelectorAll<HTMLElement>(".b3-dialog"))
+        .filter((el) => el.isConnected !== false && !el.hasAttribute?.("inert") && !isHiddenDialogElement(el));
+    if (dialogs.length === 0) return true;
+    const selfDialog = dlgElement?.classList?.contains?.("b3-dialog")
+        ? dlgElement
+        : (dlgElement?.closest?.<HTMLElement>(".b3-dialog") ?? dlgElement);
+    const topDialog = dialogs[dialogs.length - 1];
+    if (!topDialog || !selfDialog) return true;
+    // 若 dlgElement 本身尚未被标记为 .b3-dialog 或不在 dialogs 列表内，只要存在更高层 .b3-dialog 且不包含自己即视为非顶层
+    if (topDialog === selfDialog) return true;
+    if (typeof topDialog.contains === "function" && topDialog.contains(dlgElement)) return true;
+    return false;
+}
+
 export interface DialogA11yOptions {
     dlg: { element: HTMLElement; destroy: () => void };
     defaultFocus?: HTMLElement | string | null;
@@ -41,9 +81,12 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
             cleanupListeners();
             return;
         }
+        if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "Escape") {
+            if (!isTopmostDialogElement(dlg.element)) return;
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation?.();
             dlg.destroy();
             return;
         }
@@ -89,7 +132,7 @@ export function bindDialogA11y(options: DialogA11yOptions): { restoreFocus: () =
                 ".b3-button--cancel, [data-type='cancel'], [data-role='close'], .lv-modal-close"
             );
             cancels?.forEach((btn) => {
-                if (!btn.getAttribute("data-lv-close-bound")) {
+                if (!btn.getAttribute("data-lv-close-bound") && !btn.hasAttribute?.("data-lv-skip-auto-close")) {
                     btn.setAttribute("data-lv-close-bound", "1");
                     btn.addEventListener("click", () => dlg.destroy());
                 }

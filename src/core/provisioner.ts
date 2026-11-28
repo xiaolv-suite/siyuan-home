@@ -134,7 +134,7 @@ export async function provisionModule(
 
             // D08：复用原库 + 补列续跑（成功后清除旧 provisionError）
             const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
-            const { columns, error } = await ensureColumns(existing.avId, schema, existing.columns, moduleId, opts, memberAvId);
+            const { columns, error, schemaIssues } = await ensureColumns(existing.avId, schema, existing.columns, moduleId, opts, memberAvId);
             const dbRef: DbRef = {
                 ...existing,
                 notebook: actualNotebook,
@@ -142,6 +142,7 @@ export async function provisionModule(
                 schemaVersion: existing.schemaVersion ?? 2,
                 columns,
                 provisionError: error,
+                schemaIssues: schemaIssues?.length ? schemaIssues : undefined,
             };
             settings.dbRefs[moduleId] = dbRef;
             await syncVehicleDiarySqlIfNeeded(settings, moduleId, dbRef);
@@ -185,7 +186,7 @@ export async function provisionModule(
             if (found.id) invalidateSQLCache(found.id);
             if (avId) invalidateSQLCache(avId);
             const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
-            const { columns, error } = await ensureColumns(avId, schema, existing?.columns, moduleId, opts, memberAvId);
+            const { columns, error, schemaIssues } = await ensureColumns(avId, schema, existing?.columns, moduleId, opts, memberAvId);
             const dbRef: DbRef = {
                 ...existing,
                 docId: found.id,
@@ -197,6 +198,7 @@ export async function provisionModule(
                 provisional: !avId,
                 columns,
                 provisionError: error,
+                schemaIssues: schemaIssues?.length ? schemaIssues : undefined,
             };
             settings.dbRefs[moduleId] = dbRef;
             await syncVehicleDiarySqlIfNeeded(settings, moduleId, dbRef);
@@ -248,7 +250,7 @@ export async function provisionModule(
             console.warn(`[LvHome] module "${moduleId}" provisioned provisionally:`, provisionError);
         }
         const memberAvId = moduleId === "members" ? undefined : settings.dbRefs.members?.avId;
-        const { columns, error } = await ensureColumns(avId, schema, undefined, moduleId, opts, memberAvId);
+        const { columns, error, schemaIssues } = await ensureColumns(avId, schema, undefined, moduleId, opts, memberAvId);
         const dbRef: DbRef = {
             docId,
             avId,
@@ -259,6 +261,7 @@ export async function provisionModule(
             provisional,
             columns,
             provisionError: provisionError ?? error,
+            schemaIssues: schemaIssues?.length ? schemaIssues : undefined,
         };
         settings.dbRefs[moduleId] = dbRef;
         await syncVehicleDiarySqlIfNeeded(settings, moduleId, dbRef);

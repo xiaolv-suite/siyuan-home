@@ -12,7 +12,7 @@ import { saveSettings } from "@/core/settings";
 import { loadRuntime, saveRuntime } from "./runtime-store";
 import type { HomeSettings } from "@/types";
 
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.200";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.201";
 
 export class LaunchpadController {
     private readonly plugin: any;
@@ -509,6 +509,14 @@ export class LaunchpadController {
     }
 
     getDiagnostics(): any {
+        const contracts: string[] = [];
+        for (const [id, ref] of Object.entries(this.plugin.settings.dbRefs ?? {}) as Array<[string, any]>) {
+            for (const issue of ref?.schemaIssues ?? []) {
+                contracts.push(
+                    `[${id}.${issue.colKey}] expected=${issue.expectedType} actual=${issue.actualType}: ${issue.guidance ?? "column type drift"}`,
+                );
+            }
+        }
         return {
             version: PLUGIN_VERSION,
             scannedAt: this.plugin.runtime?.scannedAt,
@@ -520,7 +528,7 @@ export class LaunchpadController {
                 columns: Object.keys(ref?.columns ?? {}).length,
                 error: ref?.provisionError,
             })),
-            contracts: [],
+            contracts,
         };
     }
 }

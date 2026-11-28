@@ -32,6 +32,10 @@ export interface OpenReminderPlanDialogOptions {
 export function openReminderPlanDialog(options: OpenReminderPlanDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, showMessageFn, onPlanUpdated } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+        return;
+    }
     const planDates = plugin.runtime?.planDates || {};
     const currentPlan = planDates[r.id] || "";
     const todayKey = localDateKey(new Date());
@@ -138,6 +142,10 @@ export interface OpenNamedViewSaveDialogOptions {
 export function openNamedViewSaveDialog(options: OpenNamedViewSaveDialogOptions): void {
     if (typeof document === "undefined") return;
     const { plugin, currentFilter, DialogCls, t, showMessageFn, onViewSaved } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+        return;
+    }
     const dlg = new DialogCls({
         title: t("hub.saveViewTitle"),
         content: `<div class="b3-dialog__content lv-dialog-col">
@@ -195,6 +203,10 @@ export interface OpenNamedViewDeleteConfirmOptions {
 
 export function openNamedViewDeleteConfirm(options: OpenNamedViewDeleteConfirmOptions): void {
     const { v, plugin, t, showMessageFn, onViewDeleted } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+        return;
+    }
     confirm(t("hub.deleteViewTitle"), t("hub.deleteViewBody").replace("${name}", v.name), async () => {
         removeNamedView(plugin.runtime, v.id);
         try {
@@ -218,6 +230,7 @@ export interface OpenReminderRenewDialogOptions {
 export function openReminderRenewDialog(options: OpenReminderRenewDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, onRenewSuccess } = options;
+    if (plugin?.runtime?.guestModeActive) return;
     const dlg = new DialogCls({
         title: t("act.renew"),
         content: `<div class="b3-dialog__content"><div class="b3-dialog__content" id="lv-renew-sub" style="margin-bottom:8px"></div><input class="b3-text-field fn__block" id="lv-renew-date" type="date"><div class="lv-caption" id="lv-renew-err" role="alert" style="color:var(--b3-card-error-color);display:none"></div></div>
@@ -265,7 +278,11 @@ export interface OpenMemoEditDialogOptions {
 
 export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
     if (typeof document === "undefined") return;
-    const { r, plugin, DialogCls, t, onMemoUpdated } = options;
+    const { r, plugin, DialogCls, t, showMessageFn, onMemoUpdated } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+        return;
+    }
     const dlg = new DialogCls({ title: t("memo.edit"), content: `<div id="lv-memoedit" class="lv-dialog-col"></div>`, width: "min(460px, 94vw)" });
     const box = dlg.element.querySelector("#lv-memoedit") as HTMLElement;
     const row1 = document.createElement("label");
@@ -290,10 +307,10 @@ export function openMemoEditDialog(options: OpenMemoEditDialogOptions): void {
         if (saving) return;
         const rawTitle = titleInput.value.trim();
         if (!rawTitle) { err.textContent = t("ledger.nameRequired"); titleInput.focus(); return; }
-        if (!dateInput.value) { err.textContent = t("form.required"); dateInput.focus(); return; }
         const parsed = parseQuickAdd(rawTitle);
         const title = parsed.cleanTitle || rawTitle;
-        const dueDate = (dateInput.value === r.dueDate && parsed.dueDate) ? parsed.dueDate : dateInput.value;
+        const effectiveDate = dateInput.value || r.dueDate || localDateKey(new Date(Date.now() + 3 * 86400000));
+        const dueDate = (effectiveDate === r.dueDate && parsed.dueDate) ? parsed.dueDate : effectiveDate;
         saving = true;
         save.disabled = true;
         try {

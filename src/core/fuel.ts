@@ -91,6 +91,10 @@ function finitePositive(value: unknown): value is number {
     return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
+function finiteNonNegative(value: unknown): value is number {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
 function validDate(value: unknown): value is string {
     if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value)) return false;
     const day = value.slice(0, 10);
@@ -102,7 +106,7 @@ function recordCost(record: EnergyRecord): number | undefined {
     if (typeof record.totalCost === "number" && Number.isFinite(record.totalCost) && record.totalCost >= 0) {
         return record.totalCost;
     }
-    if (typeof record.unitPrice === "number" && Number.isFinite(record.unitPrice) && record.unitPrice >= 0) {
+    if (typeof record.unitPrice === "number" && Number.isFinite(record.unitPrice) && record.unitPrice >= 0 && finitePositive(record.quantity)) {
         return record.quantity * record.unitPrice;
     }
     return undefined;
@@ -110,8 +114,19 @@ function recordCost(record: EnergyRecord): number | undefined {
 
 function sortRecords(records: readonly EnergyRecord[], kind: EnergyKind): EnergyRecord[] {
     return records
-        .filter((r) => r.kind === kind && validDate(r.date) && finitePositive(r.odometer) && finitePositive(r.quantity))
-        .map((r) => ({ ...r }))
+        .filter((r) => {
+            if (r.kind !== kind || !validDate(r.date)) return false;
+            if (r.odometer !== undefined && !finiteNonNegative(r.odometer)) return false;
+            if (r.quantity !== undefined && !finiteNonNegative(r.quantity)) return false;
+            const hasQty = finitePositive(r.quantity);
+            const hasPositiveCost = finitePositive(r.totalCost) || (hasQty && finitePositive(r.unitPrice));
+            return hasQty || hasPositiveCost;
+        })
+        .map((r) => ({
+            ...r,
+            odometer: finiteNonNegative(r.odometer) ? r.odometer : 0,
+            quantity: finiteNonNegative(r.quantity) ? r.quantity : 0,
+        }))
         // 同日优先按录入时刻排序；旧记录无 at 时依赖稳定排序保留数组先后。
         .sort((a, b) => a.date.localeCompare(b.date) || String(a.at ?? "").localeCompare(String(b.at ?? "")));
 }
@@ -143,6 +158,7 @@ function makeInterval(from: EnergyRecord, to: EnergyRecord, quantity: number, co
  */
 export function calculateEnergyStats(records: readonly EnergyRecord[], kind: EnergyKind): EnergyStats {
     const valid = sortRecords(records, kind);
+    const odometerValid = valid.filter((r) => finitePositive(r.odometer) && finitePositive(r.quantity));
     const costs = valid.map(recordCost);
     const totalQuantity = valid.reduce((sum, r) => sum + r.quantity, 0);
     const totalCost = costs.reduce((sum, value) => sum + (value ?? 0), 0);
@@ -158,7 +174,7 @@ export function calculateEnergyStats(records: readonly EnergyRecord[], kind: Ene
     let nonIncreasingOdometer = false;
     let previousRecord: EnergyRecord | undefined;
 
-    for (const record of valid) {
+    for (const record of odometerValid) {
         if (previousRecord && record.odometer <= previousRecord.odometer) {
             nonIncreasingOdometer = true;
             // 里程表回退/重置时切断当前区间，避免把错误距离用于油耗。
@@ -202,12 +218,12 @@ export function calculateEnergyStats(records: readonly EnergyRecord[], kind: Ene
     if (intervals.length === 0 && !nonIncreasingOdometer) {
         method = "estimated";
         intervals = [];
-        for (let i = 1; i < valid.length; i++) {
-            const current = valid[i];
+        for (let i = 1; i < odometerValid.length; i++) {
+            const current = odometerValid[i];
             const cost = recordCost(current) ?? 0;
-            const interval = makeInterval(valid[i - 1], current, current.quantity, cost, recordCost(current) !== undefined, true);
+            const interval = makeInterval(odometerValid[i - 1], current, current.quantity, cost, recordCost(current) !== undefined, true);
             if (interval) intervals.push(interval);
-            else if (current.odometer <= valid[i - 1].odometer) nonIncreasingOdometer = true;
+            else if (current.odometer <= odometerValid[i - 1].odometer) nonIncreasingOdometer = true;
         }
     }
 
@@ -219,7 +235,7 @@ export function calculateEnergyStats(records: readonly EnergyRecord[], kind: Ene
     const costComplete = costRecordCount === valid.length && valid.length > 0;
     const averageUnitPrice = weightedQuantity > 0 ? totalCost / weightedQuantity : undefined;
     const warnings: EnergyWarning[] = [];
-    if (valid.length < 2) warnings.push("insufficient_records");
+    if (odometerValid.length < 2) warnings.push("insufficient_records");
     if (method === "estimated") warnings.push("estimated_consumption");
     if (costRecordCount < valid.length) warnings.push("missing_costs");
     if (hadRecordsBeforeBaseline && fullIntervals.length > 0) warnings.push("incomplete_initial_interval");

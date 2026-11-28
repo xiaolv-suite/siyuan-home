@@ -19,6 +19,7 @@ import { localDateKey } from "./hub/rule";
 export interface RewardsDialogOptions {
     t: (k: string) => string;
     plugin: {
+        runtime?: { guestModeActive?: boolean };
         settings: {
             dbRefs: Record<string, { avId?: string; columns?: Record<string, string> }>;
             members?: Array<{ id: string; name: string; avItemId?: string }>;
@@ -139,8 +140,17 @@ export async function openRewardsDialog(opts: RewardsDialogOptions): Promise<voi
     };
 
     // 一键结算入 allowance 账本
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const settleBtn = dlg.element.querySelector("#lv-rewards-settle") as HTMLButtonElement;
+    if (isGuest) {
+        settleBtn.disabled = true;
+        settleBtn.title = t("guest.writeBlocked");
+    }
     settleBtn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (report.unsettledPointsAll === 0) return;
         const allowRef = plugin.settings.dbRefs?.allowance;
         if (!allowRef?.avId || !addDetachedRowFn || !setCellFn) {

@@ -2,15 +2,20 @@
  * 表格行批量改派成员与存放位置弹窗（解耦抽取自 ledger.svelte，促进大文件瘦身）
  */
 
-import { setCell } from "./siyuan";
-import type { FamilyMember } from "@/types";
+import { setCellResilient } from "./siyuan";
+import type { FamilyMember, DbRef } from "@/types";
 import { bindDialogA11y } from "./dialog-a11y";
+import { escapeHtml } from "./modal-shell";
 
 export interface BatchMemberDialogOptions {
     targetCol: string;
     membersList: FamilyMember[];
     selectedItemIds: string[];
     avId: string;
+    plugin?: any;
+    moduleId?: string;
+    ref?: DbRef;
+    colKey?: string;
     t: (k: string) => string;
     DialogCls: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -19,20 +24,20 @@ export interface BatchMemberDialogOptions {
 
 export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
     if (typeof document === "undefined") return;
-    const { targetCol, membersList, selectedItemIds, avId, t, DialogCls, showMessageFn, onBatchSuccess } = options;
+    const { targetCol, membersList, selectedItemIds, avId, plugin, moduleId, ref, colKey = "member", t, DialogCls, showMessageFn, onBatchSuccess } = options;
     if (!membersList.length || !selectedItemIds.length || !avId) return;
 
     const dlg = new DialogCls({
         title: t("ledger.batchMemberTitle"),
         content: `
             <div class="b3-dialog__content lv-dialog-col" id="lv-batch-member-dialog">
-                <label class="lv-caption">${t("ledger.batchMemberTitle")}：</label>
+                <label class="lv-caption">${escapeHtml(t("ledger.batchMemberTitle"))}：</label>
                 <div class="lv-chips-wrap">
-                    ${membersList.map((m) => `<button type="button" class="lv-preset-tag lv-batch-mem-tag" data-id="${m.avItemId}">${m.name}</button>`).join("")}
+                    ${membersList.map((m) => `<button type="button" class="lv-preset-tag lv-batch-mem-tag" data-id="${escapeHtml(m.avItemId)}">${escapeHtml(m.name)}</button>`).join("")}
                 </div>
             </div>
             <div class="b3-dialog__action">
-                <button class="b3-button b3-button--cancel">${t("cancel")}</button>
+                <button class="b3-button b3-button--cancel">${escapeHtml(t("cancel"))}</button>
             </div>
         `,
         width: "min(380px, 94vw)",
@@ -50,8 +55,20 @@ export function openBatchMemberDialog(options: BatchMemberDialogOptions): void {
             const count = selectedItemIds.length;
             showMessageFn(t("ledger.saving"), 2000, "info");
             try {
+                let currentCol = targetCol;
                 for (const rowId of selectedItemIds) {
-                    await setCell(avId, targetCol, rowId, { type: "relation", relation: { blockIDs: [memId] } });
+                    const res = await setCellResilient({
+                        avID: avId,
+                        keyID: currentCol,
+                        itemID: rowId,
+                        value: { type: "relation", relation: { blockIDs: [memId] } },
+                        plugin,
+                        moduleId,
+                        colKey,
+                        ref,
+                        schemaCol: { key: colKey, type: "relation" },
+                    });
+                    currentCol = res.keyID;
                 }
                 showMessageFn(t("ledger.batchMember") + ` (${count})`, 3000, "info");
                 if (onBatchSuccess) await onBatchSuccess(count);
@@ -67,6 +84,10 @@ export interface BatchLocationDialogOptions {
     selectedItemIds: string[];
     locOptions: string[];
     avId: string;
+    plugin?: any;
+    moduleId?: string;
+    ref?: DbRef;
+    colKey?: string;
     t: (k: string) => string;
     DialogCls: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -75,22 +96,22 @@ export interface BatchLocationDialogOptions {
 
 export function openBatchLocationDialog(options: BatchLocationDialogOptions): void {
     if (typeof document === "undefined") return;
-    const { targetCol, selectedItemIds, locOptions, avId, t, DialogCls, showMessageFn, onBatchSuccess } = options;
+    const { targetCol, selectedItemIds, locOptions, avId, plugin, moduleId, ref, colKey = "location", t, DialogCls, showMessageFn, onBatchSuccess } = options;
     if (!selectedItemIds.length || !avId) return;
 
     const dlg = new DialogCls({
         title: t("ledger.batchLocationTitle"),
         content: `
             <div class="b3-dialog__content lv-dialog-col" id="lv-batch-loc-dialog">
-                <label class="lv-caption">${t("ledger.batchLocationTitle")}：</label>
-                <input class="b3-text-field fn__block" id="lv-batch-loc-input" placeholder="${t("capture.presetLocations")}" />
+                <label class="lv-caption">${escapeHtml(t("ledger.batchLocationTitle"))}：</label>
+                <input class="b3-text-field fn__block" id="lv-batch-loc-input" placeholder="${escapeHtml(t("capture.presetLocations"))}" />
                 <div class="lv-chips-wrap">
-                    ${locOptions.map((loc) => `<button type="button" class="lv-preset-tag lv-batch-loc-tag" data-loc="${loc}">${loc}</button>`).join("")}
+                    ${locOptions.map((loc) => `<button type="button" class="lv-preset-tag lv-batch-loc-tag" data-loc="${escapeHtml(loc)}">${escapeHtml(loc)}</button>`).join("")}
                 </div>
             </div>
             <div class="b3-dialog__action">
-                <button class="b3-button b3-button--cancel">${t("cancel")}</button>
-                <button class="b3-button" id="lv-batch-loc-ok">${t("save")}</button>
+                <button class="b3-button b3-button--cancel">${escapeHtml(t("cancel"))}</button>
+                <button class="b3-button" id="lv-batch-loc-ok">${escapeHtml(t("save"))}</button>
             </div>
         `,
         width: "min(420px, 94vw)",
@@ -125,8 +146,20 @@ export function openBatchLocationDialog(options: BatchLocationDialogOptions): vo
             this.disabled = true;
             try {
                 const count = selectedItemIds.length;
+                let currentCol = targetCol;
                 for (const rowId of selectedItemIds) {
-                    await setCell(avId, targetCol, rowId, { type: "text", text: { content: locVal } });
+                    const res = await setCellResilient({
+                        avID: avId,
+                        keyID: currentCol,
+                        itemID: rowId,
+                        value: { type: "text", text: { content: locVal } },
+                        plugin,
+                        moduleId,
+                        colKey,
+                        ref,
+                        schemaCol: { key: colKey, type: "text" },
+                    });
+                    currentCol = res.keyID;
                 }
                 dlg.destroy();
                 showMessageFn(t("ledger.batchLocation") + ` (${count})`, 3000, "info");

@@ -2,8 +2,8 @@
  * 台账行内编辑微控件与状态流转（解耦抽取自 ledger.svelte，促进大文件瘦身）
  */
 
-import { setCell } from "./siyuan";
-import { cellValue } from "./avcell";
+import { setCellResilient } from "./siyuan";
+import { cellValue, normalizeSelectValue } from "./avcell";
 import { optLabel } from "./format";
 
 export interface InlineEditOptions {
@@ -122,33 +122,26 @@ export function beginInlineEdit(options: InlineEditOptions): void {
         control.disabled = true;
         try {
             const effectiveType = col.key === "name" ? "block" : col.type;
-            const nextCell = cellValue(effectiveType, value, { itemID: row.itemID, keyID, allowEmptyNumber: true });
-            let writeKey = keyID;
-            try {
-                await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
-                    idempotencyKey: `ledger:inline:${row.itemID}:${writeKey}:${Date.now()}`,
+            const normalizedVal = col.type === "select"
+                ? (normalizeSelectValue(value, col, { fallbackToDefault: col.default !== undefined }) ?? value)
+                : value;
+            const nextCell = cellValue(effectiveType, normalizedVal, { itemID: row.itemID, keyID, allowEmptyNumber: true });
+            const res = await setCellResilient({
+                avID: ref.avId!,
+                keyID,
+                itemID: row.itemID,
+                value: nextCell,
+                plugin,
+                moduleId: active,
+                colKey: col.key,
+                ref,
+                schemaCol: col,
+                requestOptions: {
+                    idempotencyKey: `ledger:inline:${row.itemID}:${keyID}:${Date.now()}`,
                     retries: 1,
-                });
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                if (msg.includes("key not found")) {
-                    const { healColumnMapping } = await import("./provision-adoption");
-                    const healedKey = plugin ? await healColumnMapping(plugin, active, col.key) : undefined;
-                    if (healedKey && healedKey !== writeKey) {
-                        ref.columns = { ...(ref.columns ?? {}), [col.key]: healedKey };
-                        writeKey = healedKey;
-                        await setCell(ref.avId!, writeKey, row.itemID, nextCell, {
-                            idempotencyKey: `ledger:inline:${row.itemID}:${writeKey}:healed:${Date.now()}`,
-                            retries: 1,
-                        });
-                    } else {
-                        throw err;
-                    }
-                } else {
-                    throw err;
-                }
-            }
-            row.cells[writeKey] = nextCell;
+                },
+            });
+            row.cells[res.keyID] = nextCell;
             showMessageFn(t("ledger.editSaved"), 2500, "info");
             if (onSaveSuccess) await onSaveSuccess();
         } catch (error) {
@@ -193,12 +186,12 @@ export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Prom
         showMessageFn(msg, 3500, "info");
         return undefined;
     }
-    if (!ref?.avId || !ref.columns?.[fieldKey]) return undefined;
+    if (!ref?.avId) return undefined;
     const lockKey = `${row.itemID}:${fieldKey}`;
     if (adjustingRowKeys.has(lockKey)) return undefined;
     adjustingRowKeys.add(lockKey);
-    const colId = ref.columns[fieldKey];
-    const cell = row.cells?.[colId];
+    const colId = ref.columns?.[fieldKey];
+    const cell = colId ? row.cells?.[colId] : undefined;
     let cur = 0;
     if (typeof cell?.number?.content === "number" && !isNaN(cell.number.content)) {
         cur = cell.number.content;
@@ -208,9 +201,19 @@ export async function quickAdjustRowQty(options: QuickAdjustRowQtyOptions): Prom
     }
     const next = Math.max(0, cur + delta);
     try {
-        await setCell(ref.avId, colId, row.itemID, { type: "number", number: { content: next, isNotEmpty: true } });
-        if (!row.cells[colId]) row.cells[colId] = { type: "number", number: {} };
-        row.cells[colId].number = { content: next, isNotEmpty: true };
+        const res = await setCellResilient({
+            avID: ref.avId,
+            keyID: colId,
+            itemID: row.itemID,
+            value: { type: "number", number: { content: next, isNotEmpty: true } },
+            plugin,
+            moduleId: active,
+            colKey: fieldKey,
+            ref,
+            schemaCol: { key: fieldKey, type: "number" },
+        });
+        if (!row.cells[res.keyID]) row.cells[res.keyID] = { type: "number", number: {} };
+        row.cells[res.keyID].number = { content: next, isNotEmpty: true };
         showMessageFn(`${delta > 0 ? "+1" : "-1"} (${next})`, 1500, "info");
         // 库存变动后轻量触发单模块重扫，自动更新/解除到期与低库存提醒
         void plugin.refreshHub?.(active);

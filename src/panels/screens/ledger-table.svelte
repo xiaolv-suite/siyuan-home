@@ -75,8 +75,8 @@
 
     let lastCheckedIndex = $state<number | null>(null);
 
-    const allSelected = $derived(filteredRows.length > 0 && selectedItemIds.length === filteredRows.length);
     const filteredRowIndexMap = $derived(new Map(filteredRows.map((r, i) => [r.itemID, i])));
+    const allSelected = $derived(filteredRows.length > 0 && filteredRows.every((r) => selectedItemIds.includes(r.itemID)));
 
     function toggleSelectAll() {
         if (allSelected) {
@@ -335,7 +335,7 @@
     $effect(() => {
         const table = ledgerTableEl;
         if (!table) return;
-        const root = table.closest<HTMLElement>(".lv-home");
+        const root = table.closest<HTMLElement>(".lv-main-stage") ?? table.closest<HTMLElement>(".lv-home");
         if (!root) return;
         virtualRoot = root;
         let scrollRaf = 0;

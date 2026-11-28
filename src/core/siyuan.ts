@@ -384,6 +384,53 @@ export interface AvColumnSpec {
     relationTargetAvID?: string;
     /** 前一列 keyID：用于将新增列按 schema 顺序排在主键/前一列之后，避免空串插到第 0 列导致思源原生表格列序倒置 */
     previousKeyID?: string;
+    /** select / mSelect 列枚举选项（建列后安全尝试同步至思源 AV，失败不阻断建列） */
+    options?: Array<string | { name: string; color?: string; desc?: string }>;
+}
+
+/**
+ * 安全尝试同步 select / mSelect 列的选项清单到思源属性视图（/api/transactions updateAttrViewColOptions）。
+ * 若当前内核版本不支持或请求失败，返回 false，绝不阻断建列或补列主流程。
+ */
+export async function syncAttributeViewColumnOptions(
+    avID: string,
+    keyID: string,
+    colOptions: Array<string | { name: string; color?: string; desc?: string }>,
+    options?: RequestOptions,
+): Promise<boolean> {
+    if (!avID || !keyID || !Array.isArray(colOptions) || colOptions.length === 0) return false;
+    const data = colOptions
+        .map((opt, idx) => {
+            if (typeof opt === "string") {
+                const name = opt.trim();
+                return name ? { name, color: String((idx % 14) + 1), desc: "" } : null;
+            }
+            const name = String(opt?.name ?? "").trim();
+            return name ? { name, color: opt?.color ?? String((idx % 14) + 1), desc: opt?.desc ?? "" } : null;
+        })
+        .filter((x): x is { name: string; color: string; desc: string } => x !== null);
+    if (data.length === 0) return false;
+    try {
+        await post("/api/transactions", {
+            reqId: Date.now(),
+            transactions: [{
+                doOperations: [{
+                    action: "updateAttrViewColOptions",
+                    avID,
+                    keyID,
+                    data,
+                }],
+                undoOperations: [],
+            }],
+        }, {
+            ...options,
+            retries: 0,
+            idempotencyKey: options?.idempotencyKey ? `${options.idempotencyKey}:options` : undefined,
+        });
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 export async function addAttributeViewColumn(avID: string, col: AvColumnSpec, options?: RequestOptions): Promise<string> {
@@ -395,6 +442,9 @@ export async function addAttributeViewColumn(avID: string, col: AvColumnSpec, op
         payload.relation = { avID: col.relationTargetAvID, isTwoWay: false, backKeyID: "" };
     }
     await post("/api/av/addAttributeViewKey", payload, options);
+    if ((col.type === "select" || col.type === "mSelect") && col.options?.length) {
+        await syncAttributeViewColumnOptions(avID, keyID, col.options, options);
+    }
     return keyID;
 }
 
@@ -817,6 +867,19 @@ export async function setCell(avID: string, keyID: string, itemID: string, value
     }
 
     await post("/api/av/setAttributeViewBlockAttr", { avID, keyID, itemID, value: payloadValue }, requestOptions);
+}
+
+export type { SetCellResilientOptions, SetCellResilientResult } from "./provision-adoption";
+
+/**
+ * 统一弹性写格入口：优先按既有 keyID 写入；若列映射缺失或内核返回列不存在（key not found），
+ * 自动通过 healColumnMapping（别名找回 / addAttributeViewKey 补列）自愈并执行一次安全重试。
+ */
+export async function setCellResilient(
+    opts: import("./provision-adoption").SetCellResilientOptions,
+): Promise<import("./provision-adoption").SetCellResilientResult> {
+    const { setCellResilient: run } = await import("./provision-adoption");
+    return run(opts);
 }
 
 export interface AvRow {

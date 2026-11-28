@@ -403,11 +403,20 @@ export async function renderParentingFeedingSection(options: RenderParentingFeed
         if (healthRef?.avId && healthRef?.columns) {
             const actionRow = document.createElement("div");
             actionRow.className = "lv-domain-action-row";
+            const isGuest = Boolean(plugin?.runtime?.guestModeActive);
             const addAllergyBtn = document.createElement("button");
             addAllergyBtn.type = "button";
             addAllergyBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
             addAllergyBtn.innerHTML = `${uiIcon("add", "", 13)} ${t("ledger.recordAllergyToHealth")}`;
+            if (isGuest) {
+                addAllergyBtn.disabled = true;
+                addAllergyBtn.title = t("guest.writeBlocked");
+            }
             addAllergyBtn.onclick = () => {
+                if (plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 const adlg = new DialogCls({
                     title: t("ledger.recordAllergyTitle"),
                     content: `<div class="b3-dialog__content lv-dialog-col">

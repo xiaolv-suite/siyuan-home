@@ -5,11 +5,11 @@
 import { renderRecordCardPng, copyPngToClipboard, downloadPng } from "./sharecard";
 import { formatAsTaskBlock } from "./block-capture";
 import { confirm } from "@/libs/dialog";
-import { selectCellContent } from "./avcell";
-import { localDateKey, parseDate } from "./hub/rule";
+import { buildDuplicateRowValues } from "./ledger-view-model";
+import { localDateKey } from "./hub/rule";
 import { saveSettings } from "./settings";
-import { saveRuntime } from "./hub/runtime";
 import { homeInline } from "@/libs/notice";
+import { renderEditableFormFields } from "./record-form";
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -290,122 +290,123 @@ export function renderDrawerEditMode(options: RenderDrawerEditModeOptions): void
         more.hidden = true;
     }
 
-    import("./record-form").then(({ renderEditableFormFields }) => {
-        const inputs = renderEditableFormFields({
-            container: body,
-            schemaCols,
-            columns: ref.columns!,
-            rowCells: row.cells,
-            t,
-            rawFromValueFn,
-            hasContactsBridge: true,
-            onPickContact: pickFromContactsFn,
-        });
+    const inputs = renderEditableFormFields({
+        container: body,
+        schemaCols,
+        columns: ref.columns!,
+        rowCells: row.cells,
+        t,
+        rawFromValueFn,
+        hasContactsBridge: true,
+        onPickContact: pickFromContactsFn,
+    });
 
-        const errorBox = document.createElement("div");
-        errorBox.className = "lv-record-error";
-        errorBox.setAttribute("role", "alert");
-        errorBox.style.display = "none";
-        body.appendChild(errorBox);
+    const errorBox = document.createElement("div");
+    errorBox.className = "lv-record-error";
+    errorBox.setAttribute("role", "alert");
+    errorBox.style.display = "none";
+    body.appendChild(errorBox);
 
-        const save = dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement | null;
-        if (save) save.textContent = t("save");
-        const cancel = dlg.element.querySelector("#lv-detail-close") as HTMLButtonElement | null;
-        if (cancel) {
-            cancel.textContent = t("cancel");
-            cancel.onclick = () => onCancel();
+    const save = dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement | null;
+    if (save) save.textContent = t("save");
+    const cancel = dlg.element.querySelector("#lv-detail-close") as HTMLButtonElement | null;
+    if (cancel) {
+        cancel.textContent = t("cancel");
+        cancel.onclick = () => onCancel();
+    }
+
+    if (!save) return;
+    save.onclick = async () => {
+        if (save.disabled) return;
+        if (plugin.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
         }
+        save.disabled = true;
+        if (cancel) cancel.disabled = true;
+        errorBox.style.display = "none";
+        const failed: string[] = [];
+        let changed = 0;
+        let personChanged = false;
+        const personKeyID = ref.columns?.person;
+        const previousFavorSync = plugin.runtime?.favorSyncs?.[row.itemID];
+        const submitNonce = (() => {
+            try { return crypto.randomUUID(); }
+            catch { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+        })();
 
-        if (!save) return;
-        save.onclick = async () => {
-            if (save.disabled) return;
-            save.disabled = true;
-            if (cancel) cancel.disabled = true;
-            errorBox.style.display = "none";
-            const failed: string[] = [];
-            let changed = 0;
-            let personChanged = false;
-            const personKeyID = ref.columns?.person;
-            const previousFavorSync = plugin.runtime?.favorSyncs?.[row.itemID];
+        try {
+            for (const e of inputs) {
+                const v = e.get();
+                const orig = rawFromValueFn(e.type, row.cells[e.keyID]);
+                const same = e.type === "checkbox"
+                    ? v === orig
+                    : e.type === "mSelect"
+                        ? JSON.stringify(Array.isArray(v) ? v : []) === JSON.stringify(Array.isArray(orig) ? orig : [])
+                        : String(v) === String(orig);
+                if (same) continue;
 
-            try {
-                for (const e of inputs) {
-                    const v = e.get();
-                    const orig = rawFromValueFn(e.type, row.cells[e.keyID]);
-                    const same = e.type === "checkbox" ? v === orig : String(v) === String(orig);
-                    if (same) continue;
-
-                    try {
-                        const { cellValue } = await import("./avcell");
-                        const { setCell } = await import("./siyuan");
-                        const nextCell = cellValue(e.type, v, { allowEmptyNumber: true });
-                        await setCell(ref.avId!, e.keyID, row.itemID, nextCell, {
-                            idempotencyKey: `ledger:detail-edit:${row.itemID}:${e.keyID}:${JSON.stringify(nextCell)}`,
+                try {
+                    const { cellValue } = await import("./avcell");
+                    const { setCellResilient } = await import("./siyuan");
+                    const nextCell = cellValue(e.type, v, { allowEmptyNumber: true });
+                    const writeRes = await setCellResilient({
+                        avID: ref.avId!,
+                        keyID: e.keyID,
+                        itemID: row.itemID,
+                        value: nextCell,
+                        plugin,
+                        moduleId: active,
+                        colKey: e.colKey,
+                        ref: ref as any,
+                        requestOptions: {
+                            idempotencyKey: `ledger:detail-edit:${row.itemID}:${e.keyID}:${submitNonce}`,
                             retries: 1,
-                        });
-                        row.cells[e.keyID] = nextCell;
-                        changed++;
-                        if (personKeyID && e.keyID === personKeyID) personChanged = true;
-                    } catch (err) {
-                        const msg = errMsg(err);
-                        if (msg.includes("key not found")) {
-                            try {
-                                const { healColumnMapping } = await import("./provision-adoption");
-                                const healedKey = await healColumnMapping(plugin, active, e.colKey);
-                                if (healedKey && healedKey !== e.keyID) {
-                                    const { cellValue } = await import("./avcell");
-                                    const { setCell } = await import("./siyuan");
-                                    const nextCell = cellValue(e.type, v, { allowEmptyNumber: true });
-                                    await setCell(ref.avId!, healedKey, row.itemID, nextCell, {
-                                        idempotencyKey: `ledger:detail-edit:${row.itemID}:${healedKey}:${JSON.stringify(nextCell)}`,
-                                        retries: 1,
-                                    });
-                                    row.cells[healedKey] = nextCell;
-                                    changed++;
-                                    continue;
-                                }
-                            } catch { /* fail to failed.push */ }
-                        }
-                        failed.push(e.label);
-                    }
+                        },
+                    });
+                    row.cells[writeRes.keyID] = nextCell;
+                    changed++;
+                    if (personKeyID && (e.keyID === personKeyID || writeRes.keyID === personKeyID)) personChanged = true;
+                } catch {
+                    failed.push(e.label);
                 }
+            }
 
-                if (personChanged && previousFavorSync) {
-                    delete plugin.runtime.favorSyncs[row.itemID];
-                    try {
-                        const { saveRuntime } = await import("./hub/runtime");
-                        await saveRuntime(plugin, plugin.runtime);
-                    } catch (err) {
-                        plugin.runtime.favorSyncs = { ...(plugin.runtime.favorSyncs ?? {}), [row.itemID]: previousFavorSync };
-                        showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
-                    }
+            if (personChanged && previousFavorSync) {
+                delete plugin.runtime.favorSyncs[row.itemID];
+                try {
+                    const { saveRuntime } = await import("./hub/runtime");
+                    await saveRuntime(plugin, plugin.runtime);
+                } catch (err) {
+                    plugin.runtime.favorSyncs = { ...(plugin.runtime.favorSyncs ?? {}), [row.itemID]: previousFavorSync };
+                    showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
                 }
+            }
 
-                if (failed.length > 0) {
-                    if (changed > 0) {
-                        await onReload();
-                        try { await plugin.refreshHub?.([active]); } catch { /* soft */ }
-                    }
-                    errorBox.textContent = t("ledger.editSavePartial").replace("${fields}", failed.join(", "));
-                    errorBox.style.display = "block";
-                    save.disabled = false;
-                    if (cancel) cancel.disabled = false;
-                    return;
-                }
-
-                dlg.destroy();
+            if (failed.length > 0) {
                 if (changed > 0) {
                     await onReload();
                     try { await plugin.refreshHub?.([active]); } catch { /* soft */ }
                 }
-                showMessageFn(t("ledger.editSaved"), 2500, "info");
-            } catch (err) {
-                showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
+                errorBox.textContent = t("ledger.editSavePartial").replace("${fields}", failed.join(", "));
+                errorBox.style.display = "block";
                 save.disabled = false;
                 if (cancel) cancel.disabled = false;
+                return;
             }
-        };
-    });
+
+            dlg.destroy();
+            if (changed > 0) {
+                await onReload();
+                try { await plugin.refreshHub?.([active]); } catch { /* soft */ }
+            }
+            showMessageFn(t("ledger.editSaved"), 2500, "info");
+        } catch (err) {
+            showMessageFn(t("ledger.saveFailed").replace("${msg}", errMsg(err)), 6000, "error");
+            save.disabled = false;
+            if (cancel) cancel.disabled = false;
+        }
+    };
 }
 
 export interface RenderDrawerDocTemplatesOptions {
@@ -426,13 +427,22 @@ export function renderDrawerDocTemplates(options: RenderDrawerDocTemplatesOption
     if (typeof document === "undefined") return;
     const { body, dlg, row, ref, active, schemaCols, plugin, t, cellTextFn, showMessageFn } = options;
     const tplList = ((plugin.schemaCatalog?.[active] as any)?.templates ?? []) as { key: string; nameKey: string; file: string }[];
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     for (const tp of tplList) {
         const label = t(tp.nameKey) !== tp.nameKey ? t(tp.nameKey) : tp.key;
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "b3-button b3-button--outline lv-att-upload-btn";
         btn.textContent = `${t("ledger.genDoc")} · ${label}`;
+        if (isGuest) {
+            btn.disabled = true;
+            btn.title = t("guest.writeBlocked");
+        }
         btn.onclick = async () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             try {
                 const { getTemplate, renderTemplate, sanitizeDocTitle } = await import("./templates");
                 const { createDocWithMd } = await import("./siyuan");
@@ -478,6 +488,8 @@ export interface BindDrawerRowOperationsOptions {
     onReload: () => Promise<void>;
 }
 
+export { buildDuplicateRowValues };
+
 /** 绑定详情抽屉底栏的“克隆副本”与“删除条目”及其级联清理事务 */
 export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions): void {
     if (typeof document === "undefined") return;
@@ -485,70 +497,45 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
 
     const dupBtn = dlg.element.querySelector("#lv-detail-duplicate") as HTMLButtonElement | null;
     if (dupBtn) {
+        if (plugin.runtime?.guestModeActive) {
+            dupBtn.disabled = true;
+            dupBtn.title = t("guest.writeBlocked");
+        }
         dupBtn.onclick = () => {
             if (plugin.runtime?.guestModeActive) {
                 showMessageFn(t("guest.writeBlocked"), 3500, "info");
                 return;
             }
+            const copiedValues = buildDuplicateRowValues({
+                row,
+                columns: ref.columns,
+                schemaCols,
+                cellTextFn,
+            });
             const rowName = (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || "";
-            const cloneName = rowName ? `${rowName} (副本)` : "";
-            const copiedValues: Record<string, any> = { name: cloneName };
-            for (const col of schemaCols) {
-                if (col.key === "name" || ["asset", "mAsset"].includes(col.type)) continue;
-                const v = ref.columns?.[col.key] ? row.cells?.[ref.columns[col.key]] : undefined;
-                if (v) {
-                    if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
-                    else if (col.type === "number") {
-                        const raw = v.number?.content ?? (v as any).content ?? (v as any).value?.number?.content ?? v;
-                        const num = Number(raw);
-                        copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
-                    } else if (col.type === "date") {
-                        const raw = v.date?.content ?? (v as any).content ?? (v as any).value?.date?.content;
-                        if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
-                        else if (typeof raw === "string" && raw.trim()) {
-                            const parsed = parseDate(raw.trim());
-                            copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
-                        }
-                    } else if (col.type === "checkbox") {
-                        copiedValues[col.key] = v.checkbox?.checked ?? (v as any).checked ?? (v as any).value?.checkbox?.checked;
-                    } else if (col.type === "relation") {
-                        copiedValues[col.key] = selectCellContent(v) || cellTextFn(v, col.key);
-                    } else {
-                        copiedValues[col.key] = cellTextFn(v, col.key);
-                    }
-                }
-            }
             dlg.destroy();
             openNewRecordFn(copiedValues);
-            showMessageFn(t("ledger.duplicateSuccess").replace("${name}", cloneName || rowName), 3000, "info");
+            showMessageFn(t("ledger.duplicateSuccess").replace("${name}", copiedValues.name || rowName), 3000, "info");
         };
     }
 
     const delBtn = dlg.element.querySelector("#lv-detail-del") as HTMLButtonElement | null;
     if (delBtn) {
+        if (plugin.runtime?.guestModeActive) {
+            delBtn.disabled = true;
+            delBtn.title = t("guest.writeBlocked");
+        }
         delBtn.onclick = () => {
             if (plugin.runtime?.guestModeActive) {
                 showMessageFn(t("guest.writeBlocked"), 4000, "info");
                 return;
             }
             confirm(t("ledger.delTitle"), t("ledger.delBody").replace("${name}", (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail")), async () => {
+                const deletedTitle = (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail");
                 try {
-                    // 安全回收站快照留存：先入回收站再行物理删除
-                    if (plugin.runtime) {
-                        const trashList = plugin.runtime.trash ?? [];
-                        trashList.unshift({
-                            id: row.itemID,
-                            moduleId: active,
-                            title: (ref.columns?.name && cellTextFn(row.cells?.[ref.columns.name])) || t("ledger.detail"),
-                            deletedAt: new Date().toISOString(),
-                            rowSnapshot: JSON.parse(JSON.stringify(row)),
-                        });
-                        if (trashList.length > 50) trashList.length = 50; // 滚动上限 50 条
-                        plugin.runtime.trash = trashList;
-                    }
                     const { removeLedgerRows } = await import("./siyuan");
                     await removeLedgerRows(ref.avId!, [row.itemID], {
-                        idempotencyKey: `ledger:delete:${ref.avId!}:${row.itemID}`,
+                        idempotencyKey: `ledger:delete:${ref.avId!}:${row.itemID}:${Date.now()}`,
                         retries: 1,
                     });
                 } catch (e) {
@@ -576,8 +563,21 @@ export function bindDrawerRowOperations(options: BindDrawerRowOperationsOptions)
                 }
                 try {
                     const { cleanupRowRuntimeData } = await import("./hub/runtime");
-                    cleanupRowRuntimeData(plugin.runtime, row.itemID);
-                    await saveRuntime(plugin, plugin.runtime);
+                    const { withRuntime } = await import("./hub/actions");
+                    const rowSnapshot = JSON.parse(JSON.stringify(row));
+                    await withRuntime(plugin, (rt) => {
+                        const trashList = rt.trash ?? [];
+                        trashList.unshift({
+                            id: row.itemID,
+                            moduleId: active,
+                            title: deletedTitle,
+                            deletedAt: new Date().toISOString(),
+                            rowSnapshot,
+                        });
+                        if (trashList.length > 200) trashList.length = 200;
+                        rt.trash = trashList;
+                        cleanupRowRuntimeData(rt, row.itemID);
+                    });
                 } catch (e) {
                     followupErrors.push(errMsg(e));
                 }

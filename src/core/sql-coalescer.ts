@@ -140,6 +140,14 @@ export class SQLQueryCoalescer {
             this.docBoxPending.clear();
             if (batch.length === 0) return;
 
+            // 将当前批次的 waiters 立即从共享 Map 剥离，避免 invalidate 后新查询搭车旧批次拿到过期结果
+            const batchWaiters = new Map<string, Array<Waiter<string>>>();
+            for (const id of batch) {
+                const w = this.docBoxWaiters.get(id);
+                if (w && w.length > 0) batchWaiters.set(id, w);
+                this.docBoxWaiters.delete(id);
+            }
+
             // 记录批次在途启动时的代际快照
             const startEpochs = new Map(batch.map((id) => [id, this.docBoxEpochs.get(id) ?? 0]));
 
@@ -174,8 +182,7 @@ export class SQLQueryCoalescer {
                     if (box && currentEpoch === startEpochs.get(id)) {
                         this.docBoxCache.set(id, { box, expireAt: now + this.cacheTTL });
                     }
-                    const waiters = this.docBoxWaiters.get(id);
-                    this.docBoxWaiters.delete(id);
+                    const waiters = batchWaiters.get(id);
                     if (waiters) {
                         for (const w of waiters) w.resolve(box);
                     }
@@ -187,8 +194,7 @@ export class SQLQueryCoalescer {
                     const slice = batch.slice(i, i + SQLQueryCoalescer.FALLBACK_CONCURRENCY);
                     await Promise.allSettled(
                         slice.map(async (id) => {
-                            const waiters = this.docBoxWaiters.get(id);
-                            this.docBoxWaiters.delete(id);
+                            const waiters = batchWaiters.get(id);
                             if (!waiters || waiters.length === 0) return;
 
                             try {
@@ -245,6 +251,14 @@ export class SQLQueryCoalescer {
             this.blockExistsPending.clear();
             if (batch.length === 0) return;
 
+            // 将当前批次的 waiters 立即从共享 Map 剥离，避免 invalidate 后新查询搭车旧批次拿到过期结果
+            const batchWaiters = new Map<string, Array<Waiter<boolean>>>();
+            for (const id of batch) {
+                const w = this.blockExistsWaiters.get(id);
+                if (w && w.length > 0) batchWaiters.set(id, w);
+                this.blockExistsWaiters.delete(id);
+            }
+
             // 记录批次在途启动时的代际快照
             const startEpochs = new Map(batch.map((id) => [id, this.blockExistsEpochs.get(id) ?? 0]));
 
@@ -279,8 +293,7 @@ export class SQLQueryCoalescer {
                     if (exists && currentEpoch === startEpochs.get(id)) {
                         this.blockExistsCache.set(id, { exists: true, expireAt: now + this.cacheTTL });
                     }
-                    const waiters = this.blockExistsWaiters.get(id);
-                    this.blockExistsWaiters.delete(id);
+                    const waiters = batchWaiters.get(id);
                     if (waiters) {
                         for (const w of waiters) w.resolve(exists);
                     }
@@ -292,8 +305,7 @@ export class SQLQueryCoalescer {
                     const slice = batch.slice(i, i + SQLQueryCoalescer.FALLBACK_CONCURRENCY);
                     await Promise.allSettled(
                         slice.map(async (id) => {
-                            const waiters = this.blockExistsWaiters.get(id);
-                            this.blockExistsWaiters.delete(id);
+                            const waiters = batchWaiters.get(id);
                             if (!waiters || waiters.length === 0) return;
 
                             try {

@@ -2,7 +2,7 @@
   "name": "siyuan-home",
   "author": "xiaolv-suite",
   "url": "https://github.com/xiaolv-suite/siyuan-home",
-  "version": "0.5.200",
+  "version": "0.5.201",
   "minAppVersion": "3.8.4",
   "settingsWindow": true,
   "kernels": [

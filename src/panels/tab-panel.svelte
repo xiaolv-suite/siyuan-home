@@ -23,10 +23,12 @@
         plugin: IHomeUIContext;
         t: (key: string) => string;
         version?: number;
+        activeLedger?: string;
         initialScanError?: string;
         onRetryScan?: () => void;
         onCapture?: (moduleId?: string) => void;
         onGoto?: (screen: ScreenId) => void;
+        onActiveLedgerChange?: (moduleId: string) => void;
     };
     type CaptureProps = { plugin: IHomeUIContext; t: (key: string) => string; version?: number; open?: boolean; onClose?: () => void };
     type ScreenComponent = Component<ScreenProps>;
@@ -37,7 +39,7 @@
     let homeEl: HTMLElement;
     let mainStageEl: HTMLElement;
     let restoreTimers: number[] = [];
-    let pointerPreparedScreen: ScreenId | null = null;
+    const screenCache = new Map<ScreenId, ScreenComponent>();
     // In Svelte 5 runes mode a capitalized component reference is dynamic by
     // default. Keeping this reference capitalized avoids the deprecated
     // <svelte:component> wrapper while preserving lazy loading behavior.
@@ -49,7 +51,7 @@
     let captureLoadRequest = 0;
     const HISTORY_KEY = "__siyuanHomeScreen";
     function isScreen(value: unknown): value is ScreenId {
-        return value === "overview" || value === "reminders" || value === "ledger" || value === "members";
+        return value === "overview" || value === "reminders" || value === "ledger" || value === "members" || value === "library";
     }
     function historyScreen(state: unknown): ScreenId | undefined {
         if (!state || typeof state !== "object") return undefined;
@@ -99,19 +101,11 @@
             });
         });
     }
-    function prepareTabNavigation(target: ScreenId) {
-        // Pointer focus can scroll the panel to the tab bar before onclick
-        // runs. Capture the user's position before that default focus scroll.
-        if (screen !== target) {
-            saveCurrentScroll();
-            pointerPreparedScreen = target;
-        } else pointerPreparedScreen = null;
-    }
     let lastScreenSwitchTime = 0;
     let pendingSwitchTimer: number | undefined;
 
     function gotoScreen(s: ScreenId, historyMode: "push" | "replace" | "none" = "push") {
-        if (screen === s) { pointerPreparedScreen = null; return; }
+        if (screen === s) return;
         const now = Date.now();
         if (now - lastScreenSwitchTime < 100) {
             if (pendingSwitchTimer) window.clearTimeout(pendingSwitchTimer);
@@ -126,8 +120,7 @@
             window.clearTimeout(pendingSwitchTimer);
             pendingSwitchTimer = undefined;
         }
-        if (pointerPreparedScreen !== s) saveCurrentScroll();
-        pointerPreparedScreen = null;
+        saveCurrentScroll();
         if (s !== "ledger") plugin.pendingActivityTarget = undefined;
         screen = s;
         void loadScreen(s);
@@ -137,6 +130,13 @@
     async function loadScreen(target: ScreenId): Promise<void> {
         const request = ++screenLoadRequest;
         screenLoadError = "";
+        const cached = screenCache.get(target);
+        if (cached) {
+            ScreenView = cached;
+            loadedScreen = target;
+            if (screen === target) restoreScroll(target);
+            return;
+        }
         try {
             const module = target === "overview"
                 ? await import("./screens/overview.svelte")
@@ -144,9 +144,13 @@
                     ? await import("./screens/reminders.svelte")
                     : target === "ledger"
                         ? await import("./screens/ledger.svelte")
-                        : await import("./screens/members.svelte");
+                        : target === "library"
+                            ? await import("./screens/module-library.svelte")
+                            : await import("./screens/members.svelte");
+            const comp = module.default as unknown as ScreenComponent;
+            screenCache.set(target, comp);
             if (request !== screenLoadRequest) return;
-            ScreenView = module.default as unknown as ScreenComponent;
+            ScreenView = comp;
             loadedScreen = target;
             // Browser back/forward changes `screen` through popstate without
             // going through gotoScreen. Re-apply restoration after the lazy
@@ -192,6 +196,20 @@
             }
         };
     });
+    // svelte-ignore state_referenced_locally
+    let activeLedger = $state(plugin.activeLedger ?? "certs");
+    function openLedger(moduleId: string) {
+        activeLedger = moduleId;
+        plugin.setActiveLedger(moduleId);
+        version += 1;
+        if (screen !== "ledger") gotoScreen("ledger");
+    }
+    function handleActiveLedgerChange(moduleId: string) {
+        if (!moduleId) return;
+        if (activeLedger !== moduleId) activeLedger = moduleId;
+        plugin.setActiveLedger(moduleId);
+    }
+
     function openActivityTarget(target: Omit<ActivityTarget, "requestId">) {
         if (!plugin.settings.enabledModules.includes(target.moduleId) || !plugin.settings.dbRefs?.[target.moduleId]?.avId) {
             showMessage(t("activity.navigationUnavailable"), 4000, "error");
@@ -199,21 +217,11 @@
         }
         const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         session.scrollTop.ledger = 0;
-        if (screen === "ledger") {
-            // Recreate Ledger so its local selected module follows activeLedger
-            // and its successful load can consume the new one-shot target.
-            screen = "overview";
-            writeScreenHistory("overview", "replace");
-            requestAnimationFrame(() => {
-                plugin.pendingActivityTarget = { ...target, requestId };
-                plugin.setActiveLedger(target.moduleId);
-                gotoScreen("ledger");
-            });
-            return;
-        }
+        activeLedger = target.moduleId;
         plugin.pendingActivityTarget = { ...target, requestId };
         plugin.setActiveLedger(target.moduleId);
-        gotoScreen("ledger");
+        version += 1;
+        if (screen !== "ledger") gotoScreen("ledger");
     }
     // R6（2026-10-09）：对外入口（状态栏角标/服务桥 openReminders/命令面板）在面板已挂载时
     // 直切页签——pendingScreen 只在挂载时消费，SiYuan 恢复的旧页签路径永远走不到挂载消费
@@ -222,8 +230,7 @@
             if (isScreen(s)) {
                 gotoScreen(s);
             } else {
-                plugin.setActiveLedger(s);
-                gotoScreen("ledger");
+                openLedger(s);
             }
         };
         plugin.panelScreenSwitch = switchScreen;
@@ -290,8 +297,16 @@
             }
         };
         const storeHandler = () => {
-            plugin.setActiveLedger?.("stock");
-            gotoScreen("ledger");
+            openLedger("stock");
+        };
+        const locationHandler = async () => {
+            try {
+                const { openLocationSearchModal } = await import("@/core/overview-modals");
+                const allReminders = plugin.scan?.reminders ?? plugin.runtime?.cache?.reminders ?? [];
+                await openLocationSearchModal({ plugin, allReminders, t, DialogCls: Dialog, showMessageFn: showMessage });
+            } catch (err) {
+                console.error("[siyuan-home] failed to open location index modal", err);
+            }
         };
         const events = [
             ["siyuan-home:open-capture", captureHandler],
@@ -299,6 +314,7 @@
             ["siyuan-home:open-emergency", emergencyHandler],
             ["siyuan-home:open-life-index", lifeIndexHandler],
             ["siyuan-home:open-store", storeHandler],
+            ["siyuan-home:open-location", locationHandler],
         ] as const;
         for (const [e, fn] of events) window.addEventListener(e, fn as any);
         return () => { for (const [e, fn] of events) window.removeEventListener(e, fn as any); };
@@ -371,11 +387,12 @@
     }
     async function applyGuestMode(next: boolean) {
         try {
-            plugin.runtime.guestModeActive = next;
+            const { withRuntime } = await import("@/core/hub/actions");
+            await withRuntime(plugin as any, (rt) => {
+                rt.guestModeActive = next;
+            }, { allowInGuestMode: true });
             version += 1;
             plugin.emitHubChanged?.();
-            const { saveRuntime } = await import("@/core/hub/runtime");
-            await saveRuntime(plugin as any, plugin.runtime);
             showMessage(t(next ? "guest.modeActive" : "guest.modeInactive"), 3000, "info");
         } catch {
             showMessage(t("ledger.saveFailed"), 4000, "error");
@@ -421,40 +438,22 @@
         void version;
         return plugin.scan?.reminders?.length ?? plugin.runtime?.cache?.reminders?.length ?? 0;
     });
-    const screens: { id: ScreenId; key: string; mobileKey: string; icon: UiIconName }[] = [
-        { id: "overview", key: "tab.overview", mobileKey: "tab.mobile.today", icon: "home" },
-        { id: "reminders", key: "tab.reminders", mobileKey: "tab.mobile.todo", icon: "bell" },
-        { id: "ledger", key: "tab.ledger", mobileKey: "tab.mobile.assets", icon: "archive" },
-        { id: "members", key: "tab.members", mobileKey: "tab.mobile.mine", icon: "users" },
-    ];
-
-    // C1b：滑动胶囊（offsetLeft/width + spring，与原型一致）
-    let navEl: HTMLElement;
-    let pill = $state({ x: 0, w: 0 });
-    function movePill(btn: HTMLElement | undefined) {
-        if (!btn) return;
-        pill = { x: btn.offsetLeft, w: btn.offsetWidth };
-    }
-    function onTabKeydown(event: KeyboardEvent, index: number) {
-        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-        event.preventDefault();
-        const next = event.key === "Home" ? 0 : event.key === "End" ? screens.length - 1
-            : (index + (event.key === "ArrowRight" ? 1 : -1) + screens.length) % screens.length;
-        gotoScreen(screens[next].id);
-        requestAnimationFrame(() => (navEl?.querySelector(`[data-s="${screens[next].id}"]`) as HTMLButtonElement | undefined)?.focus());
-    }
-    $effect(() => {
-        const activeTab = navEl?.querySelector(`[data-s="${screen}"]`) as HTMLElement | undefined;
-        movePill(activeTab);
-        if (activeTab && typeof activeTab.scrollIntoView === "function") {
-            activeTab.scrollIntoView({ inline: "nearest", block: "nearest", behavior: (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth" });
-        }
-        // 254 波：窗口 resize 后重新测量（对齐原型的 resize 监听）——否则胶囊停在旧坐标、
-        // 与当前页签错位
-        const onResize = () => movePill(navEl?.querySelector(`[data-s="${screen}"]`) as HTMLElement | undefined);
-        window.addEventListener("resize", onResize, { passive: true });
-        return () => window.removeEventListener("resize", onResize);
+    const currentViewTitle = $derived.by(() => {
+        void version;
+        if (screen === "overview") return t("nav.todayButler");
+        if (screen === "reminders") return t("nav.allReminders");
+        if (screen === "library") return t("nav.libraryEntry");
+        if (screen === "members") return t("tab.members");
+        const modName = t(`module.${activeLedger}`);
+        return modName !== `module.${activeLedger}` ? modName : t("tab.ledger");
     });
+
+    const mobileNavItems: Array<{ id: "overview" | "ledger" | "capture" | "library"; key: string; icon: UiIconName }> = [
+        { id: "overview", key: "tab.mobile.today", icon: "home" },
+        { id: "ledger", key: "tab.mobile.ledgers", icon: "note" },
+        { id: "capture", key: "tab.mobile.quickAdd", icon: "add" },
+        { id: "library", key: "tab.mobile.library", icon: "layout" },
+    ];
 
     // Tab 挂载即注册刷新回调（扫描完成 → version 递增驱动各屏 $derived 重算，H02：
     // 动作/扫描后留在当前页即时更新，不靠切页重挂载；多实例安全）
@@ -472,6 +471,9 @@
     $effect(() => {
         const listener = () => {
             version += 1;
+            if (plugin.activeLedger && plugin.activeLedger !== activeLedger) {
+                activeLedger = plugin.activeLedger;
+            }
             if (plugin.runtime?.scannedAt && !plugin.scan?.errors?.length) initialScanError = "";
         };
         // Settings pages may be hosted outside this keyed screen tree. Refresh
@@ -498,13 +500,16 @@
 
 <div class="lv-home lv-tab" bind:this={homeEl} tabindex="-1">
     <div class="lv-shell-frame">
-        <!-- 1. 左侧极窄导航栏（Rail Navigation） -->
+        <!-- 1. 左侧统一扁平导航栏（风格 A · 石墨清雾，告别双重重复导航） -->
         <TabRailNav
-            {screens}
+            {plugin}
             {screen}
+            {activeLedger}
             {pendingTotal}
+            {version}
             {t}
             onGotoScreen={gotoScreen}
+            onOpenLedger={openLedger}
             onOpenCapture={(e) => openCapture(undefined, e)}
             onOpenSpotlight={openSpotlight}
             onOpenSetting={() => plugin.openSetting()}
@@ -512,34 +517,19 @@
 
         <!-- 2. 中间主工作台 -->
         <div class="lv-main-stage" bind:this={mainStageEl}>
-            <header class="lv-tabbar">
+            <header class="lv-tabbar lv-tabbar--slim">
                 <div class="lv-appbrand">
-                    <span class="lv-logo" aria-hidden="true"><UiIcon name="home" size={19} className="lv-logo-mark" /></span>
+                    <span class="lv-logo" aria-hidden="true"><UiIcon name="home" size={18} className="lv-logo-mark" /></span>
                     <div class="lv-appbrand-t">
-                        <b>{t("butler")}</b>
-                        <span>LV HOME</span>
-                    </div>
-                    <span class="lv-appbrand-sep" aria-hidden="true"></span>
-                    <div class="lv-avatar-wrap">
-                        <AvatarSettings {plugin} {t} />
+                        <b>{currentViewTitle}</b>
                     </div>
                 </div>
+                <span class="lv-tabbar__title lv-rail-dup-hide">{currentViewTitle}</span>
                 <span class="fn__flex-1" aria-hidden="true"></span>
-                <div class="lv-tabs" bind:this={navEl} role="tablist" aria-label={t("tab.title")}>
-                    <!-- 252 波：首次定位不带过渡（pill.w===0 时挂 init），避免挂载瞬间胶囊从左滑入 -->
-                    <span class="lv-nav-pill" class:init={pill.w === 0} style="transform:translateX({pill.x}px);width:{pill.w}px"></span>
-                    {#each screens as s, i (s.id)}
-                        <button type="button" id={`lv-tab-${s.id}`} data-s={s.id} class="lv-tabs__item" class:on={screen === s.id}
-                            role="tab" aria-selected={screen === s.id} aria-current={screen === s.id ? "page" : undefined} aria-controls={`lv-panel-${s.id}`}
-                            aria-label={s.id === "reminders" && pendingTotal > 0 ? t("tab.remindersPending").replace("${label}", t(s.key)).replace("${n}", String(pendingTotal)) : t(s.key)}
-                            tabindex={screen === s.id ? 0 : -1} onpointerdown={() => prepareTabNavigation(s.id)} onkeydown={(e) => onTabKeydown(e, i)} onclick={() => gotoScreen(s.id)}>
-                            {t(s.key)}
-                            {#if s.id === "reminders" && pendingTotal > 0}<i class="lv-dot" aria-hidden="true"></i>{/if}
-                        </button>
-                    {/each}
+                <div class="lv-avatar-wrap">
+                    <AvatarSettings {plugin} {t} />
                 </div>
-                <span class="fn__flex-1"></span>
-                <!-- 259 波：呼吸状态点 + mono 扫描时间，支持点击一键触发重新扫描 -->
+                <!-- 呼吸状态点 + 扫描时间，支持点击一键触发重新扫描 -->
                 <button type="button" class="lv-hubstatus lv-caption"
                     title={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"} · ${t("hub.rescan")}`}
                     aria-label={`${t("hub.scannedAt")} ${formatLocalTime(plugin.runtime?.scannedAt) ?? "—"}${plugin.scan?.errors?.length ? ` · ${t("dash.stripErrors")} ${plugin.scan.errors.length}` : ""}`}
@@ -549,7 +539,6 @@
                     <span class="lv-num">{formatLocalTime(plugin.runtime?.scannedAt, { hour: "2-digit", minute: "2-digit" }) ?? "—"}</span>
                     {#if plugin.scan?.stale}<span class="lv-badge orange" title={plugin.scan.errors.map((e) => e.moduleId).join(", ")}>{t("hub.stale")}</span>{/if}
                 </button>
-                <!-- 267 波：⚡ 快速记录（原型 top-actions 主入口；268 波支持 N 键呼出） -->
                 <div class="lv-tabbar-actions">
                     <!-- 搜索/快速记录/设置在宽屏由左侧导航栏承担，顶栏同名按钮只在窄屏（无侧栏）出现 -->
                     <button type="button" class="lv-iconbtn lv-rail-dup" aria-label={t("spotlight.title")} title={onMobileClose ? t("spotlight.title") : `${t("spotlight.title")} (Ctrl+K)`} onclick={openSpotlight}><UiIcon name="search" size={16} /></button>
@@ -571,7 +560,7 @@
             {/if}
 
             {#key screen}
-                <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" role="tabpanel" tabindex="0" aria-labelledby={`lv-tab-${screen}`}>
+                <div id={`lv-panel-${screen}`} class="lv-screen lv-anim" class:lv-panel-ledger={screen === "ledger"} role="tabpanel" tabindex="0">
                     <ErrorBoundary {t} onretry={() => { /* screen switch resets naturally via {#key} */ }}>
                         {#if screenLoadError}
                             <div class="lvx-error" role="alert"><b class="lvx-error__title">{t("error.unknown")}</b><span class="lvx-error__desc">{screenLoadError}</span><span class="lvx-error__actions"><button type="button" class="b3-button b3-button--outline" onclick={() => void loadScreen(screen)}>{t("error.retry")}</button></span></div>
@@ -582,7 +571,7 @@
                                 <span class="lv-skel lv-skel--w64-h12" aria-hidden="true"></span>
                             </div>
                         {:else}
-                            <ScreenView {plugin} {t} {version} {initialScanError} onRetryScan={() => refreshInitialScan(true)} onCapture={(moduleId?: string) => openCapture(moduleId)} onGoto={(s: ScreenId) => gotoScreen(s)} />
+                            <ScreenView {plugin} {t} {version} {activeLedger} {initialScanError} onRetryScan={() => refreshInitialScan(true)} onCapture={(moduleId?: string) => openCapture(moduleId)} onGoto={(s: ScreenId) => gotoScreen(s)} onActiveLedgerChange={handleActiveLedgerChange} />
                         {/if}
                     </ErrorBoundary>
                 </div>
@@ -591,29 +580,30 @@
 
     </div>
 
-    <!-- 移动端统一底部主导航 (Mobile Spec v1: ≤4项 今日/清单/资产/我的，触控高度 ≥44px) -->
+    <!-- 移动端统一底部主导航 (4 项 ≥44px 触控目标：今日 / 常用台账 / 记一笔 / 台账库) -->
     <nav class="lv-mobile-bottom-nav" aria-label={t("tab.title")}>
-        {#each screens as s (s.id)}
+        {#each mobileNavItems as item (item.id)}
+            {@const active = item.id !== "capture" && screen === item.id}
             <button
                 type="button"
-                id={`lv-mob-tab-${s.id}`}
+                id={`lv-mob-tab-${item.id}`}
                 class="lv-mob-nav-item"
-                class:on={screen === s.id}
+                class:on={active}
                 role="tab"
-                aria-selected={screen === s.id}
-                aria-controls={`lv-panel-${s.id}`}
-                onclick={() => {
+                aria-selected={active}
+                onclick={(event) => {
                     try { lvLaunchpad.haptic(10); } catch { /* soft */ }
-                    gotoScreen(s.id);
+                    if (item.id === "capture") openCapture(undefined, event);
+                    else gotoScreen(item.id);
                 }}
             >
                 <span class="lv-mob-nav-icon">
-                    <UiIcon name={s.icon} size={20} />
-                    {#if s.id === "reminders" && pendingTotal > 0}
+                    <UiIcon name={item.icon} size={20} />
+                    {#if item.id === "overview" && pendingTotal > 0}
                         <span class="lv-mob-badge" aria-hidden="true"></span>
                     {/if}
                 </span>
-                <span class="lv-mob-nav-label">{t(s.mobileKey)}{s.id === "reminders" && pendingTotal > 0 ? ` · ${pendingTotal > 99 ? "99+" : pendingTotal}` : ""}</span>
+                <span class="lv-mob-nav-label">{t(item.key)}</span>
             </button>
         {/each}
     </nav>

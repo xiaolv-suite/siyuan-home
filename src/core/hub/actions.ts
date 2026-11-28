@@ -9,10 +9,21 @@
  */
 import type { Plugin } from "siyuan";
 import type { Reminder } from "@/types";
-import { listNotebooks, setCell, sql } from "../siyuan";
+import { listNotebooks, setCellResilient, sql } from "../siyuan";
 import { post } from "../siyuan-transport";
 import { addDays, calculateNextRecurrenceDate, localDateKey, parseDate } from "./rule";
 import { loadRuntime, persistRuntimeUnderLock, withRuntimeSaveLock, reminderKind, toggleReminderPinInRuntime, type HubRuntime, type HandledRecord } from "./runtime";
+
+export interface WithRuntimeOptions {
+    allowInGuestMode?: boolean;
+}
+
+const GUEST_WRITE_BLOCKED_MSG = "当前处于访客只读模式，已拦截写入操作";
+
+function nextActionNonce(): string {
+    try { return crypto.randomUUID(); }
+    catch { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+}
 
 function cloneRuntime(rt: HubRuntime): HubRuntime {
     return JSON.parse(JSON.stringify(rt)) as HubRuntime;
@@ -24,11 +35,18 @@ function restoreRuntime(target: HubRuntime, snapshot: HubRuntime): void {
     Object.assign(target, snapshot);
 }
 
-export function withRuntime(plugin: Plugin, fn: (rt: HubRuntime) => void | Promise<void>): Promise<HubRuntime> {
+export function withRuntime(
+    plugin: Plugin,
+    fn: (rt: HubRuntime) => void | Promise<void>,
+    options?: WithRuntimeOptions,
+): Promise<HubRuntime> {
     return withRuntimeSaveLock(plugin, async () => {
         const pluginWithRuntime = plugin as unknown as { runtime: HubRuntime };
         const previousRuntime = pluginWithRuntime.runtime;
         const rt = await loadRuntime(plugin);
+        if (!options?.allowInGuestMode && (previousRuntime?.guestModeActive || rt.guestModeActive)) {
+            throw new Error(GUEST_WRITE_BLOCKED_MSG);
+        }
         const snapshot = cloneRuntime(rt);
         // 226 波修复（真机 e2e 发现的数据丢失竞态）：写回后必须同步插件活引用——
         // 否则 notifyHubChanged/扫描仍持有旧对象并整体回写，把刚落盘的备忘/延后/已办覆盖丢失
@@ -216,8 +234,18 @@ export async function renew(
     dbRef: { avId?: string; columns?: Record<string, string> },
     fieldKey = "expiry",
 ) {
-    const targetKey = dbRef.columns?.[fieldKey] ?? dbRef.columns?.expiry ?? dbRef.columns?.due;
-    if (!dbRef.avId || !targetKey) throw new Error("ledger not provisioned");
+    if ((plugin as unknown as { runtime?: HubRuntime }).runtime?.guestModeActive) {
+        throw new Error(GUEST_WRITE_BLOCKED_MSG);
+    }
+    const resolvedColKey = dbRef.columns?.[fieldKey]
+        ? fieldKey
+        : dbRef.columns?.expiry
+            ? "expiry"
+            : dbRef.columns?.due
+                ? "due"
+                : fieldKey;
+    const targetKey = dbRef.columns?.[resolvedColKey];
+    if (!dbRef.avId || !resolvedColKey) throw new Error("ledger not provisioned");
     // UI 传入的是 HTML date 的 yyyy-MM-dd 字符串。不要把非法日期静默
     // 转成 NaN（或 JS 自动进位后的另一天），否则会写坏台账并留下误导性的流水。
     const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(newDueISO);
@@ -231,10 +259,24 @@ export async function renew(
     };
     const oldParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.dueDate);
     const oldMs = oldParts ? new Date(`${r.dueDate}T00:00:00`).getTime() : Number.NaN;
+    const renewNonce = nextActionNonce();
+    let activeKey = targetKey;
     try {
-        await setCell(dbRef.avId, targetKey, r.rowId, nextCell, {
-            idempotencyKey: `renew:${r.rowId}:${targetKey}:${newDueISO}`,
+        const writeRes = await setCellResilient({
+            avID: dbRef.avId,
+            keyID: targetKey,
+            itemID: r.rowId,
+            value: nextCell,
+            plugin,
+            moduleId: r.moduleId,
+            colKey: resolvedColKey,
+            ref: dbRef as any,
+            schemaCol: { key: resolvedColKey, type: "date" },
+            requestOptions: {
+                idempotencyKey: `renew:${r.rowId}:${targetKey ?? resolvedColKey}:${newDueISO}:${renewNonce}`,
+            },
         });
+        activeKey = writeRes.keyID;
         // v4：同步写入当日日记证件换证/续期事件（保留 AV renewed_to 链，不再依赖私有 runtime.renewHistory）
         try {
             const { recordHighFrequencyDiaryEvent } = await import("../diary-envelope");
@@ -267,11 +309,22 @@ export async function renew(
         // The AV write and runtime marker are two separate stores.  If the
         // second write fails, put the cell back so a retry cannot leave a
         // visible due date that has no corresponding history/handled state.
-        if (Number.isFinite(oldMs)) {
+        if (Number.isFinite(oldMs) && activeKey) {
             try {
-                await setCell(dbRef.avId, targetKey, r.rowId, {
-                    type: "date", date: { content: oldMs, isNotEmpty: true, hasEndDate: false, isNotTime: true },
-                }, { idempotencyKey: `renew:rollback:${r.rowId}:${targetKey}:${r.dueDate}` });
+                await setCellResilient({
+                    avID: dbRef.avId,
+                    keyID: activeKey,
+                    itemID: r.rowId,
+                    value: {
+                        type: "date", date: { content: oldMs, isNotEmpty: true, hasEndDate: false, isNotTime: true },
+                    },
+                    plugin,
+                    moduleId: r.moduleId,
+                    colKey: resolvedColKey,
+                    ref: dbRef as any,
+                    schemaCol: { key: resolvedColKey, type: "date" },
+                    requestOptions: { idempotencyKey: `renew:rollback:${r.rowId}:${activeKey}:${r.dueDate}:${renewNonce}` },
+                });
             } catch {
                 // Preserve the original error; the caller still surfaces a
                 // retry action and diagnostics can report the AV mismatch.
@@ -359,12 +412,12 @@ export async function ensureTodayDailyNoteForMemo(
     }
 }
 
-export async function addMemo(
+export async function addMemoWithMeta(
     plugin: Plugin,
     title: string,
     dueDate: string,
     idempotencyOrOptions?: string | AddMemoOptions,
-): Promise<HubRuntime> {
+): Promise<{ runtime: HubRuntime; inserted: boolean; memoId?: string }> {
     const normalizedTitle = title.trim();
     if (!normalizedTitle) throw new Error("备忘标题不能为空");
     if (!validDate(dueDate)) throw new Error("备忘日期无效");
@@ -375,14 +428,16 @@ export async function addMemo(
     const seen = memoIdempotency.get(plugin) ?? new Map<string, number>();
     memoIdempotency.set(plugin, seen);
     let inserted = false;
+    let memoId: string | undefined;
     try {
         const result = await withRuntime(plugin, (rt) => {
             const now = Date.now();
             for (const [k, at] of seen) if (now - at > MEMO_IDEMPOTENCY_TTL_MS) seen.delete(k);
             if (seen.has(key)) return;
             seen.set(key, now);
+            memoId = `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
             rt.memos.push({
-                id: `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+                id: memoId,
                 title: normalizedTitle,
                 dueDate,
                 createdAt: new Date().toISOString(),
@@ -393,12 +448,21 @@ export async function addMemo(
             });
             inserted = true;
         });
-        if (!inserted) return result;
-        return result;
+        return { runtime: result, inserted, memoId };
     } catch (error) {
         seen.delete(key);
         throw error;
     }
+}
+
+export async function addMemo(
+    plugin: Plugin,
+    title: string,
+    dueDate: string,
+    idempotencyOrOptions?: string | AddMemoOptions,
+): Promise<HubRuntime> {
+    const { runtime } = await addMemoWithMeta(plugin, title, dueDate, idempotencyOrOptions);
+    return runtime;
 }
 
 /** 删除备忘（显式用户动作；未处理备忘永不自动删除，H03） */

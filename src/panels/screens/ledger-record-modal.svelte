@@ -1,6 +1,6 @@
 <script lang="ts">
     import { RowIdentityPendingError } from "@/core/siyuan";
-    import { showMessage } from "@/libs/notice";
+    import { showMessage, lvSurfaceStack } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { localDateKey } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";
@@ -15,12 +15,14 @@
         canSubmitRecord,
         prepareCategoryChange,
         validateFieldInput,
+        shouldResetDraftForModule,
     } from "@/core/ledger-record-view-model";
     import LedgerRecordAttachments from "./ledger-record-attachments.svelte";
     import LedgerRecordMore from "./ledger-record-more.svelte";
     import LedgerRecordFoot from "./ledger-record-foot.svelte";
     import UiIcon from "@/ui/icon.svelte";
     import { memberChips } from "@/core/members";
+    import { hasBlockingDialogAbove } from "@/core/dialog-a11y";
 
     let {
         plugin,
@@ -45,7 +47,7 @@
         currentLedgerTemplates?: any[];
         t: (k: string) => string;
         open: boolean;
-        onRecordSaved?: (info: { docId?: string; name: string; module: string }) => Promise<void> | void;
+        onRecordSaved?: (info: { docId?: string; name: string; module: string; discarded?: boolean }) => Promise<void> | void;
     } = $props();
 
     const captureCols = $derived.by(() => getCaptureFields(plugin.schemaCatalog?.[active]));
@@ -68,7 +70,9 @@
             || ["holder_no", "issue_date", "issuance_rule", "store_place", "location", "copy_location", "note", "due"].includes(field.key)))));
 
     let form: Record<string, any> = $state({});
+    let draftModuleId = $state("");
     let nameInput: HTMLInputElement | undefined = $state();
+    let modalEl: HTMLDivElement | undefined = $state();
     let closeAfterSave = $state(true);
     let newRecordTrigger: HTMLElement | null = null;
     let saving = $state(false);
@@ -84,6 +88,7 @@
     $effect(() => {
         if (open && !wasOpen) {
             wasOpen = true;
+            document.querySelector(".lv-main-stage")?.classList.add("lv-scroll-locked");
             document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
             if (!newRecordTrigger && document.activeElement instanceof HTMLElement) {
                 newRecordTrigger = document.activeElement;
@@ -91,9 +96,28 @@
             requestAnimationFrame(() => nameInput?.focus());
         } else if (!open && wasOpen) {
             wasOpen = false;
+            document.querySelector(".lv-main-stage")?.classList.remove("lv-scroll-locked");
             document.querySelector(".lv-home")?.classList.remove("lv-scroll-locked");
             restoreNewRecordFocus();
         }
+    });
+
+    $effect(() => {
+        if (!open) return;
+        const popSurface = lvSurfaceStack.push({
+            id: "lv-home-ledger-record-modal",
+            type: "dialog",
+            dismiss: () => {
+                if (!open) return false;
+                if (duplicateConfirmPending || hasBlockingDialogAbove(modalEl)) return false;
+                if (saving) return "keep";
+                closeNewRecord();
+                return true;
+            },
+        });
+        return () => {
+            popSurface();
+        };
     });
 
     const certificateProfile = $derived(active === "certs" && form.category ? getCertificateProfile(String(form.category)) : null);
@@ -184,6 +208,10 @@
             return;
         }
         newRecordTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        if (shouldResetDraftForModule(draftModuleId, active, Boolean(initialForm))) {
+            resetForm();
+        }
+        draftModuleId = active;
         validationAttempted = false;
         saveError = "";
         if (initialForm) form = { ...initialForm };
@@ -236,7 +264,7 @@
                 const { removeLedgerRows } = await import("@/core/siyuan");
                 await removeLedgerRows(ref!.avId!, [pendingItemID!], { idempotencyKey: `ledger:discard:${pendingItemID}` });
                 resetForm();
-                if (onRecordSaved) await onRecordSaved({ docId: ref?.docId, name: "", module: active });
+                if (onRecordSaved) await onRecordSaved({ docId: ref?.docId, name: "", module: active, discarded: true });
                 showMessage(t("ledger.discardPartialDone"), 3000, "info");
             } catch (e) {
                 showMessage(t("ledger.discardPartialFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 6000, "error");
@@ -259,6 +287,7 @@
 
     function resetForm() {
         form = {};
+        draftModuleId = active;
         lastCertificateCategory = "";
         certificateFiles = {};
         uploadedCertificateFiles = {};
@@ -312,11 +341,6 @@
         if (nameMissing) {
             saveError = t("ledger.nameRequired");
             showMessage(saveError, 4000, "error");
-            return;
-        }
-        if (active === "certs" && !String(form.category ?? "").trim()) {
-            saveError = t("ledger.categoryRequired");
-            showMessage(saveError, 4000, "info");
             return;
         }
         if (active === "certs" && form.x_cert_id_number && idcardCheck && !idcardCheck.ok) {
@@ -420,7 +444,8 @@
 
     function onNewRecordKeydown(event: KeyboardEvent) {
         if (!open) return;
-        if (duplicateConfirmPending) return;
+        if (event.isComposing || event.keyCode === 229) return;
+        if (duplicateConfirmPending || hasBlockingDialogAbove(modalEl)) return;
         if (event.key === "Tab") {
             if (saving) {
                 event.preventDefault();
@@ -453,7 +478,10 @@
             return;
         }
         if (event.key === "Escape") {
+            if (event.defaultPrevented) return;
             event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
             closeNewRecord();
             return;
         }
@@ -462,7 +490,7 @@
 
 <svelte:window onkeydown={onNewRecordKeydown} />
 <div class="lv-mask" class:open aria-hidden="true" onclick={closeNewRecord}></div>
-<div class="lv-modal lv-record-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-new-record-title" aria-busy={saving || duplicateConfirmPending} tabindex="-1" inert={!open || duplicateConfirmPending}>
+<div bind:this={modalEl} class="lv-modal lv-record-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-new-record-title" aria-busy={saving || duplicateConfirmPending} tabindex="-1" inert={!open || duplicateConfirmPending}>
     <div class="lv-sheet lv-record-sheet">
         <div class="lv-sheet-head">
             <div class="lv-record-title">
@@ -512,7 +540,7 @@
                             {:else if e.type === "checkbox"}
                                 <label class="lv-record-check"><input id="lv-new-{e.key}" type="checkbox" class="b3-switch" bind:checked={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} />{fieldLabel(e.key)}{e.required ? " *" : ""}</label>
                             {:else if e.key === "name"}
-                                <input bind:this={nameInput} id="lv-new-{e.key}" class="b3-text-field" type="text" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} onblur={handleNewRecordNameBlur} onkeydown={(event: KeyboardEvent) => { if (event.key === "Enter" && !event.isComposing) saveNewRecord(false); }} />
+                                <input bind:this={nameInput} id="lv-new-{e.key}" class="b3-text-field" type="text" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined} onblur={handleNewRecordNameBlur} onkeydown={(event: KeyboardEvent) => { if (event.key === "Enter" && !event.isComposing && event.keyCode !== 229) saveNewRecord(false); }} />
                             {:else if ["note", "violations", "diagnosis"].includes(e.key)}
                                 <textarea id="lv-new-{e.key}" class="b3-text-field lv-record-textarea" rows="3" placeholder={fieldMetaPlaceholder(e)} bind:value={form[e.key]} disabled={saving || identityPending} aria-invalid={!!formFieldError(e)} aria-describedby={formFieldError(e) ? `lv-new-${e.key}-error` : undefined}></textarea>
                             {:else}

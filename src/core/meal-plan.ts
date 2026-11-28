@@ -6,6 +6,7 @@
 import type { AvRow } from "./siyuan";
 import type { AvCellLike } from "./avcell";
 import { bindDialogA11y } from "./dialog-a11y";
+import { escapeHtml } from "./modal-shell";
 
 const mk = (t: string, c = "", s = "") => {
     const el = document.createElement(t);
@@ -334,18 +335,25 @@ export interface MealPlanDialogOptions {
     allFoodRows: AvRow[];
     stockItems: StockItemInfo[];
     ref: { avId?: string; columns?: Record<string, string> };
-    plugin: { settings: { dbRefs?: Record<string, { avId?: string; columns?: Record<string, string> }> } };
+    plugin: {
+        runtime?: { guestModeActive?: boolean };
+        settings: {
+            dbRefs?: Record<string, { avId?: string; columns?: Record<string, string> }>;
+            members?: any[];
+        };
+    };
     t: (k: string) => string;
     DialogCls: new (options: { title: string; content: string; width?: string }) => { element: HTMLElement; destroy: () => void };
     showMessageFn: (message: string, timeout?: number, type?: "info" | "error") => void;
     cellTextFn: (v: AvCellLike | null | undefined, k?: string) => string;
     addDetachedRowFn: (avId: string, name: string) => Promise<string>;
     setCellFn: (avId: string, colId: string, itemId: string, val: unknown) => Promise<unknown>;
-    cellValueFn: (type: string, val: unknown) => unknown;
+    cellValueFn?: (type: string, val: unknown) => unknown;
 }
 
 export function openMealPlanDialog(options: MealPlanDialogOptions): void {
-    const { allFoodRows, stockItems, ref, plugin, t, DialogCls, showMessageFn, cellTextFn, addDetachedRowFn, setCellFn, cellValueFn } = options;
+    const { allFoodRows, stockItems, ref, plugin, t, DialogCls, showMessageFn, cellTextFn, addDetachedRowFn, setCellFn } = options;
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
 
     interface RecipeCandidate {
         id: string;
@@ -436,7 +444,8 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         }
 
         copyBtn.disabled = false;
-        addBtn.disabled = false;
+        addBtn.disabled = isGuest;
+        if (isGuest) addBtn.title = t("guest.writeBlocked");
 
         const dayItems: MealPlanDayItem[] = selectedList.map((c) => ({
             day: "mon",
@@ -450,7 +459,7 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         const metrics = mk("div", "lv-metric-grid-4");
         const makeBox = (cap: string, v: string | number, sub?: string, colorClass?: string) => {
             const d = mk("div", "lv-metric-item");
-            d.innerHTML = `<span class="lv-caption">${cap}</span><b class="lv-num lv-metric-val${colorClass ? ` ${colorClass}` : ""}">${v}</b>${sub ? `<span class="lv-caption">${sub}</span>` : ""}`;
+            d.innerHTML = `<span class="lv-caption">${escapeHtml(cap)}</span><b class="lv-num lv-metric-val${colorClass ? ` ${escapeHtml(colorClass)}` : ""}">${escapeHtml(v)}</b>${sub ? `<span class="lv-caption">${escapeHtml(sub)}</span>` : ""}`;
             return d;
         };
 
@@ -479,8 +488,9 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
             );
 
             const right = mk("div", "lv-dialog-row__right");
-            const deficitInfo = item.deficitQty > 0 ? `<b class="lv-tx-warn">缺 ${item.deficitQty}${item.unit}</b> · ` : "";
-            right.innerHTML = `<span class="lv-caption">${deficitInfo}需 ${item.requiredQty}${item.unit} / 存 ${item.stockQty}${item.unit}</span>`;
+            const safeUnit = escapeHtml(item.unit);
+            const deficitInfo = item.deficitQty > 0 ? `<b class="lv-tx-warn">缺 ${escapeHtml(item.deficitQty)}${safeUnit}</b> · ` : "";
+            right.innerHTML = `<span class="lv-caption">${deficitInfo}需 ${escapeHtml(item.requiredQty)}${safeUnit} / 存 ${escapeHtml(item.stockQty)}${safeUnit}</span>`;
 
             row.append(left, right);
             listSec.appendChild(row);
@@ -499,6 +509,10 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
         };
 
         addBtn.onclick = async () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             if (result.deficitsOnly.length === 0) {
                 showMessageFn(t("ledger.mealPlanSufficientItems"), 3000, "info");
                 return;
@@ -512,26 +526,39 @@ export function openMealPlanDialog(options: MealPlanDialogOptions): void {
 
             addBtn.disabled = true;
             try {
+                const { writeLedgerRow } = await import("./ledger-writer");
                 const deficitsPayload = mapDeficitsToShoppingRows(result.deficitsOnly);
                 let addedCount = 0;
+                const partialFailed: string[] = [];
                 for (const rowData of deficitsPayload) {
-                    const newId = await addDetachedRowFn(shoppingRef.avId, rowData.name);
-                    if (shoppingRef.columns.qty) {
-                        await setCellFn(shoppingRef.avId, shoppingRef.columns.qty, newId, cellValueFn("number", rowData.qty));
-                    }
-                    if (shoppingRef.columns.category) {
-                        await setCellFn(shoppingRef.avId, shoppingRef.columns.category, newId, cellValueFn("select", "food_sh"));
-                    }
-                    if (shoppingRef.columns.note) {
-                        await setCellFn(shoppingRef.avId, shoppingRef.columns.note, newId, cellValueFn("text", rowData.note));
+                    const writeRes = await writeLedgerRow({
+                        moduleId: "shopping",
+                        target: shoppingRef,
+                        name: rowData.name,
+                        fields: {
+                            qty: rowData.qty,
+                            category: "food_sh",
+                            note: rowData.note,
+                        },
+                        members: plugin.settings.members,
+                        plugin,
+                        addRowFn: addDetachedRowFn,
+                        setCellFn,
+                    });
+                    if (writeRes.failed.length > 0) {
+                        partialFailed.push(`${rowData.name}(${writeRes.failed.join(",")})`);
                     }
                     addedCount++;
                 }
-                showMessageFn(t("ledger.mealPlanAddedToShopping").replace("${n}", String(addedCount)), 3500, "info");
+                if (partialFailed.length > 0) {
+                    showMessageFn(t("ledger.savePartial").replace("${fields}", partialFailed.join("；")), 6000, "error");
+                } else {
+                    showMessageFn(t("ledger.mealPlanAddedToShopping").replace("${n}", String(addedCount)), 3500, "info");
+                }
                 dlg.destroy();
             } catch (err: any) {
                 showMessageFn(t("ledger.saveFailed") + ` (${err?.message || String(err)})`, 5000, "error");
-                addBtn.disabled = false;
+                addBtn.disabled = Boolean(plugin?.runtime?.guestModeActive);
             }
         };
     };

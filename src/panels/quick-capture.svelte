@@ -1,7 +1,7 @@
 <script lang="ts">
     // 267 波：快速记录弹层（原型 .sheet 生产化）——480px 中央弹层，schema.capture 列集驱动，
     // 未建库自动建库（triage 同链路）。常驻挂载：关闭仅收起弹层，草稿保留到下次打开（对齐原型）。
-    import { homeNotify as showMessage, lvNotify, lvLaunchpad } from "@/libs/notice";
+    import { homeNotify as showMessage, lvNotify, lvLaunchpad, lvSurfaceStack } from "@/libs/notice";
     import { tick } from "svelte";
     import { getCaptureFields } from "@/core/capture";
     import { getGroupedModules, moduleIcon } from "@/core/modules";
@@ -16,6 +16,7 @@
     import type { HomeSettings } from "@/types";
     import UiIcon from "@/ui/icon.svelte";
     import type { ParsedCaptureResult } from "@/core/block-capture";
+    import { hasBlockingDialogAbove } from "@/core/dialog-a11y";
 
     interface ICapturePluginLike {
         i18n: Record<string, unknown>;
@@ -75,10 +76,12 @@
     }
     let pendingModuleId = $state<string | undefined>();
     let pendingRowId = $state<string | undefined>();
+    let modalEl = $state<HTMLDivElement | undefined>();
     let wasOpen = false;
     $effect(() => {
         if (open && !wasOpen) {
             wasOpen = true;
+            document.querySelector(".lv-main-stage")?.classList.add("lv-scroll-locked");
             document.querySelector(".lv-home")?.classList.add("lv-scroll-locked");
             const reqMode = plugin.runtime?.hubQuickMode;
             const reqSub = plugin.runtime?.hubQuickEventSub;
@@ -97,11 +100,34 @@
                 : (modules[0] ?? "");
         } else if (!open) {
             wasOpen = false;
+            document.querySelector(".lv-main-stage")?.classList.remove("lv-scroll-locked");
             document.querySelector(".lv-home")?.classList.remove("lv-scroll-locked");
         } else if (!identityPending && !pendingRowId && moduleId && !modules.includes(moduleId)) {
             const last = plugin.runtime?.hubQuickModule;
             moduleId = last && modules.includes(last) ? last : (modules[0] ?? "");
         }
+    });
+
+    $effect(() => {
+        if (!open) return;
+        const popSurface = lvSurfaceStack.push({
+            id: "lv-home-quick-capture",
+            type: "dialog",
+            dismiss: () => {
+                if (!open) return false;
+                if (hasBlockingDialogAbove(modalEl)) return false;
+                if (showDiscardConfirm) {
+                    showDiscardConfirm = false;
+                    return "keep";
+                }
+                if (saving) return "keep";
+                close();
+                return true;
+            },
+        });
+        return () => {
+            popSurface();
+        };
     });
 
     function switchMode(tab: CaptureTab) {
@@ -133,6 +159,12 @@
         if (!moduleId) return;
         if (!currentModuleId || currentModuleId !== moduleId) {
             if (currentModuleId) valuesByModule = { ...valuesByModule, [currentModuleId]: { ...values } };
+            if (currentModuleId && !pendingRowId) {
+                rowIdentity = undefined;
+                saveOperationKey = undefined;
+                identityPending = false;
+                pendingModuleId = undefined;
+            }
             currentModuleId = moduleId;
             values = { ...(valuesByModule[moduleId] ?? {}) };
             initSmartDefaults();
@@ -194,8 +226,17 @@
     }
     function onWindowKeydown(e: KeyboardEvent) {
         if (!open) return;
+        if (e.isComposing || e.keyCode === 229) return;
+        if (hasBlockingDialogAbove(modalEl)) return;
         if (showDiscardConfirm) {
-            if (e.key === "Escape") { e.preventDefault(); showDiscardConfirm = false; return; }
+            if (e.key === "Escape") {
+                if (e.defaultPrevented) return;
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation?.();
+                showDiscardConfirm = false;
+                return;
+            }
             if (e.key === "Tab") {
                 const card = document.querySelector(".lv-sheet-confirm-card");
                 if (card) {
@@ -216,7 +257,14 @@
             return;
         }
         if (saving) return;
-        if (e.key === "Escape") { e.preventDefault(); close(); return; }
+        if (e.key === "Escape") {
+            if (e.defaultPrevented) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+            close();
+            return;
+        }
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();
             if (captureTab === "event") {
@@ -236,7 +284,7 @@
         if (e.key === "Tab") {
             const sheet = document.querySelector(".lv-modal.open .lv-sheet");
             if (!sheet) return;
-            const focusables = Array.from(sheet.querySelectorAll<HTMLElement>('button, input, select, [tabindex]:not([tabindex="-1"])'))
+            const focusables = Array.from(sheet.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
                 .filter((el) => !el.hasAttribute("disabled") && el.getClientRects().length > 0);
             if (focusables.length === 0) return;
             const first = focusables[0];
@@ -279,6 +327,12 @@
         }
         const vv = window.visualViewport;
         const onResize = () => {
+            const hostVvEl = modalEl?.closest<HTMLElement>(".b3-dialog--lvmobile, .lv-mobile-host");
+            const hostHandlesVv = Boolean(hostVvEl?.style?.getPropertyValue("--lv-vv-h"));
+            if (hostHandlesVv) {
+                keyboardOffset = 0;
+                return;
+            }
             const heightDiff = window.innerHeight - vv.height;
             keyboardOffset = heightDiff > 120 ? Math.max(0, heightDiff - 20) : 0;
         };
@@ -344,6 +398,7 @@
             });
 
             if (!result.success) {
+                if (result.pendingRowId) pendingRowId = result.pendingRowId;
                 if (result.pendingModuleId) pendingModuleId = result.pendingModuleId;
                 if (result.fieldErrors) fieldErrors = result.fieldErrors;
                 if (result.error) saveError = result.error;
@@ -438,7 +493,7 @@
 
 <!-- 267 波：.lv-mask/.lv-modal（07 §10）首次投产；常驻挂载 + .open 切换保住出入场过渡与草稿 -->
 <div class="lv-mask" class:open aria-hidden="true" onclick={close}></div>
-<div class="lv-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-capture-title" aria-busy={saving} tabindex="-1" inert={!open}>
+<div bind:this={modalEl} class="lv-modal" class:open role="dialog" aria-modal="true" aria-labelledby="lv-capture-title" aria-busy={saving} tabindex="-1" inert={!open}>
     <div class="lv-sheet" style={keyboardOffset > 0 ? `transform:translateY(-${Math.min(keyboardOffset, 160)}px); max-height: calc(100% - ${Math.min(keyboardOffset, 160)}px);` : undefined}>
         {#if showDiscardConfirm}
             <QuickCaptureConfirm

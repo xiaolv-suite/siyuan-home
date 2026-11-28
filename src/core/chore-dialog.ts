@@ -17,7 +17,11 @@ const mk = (t: string, c = "", s = "") => {
 
 export interface ChoreSectionOptions {
     t: (k: string) => string;
-    plugin: { settings: { members?: Array<{ id: string; name: string }> }; saveData: (name: string, data: unknown) => Promise<unknown> };
+    plugin: {
+        runtime?: { guestModeActive?: boolean };
+        settings: { members?: Array<{ id: string; name: string }> };
+        saveData: (name: string, data: unknown) => Promise<unknown>;
+    };
     avId: string;
     rowId: string;
     body: HTMLElement;
@@ -26,6 +30,7 @@ export interface ChoreSectionOptions {
 
 export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Promise<void> {
     const { t, plugin, avId, rowId, body, showMessageFn } = opts;
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const roster = (plugin.settings.members ?? []).map((m) => ({ id: m.id, name: m.name }));
     const readCompletions = (logs: rl.RowLogs) =>
         rl.getEntries<Record<string, unknown>>(logs, avId, rowId, "chexecs");
@@ -66,6 +71,10 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
     pointsInp.min = "0";
 
     const addBtn = mk("button", "b3-button b3-button--outline lv-select-sm", t("ledger.choreDone")) as HTMLButtonElement;
+    if (isGuest) {
+        addBtn.disabled = true;
+        addBtn.title = t("guest.writeBlocked");
+    }
     form.append(whoSel, dateInp, noteInp, pointsInp, addBtn);
     body.appendChild(form);
 
@@ -102,7 +111,15 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
             const txt = mk("span");
             txt.innerHTML = `${e.date} · ${safeName}${ptsTag}${safeNote ? ` —— ${safeNote}` : ""}`;
             const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
+            if (isGuest) {
+                del.disabled = true;
+                del.title = t("guest.writeBlocked");
+            }
             del.onclick = async () => {
+                if (plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 del.disabled = true;
                 try {
                     logs = await rl.updateRowLogs(plugin as never, (cur) => rl.removeEntry(cur, avId, rowId, "chexecs", e as unknown as Record<string, unknown>));
@@ -118,6 +135,10 @@ export async function addChoreRotationSectionImpl(opts: ChoreSectionOptions): Pr
     };
 
     addBtn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (addBtn.disabled) return;
         if (!dateInp.value) {
             showMessageFn(t("ledger.logInvalid"), 3000, "error");

@@ -67,6 +67,7 @@ export async function fetchLedgerDataset(options: FetchLedgerDatasetOptions): Pr
     if (pendingTarget && pendingTarget.moduleId === moduleId && onTargetResolved) {
         const targetRow = rows.find((r) => r.itemID === pendingTarget.rowId);
         requestAnimationFrame(() => {
+            if (signal?.aborted) return;
             onTargetResolved(targetRow, pendingTarget);
         });
     }

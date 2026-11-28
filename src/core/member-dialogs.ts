@@ -23,6 +23,10 @@ let reassignDialogOpen = false;
 
 export function openMemberReassignDialog(options: OpenMemberReassignDialogOptions): void {
     const { members, fromMember, plugin, t, DialogCls, showMessageFn, onReassigned } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 4000, "info");
+        return;
+    }
     const activeMembers = members.filter((m) => m.avItemId);
     if (activeMembers.length === 0) {
         showMessageFn(t("members.reassignNoTargets"), 4000, "error");

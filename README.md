@@ -8,10 +8,10 @@
 
 家庭私有资料沉淀 · 成员中心视角 · 客观规则衍生提醒 · 闭环业务办理
 
-**当前版本：v0.5.200** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
+**当前版本：v0.5.201** ｜ [English Documentation](./README.en.md) ｜ [更新日志](./CHANGELOG.md)
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.200-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.201-blue)](./CHANGELOG.md)
 [![思源笔记](https://img.shields.io/badge/思源笔记-%3E%3D%203.8.4-brightgreen.svg)](https://b3log.org/siyuan)
 [![License: MIT](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -25,17 +25,16 @@
 
 ---
 
-## 🚀 本次更新要点（v0.5.200 · 2026-11-26 里程碑正式版）
+## 🚀 本次更新要点（v0.5.201 · 2026-11-27 稳定优化版）
 
-- **全生态共享中枢与四级折叠日记区**：深度融合小驴罗盘、全生态 AI 路由、块助手 1–8 原生底座与自定义双击触发、活动流及联合灾备；日常流水与备忘统一按标准 LifeLog 落盘至思源默认当日日记 `#### 🐴 小驴记录` 四级折叠区（严守区内写入边界与多端防冲突互斥锁）；
-- **汽车台账 A+C 全链路联动**：加油/充电/维保流水自动同步回写汽车主表汇总列（最近补能日、累计油电费、本年油电费、综合油耗/能耗），并在汽车台账文档底部生成零重复的动态日记车务流水聚合区；
-- **全入口拍照留存与本地上传**：快速录入、完整台账新建/编辑弹窗（实物资产/囤货/证件/药品/车辆等）与详情抽屉统一接入「📷 拍照 + 本地上传 + 思源资源库选取」，拍摄照片自动压缩至 ≤300KB；
-- **统一 AI / OCR 非阻塞等待体验 (`.lv-ai-thinking`)**：极速记事、AI 生活效期全局体检、顽固事项 5 分钟微步骤拆解与附件图片 OCR 统一采用渐进式思考进度卡（实时计时 + `AbortSignal` 随时取消，写入期保存锁防误触重复提交）；
-- **零 `:has()` / 零高模糊 60fps 极速性能**：全面消除 CSS `:has()` 与高模糊（`>=15px`）开销，`.lv-home` 独立层叠隔离避免顶栏遮挡宿主弹窗，完善 `390×844` 移动端设置直达入口、成员字段单列折行与深浅双色主题对比度。
+- **石墨雾灰三层极简重构**：重塑管家导航、首页概览与抽屉三层界面，统一家族像素栅格、工具栏排布与 `390×844` 移动端触控尺寸；
+- **31 台账 AV 列自愈与车务安全加固**：跨 31 个属性视图台账统一实时列类型对账与 resilient `setCell` 自愈，完善车务日记同步、概览筛选与里程表安全校验；
+- **走查盲区清零与全生态合龙**：修复抽屉取消、Schema 诊断、车辆网格/弹窗滚动与文案细节，同步 `lv-kit` 零 Protyle DOM 残留治理，严格保持零 `:has(` 与 60fps 渲染。
 
 <details>
-<summary>展开查看历史版本更新记录（v0.5.199 及更早版本 · 完整记录见 CHANGELOG.md）</summary>
+<summary>展开查看历史版本更新记录（v0.5.200 及更早版本 · 完整记录见 CHANGELOG.md）</summary>
 
+- **v0.5.200**：全生态大重构里程碑正式版，融合三大共享中枢、`#### 🐴 小驴记录` 四级折叠日记区、`.lv-ai-thinking` AI/OCR 等待、汽车台账 A+C 联动与全入口拍照。
 - **v0.5.199**：汽车台账 A+C 联动、全入口拍照上传、`.lv-ai-thinking` 等待卡与无 `:has()` 优化。
 
 - **v0.5.198**：打字微事务过滤与输入零卡顿、日记防冲突统一落盘、设置页设计令牌与控件高度规范化。

@@ -4,7 +4,7 @@
     import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
     import { removeMember } from "@/core/members";
-    import { renderLedgerAll, setCell, uploadAsset } from "@/core/siyuan";
+    import { renderLedgerAll, setCellResilient, uploadAsset } from "@/core/siyuan";
     import { openNativeAssetPicker } from "@/libs/lv-notice-kit";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveRuntime } from "@/core/hub/runtime";
@@ -17,6 +17,15 @@
 
     let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
     const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+    const isGuestMode = $derived.by(() => {
+        void version;
+        return Boolean(plugin.runtime?.guestModeActive);
+    });
+    function guardGuestWrite(): boolean {
+        if (!plugin.runtime?.guestModeActive) return false;
+        showMessage(t("guest.writeBlocked"), 4000, "info");
+        return true;
+    }
 
     let orderVersion = $state(0);
     // version（H02）：hub 变更时递增，驱动派生重算（plugin.* 为普通对象引用）
@@ -78,6 +87,7 @@
     let avatarTarget: FamilyMember | null = null;
     let avatarBusy = $state<Set<string>>(new Set());
     function pickAvatar(m: FamilyMember) {
+        if (guardGuestWrite()) return;
         if (!m.avItemId) { showMessage(t("members.avatarNoRow"), 4000, "info"); return; }
         avatarTarget = m;
         avatarInput?.click();
@@ -85,6 +95,7 @@
     async function onAvatarPicked(e: Event) {
         const file = (e.target as HTMLInputElement).files?.[0];
         (e.target as HTMLInputElement).value = "";
+        if (guardGuestWrite()) return;
         const m = avatarTarget;
         if (!file || !m?.avItemId) return;
         if (avatarBusy.has(m.id)) return;
@@ -98,9 +109,19 @@
         })();
         try {
             const { name, path } = await uploadAsset(file, "/assets/siyuan-home/", { idempotencyKey: `${operationKey}:upload`, retries: 1 });
-            await setCell(ref.avId, avatarKey, m.avItemId, { type: "mAsset", mAsset: [{ content: path, name }] }, {
-                idempotencyKey: `${operationKey}:cell`,
-                retries: 1,
+            await setCellResilient({
+                avID: ref.avId,
+                keyID: avatarKey,
+                itemID: m.avItemId,
+                value: { type: "mAsset", mAsset: [{ content: path, name }] },
+                plugin,
+                moduleId: "members",
+                colKey: "avatar",
+                ref,
+                requestOptions: {
+                    idempotencyKey: `${operationKey}:cell`,
+                    retries: 1,
+                },
             });
             avatars = { ...avatars, [m.id]: path };
             showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
@@ -113,6 +134,7 @@
         }
     }
     async function pickAssetAvatar(m: FamilyMember) {
+        if (guardGuestWrite()) return;
         if (!m.avItemId) { showMessage(t("members.avatarNoRow"), 4000, "info"); return; }
         // 2026-11-21 走查修复：与上传路径同口径——busy 预检防连点并发双写 + 幂等键
         if (avatarBusy.has(m.id)) return;
@@ -129,9 +151,19 @@
             catch { return `member-avatar:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
         })();
         try {
-            await setCell(ref.avId, avatarKey, m.avItemId, { type: "mAsset", mAsset: [{ content: path, name }] }, {
-                idempotencyKey: `${operationKey}:cell`,
-                retries: 1,
+            await setCellResilient({
+                avID: ref.avId,
+                keyID: avatarKey,
+                itemID: m.avItemId,
+                value: { type: "mAsset", mAsset: [{ content: path, name }] },
+                plugin,
+                moduleId: "members",
+                colKey: "avatar",
+                ref,
+                requestOptions: {
+                    idempotencyKey: `${operationKey}:cell`,
+                    retries: 1,
+                },
             });
             avatars = { ...avatars, [m.id]: path };
             showMessage(t("members.avatarUploaded").replace("${name}", m.name), 2500, "info");
@@ -180,6 +212,7 @@
     const statsOf = (id: string): MemberStat => memberStats.get(id) ?? { chips: [], birthday: null };
     let memberActionBusy = $state<Set<string>>(new Set());
     async function runMemberAction(key: string, action: () => Promise<void>) {
+        if (guardGuestWrite()) return;
         if (memberActionBusy.has(key)) return;
         memberActionBusy = new Set([...memberActionBusy, key]);
         try { await action(); }
@@ -203,6 +236,7 @@
 
     let reorderBusy = $state(false);
     async function persistMemberOrder(ids: string[]) {
+        if (guardGuestWrite()) return;
         if (reorderBusy) return;
         reorderBusy = true;
         const previous = [...plugin.settings.members];
@@ -219,6 +253,7 @@
         }
     }
     async function move(m: FamilyMember, delta: number) {
+        if (guardGuestWrite()) return;
         const ids = members.map((x) => x.id);
         const i = ids.indexOf(m.id);
         const j = i + delta;
@@ -230,13 +265,13 @@
     let dragId = $state<string | null>(null);
     let dragOverId = $state<string | null>(null);
     function onDragStart(m: FamilyMember, e: DragEvent) {
-        if (reorderBusy) { e.preventDefault(); return; }
+        if (reorderBusy || isGuestMode) { e.preventDefault(); return; }
         dragId = m.id;
         e.dataTransfer?.setData("text/plain", m.id);
     }
     async function onDrop(m: FamilyMember, e: DragEvent) {
         e.preventDefault();
-        if (reorderBusy) return;
+        if (reorderBusy || guardGuestWrite()) return;
         const src = dragId ?? e.dataTransfer?.getData("text/plain") ?? null;
         dragId = null; dragOverId = null;
         if (!src || src === m.id) return;
@@ -304,6 +339,7 @@
     let editorComp: any;
 
     function startEdit(m: FamilyMember) {
+        if (guardGuestWrite()) return;
         editId = m.id;
         editorOpen = true;
         name = m.name;
@@ -319,6 +355,7 @@
     }
 
     function startNewMember() {
+        if (guardGuestWrite()) return;
         cancelEdit();
         editorOpen = true;
         requestAnimationFrame(() => {
@@ -328,6 +365,7 @@
 
     // EC14：成员 ↔ 人脉联系人绑定（仅存快照 `名称 [docId]`，不改写人脉数据）
     async function saveContactSnapshot(m: FamilyMember, snapshot: string | undefined) {
+        if (guardGuestWrite()) return;
         if (contactBusy[m.id]) return;
         const target = (plugin.settings.members ?? []).find((x) => x.id === m.id);
         if (!target) return;
@@ -349,6 +387,7 @@
         }
     }
     function linkContact(m: FamilyMember) {
+        if (guardGuestWrite()) return;
         if (!getContactsBridge()) {
             showMessage(t("ledger.contactsMissing"), 5000, "info");
             return;
@@ -357,6 +396,7 @@
             (snapshot) => { void saveContactSnapshot(m, snapshot); });
     }
     async function unlinkContact(m: FamilyMember) {
+        if (guardGuestWrite()) return;
         if (!contactOf(m)) return;
         await saveContactSnapshot(m, undefined);
     }
@@ -368,6 +408,7 @@
     const hasContactsBridge = $derived(Boolean(getContactsBridge()));
 
     function handleImportFromContacts() {
+        if (guardGuestWrite()) return;
         if (!getContactsBridge()) return;
         openContactPicker({ t: (k) => t(k), showMessage: (msg, timeout, type) => showMessage(msg, timeout, type) },
             (snapshot) => {
@@ -388,13 +429,14 @@
             });
     }
 
-    async function handleMemberSaved() {
+    async function handleMemberSaved(savedName?: string) {
+        const targetName = (savedName ?? name).trim();
         const bridge = getContactsBridge();
-        if (bridge?.ensurePerson && name.trim()) {
+        if (bridge?.ensurePerson && targetName) {
             try {
-                const person = await bridge.ensurePerson(name.trim());
+                const person = await bridge.ensurePerson(targetName);
                 if (person?.docId) {
-                    const target = (plugin.settings.members ?? []).find((m: any) => m.name.trim() === name.trim());
+                    const target = (plugin.settings.members ?? []).find((m: any) => m.name.trim() === targetName);
                     if (target && !target.contactSnapshot) {
                         target.contactSnapshot = `${person.name} [${person.docId}]`;
                         const { saveSettings } = await import("@/core/settings");
@@ -435,6 +477,7 @@
     // 2026-11-21 走查清理：reassignBusy 死状态移除（全文件原无置位点，aria-busy/saving 分支永不生效）。
     // 改派防重入已下沉至 member-dialogs.ts 源头模块级互斥，头部按钮与卡片禁用改由 members.length 判定。
     function openReassignDialog(fromMember?: FamilyMember) {
+        if (guardGuestWrite()) return;
         // 2026-11-21 走查修复：防重入下沉至 openMemberReassignDialog 源头（模块级互斥，
         // 原先此处同步 try/finally 无法跨越弹窗生命周期，连点可叠开两个改派弹窗）。
         openMemberReassignDialog({
@@ -459,6 +502,7 @@
     reassignBusy={false}
     {exportingVcf}
     {editorOpen}
+    guestMode={isGuestMode}
     {hasContactsBridge}
     membersDocId={plugin.settings?.dbRefs?.members?.docId}
     onReassign={() => openReassignDialog()}
@@ -483,6 +527,7 @@
     bind:notes
     {plugin}
     {t}
+    guestMode={isGuestMode}
     onSaved={handleMemberSaved}
     onCancel={cancelEdit}
     onPickAvatar={editId ? () => {
@@ -496,7 +541,7 @@
         <div class="eic" aria-hidden="true"><UiIcon name="users" size={24} /></div>
         <b>{t("members.empty")}</b>
         <span>{t("members.emptyHint")}</span>
-        <button type="button" class="lv-btn primary" onclick={startNewMember}>
+        <button type="button" class="lv-btn primary" disabled={isGuestMode} onclick={startNewMember}>
             <UiIcon name="add" size={15} /> {t("add")}
         </button>
     </div></div>
@@ -508,6 +553,7 @@
                 {plugin}
                 {t}
                 {version}
+                guestMode={isGuestMode}
                 avatarPath={avatars[m.id]}
                 isAvatarBusy={avatarBusy.has(m.id)}
                 alerts={alertsFor(m.id)}

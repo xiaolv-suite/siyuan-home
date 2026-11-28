@@ -1,7 +1,6 @@
 <script lang="ts">
     import { homeNotify as showMessage, homeInline } from "@/libs/notice";
     import { formatAsTaskBlock } from "@/core/block-capture";
-    import { saveRuntime } from "@/core/hub/runtime";
     import UiIcon from "@/ui/icon.svelte";
     import type { Reminder } from "@/types";
 
@@ -26,6 +25,7 @@
     let batchBusy = $state(false);
     let toolbarEl = $state<HTMLElement | undefined>(undefined);
     const selectedCount = $derived(selected.size);
+    const isGuestMode = $derived(Boolean(plugin?.runtime?.guestModeActive));
 
     function selectAllFiltered() {
         selected = new Set(filtered.map((r: Reminder) => r.id));
@@ -154,12 +154,26 @@
     }
 
     async function batchPlanToday() {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (batchBusy || selected.size === 0) return;
+        const visibleIds = new Set(filtered.map((r: Reminder) => r.id));
+        const targetIds = [...selected].filter((id) => visibleIds.has(id));
+        if (targetIds.length === 0) {
+            selected = new Set();
+            showMessage(t("hub.selectionNoLongerVisible"), 3500, "info");
+            return;
+        }
         batchBusy = true;
         try {
             const { batchPushRemindersToTodayPlan } = await import("@/core/hub/runtime");
-            const count = batchPushRemindersToTodayPlan(plugin.runtime, [...selected]);
-            await saveRuntime(plugin, plugin.runtime);
+            const { withRuntime } = await import("@/core/hub/actions");
+            let count = 0;
+            await withRuntime(plugin, (rt) => {
+                count = batchPushRemindersToTodayPlan(rt, targetIds);
+            });
             showMessage(t("hub.planDateSaved") + ` (${count})`, 2500, "info");
             selected = new Set();
             batchMode = false;
@@ -176,6 +190,10 @@
     }
 
     async function runBatch(kind: "done" | "snooze7" | "mute") {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (batchBusy || selected.size === 0) return;
         const visibleIds = new Set(filtered.map((r: Reminder) => r.id));
         selected = new Set([...selected].filter((id) => visibleIds.has(id)));
@@ -234,9 +252,9 @@
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyAsTasks(e)}><UiIcon name="note" size={13} /> {t("hub.batchCopyTasks")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyDailyBoard(e)}><UiIcon name="home" size={13} /> {t("hub.batchCopyDailyBoard")}</button>
     <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={(e) => batchCopyBlockRefs(e)}><UiIcon name="paperclip" size={13} /> {t("hub.batchCopyRefs")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("done")}><UiIcon name="check" size={13} /> {t("act.done")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("snooze7")}><UiIcon name="clock" size={13} /> {t("act.snooze7")}</button>
-    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0} onclick={() => runBatch("mute")}><UiIcon name="mute" size={13} /> {t("act.mute")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0 || isGuestMode} onclick={batchPlanToday}><UiIcon name="calendar" size={13} /> {t("hub.planPresetToday")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0 || isGuestMode} onclick={() => runBatch("done")}><UiIcon name="check" size={13} /> {t("act.done")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0 || isGuestMode} onclick={() => runBatch("snooze7")}><UiIcon name="clock" size={13} /> {t("act.snooze7")}</button>
+    <button type="button" class="b3-button b3-button--text" disabled={batchBusy || selectedCount === 0 || isGuestMode} onclick={() => runBatch("mute")}><UiIcon name="mute" size={13} /> {t("act.mute")}</button>
     <button type="button" class="b3-button b3-button--outline" disabled={batchBusy} onclick={clearSelection}><UiIcon name="close" size={12} /> {t("cancel")}</button>
 </div>

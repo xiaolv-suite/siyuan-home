@@ -10,8 +10,9 @@
  * 单格失败不抛出，按字段 key 收集到 failed，由调用方决定是否继续后续动作。
  */
 import { SCHEMA_CATALOG } from "./schema-catalog";
-import { blockCellValue, cellValue, selectCellValue } from "./avcell";
+import { blockCellValue, cellValue, selectCellValue, normalizeSelectValue } from "./avcell";
 import { addDetachedRow, setCell, type RequestOptions } from "./siyuan";
+import { setCellResilient } from "./provision-adoption";
 
 export interface LedgerWriteTarget {
     avId?: string;
@@ -88,6 +89,7 @@ export interface WriteLedgerRowOptions {
     /** 已有行时只写字段，不新建。 */
     itemId?: string;
     operationKey?: string;
+    plugin?: any;
     addRowFn?: AddRowFn;
     setCellFn?: SetCellFn;
 }
@@ -99,6 +101,9 @@ export interface WriteLedgerRowResult {
 }
 
 export async function writeLedgerRow(opts: WriteLedgerRowOptions): Promise<WriteLedgerRowResult> {
+    if (opts.plugin?.runtime?.guestModeActive) {
+        throw new Error("Guest mode is read-only");
+    }
     const { moduleId, target, members, operationKey } = opts;
     const addRow = opts.addRowFn ?? addDetachedRow;
     const write = opts.setCellFn ?? setCell;
@@ -120,16 +125,38 @@ export async function writeLedgerRow(opts: WriteLedgerRowOptions): Promise<Write
         entries.push([key, value]);
     }
     for (const [key, value] of entries) {
-        const keyId = target.columns?.[key];
-        if (!keyId) {
-            // name 列缺失不算失败（标题已随行创建）；其余字段如实上报。
-            if (key !== "name") failed.push(key);
-            continue;
-        }
-        const cell = toLedgerCell(columnTypeOf(moduleId, key), value, members, { itemID, keyID: keyId });
+        let keyId = target.columns?.[key];
+        const schemaCol = SCHEMA_CATALOG[moduleId]?.columns?.find((c) => c.key === key);
+        const colType = columnTypeOf(moduleId, key);
+        const normalizedValue = colType === "select" && schemaCol
+            ? (normalizeSelectValue(value, schemaCol, { fallbackToDefault: schemaCol.default !== undefined }) ?? value)
+            : value;
+        const cell = toLedgerCell(colType, normalizedValue, members, { itemID, keyID: keyId });
         if (cell === null) { failed.push(key); continue; }
+        if (!keyId) {
+            if (key === "name") continue;
+            // 若调用方注入了自定义 setCellFn 且未传入 plugin（如单测场景），缺列按契约直接计入 failed；
+            // 否则走 setCellResilient 自动补列并写入。
+            if (opts.setCellFn && !opts.plugin) {
+                failed.push(key);
+                continue;
+            }
+        }
         try {
-            await write(avId, keyId, itemID, cell, operationKey ? { idempotencyKey: `${operationKey}:cell:${key}` } : undefined);
+            const res = await setCellResilient({
+                avID: avId,
+                keyID: keyId,
+                itemID,
+                value: cell,
+                plugin: opts.plugin,
+                moduleId,
+                colKey: key,
+                ref: target as any,
+                schemaCol,
+                requestOptions: operationKey ? { idempotencyKey: `${operationKey}:cell:${key}` } : undefined,
+                setCellFn: write,
+            });
+            keyId = res.keyID;
         } catch {
             failed.push(key);
         }

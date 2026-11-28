@@ -6,7 +6,7 @@
  * 3. 维护保养/维修记录、分类支出统计与到期提醒 (addVehicleMaintenanceSection)
  */
 
-import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry } from "./rowlog";
+import { loadRowLogs, updateRowLogs, getEntries, appendEntry, removeEntry, type RowLogs } from "./rowlog";
 import { recordHighFrequencyDiaryEvent, deleteDiaryEventWithTombstone, queryDiaryEventsFromSql } from "./diary-envelope";
 import { bindDialogA11y } from "./dialog-a11y";
 import type { EnergyRecord } from "./fuel";
@@ -70,6 +70,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
     } = options;
 
     if (active !== "vehicles" || !ref?.avId || !ref.columns) return;
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
 
     const showVehicleActionError = (error: string) =>
         showMessageFn(t("ledger.logReadFailed") + " (" + error + ")", 6000, "error");
@@ -101,25 +102,35 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
     };
 
     // 1. 车辆全寿命费用总览
-    async function addVehicleCostSummarySection() {
-        const wrap = document.createElement("section");
-        wrap.className = "lv-detail-section lv-domain-sec";
-        body.appendChild(wrap);
-        const logs = await loadRowLogs(plugin);
+    const costSummaryWrap = document.createElement("section");
+    costSummaryWrap.id = "lv-vehicle-cost-summary";
+    costSummaryWrap.className = "lv-detail-section lv-domain-sec";
+    body.appendChild(costSummaryWrap);
+
+    async function renderCostSummary(providedLogs?: RowLogs) {
+        const logs = providedLogs ?? (await loadRowLogs(plugin));
         const fuelRecords = getEntries<EnergyRecord>(logs, ref.avId!, row.itemID, "fuelings");
         const chargingRecords = getEntries<EnergyRecord>(logs, ref.avId!, row.itemID, "chargings");
         const maintenanceRecords = getEntries<MaintenanceRecord>(logs, ref.avId!, row.itemID, "maintenance");
-        const currentOdometer = Number(cellTextFn(row.cells[ref.columns!.mileage ?? ""], "mileage"));
+        const rowOdometer = Number(cellTextFn(row.cells[ref.columns!.mileage ?? ""], "mileage"));
+        let effectiveOdometer = Number.isFinite(rowOdometer) ? rowOdometer : undefined;
+        for (const rec of [...fuelRecords, ...chargingRecords, ...maintenanceRecords]) {
+            if (typeof rec.odometer === "number" && Number.isFinite(rec.odometer)) {
+                effectiveOdometer = effectiveOdometer === undefined ? rec.odometer : Math.max(effectiveOdometer, rec.odometer);
+            }
+        }
         const summary = calculateVehicleCostSummary(
             fuelRecords,
             chargingRecords,
             maintenanceRecords,
             localDateKey(),
-            Number.isFinite(currentOdometer) ? currentOdometer : undefined
+            effectiveOdometer,
         );
 
-        wrap.appendChild(mk("h3", "lv-h3-title", t("vehicle.summary.title")));
-        wrap.appendChild(mk("div", "ft__on-surface lv-caption lv-mb-10", t("vehicle.summary.hint")));
+        const nodes: HTMLElement[] = [
+            mk("h3", "lv-h3-title", t("vehicle.summary.title")),
+            mk("div", "ft__on-surface lv-caption lv-mb-10", t("vehicle.summary.hint")),
+        ];
 
         const grid = mk("div", "lv-diag-grid");
         const metric = (label: string, value: string) => {
@@ -139,10 +150,10 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         metric(t("vehicle.summary.maintenanceCost"), costLabel(summary.maintenance.recordCount, summary.maintenance.costRecordCount, summary.maintenanceCost));
         metric(t("vehicle.summary.eventCount"), String(summary.eventCount));
         metric(t("vehicle.summary.latestEvent"), summary.latestDate ?? "—");
-        wrap.appendChild(grid);
+        nodes.push(grid);
 
         if (summary.eventCount && !summary.costComplete) {
-            wrap.appendChild(mk("div", "ft__on-surface lv-caption lv-mt-6", t("vehicle.summary.incomplete")));
+            nodes.push(mk("div", "ft__on-surface lv-caption lv-mt-6", t("vehicle.summary.incomplete")));
         }
 
         const reminders: string[] = [];
@@ -151,9 +162,20 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         if (summary.maintenance.overdueDate) reminders.push(`${t("vehicle.maintenance.overdueDate")} ${summary.maintenance.overdueDate}`);
         if (summary.maintenance.overdueOdometer !== undefined) reminders.push(`${t("vehicle.maintenance.overdueOdometer")} ${formatAmount(summary.maintenance.overdueOdometer)} ${t("fuel.km")}`);
         if (reminders.length) {
-            wrap.appendChild(mk("div", "lv-record-next lv-caption lv-mt-6", `${t("vehicle.summary.nextAction")}：${reminders.join(" · ")}`));
+            nodes.push(mk("div", "lv-record-next lv-caption lv-mt-6", `${t("vehicle.summary.nextAction")}：${reminders.join(" · ")}`));
+        }
+
+        if (typeof costSummaryWrap.replaceChildren === "function") {
+            costSummaryWrap.replaceChildren(...nodes);
+        } else {
+            for (const n of nodes) costSummaryWrap.appendChild(n);
         }
     }
+
+    const handleLogsUpdated = async (latestLogs?: RowLogs) => {
+        await renderCostSummary(latestLogs);
+        if (onLogUpdated) await onLogUpdated();
+    };
 
     // 3. 维护保养板块
     async function addVehicleMaintenanceSection() {
@@ -170,6 +192,10 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
         const formatMoney = (value: number) => `${formatAmount(value)} ${t("fuel.currency")}`;
 
         const openForm = (existing?: MaintenanceRecord) => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             const dialog = new DialogCls({
                 title: t(existing ? "vehicle.maintenance.edit" : "vehicle.maintenance.add"),
                 content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-maintenance-form"></div><div class="b3-dialog__action"><button class="b3-button b3-button--cancel" id="lv-maintenance-cancel">${t("cancel")}</button><span class="fn__flex-1"></span><button class="b3-button" id="lv-maintenance-save">${t(existing ? "vehicle.maintenance.update" : "save")}</button></div>`,
@@ -234,22 +260,25 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             const save = dialog.element.querySelector("#lv-maintenance-save") as HTMLButtonElement;
             cancel.onclick = () => dialog.destroy();
             save.onclick = async () => {
+                if (plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 const value = (key: string) => (controls[key] as HTMLInputElement | HTMLSelectElement).value.trim();
                 for (const [key, control] of Object.entries(controls)) {
                     control.removeAttribute("aria-invalid");
                     control.removeAttribute("aria-describedby");
                     fieldErrors[key]?.replaceChildren();
                 }
-                const category = value("category");
-                const date = value("date");
-                const odometer = Number(value("odometer"));
+                const category = value("category") || "routine";
+                const date = value("date") || localDateKey(new Date());
+                const odometerText = value("odometer");
+                const odometer = odometerText ? Number(odometerText) : 0;
                 const costText = value("cost");
                 const nextDate = value("nextDate");
                 const nextOdometerText = value("nextOdometer");
                 const invalid: string[] = [];
-                if (!category) invalid.push("category");
-                if (!date) invalid.push("date");
-                if (!Number.isFinite(odometer) || !(odometer > 0)) invalid.push("odometer");
+                if (odometerText !== "" && (!Number.isFinite(odometer) || odometer < 0)) invalid.push("odometer");
                 if (costText !== "" && (!Number.isFinite(Number(costText)) || Number(costText) < 0)) invalid.push("cost");
                 if (nextDate && !/^\d{4}-\d{2}-\d{2}$/.test(nextDate)) invalid.push("nextDate");
                 if (nextOdometerText !== "" && (!Number.isFinite(Number(nextOdometerText)) || !(Number(nextOdometerText) > 0))) invalid.push("nextOdometer");
@@ -277,8 +306,26 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                     ...(value("note") ? { note: value("note") } : {}),
                 };
                 try {
-                    let diaryMeta: Record<string, string> = {};
+                    const rawExisting = existing as unknown as Record<string, any> | undefined;
+                    let diaryMeta: Record<string, string> = rawExisting?.diaryBlockId
+                        ? {
+                            ...(rawExisting.diaryEventId ? { diaryEventId: String(rawExisting.diaryEventId) } : {}),
+                            diaryBlockId: String(rawExisting.diaryBlockId),
+                            ...(rawExisting.diaryDocId ? { diaryDocId: String(rawExisting.diaryDocId) } : {}),
+                        }
+                        : {};
                     try {
+                        if (rawExisting?.diaryBlockId) {
+                            await deleteDiaryEventWithTombstone(plugin, {
+                                eventId: String(rawExisting.diaryEventId || rawExisting.diaryBlockId),
+                                blockId: String(rawExisting.diaryBlockId),
+                                module: "vehicles",
+                                action: "maintenance",
+                                target: row.itemID,
+                                bizDate: existing!.date,
+                            });
+                            diaryMeta = {};
+                        }
                         const res = await recordHighFrequencyDiaryEvent(plugin, {
                             module: "vehicles",
                             action: "maintenance",
@@ -301,7 +348,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                         .catch(() => undefined);
                     records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance");
                     dialog.destroy(); render();
-                    if (onLogUpdated) await onLogUpdated();
+                    await handleLogsUpdated(next);
                     showMessageFn(t(existing ? "vehicle.maintenance.updated" : "vehicle.maintenance.saved"), 2500, "info");
                 } catch (error) {
                     showMessageFn(t("ledger.logSaveFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
@@ -316,6 +363,10 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             const title = mk("h3", "lv-h3-title", t("vehicle.maintenance.title"));
             const add = mk("button", "b3-button b3-button--outline", `+ ${t("vehicle.maintenance.add")}`) as HTMLButtonElement;
             add.dataset.lvVehicleAction = "maintenance";
+            if (isGuest) {
+                add.disabled = true;
+                add.title = t("guest.writeBlocked");
+            }
             add.onclick = () => openForm();
             head.append(title, add);
             wrap.appendChild(head);
@@ -354,15 +405,26 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                 const descText = `${entry.date} · ${categoryLabel(entry.category)} · ${formatAmount(entry.odometer)} ${t("fuel.km")}${entry.cost !== undefined ? ` · ${formatMoney(entry.cost)}` : ""}${entry.shop ? ` · ${entry.shop}` : ""}${entry.nextDate ? ` · ${t("vehicle.maintenance.nextDateShort")} ${entry.nextDate}` : ""}${entry.nextOdometer !== undefined ? ` · ${t("vehicle.maintenance.nextOdometerShort")} ${formatAmount(entry.nextOdometer)}` : ""}`;
                 const desc = mk("span", "lv-flex-wrap-anywhere", descText);
                 const edit = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("members.edit")) as HTMLButtonElement;
-                edit.onclick = () => openForm(entry);
                 const del = mk("button", "b3-button b3-button--text lv-btn-text-sm", t("delete")) as HTMLButtonElement;
-                del.onclick = () => confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => {
+                if (isGuest) {
+                    edit.disabled = true;
+                    edit.title = t("guest.writeBlocked");
+                    del.disabled = true;
+                    del.title = t("guest.writeBlocked");
+                }
+                edit.onclick = () => openForm(entry);
+                del.onclick = () => {
+                    if (plugin?.runtime?.guestModeActive) {
+                        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                        return;
+                    }
+                    confirm(t("vehicle.maintenance.delete"), t("vehicle.maintenance.deleteConfirm"), async () => {
                     del.disabled = true;
                     try {
                         const rawRec = entry as unknown as Record<string, any>;
-                        if (rawRec.diaryEventId && rawRec.diaryBlockId) {
+                        if (rawRec.diaryBlockId) {
                             await deleteDiaryEventWithTombstone(plugin, {
-                                eventId: String(rawRec.diaryEventId),
+                                eventId: String(rawRec.diaryEventId || rawRec.diaryBlockId),
                                 blockId: String(rawRec.diaryBlockId),
                                 module: "vehicles",
                                 action: "maintenance",
@@ -373,12 +435,13 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
                         const next = await updateRowLogs(plugin, (latest) => removeEntry(latest, ref.avId!, row.itemID, "maintenance", entry as unknown as Record<string, unknown>));
                         records = getEntries<MaintenanceRecord>(next, ref.avId!, row.itemID, "maintenance");
                         render();
-                        if (onLogUpdated) await onLogUpdated();
+                        await handleLogsUpdated(next);
                     } catch (error) {
                         del.disabled = false;
                         showMessageFn(t("ledger.logDeleteFailed").replace("${msg}", error instanceof Error ? error.message : String(error)), 5000, "error");
                     }
                 });
+                };
                 line.append(desc, edit, del);
                 wrap.appendChild(line);
             }
@@ -387,7 +450,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
     }
 
     try {
-        await addVehicleCostSummarySection();
+        await renderCostSummary();
     } catch (error) {
         showVehicleActionError(error instanceof Error ? error.message : String(error));
     }
@@ -405,7 +468,7 @@ export async function renderVehicleDetailSections(options: VehicleDetailDrawerOp
             rawFromValueFn,
             activityTarget,
             vehicleActionQueue,
-            onLogUpdated,
+            onLogUpdated: handleLogsUpdated,
         });
     } catch (error) {
         failVehicleActions(["fuel", "charging"], error);

@@ -1,5 +1,5 @@
 import { showMessage } from "@/libs/notice";
-import { addDetachedRow, newSiYuanId, setCell, RowIdentityPendingError } from "@/core/siyuan";
+import { addDetachedRow, newSiYuanId, setCellResilient, RowIdentityPendingError } from "@/core/siyuan";
 
 export interface ExecuteCaptureToOptions {
     plugin: any;
@@ -38,9 +38,10 @@ export async function executeCaptureTo(options: ExecuteCaptureToOptions): Promis
         await plugin.ensureCoreLedgers();
         const ref = plugin.settings.dbRefs[moduleId];
         if (!ref?.avId || !ref.columns) throw new Error("ledger not provisioned");
-        const targetCol = moduleId === "bookmarks" ? ref.columns.url
-            : moduleId === "address" ? ref.columns.address_full
-            : ref.columns.content;
+        const targetColKey = moduleId === "bookmarks" ? "url"
+            : moduleId === "address" ? "address_full"
+            : "content";
+        const targetCol = ref.columns[targetColKey];
         // 目标列缺失时必须在建行前失败，避免留下无法写入正文的空行并误报成功。
         if (!targetCol) throw new Error(`target column unavailable: ${moduleId}`);
         // 码点安全截断（Array.from 按 Unicode 码点切，emoji/生僻字不被劈成乱码）
@@ -50,9 +51,19 @@ export async function executeCaptureTo(options: ExecuteCaptureToOptions): Promis
             // D02：注入客户端行身份，未知结果时不得按「唯一新增行」认领他人记录。
             rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
         });
-        await setCell(ref.avId, targetCol, itemID, moduleId === "bookmarks"
-            ? { type: "url", url: { content: normalizedText } }
-            : { type: "text", text: { content: normalizedText } }, { idempotencyKey: `${operationKey}:cell` });
+        await setCellResilient({
+            avID: ref.avId,
+            keyID: targetCol,
+            itemID,
+            value: moduleId === "bookmarks"
+                ? { type: "url", url: { content: normalizedText } }
+                : { type: "text", text: { content: normalizedText } },
+            plugin,
+            moduleId,
+            colKey: targetColKey,
+            ref,
+            requestOptions: { idempotencyKey: `${operationKey}:cell` },
+        });
         showMessage(t("capture.saved").replace("${module}", t(`module.${moduleId}`)), 3000, "info");
         // 常用语/书签/地址无提醒规则——写入不触发扫描（PF06：无相关变更不重扫）
     } catch (e) {

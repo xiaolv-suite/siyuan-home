@@ -1,5 +1,5 @@
 /** Ephemeral UI state scoped to a plugin instance; never persisted to notes or settings. */
-export type PluginScreen = "overview" | "reminders" | "ledger" | "members";
+export type PluginScreen = "overview" | "reminders" | "ledger" | "members" | "library";
 export type TableDensity = "comfortable" | "compact";
 
 export interface PanelSessionState {

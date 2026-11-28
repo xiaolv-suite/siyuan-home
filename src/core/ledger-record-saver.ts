@@ -4,9 +4,9 @@
  * 解耦自 ledger-record-modal.svelte，实现表现层与事务持久化彻底分离
  */
 
-import { addDetachedRow, setCell, buildPrimaryBlockCell, RowIdentityPendingError, type DetachedRowIdentity } from "./siyuan";
+import { addDetachedRow, setCellResilient, buildPrimaryBlockCell, RowIdentityPendingError, type DetachedRowIdentity } from "./siyuan";
 import { verifyAvRefBound } from "./provision-common";
-import { selectCellValue } from "./avcell";
+import { selectCellValue, normalizeSelectValue } from "./avcell";
 import { smartExtractFieldsFromTitle } from "./block-capture";
 
 export function fileFingerprint(file: { name: string; size: number; lastModified?: number }): string {
@@ -160,40 +160,35 @@ export async function executeLedgerRecordSave(options: SaveLedgerRecordOptions):
             failed.push(label);
             return;
         }
-        let currentKey = keyId;
-        if (!currentKey) {
-            try {
-                const { healColumnMapping } = await import("./provision-adoption");
-                currentKey = await healColumnMapping(plugin, active, colKey);
-            } catch { /* soft */ }
-        }
-        if (!currentKey) { failed.push(label); return; }
         try {
-            await setCell(ref.avId, currentKey, itemID!, value, {
-                idempotencyKey: `${recordOperationKey}:cell:${colKey}`,
+            await setCellResilient({
+                avID: ref.avId,
+                keyID: keyId,
+                itemID: itemID!,
+                value,
+                plugin,
+                moduleId: active,
+                colKey,
+                ref: ref as any,
+                requestOptions: {
+                    idempotencyKey: `${recordOperationKey}:cell:${colKey}`,
+                },
             });
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            if (/(key not found|key not exist|not found|not exist|不存在)/i.test(msg)) {
-                try {
-                    const { healColumnMapping } = await import("./provision-adoption");
-                    const healedKey = await healColumnMapping(plugin, active, colKey);
-                    if (healedKey && healedKey !== currentKey) {
-                        try {
-                            await setCell(ref.avId, healedKey, itemID!, value, {
-                                idempotencyKey: `${recordOperationKey}:cell:${colKey}:healed`,
-                            });
-                            return;
-                        } catch { /* soft */ }
-                    }
-                } catch { /* soft */ }
-            }
+        } catch {
             failed.push(label);
         }
     };
 
+    const schemaColsAll = plugin?.schemaCatalog?.[active]?.columns ?? [];
+    const schemaColByKey = new Map<string, any>(schemaColsAll.map((c: any) => [c.key, c]));
+
     for (const e of supportableCols) {
-        const v = form[e.key];
+        const schemaCol = schemaColByKey.get(e.key) ?? e;
+        let v = form[e.key];
+        if (e.type === "select") {
+            const normalized = normalizeSelectValue(v, schemaCol, { fallbackToDefault: schemaCol?.default !== undefined });
+            if (normalized !== undefined) v = normalized;
+        }
         if (e.key !== "name" && (v === undefined || v === "" || v === false || (Array.isArray(v) && v.length === 0))) continue;
         if (e.key === "name" && !(v && String(v).trim()) && initialPendingID) continue;
         if (e.type === "number" && (v === undefined || isNaN(Number(v)))) continue;
@@ -210,7 +205,12 @@ export async function executeLedgerRecordSave(options: SaveLedgerRecordOptions):
     }
 
     for (const e of certificateScalarCols) {
-        const v = form[e.key];
+        const schemaCol = schemaColByKey.get(e.key) ?? e;
+        let v = form[e.key];
+        if (e.type === "select") {
+            const normalized = normalizeSelectValue(v, schemaCol, { fallbackToDefault: schemaCol?.default !== undefined });
+            if (normalized !== undefined) v = normalized;
+        }
         if (v === undefined || v === "" || v === false || (Array.isArray(v) && v.length === 0)) continue;
         if (e.type === "number" && isNaN(Number(v))) continue;
         await tryCell(t(`field.${e.key}`), e.key, cols[e.key], convertFormCellValue(e.type, v, members));

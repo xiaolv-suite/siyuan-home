@@ -5,6 +5,7 @@
         handledFiltered = [] as any[],
         handledEntries = [] as any[],
         reminderBusy = new Set<string>(),
+        guestMode = false,
         t,
         onClearFilters,
         onRestore,
@@ -13,6 +14,7 @@
         handledFiltered?: any[];
         handledEntries?: any[];
         reminderBusy?: Set<string>;
+        guestMode?: boolean;
         t: (k: string) => string;
         onClearFilters?: () => void;
         onRestore?: (id: string) => void;
@@ -125,11 +127,11 @@
                     </span>
                 </div>
                 <div class="lv-rem-ops">
-                    <button type="button" class="b3-button b3-button--text" disabled={reminderBusy.has(h.id)} aria-busy={reminderBusy.has(h.id)} onclick={() => onRestore?.(h.id)}>
+                    <button type="button" class="b3-button b3-button--text" disabled={guestMode || reminderBusy.has(h.id)} aria-busy={reminderBusy.has(h.id)} onclick={() => onRestore?.(h.id)}>
                         <UiIcon name="repeat" size={12} /> {reminderBusy.has(h.id) ? t("ledger.saving") : t("hub.restore")}
                     </button>
                     {#if h.kind === "memo"}
-                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={reminderBusy.has(h.id)} onclick={() => onDeleteMemo?.(h.id, h.title || t("hub.handledUnknown"))}>
+                        <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={guestMode || reminderBusy.has(h.id)} onclick={() => onDeleteMemo?.(h.id, h.title || t("hub.handledUnknown"))}>
                             <UiIcon name="close" size={12} /> {t("delete")}
                         </button>
                     {/if}

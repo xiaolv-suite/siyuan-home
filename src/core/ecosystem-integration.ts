@@ -2,7 +2,7 @@ import { mountLvHomeBridge } from "@/bridge/external-bridge";
 import { registerRaikiriModuleSafely } from "@/libs/ecosystem-bridge-kit";
 import type { IDisposable } from "./disposer";
 
-const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.200";
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ !== "undefined" ? __PLUGIN_VERSION__ : "0.5.201";
 
 export interface EcosystemIntegrationOptions {
     plugin: any;

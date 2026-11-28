@@ -10,15 +10,15 @@ import {
     unmute,
     renew,
     restore,
-    addMemo,
+    addMemoWithMeta,
     removeMemo,
     updateMemo,
+    withRuntime,
 } from "./actions";
 import { lvLaunchpad, lvActivity } from "@/libs/lv-notice-kit";
 import { homeNotify } from "@/libs/notice";
 import { localDateKey } from "./rule";
 import { logCheckinEventSafely } from "@/libs/ecosystem-bridge-kit";
-import { saveRuntime } from "./runtime-store";
 import { listHandled } from "./runtime";
 
 export class RemindersController {
@@ -163,17 +163,15 @@ export class RemindersController {
     }
 
     async addMemo(title: string, due: string, options?: any): Promise<void> {
-        await addMemo(this.plugin, title, due, options);
+        const res = await addMemoWithMeta(this.plugin, title, due, options);
         await this.plugin.notifyHubChanged();
-        const created = this.plugin.runtime.memos.find(
-            (m: any) => m.title === title.trim() && m.dueDate === due,
-        );
+        if (!res.inserted) return;
         try {
             const { appendMemoToDailyNote } = await import("@/core/doc-sync");
             await appendMemoToDailyNote(this.plugin, {
                 title,
                 dueDate: due,
-                id: created?.id,
+                id: res.memoId,
                 ...options,
             });
         } catch {
@@ -208,22 +206,17 @@ export class RemindersController {
 
     async toggleTodaySilent(): Promise<void> {
         const today = localDateKey(new Date());
-        const previous = this.plugin.runtime.todaySilent;
-        this.plugin.runtime.todaySilent = this.plugin.runtime.todaySilent === today ? "" : today;
-        try {
-            await saveRuntime(this.plugin, this.plugin.runtime);
-            homeNotify(
-                this.plugin.i18nText(
-                    this.plugin.runtime.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff",
-                ),
-                3000,
-                "info",
-            );
-            await this.plugin.notifyHubChanged();
-        } catch (e) {
-            this.plugin.runtime.todaySilent = previous;
-            throw e;
-        }
+        const nextRt = await withRuntime(this.plugin, (rt) => {
+            rt.todaySilent = rt.todaySilent === today ? "" : today;
+        });
+        homeNotify(
+            this.plugin.i18nText(
+                nextRt.todaySilent ? "hub.todaySilentOn" : "hub.todaySilentOff",
+            ),
+            3000,
+            "info",
+        );
+        await this.plugin.notifyHubChanged();
     }
 
     listHandled(): any[] {

@@ -69,15 +69,15 @@
     const permissionDenied = $derived((plugin.scan?.errors ?? []).some((error) => error.moduleId === "permission"));
     // C3d：筛选持久化（runtime.hubFilter）——初始快照为设计意图
     // svelte-ignore state_referenced_locally
-    let filter = $state(plugin.runtime.hubFilter ?? "all");
+    let filter = $state(plugin.runtime.hubFilter || "all");
     // C3a 成员/模块筛选（H16：成员删除后由成员页复位持久化值；本地 $state 驱动，runtime 只作持久化）
     // svelte-ignore state_referenced_locally
-    let filterMember = $state<string | undefined>(plugin.runtime.hubMemberId);
+    let filterMember = $state<string | undefined>(plugin.runtime.hubMemberId || undefined);
     // svelte-ignore state_referenced_locally
-    let filterModule = $state<string | undefined>(plugin.runtime.hubModuleId);
+    let filterModule = $state<string | undefined>(plugin.runtime.hubModuleId || undefined);
     // C3a 时间窗：all=不限 / 0=今天 / 7 / 30（含逾期）
     // svelte-ignore state_referenced_locally
-    let dueWithin = $state<string>(plugin.runtime.hubDueWithin ?? "all");
+    let dueWithin = $state<string>(plugin.runtime.hubDueWithin || "all");
 
     // 双日期模式（§17/284波 Things 3 印证）：计划处理日 (planDate) 与客观截止日 (deadline/dueDate) 分离
     const planDates = $derived.by(() => {
@@ -87,11 +87,22 @@
     const planStatusOf = (r: Reminder): ReminderPlanStatus =>
         getReminderPlanStatus(localDateKey(new Date()), r.dueDate, planDates[r.id]);
 
-    const schedulePlanDialog = (r: Reminder) =>
+    function guardGuestWrite(): boolean {
+        if (!plugin.runtime?.guestModeActive) return false;
+        showMessage(t("guest.writeBlocked"), 3500, "info");
+        return true;
+    }
+
+    const schedulePlanDialog = (r: Reminder) => {
+        if (guardGuestWrite()) return;
         openReminderPlanDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
+    };
 
     const copyAsTaskBlock = (r: Reminder) => copyReminderAsTaskBlock(r, t, showMessage);
-    const quickPlanToday = (r: Reminder) => toggleReminderQuickPlanToday(r, plugin, t, showMessage);
+    const quickPlanToday = (r: Reminder) => {
+        if (guardGuestWrite()) return;
+        void toggleReminderQuickPlanToday(r, plugin, t, showMessage);
+    };
 
     // 命名视图（§17）：筛选组合一键保存与切换
     const namedViews = $derived.by(() => {
@@ -112,7 +123,8 @@
         void persistFilter();
     }
 
-    const promptSaveNamedView = () =>
+    const promptSaveNamedView = () => {
+        if (guardGuestWrite()) return;
         openNamedViewSaveDialog({
             plugin,
             currentFilter: { filter, filterMember, filterModule, dueWithin },
@@ -121,8 +133,10 @@
             showMessageFn: showMessage,
             onViewSaved: async (viewId) => { activeNamedViewId = viewId; },
         });
+    };
 
-    const confirmDeleteNamedView = (v: ReminderNamedView) =>
+    const confirmDeleteNamedView = (v: ReminderNamedView) => {
+        if (guardGuestWrite()) return;
         openNamedViewDeleteConfirm({
             v,
             plugin,
@@ -133,6 +147,7 @@
                 if (activeNamedViewId === id) activeNamedViewId = undefined;
             },
         });
+    };
     const memberOptions = $derived.by(() => {
         void version;
         return plugin.settings.members ?? [];
@@ -200,6 +215,7 @@
     }
 
     function confirmDeleteHandledMemo(id: string, title: string) {
+        if (guardGuestWrite()) return;
         confirm(t("delete"), t("hub.memoDeleteBody").replace("${title}", title), async () => {
             await runReminderAction(async () => {
                 await plugin.removeMemo(id);
@@ -229,6 +245,7 @@
 
     // H03：未处理备忘的显式删除（确认后物理删除；这是备忘唯一的物理删除路径）
     function confirmDeleteMemo(r: Reminder) {
+        if (guardGuestWrite()) return;
         confirm(t("delete"), t("hub.memoDeleteBody").replace("${title}", r.title), async () => {
             await runReminderAction(async () => {
                 await plugin.removeMemo(r.id);
@@ -269,11 +286,14 @@
     }
 
     // B4b 续期：思源 Dialog 小窗（H10：失败保留 Dialog 与输入、错误就地显示，不提前销毁）
-    const renewDialog = (r: Reminder) =>
+    const renewDialog = (r: Reminder) => {
+        if (guardGuestWrite()) return;
         openReminderRenewDialog({ r, plugin, DialogCls: Dialog, t });
+    };
 
     // C3c 延后天数菜单（1/3/7/30）
-    const snoozeMenu = (r: Reminder, ev: MouseEvent) =>
+    const snoozeMenu = (r: Reminder, ev: MouseEvent) => {
+        if (guardGuestWrite()) return;
         openSnoozeMenu({
             r,
             ev,
@@ -281,10 +301,13 @@
             t,
             onSnooze: (days) => runReminderAction(() => plugin.snooze(r.id, days), r.id),
         });
+    };
 
     // 246 波（收件箱深化）：备忘编辑对话框（标题/到期日修正 → updateMemo 落盘）
-    const editMemoDialog = (r: Reminder) =>
+    const editMemoDialog = (r: Reminder) => {
+        if (guardGuestWrite()) return;
         openMemoEditDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
+    };
 
     // 311 波（G2）：多段提醒割点——从 schema 规则查得 leadStages 后算出当前段位
     const schemaRuleCache = new Map<string, { leadStages?: number[]; leadDays: number }>();
@@ -299,8 +322,10 @@
     });
 
     // 236 波（收件箱分诊）：备忘 → 正式台账行（解耦至 core/reminder-dialogs.ts）
-    const toLedgerDialog = (r: Reminder) =>
+    const toLedgerDialog = (r: Reminder) => {
+        if (guardGuestWrite()) return;
         openTriageToLedgerDialog({ r, plugin, DialogCls: Dialog, t, showMessageFn: showMessage });
+    };
 
     // 261 波：重扫 busy 态——31 模块串行扫描可达秒级，此前可连点堆积多次全量扫描
     let rescanning = $state(false);
@@ -407,6 +432,7 @@
         {handledFiltered}
         {handledEntries}
         {reminderBusy}
+        guestMode={isGuestMode}
         {t}
         onClearFilters={() => {
             filterMember = undefined;

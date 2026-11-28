@@ -81,13 +81,12 @@ export function canSubmitRecord(
     saving: boolean,
     formName: any,
     hasInput: boolean,
-    active: string,
-    formCategory: any,
+    _active: string,
+    _formCategory: any,
 ): boolean {
     if (saving) return false;
     const nameMissing = hasInput && !(formName && String(formName).trim());
     if (nameMissing) return false;
-    if (active === "certs" && !formCategory) return false;
     return true;
 }
 
@@ -150,4 +149,14 @@ export function validateFieldInput(
         }
     }
     return "";
+}
+
+/** 判断打开新建台账弹窗时是否应重置草稿：切换台账后若非同模块续填则清理跨模块残留草稿 */
+export function shouldResetDraftForModule(
+    draftModuleId: string,
+    activeModuleId: string,
+    hasInitialForm: boolean,
+): boolean {
+    if (hasInitialForm) return true;
+    return Boolean(draftModuleId && draftModuleId !== activeModuleId);
 }

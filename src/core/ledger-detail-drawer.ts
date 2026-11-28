@@ -16,6 +16,13 @@ import { uiIcon } from "@/ui/icons";
 import { renderRowLogSection, renderDrawerQrSection } from "./drawer-sections";
 import { renderDrawerDocTemplates, bindDrawerRowOperations } from "./drawer-actions";
 import { bindDialogA11y } from "./dialog-a11y";
+import { escapeHtml } from "./modal-shell";
+import { calculateLedgerTone } from "./ledger-view-model";
+
+export function isDrawerFieldEmpty(displayText: string, emptyPlaceholder: string): boolean {
+    const trimmed = String(displayText ?? "").trim();
+    return !trimmed || trimmed === "—" || trimmed === emptyPlaceholder;
+}
 
 export interface OpenLedgerDetailDrawerOptions {
     row: any;
@@ -56,13 +63,22 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
 
     if (!ref?.columns) return;
     const detailTitle = (ref.columns.name && cellTextFn(row.cells?.[ref.columns.name], "name")) || t("ledger.detail");
-    const dBtn = (id: string, text: string, ic = "") => `<button class="b3-button b3-button--text" id="${id}">${ic ? ic + " " : ""}${text}</button>`;
+    const dBtn = (id: string, text: string, ic = "") => `<button class="b3-button b3-button--text" id="${escapeHtml(id)}">${ic ? ic + " " : ""}${escapeHtml(text)}</button>`;
     const dlg = new DialogCls({
-        title: detailTitle,
+        title: escapeHtml(detailTitle),
         content: `<div class="b3-dialog__content b3-dialog__content--wrap lv-dialog-scroll-body" id="lv-detail-body"></div>
-<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error lv-detail-del-btn" id="lv-detail-del">${t("delete")}</button>${dBtn("lv-detail-duplicate", t("ledger.duplicateRow"), uiIcon("copy", "", 13))}${dBtn("lv-detail-open-direct", t("ledger.openDoc"), uiIcon("folder", "", 13))}<span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${t("ledger.detailMore")}</summary><div class="lv-detail-more-menu">${dBtn("lv-detail-card-copy", t("ledger.copyAsImage"))}${dBtn("lv-detail-card-png", t("ledger.downloadPng"))}${dBtn("lv-detail-card-text", t("ledger.copyAsText"))}${dBtn("lv-detail-card-masked-text", t("ledger.copyAsMaskedText"))}${dBtn("lv-detail-copy-ref", t("ledger.copyBlockRef"), uiIcon("link", "", 13))}${dBtn("lv-detail-copy-embed", t("ledger.copyBlockEmbed"), uiIcon("paperclip", "", 13))}${dBtn("lv-detail-copy-task", t("ledger.copyAsTaskBlock"), uiIcon("checkCircle", "", 13))}${dBtn("lv-detail-record-contact", t("ledger.recordContactInteraction"), uiIcon("users", "", 13))}${dBtn("lv-detail-push-glean", t("ledger.pushToGlean"), uiIcon("note", "", 13))}${dBtn("lv-detail-open", `${t("ledger.openDoc")} ${uiIcon("forward", "", 12)}`)}</div></details><button class="b3-button b3-button--cancel" id="lv-detail-close">${t("close")}</button><button class="b3-button lv-btn primary" id="lv-detail-edit">${t("ledger.detailEditAll")}</button></div>`,
+<div class="b3-dialog__action lv-detail-actions"><button class="b3-button b3-button--text ft__error lv-detail-del-btn" id="lv-detail-del">${escapeHtml(t("delete"))}</button>${dBtn("lv-detail-duplicate", t("ledger.duplicateRow"), uiIcon("copy", "", 13))}${dBtn("lv-detail-open-direct", t("ledger.openDoc"), uiIcon("folder", "", 13))}<span class="fn__flex-1"></span><details class="lv-detail-more"><summary class="b3-button b3-button--outline">${escapeHtml(t("ledger.detailMore"))}</summary><div class="lv-detail-more-menu" aria-label="${escapeHtml(t("ledger.detailMore"))}">${dBtn("lv-detail-card-copy", t("ledger.copyAsImage"))}${dBtn("lv-detail-card-png", t("ledger.downloadPng"))}${dBtn("lv-detail-card-text", t("ledger.copyAsText"))}${dBtn("lv-detail-card-masked-text", t("ledger.copyAsMaskedText"))}${dBtn("lv-detail-copy-ref", t("ledger.copyBlockRef"), uiIcon("link", "", 13))}${dBtn("lv-detail-copy-embed", t("ledger.copyBlockEmbed"), uiIcon("paperclip", "", 13))}${dBtn("lv-detail-copy-task", t("ledger.copyAsTaskBlock"), uiIcon("checkCircle", "", 13))}${dBtn("lv-detail-record-contact", t("ledger.recordContactInteraction"), uiIcon("users", "", 13))}${dBtn("lv-detail-push-glean", t("ledger.pushToGlean"), uiIcon("note", "", 13))}${dBtn("lv-detail-open", t("ledger.openDoc"), uiIcon("forward", "", 12))}</div></details><button class="b3-button b3-button--cancel" id="lv-detail-close" data-lv-skip-auto-close="1">${escapeHtml(t("close"))}</button><button class="b3-button lv-btn primary" id="lv-detail-edit">${escapeHtml(t("ledger.detailEditAll"))}</button></div>`,
         width: "min(520px, 94vw)",
     });
+
+    let drawerClosed = false;
+    const rawDestroy = dlg.destroy?.bind(dlg);
+    if (rawDestroy) {
+        dlg.destroy = () => {
+            drawerClosed = true;
+            rawDestroy();
+        };
+    }
 
     dlg.element?.classList?.add?.("lv-home-detail-dialog");
     dlg.element?.querySelector?.(".b3-dialog")?.classList?.add?.("lv-home-detail-dialog");
@@ -111,6 +127,10 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             }
             case "checkbox": return !!v?.checkbox?.checked;
             case "select": return selectCellContent(v) ?? "";
+            case "mSelect":
+                return Array.isArray(v?.mSelect)
+                    ? v.mSelect.map((o: any) => String(o?.content ?? "").trim()).filter(Boolean)
+                    : [];
             case "url": return v?.url?.content ?? "";
             default: return v?.text?.content ?? "";
         }
@@ -148,71 +168,151 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 hasContactsBridge: true,
                 onPickContact: pickFromContacts,
                 onSaveSuccess: async () => {
+                    const stillOpenBeforeReload = !drawerClosed && dlg.element?.isConnected !== false;
                     await onReload();
                     try { await plugin.refreshHub([active]); } catch { /* soft */ }
+                    if (!stillOpenBeforeReload || drawerClosed || dlg.element?.isConnected === false) return;
                     dlg.destroy();
                     const allRows = (await renderLedgerAllFn(ref.avId!)).rows;
                     const fresh = allRows.find((entry) => entry.itemID === row.itemID);
-                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
+                    if (fresh && !plugin.isUnloading) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
                 },
             });
         });
     }
 
-    function addHistorySection() {
-        const history = (plugin.runtime?.renewHistory?.[row.itemID] ?? []) as { from: string; to: string; at: string }[];
-        if (history.length === 0) return;
-        const head = document.createElement("div");
-        head.className = "ft__on-surface lv-dialog-sec-head";
-        head.textContent = t("ledger.renewHistory");
-        body.appendChild(head);
-        for (const h of history) {
-            const line = document.createElement("div");
-            line.className = active === "vehicles" ? "lv-dialog-row-text lv-detail-wide" : "lv-dialog-row-text";
-            line.innerHTML = `${h.from} ${uiIcon("forward", "", 12)} ${h.to} · <span class="lv-dialog-row-sub">${h.at.slice(0, 10)}</span>`;
-            body.appendChild(line);
-        }
-    }
+    const cardRows: { key?: string; label: string; value: string }[] = [];
+    let activeTab: "core" | "history" = (vehicleAction || activityTarget) ? "history" : "core";
+    let emptyFieldsExpanded = false;
 
-    function addAttachmentsSection() {
-        const assetCols = schemaCols.filter((col) => col.type === "mAsset" && ref.columns?.[col.key]);
-        if (!assetCols.length) return;
-        import("./attachment-drawer").then(({ renderAttachmentDrawerSection }) => {
-            renderAttachmentDrawerSection({
-                body,
-                assetCols,
-                ref,
-                row,
-                active,
-                t,
-                DialogCls,
-                showMessageFn,
-                onUploadSuccess: async () => {
-                    dlg.destroy();
-                    await onReload();
-                },
-            });
-        });
-    }
-
-    let cardRows: { key?: string; label: string; value: string }[] = [];
     function buildView() {
         body.innerHTML = "";
-        cardRows = [];
+        cardRows.length = 0;
         const editAction = dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement;
         const closeAction = dlg.element.querySelector("#lv-detail-close") as HTMLButtonElement;
         editAction.textContent = t("ledger.detailEditAll");
+        if (plugin.runtime?.guestModeActive) {
+            editAction.disabled = true;
+            editAction.title = t("guest.writeBlocked");
+        }
         editAction.onclick = () => buildEdit();
         closeAction.textContent = t("close");
         closeAction.onclick = () => dlg.destroy();
         (dlg.element.querySelector(".lv-detail-more") as HTMLDetailsElement).hidden = false;
+
+        // 1. 摘要头部（状态胶囊 + 关键信息速览）
+        const summaryHead = document.createElement("div");
+        summaryHead.className = "lv-drawer-summary-head";
+        const summarySub = document.createElement("div");
+        summarySub.className = "lv-drawer-summary-sub";
+        const warnDays = plugin?.schemaCatalog?.[active]?.reminders?.[0]?.leadDays ?? 30;
+        const tone = calculateLedgerTone(row, ref.columns, warnDays);
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `lv-pill-badge ${tone === "danger" ? "lv-pill-badge--danger" : tone === "warn" ? "lv-pill-badge--warn" : "lv-pill-badge--fresh"}`;
+        const statusVal = ref.columns?.status ? cellTextFn(row.cells?.[ref.columns.status], "status") : "";
+        const expiryVal = ref.columns?.expiry ? cellTextFn(row.cells?.[ref.columns.expiry], "expiry") : "";
+        const memberVal = ref.columns?.member ? cellTextFn(row.cells?.[ref.columns.member], "member") : "";
+        statusBadge.textContent = statusVal && statusVal !== "—"
+            ? statusVal
+            : (tone === "danger" || tone === "warn" ? t("ledger.statusSoon") : t("ledger.statusOk"));
+        summarySub.appendChild(statusBadge);
+        const summaryParts = [
+            t(`module.${active}`) !== `module.${active}` ? t(`module.${active}`) : active,
+            memberVal && memberVal !== "—" ? memberVal : "",
+            rowCategory && rowCategory !== "—" ? cellTextFn(row.cells?.[ref.columns.category ?? ""], "category") : "",
+            expiryVal && expiryVal !== "—" ? expiryVal : "",
+        ].filter(Boolean);
+        if (summaryParts.length > 0) {
+            const metaSpan = document.createElement("span");
+            metaSpan.textContent = summaryParts.join(" · ");
+            summarySub.appendChild(metaSpan);
+        }
+        summaryHead.appendChild(summarySub);
+        body.appendChild(summaryHead);
+
+        if (active === "vehicles") {
+            const quick = document.createElement("section");
+            quick.className = "lv-vehicle-quick-actions lv-quick-bar";
+            const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.className = "lv-domain-title";
+            quick.appendChild(label);
+            for (const action of ["fuel", "charging", "maintenance"] as const) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "b3-button b3-button--outline";
+                button.textContent = t(`vehicle.quick.${action}`);
+                if (plugin.runtime?.guestModeActive) {
+                    button.disabled = true;
+                    button.title = t("guest.writeBlocked");
+                }
+                button.onclick = () => {
+                    if (plugin.runtime?.guestModeActive) {
+                        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                        return;
+                    }
+                    requestVehicleAction(action);
+                };
+                quick.appendChild(button);
+            }
+            body.appendChild(quick);
+        }
+
+        // 2. 分区页签（核心信息 / 关联记录与附件）
+        const tabsBar = document.createElement("div");
+        tabsBar.className = "lv-drawer-tabs";
+        tabsBar.setAttribute("role", "tablist");
+        const tabCore = document.createElement("button");
+        tabCore.type = "button";
+        tabCore.className = `lv-d-tab${activeTab === "core" ? " on" : ""}`;
+        tabCore.dataset.dtab = "core";
+        tabCore.setAttribute("role", "tab");
+        tabCore.setAttribute("aria-selected", String(activeTab === "core"));
+        tabCore.textContent = t("drawer.tabCore");
+
+        const tabHistory = document.createElement("button");
+        tabHistory.type = "button";
+        tabHistory.className = `lv-d-tab${activeTab === "history" ? " on" : ""}`;
+        tabHistory.dataset.dtab = "history";
+        tabHistory.setAttribute("role", "tab");
+        tabHistory.setAttribute("aria-selected", String(activeTab === "history"));
+        tabHistory.textContent = t("drawer.tabHistory");
+        tabsBar.append(tabCore, tabHistory);
+        body.appendChild(tabsBar);
+
+        const paneCore = document.createElement("div");
+        paneCore.id = "lv-detail-pane-core";
+        paneCore.classList.toggle("lv-drawer-pane--hidden", activeTab !== "core");
+        const paneHistory = document.createElement("div");
+        paneHistory.id = "lv-detail-pane-history";
+        paneHistory.classList.toggle("lv-drawer-pane--hidden", activeTab !== "history");
+        body.append(paneCore, paneHistory);
+
+        const setDrawerTab = (next: "core" | "history") => {
+            activeTab = next;
+            tabCore.classList.toggle("on", next === "core");
+            tabCore.setAttribute("aria-selected", String(next === "core"));
+            tabHistory.classList.toggle("on", next === "history");
+            tabHistory.setAttribute("aria-selected", String(next === "history"));
+            paneCore.classList.toggle("lv-drawer-pane--hidden", next !== "core");
+            paneHistory.classList.toggle("lv-drawer-pane--hidden", next !== "history");
+        };
+        tabCore.onclick = () => setDrawerTab("core");
+        tabHistory.onclick = () => setDrawerTab("history");
+
         const intro = document.createElement("p");
         intro.className = "lv-detail-wide lv-detail-intro";
         intro.textContent = inlineEditHint();
-        body.append(intro);
+        paneCore.appendChild(intro);
+
+        const filledContainer = document.createElement("div");
+        filledContainer.className = "lv-kv-grid";
+        const emptyContainer = document.createElement("div");
+        emptyContainer.className = "lv-empty-fold-list" + (emptyFieldsExpanded ? "" : " lv-drawer-pane--hidden");
+        let emptyCount = 0;
+
         for (const col of schemaCols) {
             const keyID = ref.columns?.[col.key];
             if (!keyID) continue;
+            if (col.type === "mAsset") continue; // 附件统一归入「关联记录与附件」分区
             const line = document.createElement("div");
             line.className = active === "vehicles" ? "fn__flex lv-detail-kv lv-detail-kv-line" : "fn__flex lv-detail-kv-line";
             line.append(labelSpan(col));
@@ -260,7 +360,15 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                         birthFill.type = "button";
                         birthFill.className = "b3-button b3-button--text lv-btn-text-sm";
                         birthFill.textContent = t("ledger.idBirthFill").replace("${birth}", parsedId.birth);
+                        if (plugin.runtime?.guestModeActive) {
+                            birthFill.disabled = true;
+                            birthFill.title = t("guest.writeBlocked");
+                        }
                         birthFill.onclick = async () => {
+                            if (plugin.runtime?.guestModeActive) {
+                                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                                return;
+                            }
                             const target = (plugin.settings.members ?? []).find((m: any) => m.id === member.id);
                             if (!target || target.birthday) return;
                             const previousBirthday = target.birthday;
@@ -273,15 +381,16 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                                 birthFill.disabled = true;
                             } catch (e) {
                                 target.birthday = previousBirthday;
-                                showMessageFn(t("ledger.copyAsImageFail").replace(": Downloaded instead", "") + ` (${e instanceof Error ? e.message : String(e)})`, 5000, "error");
+                                showMessageFn(t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e)), 5000, "error");
                             }
                         };
                         line.append(birthFill);
                     }
                 }
             }
+            const fieldEmpty = isDrawerFieldEmpty(String(v.textContent ?? ""), t("ledger.detailEmpty"));
             if (EDITABLE.has(col.type)) {
-                if (!v.textContent?.trim() || v.textContent === "—") {
+                if (fieldEmpty) {
                     v.textContent = t("ledger.detailEmpty");
                     v.classList.add("is-empty");
                 }
@@ -337,67 +446,143 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 }
             }
 
-            body.appendChild(line);
+            if (fieldEmpty) {
+                emptyCount++;
+                emptyContainer.appendChild(line);
+            } else {
+                filledContainer.appendChild(line);
+            }
             cardRows.push({ key: col.key, label: colLabel(col), value: v.classList.contains("is-empty") ? "—" : String(v.textContent) });
         }
+
         const schemaKeyIDs = new Set(Object.values<string>(ref.columns ?? {}));
         const customCols = avCols.filter((c: any) => c?.id && !schemaKeyIDs.has(c.id) && String(c.name ?? "").trim() !== "");
-        if (customCols.length > 0) {
+        const customFilledLines: HTMLElement[] = [];
+        for (const c of customCols) {
+            const line = document.createElement("div");
+            line.className = active === "vehicles" ? "fn__flex lv-detail-wide lv-detail-kv-line" : "fn__flex lv-detail-kv-line";
+            const k = document.createElement("span");
+            k.className = "ft__on-surface lv-label-key";
+            k.textContent = String(c.name);
+            line.append(k);
+            const v = document.createElement("span");
+            v.className = "lv-word-break";
+            v.textContent = cellTextFn(row.cells[c.id]);
+            const customEmpty = isDrawerFieldEmpty(String(v.textContent ?? ""), t("ledger.detailEmpty"));
+            if (EDITABLE.has(c.type)) {
+                if (customEmpty) { v.textContent = t("ledger.detailEmpty"); v.classList.add("is-empty"); }
+                v.addEventListener("click", () => beginInlineEdit({ ...c, key: c.id }, c.id, line, v));
+                v.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        beginInlineEdit({ ...c, key: c.id }, c.id, line, v);
+                    }
+                });
+                v.tabIndex = 0;
+                v.role = "button";
+                v.title = inlineEditHint();
+                v.classList.add("lv-detail-value", "lv-editable-cell");
+                v.setAttribute("aria-label", `${c.name}：${v.textContent}`);
+            }
+            line.append(v);
+            if (customEmpty) {
+                emptyCount++;
+                emptyContainer.appendChild(line);
+            } else {
+                customFilledLines.push(line);
+            }
+            cardRows.push({ label: String(c.name), value: cellTextFn(row.cells[c.id]) });
+        }
+        if (customFilledLines.length > 0) {
             const head = document.createElement("div");
             head.className = "ft__on-surface lv-dialog-sec-head";
             head.textContent = t("ledger.customCols");
-            body.appendChild(head);
-            for (const c of customCols) {
-                const line = document.createElement("div");
-                line.className = active === "vehicles" ? "fn__flex lv-detail-wide lv-detail-kv-line" : "fn__flex lv-detail-kv-line";
-                const k = document.createElement("span");
-                k.className = "ft__on-surface lv-label-key";
-                k.textContent = String(c.name);
-                line.append(k);
-                const v = document.createElement("span");
-                v.className = "lv-word-break";
-                v.textContent = cellTextFn(row.cells[c.id]);
-                if (EDITABLE.has(c.type)) {
-                    if (!v.textContent?.trim() || v.textContent === "—") { v.textContent = t("ledger.detailEmpty"); v.classList.add("is-empty"); }
-                    v.addEventListener("click", () => beginInlineEdit({ ...c, key: c.id }, c.id, line, v));
-                    v.addEventListener("keydown", (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            beginInlineEdit({ ...c, key: c.id }, c.id, line, v);
-                        }
-                    });
-                    v.tabIndex = 0;
-                    v.role = "button";
-                    v.title = inlineEditHint();
-                    v.classList.add("lv-detail-value", "lv-editable-cell");
-                    v.setAttribute("aria-label", `${c.name}：${v.textContent}`);
-                }
-                line.append(v);
-                body.appendChild(line);
-                cardRows.push({ label: String(c.name), value: cellTextFn(row.cells[c.id]) });
-            }
+            filledContainer.appendChild(head);
+            for (const line of customFilledLines) filledContainer.appendChild(line);
         }
 
+        paneCore.appendChild(filledContainer);
+        if (emptyCount > 0) {
+            const foldWrap = document.createElement("div");
+            foldWrap.className = "lv-empty-fold";
+            const foldBtn = document.createElement("button");
+            foldBtn.type = "button";
+            foldBtn.className = "lv-empty-fold-btn";
+            foldBtn.setAttribute("aria-expanded", String(emptyFieldsExpanded));
+            const renderFoldLabel = () => {
+                foldBtn.innerHTML = `<span>${t("drawer.emptyFoldTitle").replace("${n}", String(emptyCount))}</span><span>${emptyFieldsExpanded ? t("drawer.emptyFoldCollapse") : t("drawer.emptyFoldExpand")} ${uiIcon(emptyFieldsExpanded ? "chevronUp" : "chevronDown", "", 12)}</span>`;
+            };
+            renderFoldLabel();
+            foldBtn.onclick = () => {
+                emptyFieldsExpanded = !emptyFieldsExpanded;
+                foldBtn.setAttribute("aria-expanded", String(emptyFieldsExpanded));
+                emptyContainer.classList.toggle("lv-drawer-pane--hidden", !emptyFieldsExpanded);
+                renderFoldLabel();
+            };
+            foldWrap.appendChild(foldBtn);
+            foldWrap.appendChild(emptyContainer);
+            paneCore.appendChild(foldWrap);
+        }
+
+        // 3. 关联记录与附件分区（paneHistory）
         const addRowLogSection = (opts: any) => renderRowLogSection({
-            body,
+            body: paneHistory,
             row,
             active,
+            plugin,
             activityTarget,
             t,
             showMessageFn,
             ...opts,
         });
 
-        addHistorySection();
-        addAttachmentsSection();
-        renderDrawerQrSection({ body, row, ref, active, t });
+        const addHistoryToPane = () => {
+            const history = (plugin.runtime?.renewHistory?.[row.itemID] ?? []) as { from: string; to: string; at: string }[];
+            if (history.length === 0) return;
+            const head = document.createElement("div");
+            head.className = "ft__on-surface lv-dialog-sec-head";
+            head.textContent = t("ledger.renewHistory");
+            paneHistory.appendChild(head);
+            for (const h of history) {
+                const line = document.createElement("div");
+                line.className = active === "vehicles" ? "lv-dialog-row-text lv-detail-wide" : "lv-dialog-row-text";
+                line.innerHTML = `${escapeHtml(h.from)} ${uiIcon("forward", "", 12)} ${escapeHtml(h.to)} · <span class="lv-dialog-row-sub">${escapeHtml(h.at.slice(0, 10))}</span>`;
+                paneHistory.appendChild(line);
+            }
+        };
+
+        const addAttachmentsToPane = () => {
+            const assetCols = schemaCols.filter((col) => col.type === "mAsset" && ref.columns?.[col.key]);
+            if (!assetCols.length) return;
+            import("./attachment-drawer").then(({ renderAttachmentDrawerSection }) => {
+                renderAttachmentDrawerSection({
+                    body: paneHistory,
+                    assetCols,
+                    ref,
+                    row,
+                    active,
+                    plugin,
+                    t,
+                    DialogCls,
+                    showMessageFn,
+                    onUploadSuccess: async () => {
+                        dlg.destroy();
+                        await onReload();
+                    },
+                });
+            });
+        };
+
+        addHistoryToPane();
+        addAttachmentsToPane();
+        renderDrawerQrSection({ body: paneHistory, row, ref, active, t });
 
         // 跨模块业务时间线与子记录
         (async () => {
             if (active === "vehicles") {
                 const { renderVehicleDetailSections } = await import("./vehicle-drawer");
                 await renderVehicleDetailSections({
-                    body,
+                    body: paneHistory,
                     row,
                     ref,
                     active,
@@ -417,7 +602,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             }
             const { renderModuleSpecificSections } = await import("./drawer-module-sections");
             await renderModuleSpecificSections({
-                body,
+                body: paneHistory,
                 active,
                 row,
                 ref,
@@ -436,7 +621,7 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
         });
 
         renderDrawerDocTemplates({
-            body,
+            body: paneHistory,
             dlg,
             row,
             ref,
@@ -455,36 +640,39 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             renderRenewChainSection,
             renderFavorsSyncSection,
         }) => {
-            renderRxToMedicineButton({ body, row, ref, active, plugin, t, showMessageFn, cellTextFn });
-            renderStockInButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
-            renderShoppingToAssetButton({ body, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
+            renderRxToMedicineButton({ body: paneHistory, row, ref, active, plugin, t, showMessageFn, cellTextFn });
+            renderStockInButton({ body: paneHistory, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
+            renderShoppingToAssetButton({ body: paneHistory, row, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn });
             const certRows = active === "certs" && ref.columns?.renewed_to
                 ? (Array.isArray(options.rows) && options.rows.length > 0
                     ? options.rows
                     : ((await renderLedgerAllFn(ref.avId!).catch(() => ({ rows: [] }))).rows ?? []))
                 : [];
             renderRenewChainSection({
-                body,
+                body: paneHistory,
                 row,
                 rows: certRows,
                 ref,
                 active,
+                plugin,
                 t,
                 DialogCls,
                 showMessageFn,
                 cellTextFn,
                 onChainUpdated: async (targetRowId: string) => {
+                    const stillOpenBeforeReload = !drawerClosed && dlg.element?.isConnected !== false;
                     await onReload();
                     try { await plugin.refreshHub([active]); } catch { /* ignore */ }
+                    if (!stillOpenBeforeReload || drawerClosed || dlg.element?.isConnected === false) return;
                     dlg.destroy();
                     const allRows = (await renderLedgerAllFn(ref.avId!)).rows;
                     const fresh = allRows.find((x) => x.itemID === targetRowId);
-                    if (fresh) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
+                    if (fresh && !plugin.isUnloading) void openLedgerDetailDrawer({ ...options, row: fresh, rows: allRows });
                 },
             });
 
             renderFavorsSyncSection({
-                body,
+                body: paneHistory,
                 row,
                 ref,
                 active,
@@ -495,22 +683,6 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
                 rawDateFn: (cell) => rawFromValue("date", cell) ?? "",
             });
         });
-
-        if (active === "vehicles") {
-            const quick = document.createElement("section");
-            quick.className = "lv-vehicle-quick-actions lv-quick-bar";
-            const label = document.createElement("b"); label.textContent = t("vehicle.quickActions"); label.className = "lv-domain-title";
-            quick.appendChild(label);
-            for (const action of ["fuel", "charging", "maintenance"] as const) {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "b3-button b3-button--outline";
-                button.textContent = t(`vehicle.quick.${action}`);
-                button.onclick = () => requestVehicleAction(action);
-                quick.appendChild(button);
-            }
-            body.prepend(quick);
-        }
     }
 
     function buildEdit() {
@@ -546,6 +718,25 @@ export async function openLedgerDetailDrawer(options: OpenLedgerDetailDrawerOpti
             requestAnimationFrame(() => requestVehicleAction(vehicleAction));
         }
     }
+
+    const moreDetails = dlg.element?.querySelector?.(".lv-detail-more") as HTMLDetailsElement | null;
+    moreDetails?.addEventListener?.("toggle", () => {
+        if (!moreDetails.open) return;
+        const actionsBar = dlg.element?.querySelector?.(".lv-detail-actions") as HTMLElement | null;
+        const menuEl = moreDetails.querySelector<HTMLElement>(".lv-detail-more-menu");
+        if (actionsBar && menuEl && typeof actionsBar.getBoundingClientRect === "function" && typeof window !== "undefined") {
+            const rect = actionsBar.getBoundingClientRect();
+            const bottomPx = Math.max(68, Math.round(window.innerHeight - rect.top + 8));
+            menuEl.style.setProperty("--lv-detail-more-bottom", `${bottomPx}px`);
+        }
+    });
+    dlg.element?.addEventListener?.("click", (event: Event) => {
+        if (!moreDetails?.open) return;
+        const target = event.target as Node | null;
+        if (target && typeof moreDetails.contains === "function" && !moreDetails.contains(target)) {
+            moreDetails.open = false;
+        }
+    });
 
     (dlg.element.querySelector("#lv-detail-close") as HTMLButtonElement).onclick = () => dlg.destroy();
     (dlg.element.querySelector("#lv-detail-edit") as HTMLButtonElement).onclick = () => buildEdit();

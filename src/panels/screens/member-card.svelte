@@ -19,6 +19,7 @@
         plugin,
         t,
         version,
+        guestMode = false,
         avatarPath,
         isAvatarBusy = false,
         alerts = [],
@@ -53,6 +54,7 @@
         plugin: HomePluginLike;
         t: (k: string) => string;
         version?: number;
+        guestMode?: boolean;
         avatarPath?: string;
         isAvatarBusy?: boolean;
         alerts?: Reminder[];
@@ -90,7 +92,7 @@
         const y = rect.bottom;
         setTimeout(() => {
             const menu = new Menu("lv-member-card");
-            menu.addItem({ label: t("members.edit"), click: () => onStartEdit() });
+            menu.addItem({ label: t("members.edit"), disabled: guestMode, click: () => onStartEdit() });
             const docId = plugin.settings?.dbRefs?.members?.docId;
             if (docId) {
                 menu.addItem({ label: t("members.openLedger"), click: () => plugin.showTabDocs?.(docId) });
@@ -111,30 +113,32 @@
                 });
             }
             menu.addItem({ label: t("members.assetTimeline"), click: () => onOpenAssetTimeline() });
-            menu.addItem({ label: t("members.uploadAvatar"), click: () => onPickAvatar() });
-            menu.addItem({ label: t("member.pickAssetAvatar"), icon: "iconFolder", click: () => onPickAssetAvatar?.() });
+            menu.addItem({ label: t("members.uploadAvatar"), disabled: guestMode, click: () => onPickAvatar() });
+            menu.addItem({ label: t("member.pickAssetAvatar"), icon: "iconFolder", disabled: guestMode, click: () => onPickAssetAvatar?.() });
             if (contact) {
                 menu.addItem({
                     label: t("members.contactUnlink"),
+                    disabled: guestMode,
                     click: () => onUnlinkContact(),
                 });
             } else if (getContactsBridge()) {
                 menu.addItem({
                     label: t("members.contactLink"),
+                    disabled: guestMode,
                     click: () => onLinkContact(),
                 });
             }
-            menu.addItem({ label: t("members.moveUp"), disabled: reorderBusy || isFirst, click: () => onMove(-1) });
-            menu.addItem({ label: t("members.moveDown"), disabled: reorderBusy || isLast, click: () => onMove(1) });
-            menu.addItem({ label: t("members.reassignThis"), disabled: reassignDisabled, click: () => onReassign() });
-            menu.addItem({ label: t("delete"), click: () => onDelete() });
+            menu.addItem({ label: t("members.moveUp"), disabled: guestMode || reorderBusy || isFirst, click: () => onMove(-1) });
+            menu.addItem({ label: t("members.moveDown"), disabled: guestMode || reorderBusy || isLast, click: () => onMove(1) });
+            menu.addItem({ label: t("members.reassignThis"), disabled: guestMode || reassignDisabled, click: () => onReassign() });
+            menu.addItem({ label: t("delete"), disabled: guestMode, click: () => onDelete() });
             menu.open({ x, y });
         }, 0);
     }
 </script>
 
 <div class="lv-card lv-person" role="group" aria-label={m.name}
-    draggable={!reorderBusy}
+    draggable={!reorderBusy && !guestMode}
     ondragstart={(e) => onDragStart?.(e)}
     ondragover={(e) => { e.preventDefault(); onDragOver?.(e); }}
     ondragleave={() => onDragLeave?.()}
@@ -160,12 +164,12 @@
         <button type="button" class="lv-iconbtn"
             title={`${t("members.uploadAvatar")} · ${t("member.pickAssetAvatar")}`}
             aria-label={t("members.uploadAvatar")}
-            disabled={isAvatarBusy} aria-busy={isAvatarBusy}
+            disabled={guestMode || isAvatarBusy} aria-busy={isAvatarBusy}
             onclick={() => onPickAvatar()}
-            oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); onPickAssetAvatar?.(); }}>
+            oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (!guestMode) onPickAssetAvatar?.(); }}>
             {isAvatarBusy ? "…" : t("field.avatar")}
         </button>
-        <button type="button" class="b3-button b3-button--text lv-member-edit" onclick={() => onStartEdit()}>{t("members.edit")}</button>
+        <button type="button" class="b3-button b3-button--text lv-member-edit" disabled={guestMode} onclick={() => onStartEdit()}>{t("members.edit")}</button>
         <button type="button" class="b3-button b3-button--text" title={t("members.moreActions")} aria-label={t("members.moreActions")}
             onclick={(e) => openCardMenu(e)}><UiIcon name="moreHorizontal" size={14} /></button>
     </div>
@@ -194,24 +198,24 @@
         <div id={`member-details-${m.id}`} class="lv-person-expanded">
             {#if m.notes}<p class="lv-member-notes">{m.notes}</p>{/if}
             <div class="lv-person-actions-row">
-                <button type="button" class="b3-button b3-button--text" disabled={reorderBusy || isFirst} aria-busy={reorderBusy} onclick={() => onMove(-1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
-                <button type="button" class="b3-button b3-button--text" disabled={reorderBusy || isLast} aria-busy={reorderBusy} onclick={() => onMove(1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
+                <button type="button" class="b3-button b3-button--text" disabled={guestMode || reorderBusy || isFirst} aria-busy={reorderBusy} onclick={() => onMove(-1)}>{reorderBusy ? t("ledger.saving") : t("members.moveUp")}</button>
+                <button type="button" class="b3-button b3-button--text" disabled={guestMode || reorderBusy || isLast} aria-busy={reorderBusy} onclick={() => onMove(1)}>{reorderBusy ? t("ledger.saving") : t("members.moveDown")}</button>
                 {#if plugin.settings?.dbRefs?.members?.docId}
                     <button type="button" class="b3-button b3-button--text" onclick={() => plugin.showTabDocs?.(plugin.settings.dbRefs.members.docId)}>{t("members.openLedger")}</button>
                 {/if}
-                <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" onclick={() => onDelete()}>{t("delete")}</button>
+                <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={guestMode} onclick={() => onDelete()}>{t("delete")}</button>
             </div>
             {#if contact}
                 <div class="lv-person-row-between">
                     <span class="lv-caption lv-member-contact" title={contact ?? ""}>{t("field.contact")}: {contact.split(" [")[0]}</span>
                     <span class="lv-flex-spacer"></span>
-                    <button type="button" class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onUnlinkContact()}>{t("members.contactUnlink")}</button>
+                    <button type="button" class="b3-button b3-button--text" disabled={guestMode || isContactBusy} onclick={() => onUnlinkContact()}>{t("members.contactUnlink")}</button>
                 </div>
             {:else if getContactsBridge()}
                 <div class="lv-person-row-between">
                     <span class="lv-caption">{t("members.contactLink")}</span>
                     <span class="lv-flex-spacer"></span>
-                    <button type="button" class="b3-button b3-button--text" disabled={isContactBusy} onclick={() => onLinkContact()}>{t("members.contactLink")}</button>
+                    <button type="button" class="b3-button b3-button--text" disabled={guestMode || isContactBusy} onclick={() => onLinkContact()}>{t("members.contactLink")}</button>
                 </div>
             {/if}
             {#if alerts.length === 0}
@@ -222,7 +226,7 @@
                         <span class="lv-badge {r.level === 'overdue' ? 'red' : r.level === 'soon' ? 'orange' : 'yellow'}">{r.dueDate}</span>
                         <span>{r.title}</span>
                         <span class="lv-flex-spacer"></span>
-                        <button type="button" class="b3-button b3-button--text" disabled={actionBusy} aria-busy={actionBusy} onclick={() => onCompleteAlert(r)}>{actionBusy ? t("ledger.saving") : t("act.done")}</button>
+                        <button type="button" class="b3-button b3-button--text" disabled={guestMode || actionBusy} aria-busy={actionBusy} onclick={() => onCompleteAlert(r)}>{actionBusy ? t("ledger.saving") : t("act.done")}</button>
                     </div>
                 {/each}
             {/if}

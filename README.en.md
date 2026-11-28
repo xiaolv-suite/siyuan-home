@@ -1,4 +1,4 @@
-> **Production Readiness**: **v0.5.200** is guarded by 230+ test suites (1,470+ automated tests) and strict isolated SiYuan browser E2E verification. Community feedback and feature requests are welcome in QQ Group **871707735**.
+> **Production Readiness**: **v0.5.201** is guarded by 230+ test suites (1,470+ automated tests) and strict isolated SiYuan browser E2E verification. Community feedback and feature requests are welcome in QQ Group **871707735**.
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 **Private Family Archive · Member-Centric Perspective · Fact-Derived Expiry Reminders · Closed-Loop Action Workflow**
 
 [![CI](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaolv-suite/siyuan-home/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/version-v0.5.200-blue)](./CHANGELOG.md)
+[![Release](https://img.shields.io/badge/version-v0.5.201-blue)](./CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1273%20passed-brightgreen)](./CHANGELOG.md)
 [![License](https://img.shields.io/github/license/xiaolv-suite/siyuan-home)](./LICENSE)
 
@@ -20,13 +20,11 @@
 
 ---
 
-## 🚀 What's New in v0.5.200 (2026-11-26 Milestone Release)
+## 🚀 What's New in v0.5.201 (2026-11-27 Maintenance Release)
 
-- **Shared Ecosystem Hubs & Block Assistant**: Deeply integrated with Launchpad, unified AI router, Block Assistant 1–8 native base + custom double-click, Ecosystem Activity Feed, Backup/Restore, and Notice Center; daily flows write strictly inside `#### 🐴 小驴记录` 4-level collapsible diary zone with multi-device conflict locks;
-- **Vehicle Ledger A+C Synergy**: Fuel, charging, and maintenance logs automatically sync back to the vehicle master table summary columns and embed a dynamic diary vehicle-log feed without duplication;
-- **Universal Camera Capture & Local Upload**: Quick Capture, full ledger create/edit modals, and detail drawers support **📷 Take Photo + Local Upload + SiYuan Asset Picker** with automatic ≤300KB compression;
-- **Unified `.lv-ai-thinking` AI / OCR Waiting Experience**: Quick Memo AI parsing, AI Life Health Audit, 5-minute micro-step decomposition, and attachment OCR mount unified `.lv-ai-thinking` progress cards with elapsed timer, `AbortSignal` cancellation, and write-phase save locks;
-- **60fps Zero `:has()` / Zero Heavy-Blur & Stacking Isolation**: Eliminated CSS `:has()` selectors and `blur(>=15px)`, isolated `.lv-home` stacking context so topbars never overlap host dialogs, and refined `390×844` mobile & light/dark contrast.
+- **Graphite-Mist 3-Layer Declutter & Pixel Alignment**: Redesigned butler navigation, home overview, and drawers with aligned family pixel metrics, toolbars, and `390×844` mobile touch targets;
+- **31-Ledger Resilient AV Auto-Heal**: Reconciled live column types and unified auto-heal `setCell` across all 31 ledgers, plus safer vehicle diary sync, odometer validation, and overview filters;
+- **Walkthrough & Ecosystem `lv-kit` Alignment**: Fixed drawer cancel, schema repair, vehicle grid/modal scroll, and copy polish; synced `lv-kit` zero-Protyle-DOM-residue fixes and Batch 1 A1–A4 updates.
 
 ---
 
@@ -195,6 +193,7 @@ Click the gear icon (⚙) in the topbar to configure Lv Home:
 
 ## 📝 Changelog
 
+- **v0.5.201 (2026-11-27)**: Graphite-Mist 3-layer declutter redesign, unified resilient AV auto-heal across 31 ledgers, walkthrough P0/P1 polish, and `lv-kit` zero Protyle DOM residue sync.
 - **v0.5.200 (2026-11-26)**: Milestone release with shared Launchpad/AI Router/Block Assistant 1–8 hubs, `#### 🐴 小驴记录` 4-level diary zone, `.lv-ai-thinking` AI/OCR waiting cards, Vehicle Ledger A+C sync, universal camera capture, `.lv-home` stacking isolation, and zero `:has()` / zero heavy-blur 60fps polish.
 - **v0.5.199 (2026-11-26)**: Vehicle Ledger A+C summary sync & dynamic diary log section; universal Camera Capture + Local Upload; unified `.lv-ai-thinking` AI/OCR waiting cards; 4-level collapsible `#### 🐴 小驴记录` diary zone; zero CSS `:has()` selectors & mobile refinements.
 - **v0.5.198 / v0.5.197 / v0.5.196**: WebSocket typing micro-transaction filter, SiYuan v3.8.10+ native asset picker & doc tree menu, LifeLog photo stream & atomic undo, Launchpad topbar debounce, and full-ecosystem disaster recovery.

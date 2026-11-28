@@ -4,7 +4,6 @@
     import { Dialog } from "siyuan";
     import { homeNotify as showMessage } from "@/libs/notice";
     import { confirm } from "@/libs/dialog";
-    import { localDateKey, parseDate } from "@/core/hub/rule";
     import type { HomePluginLike } from "@/types/plugin";
     import { saveSettings } from "@/core/settings";
     import { ensurePinyin, pinyinReady } from "@/core/pinyin";
@@ -23,6 +22,8 @@
     import { openLedgerDetailDrawer } from "@/core/ledger-detail-drawer";
     import { openBindExistingDocDialog } from "@/core/bind-dialog";
     import { quickAdjustRowQty } from "@/core/inline-edit";
+    import { createNonDestructiveTypedColumn } from "@/core/provision-common";
+    import type { SchemaColumnIssue } from "@/types";
     import {
         formatLedgerCellText,
         calculateLedgerTone,
@@ -36,15 +37,23 @@
         computeTableKeys,
         computeModuleWarnDays,
         buildLedgerCellPayload,
+        buildDuplicateRowValues,
         type LedgerTone,
     } from "@/core/ledger-view-model";
     import { onDestroy, untrack } from "svelte";
     import { panelSession, type TableDensity } from "../panel-session";
     import { getGroupedModules } from "@/core/modules";
+    import { resolvePinnedLedgers } from "@/core/navigation-prefs";
     import { createDefaultGuestConfig, filterGuestVisibleModules } from "@/core/guest-mode";
     import { getQuickTemplates } from "@/core/quick-templates";
 
-    let { plugin, t, version }: { plugin: HomePluginLike; t: (k: string) => string; version?: number } = $props();
+    let { plugin, t, version, activeLedger: propActiveLedger, onActiveLedgerChange }: {
+        plugin: HomePluginLike;
+        t: (k: string) => string;
+        version?: number;
+        activeLedger?: string;
+        onActiveLedgerChange?: (moduleId: string) => void;
+    } = $props();
     const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     // Ledger module selector includes provisioned and enabled-but-unprovisioned modules.
@@ -60,7 +69,11 @@
     });
     // 初始快照为设计意图（activeLedger 由模块卡/快速记录预选）
     // svelte-ignore state_referenced_locally
-    let active = $state(plugin.activeLedger ?? "certs");
+    let active = $state(propActiveLedger ?? plugin.activeLedger ?? "certs");
+    // svelte-ignore state_referenced_locally
+    let lastPropActiveLedger = propActiveLedger;
+    // svelte-ignore state_referenced_locally
+    let lastPluginActiveLedger = plugin.activeLedger;
     let rows: any[] = $state([]);
     // Preserve raw columns created directly in the host database view.
     let avCols: any[] = $state([]);
@@ -94,6 +107,8 @@
         if (available.length > 0 && !available.some((entry) => entry.id === active)) {
             active = available[0].id;
             plugin.activeLedger = active;
+            lastPluginActiveLedger = active;
+            onActiveLedgerChange?.(active);
             searchText = "";
             if (plugin.pendingActivityTarget) {
                 plugin.pendingActivityTarget = undefined;
@@ -164,6 +179,7 @@
     const session = panelSession(plugin);
     let filterMemberId = $state(session.ledgerFilterMemberId ?? "");
     let filterCategory = $state(session.ledgerFilterCategory ?? "");
+    let filterStatus = $state<"all" | "soon" | "ok">("all");
     let selectedItemIds = $state<string[]>([]);
 
     $effect(() => {
@@ -225,6 +241,13 @@
                 return c === filterCategory;
             });
         }
+        if (filterStatus !== "all") {
+            list = list.filter((r) => {
+                const tone = calculateLedgerTone(r, ref?.columns, warnDays);
+                const isSoon = tone === "warn" || tone === "danger";
+                return filterStatus === "soon" ? isSoon : !isSoon;
+            });
+        }
         if (q) {
             // Search by full pinyin or initials once the dictionary is ready.
             void pyTick;
@@ -242,6 +265,18 @@
     // 以便图片卡片按批次进入 DOM，避免首次进入触发大量资源解码。
     const visibleRows = $derived(active === "vehicles" ? filteredRows.slice(0, renderLimit) : filteredRows);
 
+    // 筛选/搜索/重载后同步按当前可见结果集裁剪已勾选 ID，杜绝隐藏行被批量误删
+    $effect(() => {
+        const visibleIds = new Set(filteredRows.map((r) => r.itemID));
+        untrack(() => {
+            if (selectedItemIds.length === 0) return;
+            const pruned = selectedItemIds.filter((id) => visibleIds.has(id));
+            if (pruned.length !== selectedItemIds.length) {
+                selectedItemIds = pruned;
+            }
+        });
+    });
+
     function rowMatchesSearch(row: any, q: string, columns?: Record<string, string>) {
         return matchLedgerRowSearch(row, q, columns, cellText);
     }
@@ -249,9 +284,12 @@
     // Resolve only enabled modules. A disabled module may still have an old
     // dbRef in settings; exposing that ref here would show stale rows after a
     // settings change and make the empty-state actions misleading.
+    let colVisTick = $state(0);
     const schemaKeys = $derived<string[]>(ref?.columns ? Object.keys(ref.columns) : []);
     const defaultTableKeys = $derived(computeTableKeys(schemaKeys, plugin.schemaCatalog?.[active]?.columns));
     const tableKeys = $derived.by(() => {
+        void version;
+        void colVisTick;
         const custom = plugin.settings?.columnVisibility?.[active];
         if (Array.isArray(custom) && custom.length > 0) {
             const filtered = custom.filter((k) => schemaKeys.includes(k));
@@ -275,21 +313,25 @@
             next = [...current, k];
         }
         plugin.settings.columnVisibility[active] = next;
+        colVisTick += 1;
         await saveSettings(plugin, plugin.settings);
     }
 
     async function handleResetColumns() {
         if (plugin.settings?.columnVisibility?.[active]) {
             delete plugin.settings.columnVisibility[active];
+            colVisTick += 1;
             await saveSettings(plugin, plugin.settings);
             showMessage(t("ledger.columnResetSuccess"), 2000, "info");
         }
     }
 
-    const PINNED_MODULES = ["certs", "medicine", "vehicles", "stock", "shopping", "house", "contracts", "health"];
-    const pinnedLedgers = $derived(PINNED_MODULES.filter((id) => ledgers.some((l) => l.id === id)).slice(0, 5));
+    const pinnedLedgers = $derived.by(() => {
+        void version;
+        return resolvePinnedLedgers(plugin.settings, ledgers.map((l) => l.id)).slice(0, 5);
+    });
 
-    function switchLedgerTo(next: string) {
+    function switchLedgerTo(next: string, notifyHost = true) {
         if (next !== active && newRecordOpen) {
             showMessage(t("ledger.draftModuleSwitchBlocked"), 5000, "info");
             return;
@@ -298,9 +340,15 @@
         active = next;
         filterMemberId = "";
         filterCategory = "";
+        filterStatus = "all";
         selectedItemIds = [];
         plugin.activeLedger = active;
+        lastPluginActiveLedger = active;
         searchText = "";
+        if (notifyHost) {
+            onActiveLedgerChange?.(active);
+            plugin.emitHubChanged?.();
+        }
     }
 
     async function runExport(action: "csv" | "archive" | "print" | "ics") {
@@ -358,17 +406,25 @@
     async function rebuildLedger() {
         rebuilding = true;
         try {
+            let provisionErr = "";
             if (typeof plugin.repairModule === "function") {
-                await plugin.repairModule(active);
+                const res = await plugin.repairModule(active);
+                provisionErr = res?.dbRef?.provisionError || plugin.settings?.dbRefs?.[active]?.provisionError || "";
             } else {
                 await plugin.adoptHistoryLedgers?.();
-                await plugin.ensureCoreLedgers();
+                const report = await plugin.ensureCoreLedgers();
+                const modIssue = report?.issues?.find?.((it: any) => it.moduleId === active);
+                provisionErr = modIssue?.message || plugin.settings?.dbRefs?.[active]?.provisionError || "";
                 try {
                     await plugin.refreshHub(undefined, true);
                 } catch { /* soft */ }
             }
             await load(); // 立即重新拉取当前模块的数据
-            showMessage(t("ledger.rebuildDone"), 3000, "info");
+            if (provisionErr) {
+                showMessage(t("ledger.rebuildFailed").replace("${msg}", provisionErr), 6000, "error");
+            } else {
+                showMessage(t("ledger.rebuildDone"), 3000, "info");
+            }
         } catch (e) {
             showMessage(t("ledger.rebuildFailed").replace("${msg}", errText(e)), 6000, "error");
         } finally {
@@ -436,8 +492,26 @@
     let lastLoadedActive = "";
     $effect(() => {
         void version;
+        const propChanged = propActiveLedger !== lastPropActiveLedger;
+        const pluginChanged = plugin.activeLedger !== lastPluginActiveLedger;
+        if (propChanged && !propActiveLedger) lastPropActiveLedger = propActiveLedger;
+        if (pluginChanged && !plugin.activeLedger) lastPluginActiveLedger = plugin.activeLedger;
+        const externalTarget = propChanged && propActiveLedger
+            ? propActiveLedger
+            : (pluginChanged && plugin.activeLedger ? plugin.activeLedger : undefined);
+        if (externalTarget && ledgers.some((entry) => entry.id === externalTarget)) {
+            if (propChanged) lastPropActiveLedger = propActiveLedger;
+            if (pluginChanged) lastPluginActiveLedger = plugin.activeLedger;
+            if (externalTarget !== active) {
+                untrack(() => switchLedgerTo(externalTarget, false));
+            }
+        }
+    });
+    $effect(() => {
+        void version;
         void plugin.scan?.scannedAt;
         void ref?.avId;
+        void plugin.pendingActivityTarget?.requestId;
         const currentActive = active;
         const isSwitch = currentActive !== lastLoadedActive;
         lastLoadedActive = currentActive;
@@ -447,13 +521,45 @@
             void load(isSwitch);
         });
     });
-    $effect(() => {
-        const handler = () => void handleToolbarModal("location-index");
-        window.addEventListener("siyuan-home:open-location", handler);
-        return () => window.removeEventListener("siyuan-home:open-location", handler);
-    });
 
     const missingSchemaCols = $derived(computeMissingSchemaColumns(ref?.columns, avCols, plugin.schemaCatalog?.[active]?.columns));
+    const schemaIssues = $derived.by(() => {
+        void version;
+        return (ref?.schemaIssues ?? []).filter((issue: SchemaColumnIssue) => !issue?.moduleId || issue.moduleId === active);
+    });
+    let fixingIssueKey = $state("");
+
+    async function handleFixSchemaIssue(issue: SchemaColumnIssue) {
+        if (isGuestMode) {
+            showMessage(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
+        if (!ref?.avId || fixingIssueKey) return;
+        const schemaCol = plugin.schemaCatalog?.[active]?.columns?.find((c: any) => c.key === issue.colKey);
+        if (!schemaCol) {
+            showMessage(issue.guidance || t("ledger.rebuildFailed").replace("${msg}", issue.colKey), 5000, "error");
+            return;
+        }
+        fixingIssueKey = issue.colKey;
+        try {
+            const res = await createNonDestructiveTypedColumn({
+                avId: ref.avId,
+                moduleId: active,
+                schemaCol,
+                ref: ref as any,
+                memberAvId: plugin.settings?.dbRefs?.members?.avId,
+                resolveName: fieldLabel,
+            });
+            await saveSettings(plugin, plugin.settings);
+            showMessage(res.guidance, 5000, "info");
+            await load();
+            try { await plugin.refreshHub?.([active], true); } catch { /* soft */ }
+        } catch (e) {
+            showMessage(t("ledger.rebuildFailed").replace("${msg}", errText(e)), 5000, "error");
+        } finally {
+            fixingIssueKey = "";
+        }
+    }
 
     let recordModalRef: any;
     let newRecordOpen = $state(false);
@@ -480,37 +586,15 @@
         }
         const nameCol = ref?.columns?.name;
         const rowName = (nameCol && cellText(r.cells?.[nameCol])) || "";
-        const cloneName = rowName ? `${rowName} (副本)` : "";
-        const copiedValues: Record<string, any> = { name: cloneName };
         const schemaCols = plugin.schemaCatalog?.[active]?.columns ?? [];
-        for (const col of schemaCols) {
-            if (col.key === "name" || ["asset", "mAsset"].includes(col.type)) continue;
-            const keyID = ref?.columns?.[col.key];
-            const v = keyID ? r.cells?.[keyID] : undefined;
-            if (v) {
-                if (col.type === "select") copiedValues[col.key] = selectCellContent(v);
-                else if (col.type === "number") {
-                    const raw = v.number?.content ?? v.content ?? v;
-                    const num = Number(raw);
-                    copiedValues[col.key] = Number.isFinite(num) ? num : undefined;
-                } else if (col.type === "date") {
-                    const raw = v.date?.content ?? v.content;
-                    if (typeof raw === "number") copiedValues[col.key] = localDateKey(new Date(raw));
-                    else if (typeof raw === "string" && raw.trim()) {
-                        const parsed = parseDate(raw.trim());
-                        copiedValues[col.key] = parsed ? localDateKey(parsed) : raw.trim();
-                    }
-                } else if (col.type === "checkbox") {
-                    copiedValues[col.key] = v.checkbox?.checked ?? v.checked;
-                } else if (col.type === "relation") {
-                    copiedValues[col.key] = selectCellContent(v) || cellText(v, col.key);
-                } else {
-                    copiedValues[col.key] = cellText(v, col.key);
-                }
-            }
-        }
+        const copiedValues = buildDuplicateRowValues({
+            row: r,
+            columns: ref?.columns,
+            schemaCols,
+            cellTextFn: cellText,
+        });
         openNewRecord(copiedValues);
-        showMessage(t("ledger.duplicateSuccess").replace("${name}", cloneName || rowName), 3000, "info");
+        showMessage(t("ledger.duplicateSuccess").replace("${name}", copiedValues.name || rowName), 3000, "info");
     }
 
     async function handleCopyRowMarkdown(r: any) {
@@ -535,28 +619,29 @@
         const rowTitle = (nameCol && cellText(r.cells?.[nameCol])) || t("ledger.detail");
         confirm(t("ledger.delTitle"), t("ledger.delBody").replace("${name}", rowTitle), async () => {
             try {
-                if (plugin.runtime) {
-                    const trashList = plugin.runtime.trash ?? [];
+                const { removeLedgerRows } = await import("@/core/siyuan");
+                const { cleanupRowRuntimeData } = await import("@/core/hub/runtime");
+                const { withRuntime } = await import("@/core/hub/actions");
+                const { updateRowLogs, removeRowLog } = await import("@/core/rowlog");
+                await removeLedgerRows(ref!.avId!, [r.itemID], {
+                    idempotencyKey: `ledger:delete:${ref!.avId!}:${r.itemID}:${Date.now()}`,
+                    retries: 1,
+                });
+                const rowSnapshot = JSON.parse(JSON.stringify(r));
+                await withRuntime(plugin as any, (rt) => {
+                    const trashList = rt.trash ?? [];
                     trashList.unshift({
                         id: r.itemID,
                         moduleId: active,
                         title: rowTitle,
                         deletedAt: new Date().toISOString(),
-                        rowSnapshot: JSON.parse(JSON.stringify(r)),
+                        rowSnapshot,
                     });
-                    if (trashList.length > 50) trashList.length = 50;
-                    plugin.runtime.trash = trashList;
-                }
-                const { removeLedgerRows } = await import("@/core/siyuan");
-                const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
-                const { updateRowLogs, removeRowLog } = await import("@/core/rowlog");
-                await removeLedgerRows(ref!.avId!, [r.itemID], {
-                    idempotencyKey: `ledger:delete:${ref!.avId!}:${r.itemID}`,
-                    retries: 1,
+                    if (trashList.length > 200) trashList.length = 200;
+                    rt.trash = trashList;
+                    cleanupRowRuntimeData(rt, r.itemID);
                 });
                 await updateRowLogs(plugin, (logs) => removeRowLog(logs, ref!.avId!, r.itemID)).catch(() => undefined);
-                cleanupRowRuntimeData(plugin.runtime, r.itemID);
-                await saveRuntime(plugin, plugin.runtime);
                 showMessage(t("ledger.delDone"), 2500, "info");
                 await load();
                 try { await plugin.refreshHub?.([active]); } catch { /* ignore */ }
@@ -624,6 +709,7 @@
     {categoryCol}
     {availableCategories}
     bind:filterCategory
+    bind:filterStatus
     {exporting}
     {printing}
     {schemaKeys}
@@ -666,12 +752,14 @@
     {columnSuggestions}
     {currentLedgerTemplates}
     {t}
-    onRecordSaved={async ({ docId, name, module }) => {
-        savedRecordName = name;
-        savedDocId = docId ?? "";
-        savedModule = module;
-        if (savedDismissTimer) clearTimeout(savedDismissTimer);
-        savedDismissTimer = setTimeout(() => { savedModule = ""; }, 8000);
+    onRecordSaved={async ({ docId, name, module, discarded }) => {
+        if (!discarded) {
+            savedRecordName = name;
+            savedDocId = docId ?? "";
+            savedModule = module;
+            if (savedDismissTimer) clearTimeout(savedDismissTimer);
+            savedDismissTimer = setTimeout(() => { savedModule = ""; }, 8000);
+        }
         await load();
         try { await plugin.refreshHub([active]); } catch { /* soft */ }
     }}
@@ -697,6 +785,18 @@
         onImportCsv={() => handleToolbarModal("csv-import")}
     />
 {:else if active === "vehicles"}
+    {#if schemaIssues.length > 0 && ref?.avId}
+        <LedgerMissingColsBanner
+            missingSchemaCols={[]}
+            {schemaIssues}
+            {rebuilding}
+            {fixingIssueKey}
+            {t}
+            {fieldLabel}
+            onRebuild={rebuildLedger}
+            onFixSchemaIssue={handleFixSchemaIssue}
+        />
+    {/if}
     <LedgerVehicleGrid
         {visibleRows}
         {filteredRows}
@@ -711,13 +811,16 @@
         onOpenDetail={openDetail}
     />
 {:else}
-    {#if missingSchemaCols.length > 0 && ref?.avId}
+    {#if (missingSchemaCols.length > 0 || schemaIssues.length > 0) && ref?.avId}
         <LedgerMissingColsBanner
             {missingSchemaCols}
+            {schemaIssues}
             {rebuilding}
+            {fixingIssueKey}
             {t}
             {fieldLabel}
             onRebuild={rebuildLedger}
+            onFixSchemaIssue={handleFixSchemaIssue}
         />
     {/if}
     <LedgerTable
@@ -751,6 +854,7 @@
         {ref}
         bind:selectedItemIds
         {rows}
+        {filteredRows}
         {dynamicLocations}
         {memberCol}
         {cellText}

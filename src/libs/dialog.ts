@@ -30,6 +30,26 @@ export const confirm = (
                 top.style.setProperty("z-index", "2000", "important");
                 const cancelBtn = top.querySelector<HTMLButtonElement>(".b3-button--cancel");
                 cancelBtn?.focus();
+                if (typeof window !== "undefined") {
+                    const onTopEsc = (e: KeyboardEvent) => {
+                        if (!top.isConnected) {
+                            window.removeEventListener("keydown", onTopEsc, true);
+                            return;
+                        }
+                        if (e.isComposing || e.keyCode === 229) return;
+                        if (e.key !== "Escape") return;
+                        const activeDialogs = Array.from(document.querySelectorAll<HTMLElement>(".b3-dialog"))
+                            .filter((el) => el.isConnected && !el.hasAttribute("inert"));
+                        if (activeDialogs[activeDialogs.length - 1] !== top) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation?.();
+                        window.removeEventListener("keydown", onTopEsc, true);
+                        if (cancelBtn) cancelBtn.click();
+                        else (top.querySelector<HTMLElement>(".b3-dialog__close"))?.click();
+                    };
+                    window.addEventListener("keydown", onTopEsc, true);
+                }
             }
         });
     }

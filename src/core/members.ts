@@ -7,7 +7,7 @@
  */
 import type { Plugin } from "siyuan";
 import type { FamilyMember, HomeSettings, DbRef, MemberRowCreatePending } from "@/types";
-import { addDetachedRow, newSiYuanId, setCell, renderLedgerAll, RowIdentityPendingError } from "./siyuan";
+import { addDetachedRow, newSiYuanId, setCellResilient, renderLedgerAll, RowIdentityPendingError } from "./siyuan";
 import { saveSettings, errText } from "./settings";
 import { selectCellValue, blockCellValue } from "./avcell";
 
@@ -28,44 +28,45 @@ function enqueueMemberWrite<T>(plugin: Plugin, run: () => Promise<T>): Promise<T
     return next;
 }
 
+const GUEST_WRITE_BLOCKED_MSG = "当前处于访客只读模式，已拦截写入操作";
+
+function guardGuestMemberWrite(plugin: unknown): void {
+    if ((plugin as { runtime?: { guestModeActive?: boolean } } | undefined)?.runtime?.guestModeActive) {
+        throw new Error(GUEST_WRITE_BLOCKED_MSG);
+    }
+}
+
+function nextMemberNonce(): string {
+    try { return crypto.randomUUID(); }
+    catch { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+}
+
 /** 行级写入：主键 name + role/birthday/lunar；生日可清空（D05：清空字段） */
-function memberOperationKey(prefix: string, m: FamilyMember): string {
+function memberOperationKey(prefix: string, m: FamilyMember, includeNonce = false): string {
     // Member id is stable across a retry; field fingerprint changes when a
-    // later edit is intentionally submitted, so a replay cannot be confused
-    // with a different payload under the same idempotency key.
+    // later edit is intentionally submitted.  Overwrite edits pass includeNonce=true
+    // so A->B->A->B edits within 60s never collide with the transport short cache.
     const fingerprint = [m.name.trim(), m.role, m.birthday ?? "", m.lunarBirthday ? "1" : "0"].join("|");
-    return `${prefix}:${encodeURIComponent(m.id)}:${encodeURIComponent(fingerprint)}`;
+    const base = `${prefix}:${encodeURIComponent(m.id)}:${encodeURIComponent(fingerprint)}`;
+    return includeNonce ? `${base}:${nextMemberNonce()}` : base;
 }
 
 async function writeMemberCells(plugin: any, ref: DbRef, itemID: string, m: FamilyMember, operationKey = memberOperationKey("member", m)): Promise<void> {
     const c = ref.columns ?? {};
 
     async function setMemberCellWithHeal(colKey: string, val: unknown) {
-        let keyId = c[colKey];
-        if (!keyId && plugin) {
-            try {
-                const { healColumnMapping } = await import("./provision-adoption");
-                keyId = await healColumnMapping(plugin, "members", colKey);
-            } catch { /* soft */ }
-        }
-        if (!keyId) return;
-        try {
-            await setCell(ref.avId!, keyId, itemID, val, { idempotencyKey: `${operationKey}:${colKey}`, retries: 1 });
-        } catch (err: any) {
-            const errStr = String(err?.message || err || "");
-            if (errStr.includes("key not found") && plugin) {
-                try {
-                    const { healColumnMapping } = await import("./provision-adoption");
-                    const healedId = await healColumnMapping(plugin, "members", colKey);
-                    if (healedId) {
-                        c[colKey] = healedId;
-                        await setCell(ref.avId!, healedId, itemID, val, { idempotencyKey: `${operationKey}:${colKey}:healed`, retries: 1 });
-                        return;
-                    }
-                } catch { /* soft fallback */ }
-            }
-            throw err;
-        }
+        if (!c[colKey] && !plugin) return;
+        await setCellResilient({
+            avID: ref.avId!,
+            keyID: c[colKey],
+            itemID,
+            value: val,
+            plugin,
+            moduleId: "members",
+            colKey,
+            ref,
+            requestOptions: { idempotencyKey: `${operationKey}:${colKey}`, retries: 1 },
+        });
     }
 
     if (m.name) await setMemberCellWithHeal("name", blockCellValue(itemID, m.name, { keyID: c["name"], includeRichNull: true }));
@@ -215,6 +216,7 @@ async function createMemberRow(plugin: Plugin, settings: HomeSettings, ref: DbRe
 }
 
 export async function addMember(plugin: Plugin, settings: HomeSettings, member: FamilyMember): Promise<void> {
+    guardGuestMemberWrite(plugin);
     return enqueueMemberWrite(plugin, async () => {
         // A stable member id is the operation identity. Replaying a timed-out
         // submit cannot append another settings record and can resume any AV
@@ -251,6 +253,7 @@ export async function addMember(plugin: Plugin, settings: HomeSettings, member: 
 
 /** 编辑成员（D05）：设置侧为准；有 avItemId → 精确写回（含改名）；无 → 补建关联行 */
 export async function updateMember(plugin: Plugin, settings: HomeSettings, member: FamilyMember): Promise<void> {
+    guardGuestMemberWrite(plugin);
     return enqueueMemberWrite(plugin, async () => {
         const previous = settings.members;
         if (!previous.some((m) => m.id === member.id)) throw new Error("member not found");
@@ -270,7 +273,7 @@ export async function updateMember(plugin: Plugin, settings: HomeSettings, membe
         const target = settings.members.find((m) => m.id === member.id)!;
         if (target.avItemId) {
             try {
-                await writeMemberCells(plugin, ref, target.avItemId, target, memberOperationKey("member-update", target));
+                await writeMemberCells(plugin, ref, target.avItemId, target, memberOperationKey("member-update", target, true));
                 target.syncError = undefined;
             } catch (e) {
                 target.syncError = errText(e);
@@ -285,6 +288,7 @@ export async function updateMember(plugin: Plugin, settings: HomeSettings, membe
 /** 成员显示排序（17 组/197 波：网格拖拽）：仅重排 settings.members（台账行序不动，行序无显示语义）。
  * orderedIds 未覆盖的成员（并发新增等）按原相对顺序附尾，不丢人。 */
 export async function reorderMembers(plugin: Plugin, settings: HomeSettings, orderedIds: string[]): Promise<void> {
+    guardGuestMemberWrite(plugin);
     return enqueueMemberWrite(plugin, async () => {
         const rank = new Map(orderedIds.map((id, i) => [id, i]));
         const previous = settings.members;
@@ -297,6 +301,7 @@ export async function reorderMembers(plugin: Plugin, settings: HomeSettings, ord
 
 /** 删除成员：仅移除设置侧引用（台账行保留） */
 export async function removeMember(plugin: Plugin, settings: HomeSettings, id: string): Promise<void> {
+    guardGuestMemberWrite(plugin);
     return enqueueMemberWrite(plugin, async () => {
         const previous = settings.members;
         settings.members = previous.filter((m) => m.id !== id);
@@ -344,7 +349,7 @@ export async function syncMembersToAv(
                 else if (!m.avItemId) report.failed.push(m.name);
             } else if (memberChanged(before, m)) {
                 if (m.avItemId) {
-                    await writeMemberCells(plugin, ref, m.avItemId, m, memberOperationKey("member-sync", m));
+                    await writeMemberCells(plugin, ref, m.avItemId, m, memberOperationKey("member-sync", m, true));
                     m.syncError = undefined;
                     report.updated++;
                 } else if (await createMemberRow(plugin, settings, ref, m)) {
@@ -516,7 +521,9 @@ export async function reassignMemberRows(
     settings: HomeSettings,
     options: ReassignOptions,
 ): Promise<ReassignResult> {
+    guardGuestMemberWrite(plugin);
     return enqueueMemberWrite(plugin, async () => {
+        const reassignNonce = nextMemberNonce();
         const { fromAvItemId, toAvItemId, moduleIds } = options;
         const result: ReassignResult = { updated: 0, modules: [], failures: [] };
         if (!toAvItemId) return result;
@@ -549,12 +556,22 @@ export async function reassignMemberRows(
 
                     if (matches && currentBlockId !== toAvItemId) {
                         try {
-                            await setCell(ref.avId, memberKey, row.itemID, {
-                                type: "relation",
-                                relation: { blockIDs: [toAvItemId] },
-                            }, {
-                                idempotencyKey: `reassign:${ref.avId}:${memberKey}:${row.itemID}:${toAvItemId}`,
-                                retries: 1,
+                            await setCellResilient({
+                                avID: ref.avId,
+                                keyID: memberKey,
+                                itemID: row.itemID,
+                                value: {
+                                    type: "relation",
+                                    relation: { blockIDs: [toAvItemId] },
+                                },
+                                plugin,
+                                moduleId,
+                                colKey: "member",
+                                ref,
+                                requestOptions: {
+                                    idempotencyKey: `reassign:${ref.avId}:${memberKey}:${row.itemID}:${toAvItemId}:${reassignNonce}`,
+                                    retries: 1,
+                                },
                             });
                             result.updated++;
                             touchedModules.add(moduleId);

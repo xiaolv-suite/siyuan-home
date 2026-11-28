@@ -5,6 +5,7 @@
 
 import type { Reminder } from "@/types";
 import { bindDialogA11y } from "./dialog-a11y";
+import type { DetachedRowIdentity } from "./siyuan";
 
 export interface OpenTriageToLedgerDialogOptions {
     r: Reminder;
@@ -17,6 +18,10 @@ export interface OpenTriageToLedgerDialogOptions {
 export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOptions): void {
     if (typeof document === "undefined") return;
     const { r, plugin, DialogCls, t, showMessageFn } = options;
+    if (plugin?.runtime?.guestModeActive) {
+        showMessageFn(t("guest.writeBlocked"), 3500, "info");
+        return;
+    }
     const targets = (plugin.settings?.enabledModules ?? [])
         .filter((id: string) => id !== "adhoc" && id !== "members")
         .map((id: string) => ({ id, ref: plugin.settings?.dbRefs?.[id] }));
@@ -77,12 +82,33 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     let pendingRowId: string | undefined;
     let pendingModuleId: string | undefined;
     let identityPending = false;
+    let rowIdentity: DetachedRowIdentity | undefined;
+
+    const discardBtn = document.createElement("button");
+    discardBtn.type = "button";
+    discardBtn.className = "b3-button b3-button--text lv-tx-danger";
+    discardBtn.textContent = t("ledger.discardUncertain");
+    discardBtn.hidden = true;
+    discardBtn.addEventListener("click", () => {
+        pendingRowId = undefined;
+        pendingModuleId = undefined;
+        identityPending = false;
+        rowIdentity = undefined;
+        operationKey = (() => {
+            try { return `triage:${crypto.randomUUID()}`; }
+            catch { return `triage:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`; }
+        })();
+        sel.disabled = false;
+        discardBtn.hidden = true;
+        err.textContent = "";
+        ok.disabled = false;
+    });
 
     const doCreate = async () => {
         const title = nameInput.value.trim();
         if (!title) { err.textContent = t("ledger.nameRequired"); nameInput.focus(); return; }
         const mod = sel.value;
-        if (pendingRowId && pendingModuleId !== mod) {
+        if ((pendingRowId || identityPending) && pendingModuleId && pendingModuleId !== mod) {
             err.textContent = t("triage.pendingTarget");
             return;
         }
@@ -108,34 +134,52 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
         if (!itemID) {
             try {
                 const { addDetachedRow, newSiYuanId } = await import("./siyuan");
+                rowIdentity ??= { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false };
+                pendingModuleId = mod;
                 itemID = await addDetachedRow(ref.avId, title, {
                     idempotencyKey: `${operationKey}:row`,
                     retries: 1,
-                    rowIdentity: { avID: ref.avId, desiredItemID: newSiYuanId(), before: [], submitted: false },
+                    rowIdentity,
                 });
                 pendingRowId = itemID;
-                pendingModuleId = mod;
+                identityPending = false;
+                sel.disabled = true;
             } catch (e) {
-                operationKey = `triage:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
                 const { RowIdentityPendingError } = await import("./siyuan");
                 if (e instanceof RowIdentityPendingError) {
                     identityPending = true;
+                    sel.disabled = true;
+                    discardBtn.hidden = false;
                     ok.disabled = false;
+                    ok.textContent = t("triage.create");
                     err.textContent = t("triage.identityPending");
                     return;
+                }
+                if (!rowIdentity?.submitted) {
+                    rowIdentity = undefined;
+                    pendingModuleId = undefined;
+                    operationKey = `triage:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
                 }
                 throw e;
             }
         }
         const setCellSafe = async (key: string, value: unknown) => {
-            const keyID = ref.columns?.[key];
-            if (!keyID) return;
+            const { setCellResilient } = await import("./siyuan");
             for (let attempt = 0; ; attempt++) {
                 try {
-                    const { setCell } = await import("./siyuan");
-                    await setCell(ref.avId, keyID, itemID, value, {
-                        idempotencyKey: `${operationKey}:cell:${keyID}`,
-                        retries: 1,
+                    await setCellResilient({
+                        avID: ref.avId,
+                        keyID: ref.columns?.[key],
+                        itemID,
+                        value,
+                        plugin,
+                        moduleId: mod,
+                        colKey: key,
+                        ref,
+                        requestOptions: {
+                            idempotencyKey: `${operationKey}:cell:${key}`,
+                            retries: 1,
+                        },
                     });
                     return;
                 }
@@ -145,7 +189,13 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
                 }
             }
         };
-        await setCellSafe("name", { type: "text", text: { content: title } });
+        const { buildPrimaryBlockCell } = await import("./siyuan");
+        await setCellSafe("name", buildPrimaryBlockCell({
+            keyID: ref.columns?.["name"] ?? "",
+            itemID: itemID!,
+            content: title,
+            includeRichNull: true,
+        }));
         const schemaCols = plugin.schemaCatalog?.[mod]?.columns ?? [];
         const ruleFields = (plugin.schemaCatalog?.[mod]?.reminders ?? []).map((x: any) => x.field);
         const dateCol = schemaCols.find((c: any) => c.type === "date" && ruleFields.includes(c.key))
@@ -164,11 +214,13 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     };
 
     ok.addEventListener("click", () => {
-        if (identityPending) return;
+        if (ok.disabled) return;
         ok.disabled = true;
+        err.textContent = "";
         doCreate().catch((e) => {
+            if (pendingRowId) discardBtn.hidden = false;
             err.textContent = t("ledger.saveFailed").replace("${msg}", e instanceof Error ? e.message : String(e));
-        }).finally(() => { if (!identityPending) ok.disabled = false; });
+        }).finally(() => { ok.disabled = false; ok.textContent = t("triage.create"); });
     });
     const cancel = document.createElement("button");
     cancel.type = "button";
@@ -177,7 +229,7 @@ export function openTriageToLedgerDialog(options: OpenTriageToLedgerDialogOption
     cancel.addEventListener("click", () => dlg.destroy());
     const action = document.createElement("div");
     action.className = "b3-dialog__action";
-    action.append(cancel, ok);
+    action.append(cancel, ok, discardBtn);
     box.append(row1, rowM, row2, row3, err, action);
     bindDialogA11y({ dlg, defaultFocus: nameInput });
     nameInput.focus();

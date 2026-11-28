@@ -10,6 +10,7 @@
         ref,
         selectedItemIds = $bindable<string[]>([]),
         rows = [],
+        filteredRows,
         dynamicLocations = [],
         memberCol,
         cellText,
@@ -21,6 +22,7 @@
         ref?: { avId?: string; columns?: Record<string, string> };
         selectedItemIds: string[];
         rows?: any[];
+        filteredRows?: any[];
         dynamicLocations?: string[];
         memberCol?: string;
         cellText?: (cell: any, key?: string, raw?: boolean) => string;
@@ -30,6 +32,17 @@
 
     let batchBusy = $state(false);
     let toolbarEl = $state<HTMLElement | undefined>(undefined);
+    const isGuestMode = $derived(Boolean(plugin?.runtime?.guestModeActive));
+    const currentVisibleRows = $derived(filteredRows ?? rows);
+
+    function getVisibleSelectedIds(): string[] {
+        const visibleSet = new Set(currentVisibleRows.map((r) => r.itemID));
+        const next = selectedItemIds.filter((id) => visibleSet.has(id));
+        if (next.length !== selectedItemIds.length) {
+            selectedItemIds = next;
+        }
+        return next;
+    }
 
     function restoreFocusAfterClear() {
         try {
@@ -73,7 +86,12 @@
     }
 
     async function openBatchMemberModal() {
-        if (!selectedItemIds.length || !ref?.avId || !memberCol || batchBusy) return;
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 4000, "info");
+            return;
+        }
+        const targetIds = getVisibleSelectedIds();
+        if (!targetIds.length || !ref?.avId || !memberCol || batchBusy) return;
         const membersList = (plugin.settings.members ?? []).filter((m: any) => !!m.avItemId);
         if (!membersList.length) {
             showMessage(t("members.notLinked"), 4000, "info");
@@ -84,8 +102,12 @@
             openBatchMemberDialog({
                 targetCol: memberCol,
                 membersList,
-                selectedItemIds,
+                selectedItemIds: targetIds,
                 avId: ref.avId,
+                plugin,
+                moduleId: active,
+                ref,
+                colKey: "member",
                 t,
                 DialogCls: Dialog,
                 showMessageFn: showMessage,
@@ -101,14 +123,23 @@
     }
 
     async function openBatchLocationModal() {
-        if (!selectedItemIds.length || !ref?.avId || !ref?.columns?.location || batchBusy) return;
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 4000, "info");
+            return;
+        }
+        const targetIds = getVisibleSelectedIds();
+        if (!targetIds.length || !ref?.avId || !ref?.columns?.location || batchBusy) return;
         try {
             const { openBatchLocationDialog } = await import("@/core/batch-dialog");
             openBatchLocationDialog({
                 targetCol: ref.columns.location,
-                selectedItemIds,
+                selectedItemIds: targetIds,
                 locOptions: dynamicLocations,
                 avId: ref.avId,
+                plugin,
+                moduleId: active,
+                ref,
+                colKey: "location",
                 t,
                 DialogCls: Dialog,
                 showMessageFn: showMessage,
@@ -124,9 +155,10 @@
     }
 
     async function batchCopyRefs(e?: MouseEvent) {
-        if (!selectedItemIds.length || !ref?.avId) return;
+        const targetIds = getVisibleSelectedIds();
+        if (!targetIds.length || !ref?.avId) return;
         const nameCol = ref.columns?.name;
-        const selectedRows = rows.filter((r) => selectedItemIds.includes(r.itemID));
+        const selectedRows = currentVisibleRows.filter((r) => targetIds.includes(r.itemID));
         const refs = selectedRows.map((r) => {
             const rawTitle = String(r.cells?.[nameCol ?? ""]?.text?.content ?? r.cells?.[nameCol ?? ""]?.block?.content ?? r.itemID).trim();
             const title = rawTitle.replace(/[\r\n]+/g, " ").replace(/'/g, "’");
@@ -145,8 +177,9 @@
     }
 
     async function batchExportCsv() {
-        if (!selectedItemIds.length || !ref?.columns) return;
-        const selectedRows = rows.filter((r) => selectedItemIds.includes(r.itemID));
+        const targetIds = getVisibleSelectedIds();
+        if (!targetIds.length || !ref?.columns) return;
+        const selectedRows = currentVisibleRows.filter((r) => targetIds.includes(r.itemID));
         if (selectedRows.length === 0) return;
         const { exportSelectedRowsToCsv } = await import("@/core/ledger-export");
         exportSelectedRowsToCsv({
@@ -161,51 +194,59 @@
     }
 
     function batchDelete() {
-        if (!selectedItemIds.length || !ref?.avId || batchBusy) return;
-        const count = selectedItemIds.length;
+        if (plugin.runtime?.guestModeActive) {
+            showMessage(t("guest.writeBlocked"), 4000, "info");
+            return;
+        }
+        const targetIds = getVisibleSelectedIds();
+        if (!targetIds.length || !ref?.avId || batchBusy) return;
+        const count = targetIds.length;
         confirm(
             t("ledger.batchDelete"),
             t("ledger.batchDeleteConfirm").replace("${n}", String(count)),
             async () => {
                 batchBusy = true;
                 try {
-                    // 安全回收站快照留存：批量删除前为所有选定行建立完整备份
-                    if (plugin.runtime) {
-                        const trashList = plugin.runtime.trash ?? [];
-                        for (const id of selectedItemIds) {
-                            const matchedRow = rows.find((r) => r.itemID === id);
-                            const nameCol = ref?.columns?.name;
-                            const rawTitle = nameCol ? (matchedRow?.cells?.[nameCol]?.text?.content ?? matchedRow?.cells?.[nameCol]?.block?.content) : undefined;
-                            const title = String(rawTitle || matchedRow?.itemID || t("ledger.batchDeletedItems").replace("${n}", String(count))).trim();
-	                            trashList.unshift({
-	                                id,
-	                                moduleId: active,
-	                                title,
-	                                deletedAt: new Date().toISOString(),
-	                                rowSnapshot: matchedRow ? JSON.parse(JSON.stringify(matchedRow)) : { itemID: id },
-	                            });
-	                        }
-	                        if (trashList.length > 50) trashList.length = 50;
-	                        plugin.runtime.trash = trashList;
-	                    }
                     const { removeLedgerRows } = await import("@/core/siyuan");
-                    const { cleanupRowRuntimeData, saveRuntime } = await import("@/core/hub/runtime");
+                    const { cleanupRowRuntimeData } = await import("@/core/hub/runtime");
+                    const { withRuntime } = await import("@/core/hub/actions");
                     const { updateRowLogs, removeRowLog } = await import("@/core/rowlog");
-                    await removeLedgerRows(ref!.avId!, selectedItemIds, {
+                    await removeLedgerRows(ref!.avId!, targetIds, {
                         idempotencyKey: `ledger:batch-del:${ref!.avId!}:${Date.now()}`,
                         retries: 1,
                     });
+                    const snapshots = targetIds.map((id) => {
+                        const matchedRow = currentVisibleRows.find((r) => r.itemID === id) ?? rows.find((r) => r.itemID === id);
+                        const nameCol = ref?.columns?.name;
+                        const rawTitle = nameCol ? (matchedRow?.cells?.[nameCol]?.text?.content ?? matchedRow?.cells?.[nameCol]?.block?.content) : undefined;
+                        const title = String(rawTitle || matchedRow?.itemID || t("ledger.batchDeletedItems").replace("${n}", String(count))).trim();
+                        return {
+                            id,
+                            moduleId: active,
+                            title,
+                            deletedAt: new Date().toISOString(),
+                            rowSnapshot: matchedRow ? JSON.parse(JSON.stringify(matchedRow)) : { itemID: id },
+                        };
+                    });
+                    await withRuntime(plugin as any, (rt) => {
+                        const trashList = rt.trash ?? [];
+                        for (let i = snapshots.length - 1; i >= 0; i--) {
+                            trashList.unshift(snapshots[i]);
+                        }
+                        const maxCap = Math.max(200, snapshots.length);
+                        if (trashList.length > maxCap) trashList.length = maxCap;
+                        rt.trash = trashList;
+                        for (const id of targetIds) {
+                            cleanupRowRuntimeData(rt, id);
+                        }
+                    });
                     await updateRowLogs(plugin, (logs) => {
                         let next = logs;
-                        for (const id of selectedItemIds) {
+                        for (const id of targetIds) {
                             next = removeRowLog(next, ref!.avId!, id);
                         }
                         return next;
                     }).catch(() => undefined);
-                    for (const id of selectedItemIds) {
-                        cleanupRowRuntimeData(plugin.runtime, id);
-                    }
-                    await saveRuntime(plugin, plugin.runtime);
                     selectedItemIds = [];
                     showMessage(t("ledger.delDone") + ` (${count})`, 3000, "info");
                     if (onReload) await onReload();
@@ -235,12 +276,12 @@
             {t("ledger.batchSelected").replace("${n}", String(selectedItemIds.length))}
         </span>
         {#if ref?.columns?.location}
-            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchLocationModal}>
+            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy || isGuestMode} onclick={openBatchLocationModal}>
                 <UiIcon name="mapPin" size={13} /> {t("ledger.batchLocation")}
             </button>
         {/if}
         {#if memberCol && (plugin.settings.members?.length ?? 0) > 0}
-            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={openBatchMemberModal}>
+            <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy || isGuestMode} onclick={openBatchMemberModal}>
                 <UiIcon name="users" size={13} /> {t("ledger.batchMember")}
             </button>
         {/if}
@@ -250,7 +291,7 @@
         <button type="button" class="b3-button b3-button--outline lv-batch-btn" disabled={batchBusy} onclick={batchExportCsv}>
             <UiIcon name="folder" size={13} /> {t("ledger.batchExportCsv")}
         </button>
-        <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy} aria-busy={batchBusy} onclick={batchDelete}>
+        <button type="button" class="b3-button b3-button--text ft__error lv-batch-btn lv-tx-danger" disabled={batchBusy || isGuestMode} aria-busy={batchBusy} onclick={batchDelete}>
             <UiIcon name="close" size={13} /> {batchBusy ? t("ledger.saving") : t("ledger.batchDelete")}
         </button>
         <button type="button" class="b3-button b3-button--text lv-batch-close" onclick={clearSelection} title={t("close")} aria-label={t("close")}>

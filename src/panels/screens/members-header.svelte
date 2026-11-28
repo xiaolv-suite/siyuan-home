@@ -8,6 +8,7 @@
         reassignBusy,
         exportingVcf,
         editorOpen,
+        guestMode = false,
         membersDocId,
         hasContactsBridge = false,
         onReassign,
@@ -22,6 +23,7 @@
         reassignBusy: boolean;
         exportingVcf: boolean;
         editorOpen: boolean;
+        guestMode?: boolean;
         membersDocId?: string;
         hasContactsBridge?: boolean;
         onReassign: () => void;
@@ -53,7 +55,7 @@
 
 <div class="lv-member-tools">
     <div id="lv-member-secondary-tools" class="lv-member-secondary-tools" class:is-open={mobileToolsOpen}>
-        <button type="button" class="b3-button b3-button--outline" onclick={onReassign} disabled={membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
+        <button type="button" class="b3-button b3-button--outline" onclick={onReassign} disabled={guestMode || membersCount === 0 || reassignBusy} aria-busy={reassignBusy}>
             {reassignBusy ? t("ledger.saving") : t("members.reassign")}
         </button>
         <button type="button" class="b3-button b3-button--outline" onclick={onExportVcf} disabled={membersCount === 0 || exportingVcf} aria-busy={exportingVcf}>
@@ -65,7 +67,7 @@
             </button>
         {/if}
         {#if hasContactsBridge && onImportFromContacts}
-            <button type="button" class="b3-button b3-button--outline" onclick={onImportFromContacts} title={t("members.importFromContacts")}>
+            <button type="button" class="b3-button b3-button--outline" disabled={guestMode} onclick={onImportFromContacts} title={t("members.importFromContacts")}>
                 <UiIcon name="link" size={14} /> {t("members.importFromContacts")}
             </button>
         {/if}
@@ -74,6 +76,7 @@
     <div class="lv-member-primary-actions">
         <button type="button" class={editorOpen ? "b3-button b3-button--outline" : "lv-btn primary"}
             aria-expanded={editorOpen} aria-controls="lv-member-editor"
+            disabled={!editorOpen && guestMode}
             onclick={onToggleEditor}>
             {#if !editorOpen}<UiIcon name="add" size={15} />{/if}{editorOpen ? t("cancel") : t("add")}
         </button>

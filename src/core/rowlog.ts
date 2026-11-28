@@ -260,6 +260,9 @@ export async function ensureRowLogSyncHook(): Promise<RowLogSyncHook | null> {
 }
 
 export async function saveRowLogs(plugin: Plugin, logs: RowLogs): Promise<void> {
+    if ((plugin as any)?.runtime?.guestModeActive) {
+        throw new Error("Guest mode is read-only");
+    }
     // Row-log editors are independent dialogs and can finish concurrently.
     // Serialize snapshots per plugin so a slow delete cannot overwrite a
     // newer append.  Clone before queueing because callers commonly keep
@@ -308,6 +311,9 @@ export function countTotalLogEntries(logs: RowLogs): number {
  * read only after earlier mutations have committed, so concurrent dialogs do
  * not overwrite each other's append/delete changes. */
 export function updateRowLogs(plugin: Plugin, update: (current: RowLogs) => RowLogs): Promise<RowLogs> {
+    if ((plugin as any)?.runtime?.guestModeActive) {
+        return Promise.reject(new Error("Guest mode is read-only"));
+    }
     return enqueueRowLogWrite(plugin, async () => {
         const current = await loadRowLogs(plugin);
         const next = update(current);

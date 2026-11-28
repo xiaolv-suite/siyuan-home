@@ -4,7 +4,7 @@ const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
  * 包含：证件换证链 (Certs Renew Chain)、人情转人脉 (Favors to Contacts)、购物转资产 (Shopping to Asset)
  */
 
-import { setCell } from "./siyuan";
+import { setCellResilient } from "./siyuan";
 import { bindDialogA11y } from "./dialog-a11y";
 import { saveRuntime } from "./hub/runtime";
 import { blockDeepLink, generateQRDataUrl } from "./qr";
@@ -23,6 +23,7 @@ export interface RenewChainSectionOptions {
     rows: any[];
     ref: { avId?: string; columns?: Record<string, string> };
     active: string;
+    plugin?: any;
     t: (k: string) => string;
     DialogCls: any;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -32,7 +33,7 @@ export interface RenewChainSectionOptions {
 
 export function renderRenewChainSection(options: RenewChainSectionOptions): void {
     if (typeof document === "undefined") return;
-    const { body, row, rows, ref, active, t, DialogCls, showMessageFn, cellTextFn, onChainUpdated } = options;
+    const { body, row, rows, ref, active, plugin, t, DialogCls, showMessageFn, cellTextFn, onChainUpdated } = options;
     if (active !== "certs" || !ref.columns) return;
     const relKey = ref.columns.renewed_to;
     if (!relKey) return;
@@ -46,11 +47,20 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
     const backward = rows.filter((r) => ((r.cells[relKey]?.relation?.blockIDs ?? []) as string[]).includes(row.itemID));
 
     const linkBtn = () => {
+        const isGuest = Boolean(plugin?.runtime?.guestModeActive);
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "b3-button b3-button--outline lv-att-upload-btn";
         btn.textContent = t("ledger.linkNew");
+        if (isGuest) {
+            btn.disabled = true;
+            btn.title = t("guest.writeBlocked");
+        }
         btn.onclick = () => {
+            if (plugin?.runtime?.guestModeActive) {
+                showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                return;
+            }
             const picker = new DialogCls({
                 title: t("ledger.pickNew"),
                 content: `<div class="b3-dialog__content lv-dialog-scroll-body" id="lv-pick-body"></div>`,
@@ -68,9 +78,20 @@ export function renderRenewChainSection(options: RenewChainSectionOptions): void
                 b.onclick = async () => {
                     b.disabled = true;
                     try {
-                        await setCell(ref.avId!, relKey, row.itemID, { type: "relation", relation: { blockIDs: [r.itemID], contents: null } }, {
-                            idempotencyKey: `ledger:renew-link:${row.itemID}:${r.itemID}`,
-                            retries: 1,
+                        await setCellResilient({
+                            avID: ref.avId!,
+                            keyID: relKey,
+                            itemID: row.itemID,
+                            value: { type: "relation", relation: { blockIDs: [r.itemID], contents: null } },
+                            plugin,
+                            moduleId: active,
+                            colKey: "renewed_to",
+                            ref,
+                            schemaCol: { key: "renewed_to", type: "relation" },
+                            requestOptions: {
+                                idempotencyKey: `ledger:renew-link:${row.itemID}:${r.itemID}`,
+                                retries: 1,
+                            },
                         });
                         picker.destroy();
                         showMessageFn(t("ledger.linked").replace("${name}", String(cellTextFn(r.cells[ref.columns!.name]))), 2500, "info");
@@ -137,12 +158,21 @@ export function renderFavorsSyncSection(options: FavorsSyncSectionOptions): void
     head.textContent = t("ec15.title");
     body.appendChild(head);
 
+    const isGuest = Boolean(plugin?.runtime?.guestModeActive);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "b3-button b3-button--outline lv-att-upload-btn";
     btn.textContent = synced ? t("ec15.again") : t("ec15.record");
+    if (isGuest) {
+        btn.disabled = true;
+        btn.title = t("guest.writeBlocked");
+    }
 
     btn.onclick = async () => {
+        if (plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         const w = (typeof window !== "undefined" ? window : {}) as Record<string, unknown>;
         const bridge = (w.LvContacts || w.xiaolvContacts || w.siyuanContacts || w.lvContacts) as {
             ensurePerson: (name: string) => Promise<{ docId: string; name: string; created: boolean }>;
@@ -199,6 +229,8 @@ export interface RenderRowLogSectionOptions {
     body: HTMLElement;
     row: any;
     active: string;
+    plugin?: any;
+    isGuestReadOnly?: boolean;
     activityTarget?: ActivityTarget;
     t: (k: string) => string;
     showMessageFn: (msg: string, timeout?: number, type?: string) => void;
@@ -215,7 +247,8 @@ export interface RenderRowLogSectionOptions {
 
 export async function renderRowLogSection(options: RenderRowLogSectionOptions): Promise<void> {
     if (typeof document === "undefined") return;
-    const { body, row, active, activityTarget, t, showMessageFn, title, emptyText, addLabel, kind, fields, load, add, remove, format } = options;
+    const { body, row, active, plugin, isGuestReadOnly, activityTarget, t, showMessageFn, title, emptyText, addLabel, kind, fields, load, add, remove, format } = options;
+    const isGuest = Boolean(isGuestReadOnly || plugin?.runtime?.guestModeActive);
 
     const section = document.createElement("div");
     let loaded: Record<string, any>[] = [];
@@ -237,7 +270,15 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
             del.type = "button";
             del.className = "b3-button b3-button--text lv-btn-text-sm";
             del.textContent = t("delete");
+            if (isGuest) {
+                del.disabled = true;
+                del.title = t("guest.writeBlocked");
+            }
             del.onclick = async () => {
+                if (isGuestReadOnly || plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 del.disabled = true;
                 try {
                     await remove(e);
@@ -293,6 +334,10 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
         inp.onkeydown = (e: KeyboardEvent) => {
             if (e.key === "Enter" && !e.isComposing) {
                 e.preventDefault();
+                if (isGuestReadOnly || plugin?.runtime?.guestModeActive) {
+                    showMessageFn(t("guest.writeBlocked"), 3500, "info");
+                    return;
+                }
                 addBtn.click();
             }
         };
@@ -303,7 +348,15 @@ export async function renderRowLogSection(options: RenderRowLogSectionOptions): 
     addBtn.type = "button";
     addBtn.className = "b3-button b3-button--outline lv-btn-text-sm";
     addBtn.textContent = addLabel;
+    if (isGuest) {
+        addBtn.disabled = true;
+        addBtn.title = t("guest.writeBlocked");
+    }
     addBtn.onclick = async () => {
+        if (isGuestReadOnly || plugin?.runtime?.guestModeActive) {
+            showMessageFn(t("guest.writeBlocked"), 3500, "info");
+            return;
+        }
         if (addBtn.disabled) return;
         const vals = Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.value]));
         if (!vals.date) {

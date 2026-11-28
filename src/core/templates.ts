@@ -1,0 +1,34 @@
+/**
+ * 文档模板基建（2026-10-04 第七十轮落地；此前 DocTemplate 类型无消费者）。
+ * 模板文件 src/templates/<module>/<key>.tpl，构建期 ?raw 打包进 bundle（离线可用，无运行时文件加载）。
+ * renderTemplate 纯函数：{{key}} → 变量值，缺失变量替换为空串；vars 由调用方从行单元格收集。
+ */
+import parentMeeting from "@/templates/schooling/parent-meeting.tpl?raw";
+import checkupPlan from "@/templates/health/checkup-plan.tpl?raw";
+import emergencyKit from "@/templates/stock/emergency-kit.tpl?raw";
+
+/** file 字段（schema DocTemplate）→ 模板内容 */
+const TEMPLATE_FILES: Record<string, string> = {
+    "schooling/parent-meeting.tpl": parentMeeting,
+    "health/checkup-plan.tpl": checkupPlan,
+    "stock/emergency-kit.tpl": emergencyKit,
+};
+
+export function getTemplate(file: string): string | undefined {
+    return TEMPLATE_FILES[file];
+}
+
+/** {{key}} 替换；未提供的变量 → 空串（模板先行于数据，不给用户看占位符残渣） */
+export function renderTemplate(tpl: string, vars: Record<string, string>): string {
+    return tpl.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, key: string) => vars[key] ?? "");
+}
+
+/** G3（UG03 威胁建模）：文档标题跨平台消毒——彻底清除 Windows 9 大非法字符 <>:"/\|?* 与控制字符，
+ * 防止行名称带入路径分隔符或特殊字符造成 createDocWithMd 在底层磁盘建档失败。 */
+export function sanitizeDocTitle(title: string): string {
+    return title
+        .replace(/[/\\:<>|?*"~\p{Cc}\p{Cf}\r\n\t]/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/[. ]+$/g, "");
+}

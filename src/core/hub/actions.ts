@@ -1,0 +1,538 @@
+/**
+ * 提醒处理动作（03 §5）：完成/延后/忽略/备忘增删 —— 只改台账行或运行态，不产生影子数据。
+ * 续期（renew）依赖 certs 行写回（setCell），v0.2 提供 oneoff 场景。
+ *
+ * 语义定案（H01/H05/H07，2026-10-02）：
+ * - 运行态写操作经模块级 promise 链串行执行：读-改-写不互相覆盖，连续动作全部落盘。
+ * - 完成按规则类型分派（完成≠永久忽略）：anniversary 记当年已办、recurring 记本期已办、
+ *   oneoff 记已办条目、备忘标记 doneAt；均可经 restore 恢复。
+ */
+import type { Plugin } from "siyuan";
+import type { Reminder } from "@/types";
+import { listNotebooks, setCellResilient, sql } from "../siyuan";
+import { post } from "../siyuan-transport";
+import { addDays, calculateNextRecurrenceDate, localDateKey, parseDate } from "./rule";
+import { loadRuntime, persistRuntimeUnderLock, withRuntimeSaveLock, reminderKind, toggleReminderPinInRuntime, type HubRuntime, type HandledRecord } from "./runtime";
+
+export interface WithRuntimeOptions {
+    allowInGuestMode?: boolean;
+}
+
+const GUEST_WRITE_BLOCKED_MSG = "当前处于访客只读模式，已拦截写入操作";
+
+function nextActionNonce(): string {
+    try { return crypto.randomUUID(); }
+    catch { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
+}
+
+function cloneRuntime(rt: HubRuntime): HubRuntime {
+    return JSON.parse(JSON.stringify(rt)) as HubRuntime;
+}
+
+function restoreRuntime(target: HubRuntime, snapshot: HubRuntime): void {
+    const mutable = target as unknown as Record<string, unknown>;
+    for (const key of Object.keys(mutable)) delete mutable[key];
+    Object.assign(target, snapshot);
+}
+
+export function withRuntime(
+    plugin: Plugin,
+    fn: (rt: HubRuntime) => void | Promise<void>,
+    options?: WithRuntimeOptions,
+): Promise<HubRuntime> {
+    return withRuntimeSaveLock(plugin, async () => {
+        const pluginWithRuntime = plugin as unknown as { runtime: HubRuntime };
+        const previousRuntime = pluginWithRuntime.runtime;
+        const rt = await loadRuntime(plugin);
+        if (!options?.allowInGuestMode && (previousRuntime?.guestModeActive || rt.guestModeActive)) {
+            throw new Error(GUEST_WRITE_BLOCKED_MSG);
+        }
+        const snapshot = cloneRuntime(rt);
+        // 226 波修复（真机 e2e 发现的数据丢失竞态）：写回后必须同步插件活引用——
+        // 否则 notifyHubChanged/扫描仍持有旧对象并整体回写，把刚落盘的备忘/延后/已办覆盖丢失
+        pluginWithRuntime.runtime = rt;
+        try {
+            await fn(rt);
+            await persistRuntimeUnderLock(plugin, rt);
+            return rt;
+        } catch (error) {
+            // A local storage failure must not leave the in-memory panel in a
+            // state that was never committed.  Restore both the object passed
+            // to the callback and the plugin's previous live reference so a
+            // retry starts from exactly the pre-action snapshot.
+            restoreRuntime(rt, snapshot);
+            pluginWithRuntime.runtime = previousRuntime;
+            throw error;
+        }
+    });
+}
+
+function ymd(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** 延后 N 天（运行态，不改真实 due，记录推迟次数） */
+export function snooze(plugin: Plugin, reminderId: string, days: number, today = new Date()) {
+    return withRuntime(plugin, (rt) => {
+        rt.snoozed[reminderId] = ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days));
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        rt.snoozeCounts[reminderId] = (rt.snoozeCounts[reminderId] ?? 0) + 1;
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : undefined;
+        if (memoId) {
+            const m = rt.memos.find((x) => x.id === memoId);
+            if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+        }
+    });
+}
+
+/** 延后至目标日期（运行态，记录推迟次数） */
+export function snoozeToDate(plugin: Plugin, reminderId: string, targetDate: string) {
+    return withRuntime(plugin, (rt) => {
+        rt.snoozed[reminderId] = targetDate;
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        rt.snoozeCounts[reminderId] = (rt.snoozeCounts[reminderId] ?? 0) + 1;
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : undefined;
+        if (memoId) {
+            const m = rt.memos.find((x) => x.id === memoId);
+            if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+        }
+    });
+}
+
+/** 批量将提醒顺延至指定日期（支持撤销） */
+export async function batchSnooze(plugin: Plugin, reminderIds: string[], targetDate: string): Promise<Record<string, string | undefined>> {
+    const previous: Record<string, string | undefined> = {};
+    await withRuntime(plugin, (rt) => {
+        rt.snoozeCounts = rt.snoozeCounts ?? {};
+        for (const id of reminderIds) {
+            previous[id] = rt.snoozed[id];
+            rt.snoozed[id] = targetDate;
+            rt.snoozeCounts[id] = (rt.snoozeCounts[id] ?? 0) + 1;
+            const memoId = id.startsWith("adhoc::") ? id.slice("adhoc::".length) : undefined;
+            if (memoId) {
+                const m = rt.memos.find((x) => x.id === memoId);
+                if (m) m.snoozeCount = (m.snoozeCount ?? 0) + 1;
+            }
+        }
+    });
+    return previous;
+}
+
+/** 撤销批量顺延操作 */
+export async function undoBatchSnooze(plugin: Plugin, previousMap: Record<string, string | undefined>): Promise<void> {
+    await withRuntime(plugin, (rt) => {
+        for (const [id, prevDate] of Object.entries(previousMap)) {
+            if (prevDate === undefined) {
+                delete rt.snoozed[id];
+            } else {
+                rt.snoozed[id] = prevDate;
+            }
+            if (rt.snoozeCounts && rt.snoozeCounts[id]) {
+                rt.snoozeCounts[id] = Math.max(0, rt.snoozeCounts[id] - 1);
+            }
+            const memoId = id.startsWith("adhoc::") ? id.slice("adhoc::".length) : undefined;
+            if (memoId) {
+                const m = rt.memos.find((x) => x.id === memoId);
+                if (m && m.snoozeCount) m.snoozeCount = Math.max(0, m.snoozeCount - 1);
+            }
+        }
+    });
+}
+
+/** 忽略此类（可恢复） */
+export function mute(plugin: Plugin, reminderId: string) {
+    return withRuntime(plugin, (rt) => { rt.muted[reminderId] = true; });
+}
+
+/** 恢复被忽略的提醒 */
+export function unmute(plugin: Plugin, reminderId: string) {
+    return withRuntime(plugin, (rt) => { delete rt.muted[reminderId]; });
+}
+
+/**
+ * 完成（H05：完成那一期/那一次，不是永久 mute）：
+ * - anniversary → 记「今年已办」，当年隐藏、明年自动重现
+ * - recurring → 记本期已办（dueDate ≤ 已办期隐藏；台账 due 滚动后下一期自动重现）
+ * - adhoc 备忘 → 标记 doneAt（保留在运行态可恢复，不物理删除，H03）
+ * - oneoff → 记已办条目（可在已处理视图恢复）
+ */
+export function complete(plugin: Plugin, r: Reminder, year = new Date().getFullYear(), today = new Date()) {
+    return withRuntime(plugin, (rt) => {
+        const rec: HandledRecord = {
+            title: r.title, moduleId: r.moduleId, ruleKey: r.ruleKey,
+            dueDate: r.dueDate, at: new Date().toISOString(),
+        };
+        if (r.moduleId === "adhoc") {
+            const m = rt.memos.find((m) => `adhoc::${m.id}` === r.id);
+            if (m) {
+                if (m.cycle) {
+                    // 意图发生日保全（如月末 31 号、30 号），规避在 28/29 天月份过渡后永久退化漂移
+                    const origDay = (m as any).originalDay ?? (parseDate(m.dueDate)?.getDate() || today.getDate());
+                    if (origDay > 28) {
+                        (m as any).originalDay = origDay;
+                    }
+
+                    const baseDate = parseDate(m.dueDate) ?? today;
+                    const anchor = m.recurrenceAnchor ?? "due";
+                    const refToday = anchor === "due"
+                        ? addDays(baseDate >= today ? baseDate : today, 1)
+                        : today;
+                    const nextDate = calculateNextRecurrenceDate(baseDate, m.cycle, {
+                        today: refToday,
+                        anchor,
+                        completionDate: today,
+                    });
+                    if (origDay > 28 && (m.cycle === "month" || m.cycle?.endsWith("m") || m.cycle === "quarter" || m.cycle === "year")) {
+                        const targetMaxDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                        nextDate.setDate(Math.min(origDay, targetMaxDay));
+                    }
+                    m.dueDate = localDateKey(nextDate);
+                    delete rt.snoozed[r.id];
+                } else {
+                    m.doneAt = rec.at;
+                }
+            } else {
+                rt.handled[r.id] = rec;
+            }
+        } else if (reminderKind(r) === "anniversary") {
+            rt.handledYear[r.id] = year;
+        } else if (reminderKind(r) === "recurring") {
+            rt.handledUntil[r.id] = r.dueDate;
+        } else {
+            rt.handled[r.id] = rec;
+        }
+        // 29 组月度完成率：按月计数（restore 不递减——"恢复 ≠ 取消完成事实"）
+        const monthKey = rec.at.slice(0, 7);
+        rt.monthlyCompletions = { ...(rt.monthlyCompletions ?? {}), [monthKey]: (rt.monthlyCompletions?.[monthKey] ?? 0) + 1 };
+    });
+}
+
+/** 恢复（H07）：清掉该提醒的所有运行态隐藏标记（已办/已办期/当年已办/忽略/备忘完成） */
+export function restore(plugin: Plugin, reminderId: string) {
+    return withRuntime(plugin, (rt) => {
+        delete rt.muted[reminderId];
+        delete rt.handled[reminderId];
+        delete rt.handledYear[reminderId];
+        delete rt.handledUntil[reminderId];
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : undefined;
+        if (memoId) {
+            const m = rt.memos.find((m) => m.id === memoId);
+            if (m) delete m.doneAt;
+        }
+    });
+}
+
+/**
+ * 续期（H10）：写回规则自己的 field 列（缴费动作不改保障到期日——next_pay 规则写 next_pay，
+ * 签注写 due，默认效期列），成功后清除该提醒的 snooze/mute/已办，并留续期流水。
+ * fieldKey 由调用方从 schema.reminders 解析（actions 不依赖 schema）。
+ */
+export async function renew(
+    plugin: Plugin,
+    r: Reminder,
+    newDueISO: string,
+    dbRef: { avId?: string; columns?: Record<string, string> },
+    fieldKey = "expiry",
+) {
+    if ((plugin as unknown as { runtime?: HubRuntime }).runtime?.guestModeActive) {
+        throw new Error(GUEST_WRITE_BLOCKED_MSG);
+    }
+    const resolvedColKey = dbRef.columns?.[fieldKey]
+        ? fieldKey
+        : dbRef.columns?.expiry
+            ? "expiry"
+            : dbRef.columns?.due
+                ? "due"
+                : fieldKey;
+    const targetKey = dbRef.columns?.[resolvedColKey];
+    if (!dbRef.avId || !resolvedColKey) throw new Error("ledger not provisioned");
+    // UI 传入的是 HTML date 的 yyyy-MM-dd 字符串。不要把非法日期静默
+    // 转成 NaN（或 JS 自动进位后的另一天），否则会写坏台账并留下误导性的流水。
+    const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(newDueISO);
+    const ms = parts ? new Date(`${newDueISO}T00:00:00`).getTime() : Number.NaN;
+    const parsed = Number.isFinite(ms) ? new Date(ms) : undefined;
+    if (!parts || !parsed || parsed.getFullYear() !== Number(parts[1]) || parsed.getMonth() + 1 !== Number(parts[2]) || parsed.getDate() !== Number(parts[3])) {
+        throw new Error("invalid due date");
+    }
+    const nextCell = {
+        type: "date", date: { content: ms, isNotEmpty: true, hasEndDate: false, isNotTime: true },
+    };
+    const oldParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.dueDate);
+    const oldMs = oldParts ? new Date(`${r.dueDate}T00:00:00`).getTime() : Number.NaN;
+    const renewNonce = nextActionNonce();
+    let activeKey = targetKey;
+    try {
+        const writeRes = await setCellResilient({
+            avID: dbRef.avId,
+            keyID: targetKey,
+            itemID: r.rowId,
+            value: nextCell,
+            plugin,
+            moduleId: r.moduleId,
+            colKey: resolvedColKey,
+            ref: dbRef as any,
+            schemaCol: { key: resolvedColKey, type: "date" },
+            requestOptions: {
+                idempotencyKey: `renew:${r.rowId}:${targetKey ?? resolvedColKey}:${newDueISO}:${renewNonce}`,
+            },
+        });
+        activeKey = writeRes.keyID;
+        // v4：同步写入当日日记证件换证/续期事件（保留 AV renewed_to 链，不再依赖私有 runtime.renewHistory）
+        try {
+            const { recordHighFrequencyDiaryEvent } = await import("../diary-envelope");
+            await recordHighFrequencyDiaryEvent(plugin, {
+                module: r.moduleId,
+                action: "renew",
+                target: r.rowId,
+                avId: dbRef.avId,
+                bizDate: localDateKey(),
+                recordedAt: new Date().toISOString(),
+                text: `🪪 证件续期：${r.title} (${r.dueDate} → ${newDueISO}) #证件 #续期`,
+                extraAttrs: {
+                    "custom-lv-from-date": r.dueDate,
+                    "custom-lv-to-date": newDueISO,
+                },
+            });
+        } catch { /* soft: diary failure does not roll back AV renew */ }
+        return await withRuntime(plugin, (rt) => {
+            delete rt.snoozed[r.id];
+            delete rt.muted[r.id];
+            delete rt.handled[r.id];
+            delete rt.handledUntil[r.id];
+            delete rt.handledYear[r.id];
+            rt.renewHistory[r.rowId] = [
+                ...(rt.renewHistory[r.rowId] ?? []),
+                { from: r.dueDate, to: newDueISO, at: new Date().toISOString() },
+            ];
+        });
+    } catch (error) {
+        // The AV write and runtime marker are two separate stores.  If the
+        // second write fails, put the cell back so a retry cannot leave a
+        // visible due date that has no corresponding history/handled state.
+        if (Number.isFinite(oldMs) && activeKey) {
+            try {
+                await setCellResilient({
+                    avID: dbRef.avId,
+                    keyID: activeKey,
+                    itemID: r.rowId,
+                    value: {
+                        type: "date", date: { content: oldMs, isNotEmpty: true, hasEndDate: false, isNotTime: true },
+                    },
+                    plugin,
+                    moduleId: r.moduleId,
+                    colKey: resolvedColKey,
+                    ref: dbRef as any,
+                    schemaCol: { key: resolvedColKey, type: "date" },
+                    requestOptions: { idempotencyKey: `renew:rollback:${r.rowId}:${activeKey}:${r.dueDate}:${renewNonce}` },
+                });
+            } catch {
+                // Preserve the original error; the caller still surfaces a
+                // retry action and diagnostics can report the AV mismatch.
+            }
+        }
+        throw error;
+    }
+}
+
+/** 快速备忘（D1）。同一插件实例内相同标题/日期短时间重复提交只落一条。 */
+const memoIdempotency = new WeakMap<object, Map<string, number>>();
+const MEMO_IDEMPOTENCY_TTL_MS = 2_000;
+
+function validDate(value: string): boolean {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!m) return false;
+    const d = new Date(`${value}T00:00:00`);
+    return Number.isFinite(d.getTime()) && d.getFullYear() === Number(m[1]) && d.getMonth() + 1 === Number(m[2]) && d.getDate() === Number(m[3]);
+}
+
+export interface AddMemoOptions {
+    idempotencyKey?: string;
+    priority?: "high" | "medium" | "low";
+    category?: string;
+    recurrenceAnchor?: "due" | "completion";
+    cycle?: string;
+    notebook?: string;
+}
+
+const PLUGIN_NOTEBOOK_NAME_RE = /小驴|管家|人脉|题库|闪卡|拾遗|生态|空间|exam|contacts|home|checkin|glean/i;
+
+/**
+ * 自动探测可用于创建/定位今日日记的开放笔记本 ID（规避未初始化笔记本首调 createDailyNote({}) 报 Field [notebook] is required）。
+ */
+export async function resolveOpenNotebookForMemo(preferredNotebook?: string): Promise<string | undefined> {
+    const notebooks = await listNotebooks().catch(() => []);
+    if (!Array.isArray(notebooks) || notebooks.length === 0) return undefined;
+    const open = notebooks.filter((nb) => !nb.closed);
+    if (open.length === 0) return undefined;
+    const preferred = preferredNotebook?.trim();
+    if (preferred) {
+        const hit = open.find((nb) => nb.id === preferred && !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name));
+        if (hit) return hit.id;
+    }
+    const primary = open.find((nb) => !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name)) ?? open[0];
+    return primary?.id;
+}
+
+/**
+ * 确保今日日记存在；新建时显式传入 `{ notebook }`，避免空参触发 `Field [notebook] is required`。
+ */
+export async function ensureTodayDailyNoteForMemo(
+    preferredNotebook?: string,
+    today = new Date(),
+): Promise<{ docId: string; notebookId: string } | null> {
+    const todayCompact = localDateKey(today).replace(/-/g, "");
+    const notebooks = await listNotebooks().catch(() => []);
+    const openIds = new Set(notebooks.filter((nb) => !nb.closed).map((nb) => nb.id));
+    const nonPluginIds = new Set(notebooks.filter((nb) => !nb.closed && !PLUGIN_NOTEBOOK_NAME_RE.test(nb.name)).map((nb) => nb.id));
+    const hasNbCatalog = notebooks.length > 0;
+    try {
+        const existing = await sql<{ id?: string; box?: string }>(
+            `SELECT DISTINCT b.id, b.box FROM attributes a JOIN blocks b ON b.id = a.block_id WHERE a.name = 'custom-dailynote-${todayCompact}' AND b.type='d' ORDER BY b.created ASC, b.id ASC`,
+        );
+        if (Array.isArray(existing) && existing.length > 0) {
+            const validRows = existing.filter((r) => r?.id && (!hasNbCatalog || !r.box || openIds.has(String(r.box))));
+            const preferred = validRows.find((r) => !hasNbCatalog || !r.box || nonPluginIds.has(String(r.box))) ?? validRows[0];
+            if (preferred?.id) {
+                const notebookId = preferred.box || (await resolveOpenNotebookForMemo(preferredNotebook)) || "";
+                return { docId: String(preferred.id), notebookId };
+            }
+        }
+    } catch {
+        /* fallback to notebook probe */
+    }
+    const notebookId = await resolveOpenNotebookForMemo(preferredNotebook);
+    if (!notebookId) return null;
+    try {
+        const created = await post<{ id?: string } | string>("/api/filetree/createDailyNote", { notebook: notebookId });
+        const docId = typeof created === "string" ? created : String(created?.id ?? "");
+        if (!docId) return null;
+        return { docId, notebookId };
+    } catch {
+        return null;
+    }
+}
+
+export async function addMemoWithMeta(
+    plugin: Plugin,
+    title: string,
+    dueDate: string,
+    idempotencyOrOptions?: string | AddMemoOptions,
+): Promise<{ runtime: HubRuntime; inserted: boolean; memoId?: string }> {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) throw new Error("备忘标题不能为空");
+    if (!validDate(dueDate)) throw new Error("备忘日期无效");
+    const options: AddMemoOptions = typeof idempotencyOrOptions === "string"
+        ? { idempotencyKey: idempotencyOrOptions }
+        : (idempotencyOrOptions ?? {});
+    const key = options.idempotencyKey?.trim() || `${normalizedTitle}\u0000${dueDate}`;
+    const seen = memoIdempotency.get(plugin) ?? new Map<string, number>();
+    memoIdempotency.set(plugin, seen);
+    let inserted = false;
+    let memoId: string | undefined;
+    try {
+        const result = await withRuntime(plugin, (rt) => {
+            const now = Date.now();
+            for (const [k, at] of seen) if (now - at > MEMO_IDEMPOTENCY_TTL_MS) seen.delete(k);
+            if (seen.has(key)) return;
+            seen.set(key, now);
+            memoId = `m-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+            rt.memos.push({
+                id: memoId,
+                title: normalizedTitle,
+                dueDate,
+                createdAt: new Date().toISOString(),
+                ...(options.priority ? { priority: options.priority } : {}),
+                ...(options.category ? { category: options.category } : {}),
+                ...(options.recurrenceAnchor ? { recurrenceAnchor: options.recurrenceAnchor } : {}),
+                ...(options.cycle ? { cycle: options.cycle } : {}),
+            });
+            inserted = true;
+        });
+        return { runtime: result, inserted, memoId };
+    } catch (error) {
+        seen.delete(key);
+        throw error;
+    }
+}
+
+export async function addMemo(
+    plugin: Plugin,
+    title: string,
+    dueDate: string,
+    idempotencyOrOptions?: string | AddMemoOptions,
+): Promise<HubRuntime> {
+    const { runtime } = await addMemoWithMeta(plugin, title, dueDate, idempotencyOrOptions);
+    return runtime;
+}
+
+/** 删除备忘（显式用户动作；未处理备忘永不自动删除，H03） */
+export function removeMemo(plugin: Plugin, reminderId: string) {
+    return withRuntime(plugin, (rt) => {
+        const memoId = reminderId.startsWith("adhoc::") ? reminderId.slice("adhoc::".length) : reminderId;
+        const fullId = `adhoc::${memoId}`;
+        rt.memos = rt.memos.filter((m) => m.id !== memoId);
+        delete rt.muted[fullId];
+        delete rt.snoozed[fullId];
+        if (rt.snoozeCounts) delete rt.snoozeCounts[fullId];
+        if (rt.planDates) delete rt.planDates[fullId];
+        if (rt.handled) delete rt.handled[fullId];
+        if (rt.pinnedMemoIds) rt.pinnedMemoIds = rt.pinnedMemoIds.filter((id) => id !== memoId && id !== fullId);
+        if (rt.pinnedReminderIds) rt.pinnedReminderIds = rt.pinnedReminderIds.filter((id) => id !== fullId && id !== memoId);
+    });
+}
+
+/** 编辑备忘（246 波，收件箱深化）：标题/到期日/优先级/分类/周期修正；完成后仍可改（历史留痕不变） */
+export function updateMemo(
+    plugin: Plugin,
+    memoId: string,
+    patch: {
+        title?: string;
+        dueDate?: string;
+        priority?: "high" | "medium" | "low" | null;
+        category?: string | null;
+        cycle?: string | null;
+        recurrenceAnchor?: "due" | "completion" | null;
+    },
+) {
+    return withRuntime(plugin, (rt) => {
+        const id = memoId.startsWith("adhoc::") ? memoId.slice("adhoc::".length) : memoId;
+        const m = rt.memos.find((x) => x.id === id);
+        if (!m) return;
+        if (patch.title !== undefined && patch.title.trim()) m.title = patch.title.trim();
+        if (patch.dueDate !== undefined && patch.dueDate) m.dueDate = patch.dueDate;
+        if (patch.priority !== undefined) {
+            if (patch.priority) m.priority = patch.priority;
+            else delete m.priority;
+        }
+        if (patch.category !== undefined) {
+            if (patch.category && patch.category.trim()) m.category = patch.category.trim();
+            else delete m.category;
+        }
+        if (patch.cycle !== undefined) {
+            if (patch.cycle && patch.cycle.trim()) m.cycle = patch.cycle.trim();
+            else delete m.cycle;
+        }
+        if (patch.recurrenceAnchor !== undefined) {
+            if (patch.recurrenceAnchor) m.recurrenceAnchor = patch.recurrenceAnchor;
+            else delete m.recurrenceAnchor;
+        }
+    });
+}
+
+/** 备忘置顶切换（246 波收件箱深化）：置顶项在提醒列表组内始终排最前 */
+export function toggleMemoPin(plugin: Plugin, memoId: string) {
+    return withRuntime(plugin, (rt) => {
+        const id = memoId.startsWith("adhoc::") ? memoId.slice("adhoc::".length) : memoId;
+        rt.pinnedMemoIds = rt.pinnedMemoIds ?? [];
+        const i = rt.pinnedMemoIds.indexOf(id);
+        if (i >= 0) rt.pinnedMemoIds.splice(i, 1);
+        else rt.pinnedMemoIds.push(id);
+    });
+}
+
+/** 提醒置顶切换（304 波）：支持任意模块重要提醒（证件/合同/台账/备忘）在提醒中枢分组内置顶优先 */
+export function toggleReminderPin(plugin: Plugin, reminderId: string) {
+    return withRuntime(plugin, (rt) => {
+        toggleReminderPinInRuntime(rt, reminderId);
+    });
+}

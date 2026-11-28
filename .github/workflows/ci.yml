@@ -1,0 +1,65 @@
+# CI：PR 与 main push 的质量门禁
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# CI never needs to write to the repository or publish a release.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    # Pin the image so the release gate does not change under us on 2026-10-19.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        # 版本由 package.json 的 packageManager 字段唯一声明（避免双源冲突）
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check (types + svelte + i18n + meta + audit)
+        run: pnpm run check
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Package smoke test
+        run: pnpm run smoke
+
+      # 思源加载器要求单文件 bundle；对齐 420KB 预算门禁（430,080 字节，容纳 Launchpad 5.5 + 3.8.10 原生适配 + R8-R28 全量加固，由 390KB 上调），留出合理功能迭代空间。
+      - name: Bundle size gate (index.js gzip < 420KB, single-file mandatory)
+        run: |
+          SIZE=$(gzip -c dist/index.js | wc -c)
+          echo "index.js gzip: $SIZE bytes"
+          if [ "$SIZE" -gt 430080 ]; then
+            echo "::error::index.js gzip exceeds 420KB budget"
+            exit 1
+          fi
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: package
+          path: package.zip
+          retention-days: 14

@@ -1,0 +1,450 @@
+<script lang="ts">
+    import { saveSettings } from "@/core/settings";
+    import { localDateKey } from "@/core/hub/rule";
+    import UiIcon from "@/ui/icon.svelte";
+    import { lvBackup, lvEcosystem, homeNotify, showMessage } from "@/libs/notice";
+    import { lvSnapshotVault } from "@/libs/lv-notice-kit";
+
+    let {
+        plugin,
+        t,
+        notebookList = [],
+        saving = false,
+        migrationBusy = false,
+        migrationAction = null,
+        demoBusy = false,
+        demoAction = null,
+        preImportBackupExists = false,
+        onExportSettings,
+        onExportHtmlManual,
+        onImportSettings,
+        onRestorePreImport,
+        onGenerateDemo,
+        onClearDemo,
+    }: {
+        plugin: any;
+        t: (k: string) => string;
+        notebookList?: Array<{ id: string; name: string }>;
+        saving?: boolean;
+        migrationBusy?: boolean;
+        migrationAction?: "import" | "restore" | null;
+        demoBusy?: boolean;
+        demoAction?: "generate" | "clear" | null;
+        preImportBackupExists?: boolean;
+        onExportSettings: () => void;
+        onExportHtmlManual?: () => void;
+        onImportSettings: (e: Event) => Promise<void>;
+        onRestorePreImport: () => Promise<void>;
+        onGenerateDemo: () => Promise<void>;
+        onClearDemo: () => void;
+    } = $props();
+
+    let dataSection: "migration" | "trash" | "demo" | "ecosystem" | "shortcuts" = $state("migration");
+    let importInput: HTMLInputElement | undefined = $state();
+    let ecoImportInput: HTMLInputElement | undefined = $state();
+    let ecoBackupBusy = $state(false);
+    let vaultBusy = $state(false);
+    let v2MigrationBusy = $state(false);
+    let v2MigrationStatus = $state("");
+    let trashRevision = $state(0);
+    let restoringTrashIds = $state<Set<string>>(new Set());
+    const isGuestMode = $derived(Boolean(plugin?.runtime?.guestModeActive));
+
+    async function handleV2MigrationDryRun() {
+        if (v2MigrationBusy) return;
+        v2MigrationBusy = true;
+        try {
+            const { executeHomeV2Migration } = await import("@/core/migration-v2");
+            const res = await executeHomeV2Migration(plugin, { dryRunOnly: true });
+            v2MigrationStatus = `${t("settings.v2MigrateDryRunOk")} (${res.manifest.expectedTotals.count})`;
+            homeNotify(v2MigrationStatus, 3000, "info");
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            v2MigrationBusy = false;
+        }
+    }
+
+    async function handleV2MigrationRun() {
+        if (v2MigrationBusy) return;
+        v2MigrationBusy = true;
+        try {
+            const { executeHomeV2Migration } = await import("@/core/migration-v2");
+            const res = await executeHomeV2Migration(plugin, { dryRunOnly: false });
+            v2MigrationStatus = `${t("settings.v2MigrateDone")} (+${res.newlyWrittenCount} / skip ${res.skippedExistingCount})`;
+            homeNotify(v2MigrationStatus, 3500, "info");
+            plugin.emitHubChanged?.();
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 5000, "error");
+        } finally {
+            v2MigrationBusy = false;
+        }
+    }
+
+    async function handleV2MigrationRollback() {
+        if (v2MigrationBusy) return;
+        const { confirm } = await import("@/libs/dialog");
+        confirm(t("settings.v2RollbackTitle"), t("settings.v2RollbackConfirm"), async () => {
+            v2MigrationBusy = true;
+            try {
+                const { executeHomeV2Rollback } = await import("@/core/migration-v2");
+                const res = await executeHomeV2Rollback(plugin);
+                v2MigrationStatus = `${t("settings.v2RollbackDone")} (${res.deletedUnmodifiedCount})`;
+                homeNotify(v2MigrationStatus, 3500, "info");
+                plugin.emitHubChanged?.();
+            } catch (err) {
+                homeNotify(String(err instanceof Error ? err.message : err), 5000, "error");
+            } finally {
+                v2MigrationBusy = false;
+            }
+        });
+    }
+    const trashItems = $derived.by(() => {
+        void trashRevision;
+        return plugin.runtime?.trash ?? [];
+    });
+
+    async function handleExportEcoFull() {
+        if (ecoBackupBusy) return;
+        ecoBackupBusy = true;
+        try {
+            const bundle = await lvBackup.exportFull();
+            const jsonStr = JSON.stringify(bundle, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const today = localDateKey();
+            a.href = url;
+            a.download = `lv-ecosystem-backup-${today}.json`;
+            a.click();
+            // 2026-11-21 走查修复：0ms 立即回收时序敏感（与同仓 sharecard.ts 的 4000ms 约定不一致），
+            // 个别引擎/慢速下载启动会被撤销，对齐延迟回收。
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+            homeNotify(t("settings.exportEcoFullOk"), 3000, "info");
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            ecoBackupBusy = false;
+        }
+    }
+
+    async function handleImportEcoFull(e: Event) {
+        const target = e.target as HTMLInputElement;
+        const file = target?.files?.[0];
+        if (!file) return;
+        if (ecoBackupBusy) return;
+        ecoBackupBusy = true;
+        try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const res = await lvBackup.restoreFull(parsed);
+            const msg = t("settings.importEcoFullOk")
+                .replace("${s}", String(res.success.length))
+                .replace("${f}", String(res.failed.length));
+            homeNotify(msg, 4000, res.failed.length > 0 ? "error" : "info");
+            plugin.emitHubChanged?.();
+            plugin.refreshHub?.(undefined, true).catch(() => undefined);
+        } catch (err) {
+            homeNotify(t("settings.importEcoFullFail") + ": " + String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            ecoBackupBusy = false;
+            if (target) target.value = "";
+        }
+    }
+
+    async function handleVaultBackupNow() {
+        if (vaultBusy) return;
+        vaultBusy = true;
+        try {
+            const res = await lvSnapshotVault.runBackupNow("siyuan-home");
+            if (res?.ok) {
+                homeNotify(t("settings.vaultBackupOk").replace("${n}", String(res.recordCount ?? 0)), 3200, "info");
+            } else if (res?.reason === "empty_store_refused" || res?.reason === "no_data_skip") {
+                homeNotify(t("settings.vaultBackupEmpty"), 3800, "info");
+            } else if (res?.reason === "revision_conflict") {
+                homeNotify(t("settings.vaultBackupConflict"), 4500, "error");
+            } else {
+                homeNotify(t("settings.vaultBackupFail").replace("${msg}", String(res?.reason || "unknown")), 4000, "error");
+            }
+        } catch (err) {
+            homeNotify(t("settings.vaultBackupFail").replace("${msg}", String(err instanceof Error ? err.message : err)), 4000, "error");
+        } finally {
+            vaultBusy = false;
+        }
+    }
+
+    async function handleOpenVaultRestoreWizard() {
+        if (vaultBusy) return;
+        vaultBusy = true;
+        try {
+            await lvSnapshotVault.openRestoreWizardDialog();
+        } catch (err) {
+            homeNotify(String(err instanceof Error ? err.message : err), 4000, "error");
+        } finally {
+            vaultBusy = false;
+        }
+    }
+</script>
+
+<div class="lv-settings__pane-title">{t("settings.dataTitle")}</div>
+<nav class="lv-settings__subnav" aria-label={t("settings.dataTitle")}>
+    <button type="button" class="lv-setnav__item {dataSection === 'migration' ? 'on' : ''}" aria-current={dataSection === 'migration' ? 'true' : undefined} onclick={() => (dataSection = "migration")}>{t("settings.migrateTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'trash' ? 'on' : ''}" aria-current={dataSection === 'trash' ? 'true' : undefined} onclick={() => (dataSection = "trash")}>{t("settings.trashTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'demo' ? 'on' : ''}" aria-current={dataSection === 'demo' ? 'true' : undefined} onclick={() => (dataSection = "demo")}>{t("settings.demoTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'ecosystem' ? 'on' : ''}" aria-current={dataSection === 'ecosystem' ? 'true' : undefined} onclick={() => (dataSection = "ecosystem")}>{t("settings.ecoTitle")}</button>
+    <button type="button" class="lv-setnav__item {dataSection === 'shortcuts' ? 'on' : ''}" aria-current={dataSection === 'shortcuts' ? 'true' : undefined} onclick={() => (dataSection = "shortcuts")}>{t("faq.shortcuts")}</button>
+</nav>
+<div class="lv-settings__scroll">
+<input type="file" accept="application/json,.json" class="fn__none"
+    aria-label={t("settings.importEcoFull")}
+    bind:this={ecoImportInput} onchange={(e) => handleImportEcoFull(e)} />
+{#if dataSection === "migration"}
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.targetNotebook")}</div>
+        <div class="lv-setcard__hint">{t("settings.targetNotebookHint")}</div>
+        <div class="lv-mt-10">
+            <select class="b3-select lv-select-wide"
+                value={plugin.settings?.targetNotebookId ?? ""}
+                onchange={async (e) => {
+                    const val = (e.currentTarget as HTMLSelectElement).value;
+                    if (!plugin.settings) plugin.settings = {};
+                    plugin.settings.targetNotebookId = val || undefined;
+                    // 2026-11-21 走查修复：落盘失败原先静默（unhandled rejection + 无错误提示）
+                    try {
+                        await saveSettings(plugin, plugin.settings);
+                        showMessage(t("saved"), 2000, "info");
+                    } catch (err) {
+                        showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                    }
+                }}>
+                <option value="">🏠 {t("butler")}</option>
+                {#each notebookList as nb (nb.id)}
+                    <option value={nb.id}>📚 {nb.name}</option>
+                {/each}
+            </select>
+        </div>
+    </div>
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.energyPresetsTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.energyPresetsHint")}</div>
+        <div class="lv-mt-10" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <label style="min-width: 100px; font-size: 13px;" for="lv-set-fuel-presets">{t("settings.fuelPresets")}:</label>
+                <input id="lv-set-fuel-presets" class="b3-text-field fn__flex-1" style="min-width: 120px;"
+                    value={(plugin.settings?.fuelPresetAmounts ?? [200, 300, 500]).join(", ")}
+                    onchange={async (e) => {
+                        const vals = (e.currentTarget as HTMLInputElement).value
+                            .split(/[,，\s]+/)
+                            .map((s) => Number(s.trim()))
+                            .filter((n) => Number.isFinite(n) && n > 0);
+                        if (vals.length > 0) {
+                            if (!plugin.settings) return;
+                            plugin.settings.fuelPresetAmounts = vals;
+                            try {
+                                await saveSettings(plugin, plugin.settings);
+                                showMessage(t("saved"), 2000, "info");
+                            } catch (err) {
+                                showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                            }
+                        }
+                    }}
+                />
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <label style="min-width: 100px; font-size: 13px;" for="lv-set-charge-presets">{t("settings.chargePresets")}:</label>
+                <input id="lv-set-charge-presets" class="b3-text-field fn__flex-1" style="min-width: 120px;"
+                    value={(plugin.settings?.chargePresetAmounts ?? [30, 50, 100]).join(", ")}
+                    onchange={async (e) => {
+                        const vals = (e.currentTarget as HTMLInputElement).value
+                            .split(/[,，\s]+/)
+                            .map((s) => Number(s.trim()))
+                            .filter((n) => Number.isFinite(n) && n > 0);
+                        if (vals.length > 0) {
+                            if (!plugin.settings) return;
+                            plugin.settings.chargePresetAmounts = vals;
+                            try {
+                                await saveSettings(plugin, plugin.settings);
+                                showMessage(t("saved"), 2000, "info");
+                            } catch (err) {
+                                showMessage(String(err instanceof Error ? err.message : err), 4000, "error");
+                            }
+                        }
+                    }}
+                />
+            </div>
+        </div>
+    </div>
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.migrateTitle")}</div>
+        <div class="lv-setcard__hint lv-tx-warn"><UiIcon name="alert" size={13} /> {t("settings.migratePrivacy")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onExportSettings}>{t("settings.export")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} title={t("settings.exportHtmlManualTip")} onclick={onExportHtmlManual}>{t("settings.exportHtmlManual")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={() => importInput?.click()}>{migrationAction === "import" ? t("ledger.saving") : t("settings.import")}</button>
+            <input type="file" accept="application/json,.json" class="fn__none"
+                aria-label={t("settings.import")}
+                bind:this={importInput} onchange={(e) => onImportSettings(e)} />
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={handleExportEcoFull}>🐴 {t("settings.exportEcoFull")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving || ecoBackupBusy} onclick={() => ecoImportInput?.click()}>🐴 {t("settings.importEcoFull")}</button>
+            {#if preImportBackupExists}
+                <button type="button" class="b3-button b3-button--outline" disabled={migrationBusy || saving} onclick={onRestorePreImport}>{migrationAction === "restore" ? t("ledger.saving") : t("settings.restoreBtn")}</button>
+            {/if}
+        </div>
+    </div>
+    <div class="lv-card lv-setcard" data-lv-vault-card="migration">
+        <div class="lv-setcard__title">{t("settings.vaultTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.vaultHint")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={vaultBusy || saving || isGuestMode} aria-busy={vaultBusy} onclick={handleVaultBackupNow}>
+                <UiIcon name="archive" size={13} /> {t("settings.vaultBackupNow")}
+            </button>
+            <button type="button" class="b3-button b3-button--outline" disabled={vaultBusy || saving || isGuestMode} onclick={handleOpenVaultRestoreWizard}>
+                <UiIcon name="history" size={13} /> {t("settings.vaultRestoreWizard")}
+            </button>
+        </div>
+    </div>
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.v2MigrateTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.v2MigrateHint")}</div>
+        {#if v2MigrationStatus}
+            <div class="lv-caption lv-tx-accent" style="margin-bottom:8px;">{v2MigrationStatus}</div>
+        {/if}
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationDryRun}>{t("settings.v2MigrateDryRun")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationRun}>{t("settings.v2MigrateRun")}</button>
+            <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger" disabled={v2MigrationBusy || saving} onclick={handleV2MigrationRollback}>{t("settings.v2RollbackBtn")}</button>
+        </div>
+    </div>
+    {:else if dataSection === "trash"}
+        <div class="lv-card lv-setcard">
+            <div class="lv-setcard__title"><UiIcon name="archive" size={15} /> {t("settings.trashTitle")}</div>
+            <div class="lv-setcard__hint">{t("settings.trashHint")}</div>
+            <div class="lv-mt-10 lv-dialog-list">
+                {#if trashItems.length === 0}
+                    <div class="lv-caption lv-tx-muted lv-dialog-empty">{t("settings.trashEmpty")}</div>
+                {:else}
+                    {#each trashItems as item (item.id + item.deletedAt)}
+                        <div class="lv-settings__row lv-trash-item">
+                            <div class="lv-trash-info">
+                                <b>{item.title}</b>
+                                <span class="lv-caption lv-tx-muted">{item.moduleId} · {item.deletedAt.slice(0, 16).replace("T", " ")}</span>
+                            </div>
+                            <div class="lv-trash-ops">
+                                <span class="lv-badge gray lv-badge--xs">{t("settings.trashTitle")}</span>
+                                <button type="button" class="b3-button b3-button--outline lv-btn-xs"
+                                    disabled={isGuestMode || restoringTrashIds.has(item.id)}
+                                    aria-busy={restoringTrashIds.has(item.id)}
+                                    onclick={async () => {
+                                        if (plugin.runtime?.guestModeActive) {
+                                            showMessage(t("guest.writeBlocked"), 4000, "info");
+                                            return;
+                                        }
+                                        if (restoringTrashIds.has(item.id)) return;
+                                        restoringTrashIds = new Set([...restoringTrashIds, item.id]);
+                                        try {
+                                            const { restoreTrashItem } = await import("@/core/trash");
+                                            const res = await restoreTrashItem(plugin, item.id);
+                                            if (res.success) {
+                                                trashRevision += 1;
+                                                plugin.emitHubChanged?.();
+                                                showMessage(t("settings.trashRestored"), 3000, "info");
+                                            } else {
+                                                showMessage(res.error || t("ledger.saveFailed"), 5000, "error");
+                                            }
+                                        } finally {
+                                            const next = new Set(restoringTrashIds);
+                                            next.delete(item.id);
+                                            restoringTrashIds = next;
+                                        }
+                                    }}>
+                                    {restoringTrashIds.has(item.id) ? t("ledger.saving") : t("settings.trashRestore")}
+                                </button>
+                            </div>
+                        </div>
+                    {/each}
+                    <button type="button" class="b3-button b3-button--text ft__error lv-tx-danger lv-self-start lv-mt-8" disabled={isGuestMode} onclick={async () => {
+                        if (plugin.runtime?.guestModeActive) {
+                            showMessage(t("guest.writeBlocked"), 4000, "info");
+                            return;
+                        }
+                        const { confirm } = await import("@/libs/dialog");
+                        confirm(
+                            t("settings.trashClear"),
+                            t("settings.trashClearConfirm"),
+                            async () => {
+                                const { withRuntime } = await import("@/core/hub/actions");
+                                await withRuntime(plugin, (rt) => { rt.trash = []; });
+                                trashRevision += 1;
+                                plugin.emitHubChanged?.();
+                                showMessage(t("saved"), 2000, "info");
+                            }
+                        );
+                    }}>
+                        {t("settings.trashClear")}
+                    </button>
+                {/if}
+            </div>
+        </div>
+    {:else if dataSection === "demo"}
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.demoTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.demoHint")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "generate"} onclick={onGenerateDemo}>{demoAction === "generate" ? t("ledger.saving") : t("settings.demoGenerate")}</button>
+            <button type="button" class="b3-button b3-button--outline" disabled={demoBusy} aria-busy={demoBusy && demoAction === "clear"} onclick={onClearDemo}>{demoAction === "clear" ? t("ledger.saving") : t("settings.demoClear")}</button>
+        </div>
+    </div>
+{:else if dataSection === "ecosystem"}
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("overview.ecoStatusBadge")}</div>
+        <div class="lv-ecosystem-status-banner" style="margin-top:8px; padding:10px 14px; background:var(--lv-surface); border:1px solid var(--lv-accent-line); border-radius:var(--lv-r-card); font-size:12.5px; color:var(--lv-tx-1); display:flex; align-items:center; gap:8px;">
+            <UiIcon name="sparkle" size={16} />
+            <b style="color:var(--lv-accent);">{lvEcosystem.getStatusBadgeText()}</b>
+        </div>
+    </div>
+
+    <div class="lv-card lv-setcard" data-lv-vault-card="ecosystem">
+        <div class="lv-setcard__title">{t("settings.vaultTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.vaultHint")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={vaultBusy || isGuestMode} aria-busy={vaultBusy} onclick={handleVaultBackupNow}>
+                <UiIcon name="archive" size={13} /> {t("settings.vaultBackupNow")}
+            </button>
+            <button type="button" class="b3-button b3-button--outline" disabled={vaultBusy || isGuestMode} onclick={handleOpenVaultRestoreWizard}>
+                <UiIcon name="history" size={13} /> {t("settings.vaultRestoreWizard")}
+            </button>
+        </div>
+    </div>
+
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.ecoBackupTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.ecoBackupHint")}</div>
+        <div class="lv-setcard__actions">
+            <button type="button" class="b3-button b3-button--outline" disabled={ecoBackupBusy} onclick={handleExportEcoFull}>
+                <UiIcon name="archive" size={13} /> {t("settings.exportEcoFull")}
+            </button>
+            <button type="button" class="b3-button b3-button--outline" disabled={ecoBackupBusy} onclick={() => ecoImportInput?.click()}>
+                <UiIcon name="history" size={13} /> {t("settings.importEcoFull")}
+            </button>
+        </div>
+    </div>
+
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">{t("settings.ecoTitle")}</div>
+        <div class="lv-setcard__hint">{t("settings.ecoHint")} · {t("settings.ecoPlanned")}</div>
+        {#each ["qiandao", "contacts", "glean", "exam", "flashcard", "leiqie"] as eco (eco)}
+            <div class="fn__flex lv-settings__row">
+                <span class="lv-setnav__icon" aria-hidden="true"><UiIcon name="repeat" size={14} /></span>
+                <span class="fn__flex-1">{t(`eco.${eco}`)}</span>
+                <span class="lv-badge gray">{t("settings.ecoPlanned")}</span>
+            </div>
+        {/each}
+    </div>
+{:else}
+    <div class="lv-card lv-setcard">
+        <div class="lv-setcard__title">⌨ {t("faq.shortcuts")}</div>
+        <p class="lv-caption lv-p-tight">· {t("openButler")}：{t("faq.topbarOrCommand")}</p>
+        <p class="lv-caption lv-p-tight">· {t("faq.quickCapture")}：{t("faq.topbarBolt")}</p>
+    </div>
+{/if}
+</div>
